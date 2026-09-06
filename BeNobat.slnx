@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/BeNobat.Web/BeNobat.Web.csproj" />
+  <Project Path="tests/BeNobat.Web.Tests/BeNobat.Web.Tests.csproj" />
+</Solution>

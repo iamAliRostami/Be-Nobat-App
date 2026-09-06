@@ -1,0 +1,5 @@
+.git
+pb_data
+workspace
+**/bin
+**/obj

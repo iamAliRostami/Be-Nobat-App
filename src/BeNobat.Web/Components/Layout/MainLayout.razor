@@ -1,0 +1,18 @@
+@inherits LayoutComponentBase
+
+<div class="shell">
+    <aside class="sidebar">
+        <div class="brand"><span>ب</span><div><strong>به‌نوبت</strong><small>پنل مدیریت</small></div></div>
+        <nav>
+            <NavLink href="/" Match="NavLinkMatch.All">⌂ داشبورد</NavLink>
+            <NavLink href="/businesses">▣ کسب‌وکارها</NavLink>
+            <a href="#">⌖ شعبه‌ها</a><a href="#">◇ خدمات</a><a href="#">♙ منابع</a>
+            <a href="#">◷ نوبت‌ها</a><a href="#">♧ مشتریان</a><a href="#">♢ تخفیف‌ها</a>
+        </nav>
+        <div class="sidebar-footer">ASP.NET Core 10<br/><small>Foundation v0.1</small></div>
+    </aside>
+    <main>
+        <header><div>محیط مدیریت</div><div class="avatar">مدیر</div></header>
+        <section class="content">@Body</section>
+    </main>
+</div>
