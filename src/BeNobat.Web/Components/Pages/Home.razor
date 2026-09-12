@@ -1,6 +1,5 @@
 @page "/"
 @layout Layout.PublicLayout
-@rendermode InteractiveServer
 
 <PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
 
@@ -10,10 +9,10 @@
         <h1>وقتت ارزشمنده؛<br/><em>به‌نوبت</em> رزرو کن.</h1>
         <p>بهترین متخصص‌های اطرافت را پیدا کن، زمان‌های خالی را ببین و در چند ثانیه نوبت بگیر.</p>
         <div class="search-box">
-            <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" @bind="SearchTerm" @bind:event="oninput" /></label>
+            <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" /></label>
             <i></i>
-            <label><span>⌖</span><input aria-label="انتخاب شهر" @bind="City" /></label>
-            <button @onclick="RunSearch">جست‌وجو</button>
+            <label><span>⌖</span><input aria-label="انتخاب شهر" value="تهران" /></label>
+            <a href="#popular">جست‌وجو</a>
         </div>
         <div class="quick-tags"><span>جست‌وجوهای محبوب:</span><a href="#popular">کوتاهی مو</a><a href="#popular">دندانپزشکی</a><a href="#popular">ماساژ</a></div>
     </div>
@@ -41,36 +40,13 @@
 </section>
 
 <section class="section businesses" id="businesses">
-    <div class="section-heading"><div><span>پیشنهاد به‌نوبت</span><h2>محبوب‌ترین‌های نزدیک شما</h2></div></div>
+    <div class="section-heading"><div><span>پیشنهاد به‌نوبت</span><h2>محبوب‌ترین‌های نزدیک شما</h2></div><div class="slider-buttons"><button>→</button><button>←</button></div></div>
     <div class="business-grid">
-        @foreach (var item in FilteredBusinesses)
-        {
-            <BusinessCard Name="@item.Name" Category="@item.Category" Location="@item.Location" Rating="@item.Rating" Reviews="@item.Reviews" Accent="@item.Accent" Icon="@item.Icon" />
-        }
-        @if (!FilteredBusinesses.Any())
-        {
-            <div class="search-empty"><b>⌕</b><span>نتیجه‌ای برای «@SearchTerm» در @City پیدا نشد.</span><button @onclick="ClearSearch">پاک کردن جست‌وجو</button></div>
-        }
+        <BusinessCard Name="کلینیک دندانپزشکی سپید" Category="دندانپزشکی" Location="سعادت‌آباد" Rating="۴.۹" Reviews="۱۸۶" Accent="blue" Icon="✚" />
+        <BusinessCard Name="استودیو زیبایی آوان" Category="زیبایی و آرایش" Location="ونک" Rating="۴.۹" Reviews="۲۳۸" Accent="rose" Icon="✦" />
+        <BusinessCard Name="مرکز ماساژ حس خوب" Category="ماساژ و تندرستی" Location="پاسداران" Rating="۴.۸" Reviews="۱۴۲" Accent="green" Icon="♧" />
     </div>
 </section>
-
-@code {
-    private string SearchTerm { get; set; } = string.Empty;
-    private string City { get; set; } = "تهران";
-    private bool SearchRequested { get; set; }
-    private readonly BusinessItem[] Items =
-    [
-        new("کلینیک دندانپزشکی سپید", "دندانپزشکی", "سعادت‌آباد", "۴.۹", "۱۸۶", "blue", "✚"),
-        new("استودیو زیبایی آوان", "زیبایی آرایش کوتاهی مو", "ونک", "۴.۹", "۲۳۸", "rose", "✦"),
-        new("مرکز ماساژ حس خوب", "ماساژ تندرستی", "پاسداران", "۴.۸", "۱۴۲", "green", "♧")
-    ];
-    private IEnumerable<BusinessItem> FilteredBusinesses => !SearchRequested || string.IsNullOrWhiteSpace(SearchTerm)
-        ? Items
-        : Items.Where(item => $"{item.Name} {item.Category} {item.Location}".Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
-    private void RunSearch() => SearchRequested = true;
-    private void ClearSearch() { SearchTerm = string.Empty; SearchRequested = false; }
-    private sealed record BusinessItem(string Name, string Category, string Location, string Rating, string Reviews, string Accent, string Icon);
-}
 
 <section class="how-it-works section">
     <div class="section-heading centered"><div><span>ساده، سریع، مطمئن</span><h2>نوبت گرفتن به همین راحتیه</h2></div></div>

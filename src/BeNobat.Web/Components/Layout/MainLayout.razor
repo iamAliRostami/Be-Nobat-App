@@ -7,15 +7,15 @@
         <nav>
             <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
             <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها <b>۳</b></NavLink>
-            <NavLink href="/admin/customers"><i>♧</i> مشتریان</NavLink><NavLink href="/admin/team"><i>♙</i> اعضای تیم</NavLink>
+            <a href="#"><i>♧</i> مشتریان</a><a href="#"><i>♙</i> اعضای تیم</a>
             <small>کسب‌وکار</small><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
-            <a href="/admin/calendar"><i>⌖</i> شعبه و برنامه</a><a href="/admin#performance"><i>⌁</i> گزارش‌ها</a>
-            <small>تنظیمات</small><a href="/businesses"><i>⚙</i> تنظیمات مجموعه</a>
+            <a href="#"><i>⌖</i> شعبه‌ها</a><a href="#"><i>⌁</i> گزارش‌ها</a>
+            <small>تنظیمات</small><a href="#"><i>⚙</i> تنظیمات مجموعه</a>
         </nav>
-        <div class="sidebar-footer"><span class="customer-avatar purple">س‌ا</span><div><b>سارا احمدی</b><small>مدیر مجموعه</small></div><a href="/businesses">⋮</a></div>
+        <div class="sidebar-footer"><span class="customer-avatar purple">س‌ا</span><div><b>سارا احمدی</b><small>مدیر مجموعه</small></div><button>⋮</button></div>
     </aside>
     <main>
-        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><a class="header-icon" href="/admin/customers" aria-label="جست‌وجو">⌕</a><a class="header-icon" href="/admin/calendar" aria-label="اعلان‌ها">♢<b></b></a><a href="/">مشاهده صفحه عمومی</a></div></header>
+        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><button aria-label="جست‌وجو">⌕</button><button aria-label="اعلان‌ها">♢<b></b></button><a href="/">مشاهده صفحه عمومی</a></div></header>
         <section class="content">@Body</section>
     </main>
 </div>

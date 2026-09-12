@@ -3,21 +3,5 @@
 @rendermode InteractiveServer
 
 <PageTitle>کسب‌وکارها | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>خدمات</h1><p>خدمات، قیمت و مدت زمان ارائه را مدیریت کنید.</p></div><button @onclick="() => ShowAdd = true">+ افزودن خدمت</button></div>
-<article class="admin-panel"><div class="toolbar"><input placeholder="جست‌وجو بین خدمات..." @bind="Query" @bind:event="oninput"/><select @bind="Category"><option value="همه">همه دسته‌ها</option><option>مو</option><option>زیبایی</option></select></div><div class="service-table"><div class="table-head"><span>نام خدمت</span><span>مدت</span><span>قیمت</span><span>وضعیت</span><span></span></div>@foreach(var service in FilteredServices){<div><span><i class="@service.Color">@service.Icon</i><b>@service.Name</b></span><span>@service.Duration دقیقه</span><span>@service.Price تومان</span><span><button class="status-toggle @(service.Active ? "confirmed" : "done")" @onclick="() => service.Active = !service.Active">@(service.Active ? "فعال" : "غیرفعال")</button></span><button aria-label="حذف خدمت" @onclick="() => Remove(service)">×</button></div>}@if(!FilteredServices.Any()){<div class="table-empty">خدمتی مطابق جست‌وجوی شما پیدا نشد.</div>}</div></article>
-@if (ShowAdd) { <div class="modal-backdrop" @onclick="() => ShowAdd = false"><section class="form-modal" @onclick:stopPropagation><div><h2>افزودن خدمت</h2><button @onclick="() => ShowAdd = false">×</button></div><label>نام خدمت<input @bind="NewName" /></label><label>دسته‌بندی<select @bind="NewCategory"><option>مو</option><option>زیبایی</option></select></label><label>مدت (دقیقه)<input type="number" @bind="NewDuration" /></label><label>قیمت (تومان)<input @bind="NewPrice" /></label><button class="primary-button" disabled="@(string.IsNullOrWhiteSpace(NewName))" @onclick="AddService">ذخیره خدمت</button></section></div> }
-
-@code {
-    private string Query { get; set; } = "";
-    private string Category { get; set; } = "همه";
-    private bool ShowAdd { get; set; }
-    private string NewName { get; set; } = "";
-    private string NewCategory { get; set; } = "مو";
-    private int NewDuration { get; set; } = 30;
-    private string NewPrice { get; set; } = "۰";
-    private readonly List<ServiceRow> Services = [new("کوتاهی و استایل مو", "مو", 60, "۴۸۰,۰۰۰", "✂", "rose"), new("رنگ و لایت", "مو", 120, "۹۵۰,۰۰۰", "✦", "purple"), new("اصلاح و ابرو", "زیبایی", 30, "۲۸۰,۰۰۰", "♧", "green")];
-    private IEnumerable<ServiceRow> FilteredServices => Services.Where(x => (Category == "همه" || x.Category == Category) && x.Name.Contains(Query, StringComparison.OrdinalIgnoreCase));
-    private void Remove(ServiceRow service) => Services.Remove(service);
-    private void AddService() { Services.Add(new(NewName.Trim(), NewCategory, NewDuration, NewPrice, "◇", "purple")); NewName = ""; ShowAdd = false; }
-    private sealed class ServiceRow(string name, string category, int duration, string price, string icon, string color) { public string Name { get; } = name; public string Category { get; } = category; public int Duration { get; } = duration; public string Price { get; } = price; public string Icon { get; } = icon; public string Color { get; } = color; public bool Active { get; set; } = true; }
-}
+<div class="page-title"><div><h1>خدمات</h1><p>خدمات، قیمت و مدت زمان ارائه را مدیریت کنید.</p></div><button>+ افزودن خدمت</button></div>
+<article class="admin-panel"><div class="toolbar"><input placeholder="جست‌وجو بین خدمات..."/><button class="secondary">همه دسته‌ها ⌄</button></div><div class="service-table"><div class="table-head"><span>نام خدمت</span><span>مدت</span><span>قیمت</span><span>وضعیت</span><span></span></div><div><span><i class="rose">✂</i><b>کوتاهی و استایل مو</b></span><span>۶۰ دقیقه</span><span>۴۸۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div><div><span><i class="purple">✦</i><b>رنگ و لایت</b></span><span>۱۲۰ دقیقه</span><span>۹۵۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div><div><span><i class="green">♧</i><b>اصلاح و ابرو</b></span><span>۳۰ دقیقه</span><span>۲۸۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div></div></article>

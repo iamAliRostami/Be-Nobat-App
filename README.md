@@ -69,18 +69,6 @@ curl http://localhost:8080/health
 | بررسی سلامت سرویس | <http://localhost:8080/health> |
 | سند OpenAPI در محیط Development | <http://localhost:8080/openapi/v1.json> |
 
-برای ورود به پنل مدیریت در اجرای Docker از حساب توسعه‌ی زیر استفاده کنید:
-
-```text
-Email: admin@benobat.local
-Password: ChangeMe123!
-```
-
-این حساب فقط برای راه‌اندازی محلی است و از متغیرهای `BootstrapAdmin__Email` و
-`BootstrapAdmin__Password` در `compose.yaml` ساخته می‌شود. در اجرای مستقیم، در
-صورت نیاز همین متغیرها را پیش از اجرای برنامه تنظیم کنید. کاربران مراجعه‌کننده
-می‌توانند از صفحه‌ی `/login` حساب عادی بسازند.
-
 #### ۵. اجرا در پس‌زمینه
 
 برای آزاد ماندن ترمینال، سرویس‌ها را detached اجرا کنید:
@@ -186,23 +174,6 @@ dotnet test tests/BeNobat.Web.Tests/BeNobat.Web.Tests.csproj
 - فایل‌های `pb_data` و `pb_migrations` مرجع مهاجرت PocketBase هستند. برنامه‌ی
   جدید مستقیماً از دیتابیس PocketBase اجرا نمی‌شود.
 
-### نقش‌ها و سطح‌های دسترسی
-
-برنامه نقش‌های `PlatformAdmin`، `Owner`، `Manager`، `Staff` و `Customer` را در
-شروع کار ایجاد می‌کند. دسترسی صفحات به این شکل است:
-
-| سطح دسترسی | مجوزها |
-| --- | --- |
-| PlatformAdmin | مدیریت کل پلتفرم و تمام صفحات مدیریتی |
-| Owner | داشبورد، تنظیمات کسب‌وکار، خدمات و نوبت‌ها |
-| Manager | داشبورد، خدمات و نوبت‌های مجموعه |
-| Staff | مشاهده و مدیریت تقویم و نوبت‌ها |
-| Customer | صفحات عمومی و نوبت‌های متعلق به حساب خود |
-
-صفحات `/admin` و `/businesses` به policy مدیریت کسب‌وکار و صفحه
-`/admin/calendar` به policy مدیریت نوبت‌ها محافظت شده‌اند. کاربر بدون مجوز به
-جای محتوای صفحه، پیام ورود دریافت می‌کند.
-
 ### رفع اشکال‌های رایج
 
 #### پورت 8080 در حال استفاده است
@@ -245,14 +216,9 @@ docker compose down -v
 docker compose up --build
 ```
 
-#### دریافت خطای اتصال به دیتابیس در اجرای بدون Docker
-
-مطمئن شوید PostgreSQL روشن است، دیتابیس و کاربر ساخته شده‌اند و مقدار
-`ConnectionStrings__Default` به host و port صحیح اشاره می‌کند. برای تست مستقیم:
-
-```bash
-psql 'host=localhost port=5432 dbname=benobat user=benobat password=benobat-dev-only'
-```
+سپس وب‌اپ مراجعه‌کنندگان در `http://localhost:8080`، پنل کسب‌وکار در
+`http://localhost:8080/admin` و health check در
+`http://localhost:8080/health` در دسترس است.
 
 ## ساختار
 

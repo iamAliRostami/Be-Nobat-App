@@ -1,5 +1,5 @@
 <article class="business-card">
-    <div class="business-cover @Accent"><span>@Icon</span><button aria-label="افزودن به علاقه‌مندی" @onclick="() => Favorite = !Favorite">@(Favorite ? "♥" : "♡")</button><small>@Category</small></div>
+    <div class="business-cover @Accent"><span>@Icon</span><button aria-label="افزودن به علاقه‌مندی">♡</button><small>@Category</small></div>
     <div class="business-card-body">
         <div class="business-name"><div><h3>@Name <span>✓</span></h3><p>⌖ @Location، تهران</p></div><div class="score"><b>@Rating</b><span>★</span><small>@Reviews نظر</small></div></div>
         <div class="slot-row"><div><small>اولین نوبت خالی</small><strong>امروز، ۱۶:۳۰</strong></div><a href="/book/@Slug">رزرو نوبت</a></div>
@@ -14,6 +14,5 @@
     [Parameter] public string Reviews { get; set; } = "";
     [Parameter] public string Accent { get; set; } = "";
     [Parameter] public string Icon { get; set; } = "";
-    private bool Favorite { get; set; }
     private string Slug => Uri.EscapeDataString(Name);
 }
