@@ -1,6 +1,12 @@
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <LayoutView Layout="typeof(Layout.PublicLayout)">
+                    <section class="auth-required"><span>⌾</span><h1>برای ادامه وارد شوید</h1><p>این صفحه فقط برای کاربران واردشده قابل مشاهده است.</p><a href="/login" data-enhance-nav="false">ورود به حساب</a></section>
+                </LayoutView>
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>

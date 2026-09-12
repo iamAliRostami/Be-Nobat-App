@@ -1,0 +1,20 @@
+@page "/admin/customers"
+@page "/admin/team"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<PageTitle>@Title | به‌نوبت</PageTitle>
+<div class="page-title"><div><h1>@Title</h1><p>@(IsTeam ? "اعضای تیم و سطح دسترسی آن‌ها" : "جست‌وجو و مدیریت مراجعه‌کنندگان")</p></div><button @onclick="() => ShowAdd=true">+ @(IsTeam ? "دعوت عضو" : "افزودن مشتری")</button></div>
+<article class="admin-panel"><div class="toolbar"><input placeholder="جست‌وجوی نام یا شماره تماس..." @bind="Query" @bind:event="oninput"/><span>@Filtered.Count() نتیجه</span></div><div class="people-list">@foreach(var person in Filtered){<article><span class="customer-avatar @person.Color">@person.Initials</span><div><b>@person.Name</b><small>@person.Contact</small></div><em>@(IsTeam ? person.Role : $"{person.Visits} مراجعه")</em><button @onclick="() => People.Remove(person)" aria-label="حذف">×</button></article>}</div></article>
+@if(ShowAdd){<div class="modal-backdrop" @onclick="() => ShowAdd=false"><section class="form-modal" @onclick:stopPropagation><div><h2>@(IsTeam ? "دعوت عضو تیم" : "مشتری جدید")</h2><button @onclick="() => ShowAdd=false">×</button></div><label>نام و نام خانوادگی<input @bind="NewName" /></label><label>شماره تماس یا ایمیل<input @bind="NewContact" /></label>@if(IsTeam){<label>نقش<select @bind="NewRole"><option>Staff</option><option>Manager</option></select></label>}<button class="primary-button" disabled="@(string.IsNullOrWhiteSpace(NewName))" @onclick="Add">ذخیره</button></section></div>}
+
+@code {
+    private bool IsTeam => Navigation.Uri.EndsWith("/team", StringComparison.OrdinalIgnoreCase);
+    private string Title => IsTeam ? "اعضای تیم" : "مشتریان";
+    private string Query="", NewName="", NewContact="", NewRole="Staff"; private bool ShowAdd;
+    private readonly List<Person> People=[new("مریم احمدی","۰۹۱۲•••۴۵۶۷","م‌ا","purple",12,"Customer"),new("سارا مرادی","۰۹۳۵•••۱۱۲۲","س‌م","blue",5,"Staff"),new("الناز محمدی","elnaz@example.com","ا‌م","rose",24,"Manager")];
+    private IEnumerable<Person> Filtered => People.Where(x => (IsTeam ? x.Role != "Customer" : true) && $"{x.Name} {x.Contact}".Contains(Query,StringComparison.OrdinalIgnoreCase));
+    private void Add(){People.Add(new(NewName.Trim(),NewContact,"جد","green",0,IsTeam?NewRole:"Customer"));NewName=NewContact="";ShowAdd=false;}
+    private sealed record Person(string Name,string Contact,string Initials,string Color,int Visits,string Role);
+}

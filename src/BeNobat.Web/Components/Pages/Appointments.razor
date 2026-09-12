@@ -1,0 +1,22 @@
+@page "/appointments"
+@layout Layout.PublicLayout
+@attribute [Authorize(Policy = Policies.ViewOwnAppointments)]
+@rendermode InteractiveServer
+
+<PageTitle>نوبت‌های من | به‌نوبت</PageTitle>
+<div class="account-page">
+    <aside class="account-menu"><div class="account-user"><span>م‌ا</span><div><b>حساب من</b><small>مراجعه‌کننده</small></div></div><nav><button class="active">▦ نوبت‌های من</button><a href="/#businesses">♡ علاقه‌مندی‌ها</a><button @onclick="() => ShowScore = !ShowScore">♧ امتیازهای من</button></nav><button class="logout" onclick="beNobatLogout()">خروج از حساب</button></aside>
+    <main class="account-content">
+        <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
+        @if(ShowScore){<div class="score-banner"><b>۸۵</b><span>امتیاز خوش‌قولی شما؛ عالی است!</span><button @onclick="() => ShowScore = false">×</button></div>}
+        <div class="tabs">@foreach(var tab in new[]{"پیش رو","گذشته","لغو شده"}){<button class="@(ActiveTab == tab ? "active" : "")" @onclick="() => ActiveTab = tab">@tab @if(tab=="پیش رو"){<b>۱</b>}</button>}</div>
+        @if(ActiveTab == "پیش رو"){
+            <article class="appointment-card"><div class="appointment-date"><b>@Day</b><span>شهریور</span><small>چهارشنبه</small></div><div class="appointment-info"><span class="confirmed">● تأیید شده</span><h3>کوتاهی و استایل مو</h3><p>استودیو زیبایی آوان · شعبه ونک</p><div><span>◷ ساعت @Time تا ۱۷:۳۰</span><span>⌖ ونک، خیابان ملاصدرا</span></div></div><div class="appointment-actions"><button @onclick="() => ShowDetails = true">نمایش جزئیات</button><button class="outline" @onclick="() => ShowReschedule = true">تغییر زمان</button></div></article>
+        } else { <div class="account-empty"><b>▦</b><p>در این بخش نوبتی ندارید.</p></div> }
+        <div class="tip-box"><span>☀</span><div><b>یادآوری نوبت</b><p>یک روز و دو ساعت قبل از نوبت، از طریق پیامک به شما یادآوری می‌کنیم.</p></div></div>
+    </main>
+</div>
+@if(ShowDetails){<div class="modal-backdrop" @onclick="() => ShowDetails=false"><section class="form-modal details-modal" @onclick:stopPropagation><div><h2>جزئیات نوبت</h2><button @onclick="() => ShowDetails=false">×</button></div><dl><div><dt>کد پیگیری</dt><dd>BN-1405-1842</dd></div><div><dt>خدمت</dt><dd>کوتاهی و استایل مو</dd></div><div><dt>زمان</dt><dd>@Day شهریور، ساعت @Time</dd></div><div><dt>مبلغ</dt><dd>۴۸۰,۰۰۰ تومان</dd></div></dl><button class="primary-button" @onclick="() => ShowDetails=false">متوجه شدم</button></section></div>}
+@if(ShowReschedule){<div class="modal-backdrop" @onclick="() => ShowReschedule=false"><section class="form-modal" @onclick:stopPropagation><div><h2>تغییر زمان نوبت</h2><button @onclick="() => ShowReschedule=false">×</button></div><label>روز<select @bind="Day"><option>۱۹</option><option>۲۰</option><option>۲۱</option></select></label><label>ساعت<select @bind="Time"><option>۱۶:۳۰</option><option>۱۷:۰۰</option><option>۱۸:۳۰</option></select></label><button class="primary-button" @onclick="() => ShowReschedule=false">ثبت زمان جدید</button></section></div>}
+
+@code { private string ActiveTab="پیش رو"; private bool ShowScore; private bool ShowDetails; private bool ShowReschedule; private string Day="۱۹"; private string Time="۱۶:۳۰"; }

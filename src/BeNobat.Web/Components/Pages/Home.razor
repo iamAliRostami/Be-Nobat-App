@@ -1,14 +1,84 @@
 @page "/"
+@layout Layout.PublicLayout
+@rendermode InteractiveServer
 
-<PageTitle>داشبورد | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>داشبورد</h1><p>نمای کلی سامانه‌ی نوبت‌دهی</p></div><button>+ نوبت جدید</button></div>
-<div class="cards">
-    <article><i class="violet">▣</i><div><strong>۰</strong><span>کسب‌وکار فعال</span></div></article>
-    <article><i class="blue">⌖</i><div><strong>۰</strong><span>شعبه</span></div></article>
-    <article><i class="green">◷</i><div><strong>۰</strong><span>نوبت امروز</span></div></article>
-    <article><i class="orange">♧</i><div><strong>۰</strong><span>مشتری</span></div></article>
-</div>
-<div class="grid">
-    <article class="panel"><h2>نوبت‌های اخیر</h2><div class="empty"><b>◷</b><strong>هنوز نوبتی ثبت نشده</strong><span>بعد از ثبت اولین نوبت، اطلاعات آن اینجا نمایش داده می‌شود.</span></div></article>
-    <article class="panel"><h2>شروع سریع</h2><a class="action" href="/businesses"><b>۱</b><span><strong>ساخت کسب‌وکار</strong><small>مشخصات مجموعه را وارد کنید</small></span>‹</a><div class="action disabled"><b>۲</b><span><strong>افزودن شعبه و خدمت</strong><small>ساختار ارائه‌ی خدمات را تعریف کنید</small></span>‹</div><div class="action disabled"><b>۳</b><span><strong>فعال‌سازی رزرو آنلاین</strong><small>برنامه و منابع را مشخص کنید</small></span>‹</div></article>
-</div>
+<PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
+
+<section class="hero">
+    <div class="hero-copy">
+        <span class="eyebrow"><span class="pulse"></span> بیش از ۲,۵۰۰ ارائه‌دهنده آماده‌اند</span>
+        <h1>وقتت ارزشمنده؛<br/><em>به‌نوبت</em> رزرو کن.</h1>
+        <p>بهترین متخصص‌های اطرافت را پیدا کن، زمان‌های خالی را ببین و در چند ثانیه نوبت بگیر.</p>
+        <div class="search-box">
+            <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" @bind="SearchTerm" @bind:event="oninput" /></label>
+            <i></i>
+            <label><span>⌖</span><input aria-label="انتخاب شهر" @bind="City" /></label>
+            <button @onclick="RunSearch">جست‌وجو</button>
+        </div>
+        <div class="quick-tags"><span>جست‌وجوهای محبوب:</span><a href="#popular">کوتاهی مو</a><a href="#popular">دندانپزشکی</a><a href="#popular">ماساژ</a></div>
+    </div>
+    <div class="hero-visual" aria-label="نمونه کارت نوبت‌دهی">
+        <div class="hero-blob"></div>
+        <div class="salon-card">
+            <div class="salon-photo"><span>✦</span><b>استودیو زیبایی</b></div>
+            <div class="salon-info"><div><strong>سالن زیبایی آوان</strong><small>☆ ۴.۹ · ونک، تهران</small></div><span class="verified">✓</span></div>
+        </div>
+        <div class="floating-card next-slot"><span>◷</span><div><small>نزدیک‌ترین نوبت</small><b>امروز، ساعت ۱۶:۳۰</b></div></div>
+        <div class="floating-card rating"><b>۴.۹</b><span>★★★★★</span><small>از ۲۳۸ نظر</small></div>
+    </div>
+</section>
+
+<section class="section" id="popular">
+    <div class="section-heading"><div><span>دسته‌بندی‌ها</span><h2>دنبال چه خدمتی هستی؟</h2></div><a href="#businesses">مشاهده همه ←</a></div>
+    <div class="categories">
+        <a href="#businesses"><i class="cat beauty">✦</i><strong>زیبایی و آرایش</strong><small>۸۴۰ مرکز</small></a>
+        <a href="#businesses"><i class="cat health">♡</i><strong>پزشکی و سلامت</strong><small>۶۲۰ مرکز</small></a>
+        <a href="#businesses"><i class="cat sport">♙</i><strong>ورزش و تندرستی</strong><small>۳۲۰ مرکز</small></a>
+        <a href="#businesses"><i class="cat consult">⌁</i><strong>مشاوره</strong><small>۲۱۰ متخصص</small></a>
+        <a href="#businesses"><i class="cat repair">⌘</i><strong>تعمیر و خدمات</strong><small>۱۸۰ مرکز</small></a>
+        <a href="#businesses"><i class="cat education">◇</i><strong>آموزش</strong><small>۱۴۰ آموزشگاه</small></a>
+    </div>
+</section>
+
+<section class="section businesses" id="businesses">
+    <div class="section-heading"><div><span>پیشنهاد به‌نوبت</span><h2>محبوب‌ترین‌های نزدیک شما</h2></div></div>
+    <div class="business-grid">
+        @foreach (var item in FilteredBusinesses)
+        {
+            <BusinessCard Name="@item.Name" Category="@item.Category" Location="@item.Location" Rating="@item.Rating" Reviews="@item.Reviews" Accent="@item.Accent" Icon="@item.Icon" />
+        }
+        @if (!FilteredBusinesses.Any())
+        {
+            <div class="search-empty"><b>⌕</b><span>نتیجه‌ای برای «@SearchTerm» در @City پیدا نشد.</span><button @onclick="ClearSearch">پاک کردن جست‌وجو</button></div>
+        }
+    </div>
+</section>
+
+@code {
+    private string SearchTerm { get; set; } = string.Empty;
+    private string City { get; set; } = "تهران";
+    private bool SearchRequested { get; set; }
+    private readonly BusinessItem[] Items =
+    [
+        new("کلینیک دندانپزشکی سپید", "دندانپزشکی", "سعادت‌آباد", "۴.۹", "۱۸۶", "blue", "✚"),
+        new("استودیو زیبایی آوان", "زیبایی آرایش کوتاهی مو", "ونک", "۴.۹", "۲۳۸", "rose", "✦"),
+        new("مرکز ماساژ حس خوب", "ماساژ تندرستی", "پاسداران", "۴.۸", "۱۴۲", "green", "♧")
+    ];
+    private IEnumerable<BusinessItem> FilteredBusinesses => !SearchRequested || string.IsNullOrWhiteSpace(SearchTerm)
+        ? Items
+        : Items.Where(item => $"{item.Name} {item.Category} {item.Location}".Contains(SearchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+    private void RunSearch() => SearchRequested = true;
+    private void ClearSearch() { SearchTerm = string.Empty; SearchRequested = false; }
+    private sealed record BusinessItem(string Name, string Category, string Location, string Rating, string Reviews, string Accent, string Icon);
+}
+
+<section class="how-it-works section">
+    <div class="section-heading centered"><div><span>ساده، سریع، مطمئن</span><h2>نوبت گرفتن به همین راحتیه</h2></div></div>
+    <div class="steps">
+        <article><b>۱</b><i>⌕</i><h3>پیدا کن</h3><p>خدمت یا متخصص موردنظرت را در نزدیکی خودت پیدا کن.</p></article>
+        <span>··········</span>
+        <article><b>۲</b><i>▦</i><h3>زمان را انتخاب کن</h3><p>زمان‌های خالی را ببین و مناسب‌ترین وقت را بردار.</p></article>
+        <span>··········</span>
+        <article><b>۳</b><i>✓</i><h3>تمام!</h3><p>تأیید نوبت را بگیر؛ ما به‌موقع یادت می‌اندازیم.</p></article>
+    </div>
+</section>
