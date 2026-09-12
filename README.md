@@ -12,7 +12,8 @@
 docker compose up --build
 ```
 
-سپس پنل در `http://localhost:8080` و health check در
+سپس وب‌اپ مراجعه‌کنندگان در `http://localhost:8080`، پنل کسب‌وکار در
+`http://localhost:8080/admin` و health check در
 `http://localhost:8080/health` در دسترس است.
 
 ## ساختار
@@ -23,8 +24,13 @@ docker compose up --build
 - `tests/BeNobat.Web.Tests`: تست‌های معماری و دامنه
 - `docs/05_DotNetMigrationPlan.md`: مرز فاز اول و نقشه‌ی مهاجرت
 
-## وضعیت فاز اول
+## تجربه‌های کاربری فعلی
 
-فاز اول یک foundation قابل اجرا شامل پنل مدیریتی RTL، داشبورد، PostgreSQL،
-Identity API، OpenAPI، health check و مدل اولیه‌ی کسب‌وکار/شعبه/سرویس/منبع/نوبت
-است. قابلیت‌های عملیاتی در فازهای بعدی به‌صورت vertical slice اضافه می‌شوند.
+- صفحه‌ی کشف خدمات و مراکز پیشنهادی برای مراجعه‌کننده
+- جریان سه‌مرحله‌ای انتخاب خدمت، زمان و تأیید نوبت
+- صفحه‌ی نوبت‌های پیش‌رو و تاریخچه‌ی مراجعه‌کننده
+- داشبورد روزانه، تقویم تیم و مدیریت خدمات برای مدیر مجموعه
+
+زیرساخت PostgreSQL، Identity API، OpenAPI و health check نیز فعال است. داده‌های
+نمونه‌ی رابط کاربری در ادامه‌ی مهاجرت، به vertical sliceهای عملیاتی و دیتابیس
+متصل خواهند شد.
