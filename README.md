@@ -216,14 +216,9 @@ docker compose down -v
 docker compose up --build
 ```
 
-#### دریافت خطای اتصال به دیتابیس در اجرای بدون Docker
-
-مطمئن شوید PostgreSQL روشن است، دیتابیس و کاربر ساخته شده‌اند و مقدار
-`ConnectionStrings__Default` به host و port صحیح اشاره می‌کند. برای تست مستقیم:
-
-```bash
-psql 'host=localhost port=5432 dbname=benobat user=benobat password=benobat-dev-only'
-```
+سپس وب‌اپ مراجعه‌کنندگان در `http://localhost:8080`، پنل کسب‌وکار در
+`http://localhost:8080/admin` و health check در
+`http://localhost:8080/health` در دسترس است.
 
 ## ساختار
 
