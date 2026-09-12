@@ -1,0 +1,22 @@
+@page "/login"
+@layout Layout.PublicLayout
+
+<PageTitle>ورود و ثبت‌نام | به‌نوبت</PageTitle>
+<section class="auth-page">
+    <div class="auth-card">
+        <a class="public-brand" href="/"><span>ب</span><strong>به‌نوبت</strong></a>
+        <h1 id="auth-title">خوش آمدید</h1><p>برای مدیریت نوبت‌ها وارد حساب خود شوید.</p>
+        <div class="auth-tabs"><button class="active" type="button" data-auth-tab="login">ورود</button><button type="button" data-auth-tab="register">ثبت‌نام</button></div>
+        <form id="auth-form">
+            <label class="register-field" hidden>نام و نام خانوادگی<input name="displayName" autocomplete="name" /></label>
+            <label>ایمیل<input name="email" type="email" autocomplete="email" required placeholder="name@example.com" /></label>
+            <label>رمز عبور<input name="password" type="password" autocomplete="current-password" minlength="6" required /></label>
+            <label class="register-field" hidden>تکرار رمز عبور<input name="confirmPassword" type="password" autocomplete="new-password" /></label>
+            <div id="auth-error" class="auth-error" role="alert" hidden></div>
+            <button class="auth-submit" type="submit"><span>ورود به حساب</span><i>←</i></button>
+        </form>
+        <small>با ادامه، قوانین استفاده و حریم خصوصی به‌نوبت را می‌پذیرید.</small>
+        <div class="demo-login"><b>حساب مدیر در اجرای Docker</b><code>admin@benobat.local</code><code>ChangeMe123!</code></div>
+    </div>
+    <aside class="auth-showcase"><span>✦</span><blockquote>«همه نوبت‌ها، اعضای تیم و مشتری‌ها را یک‌جا مدیریت می‌کنم.»</blockquote><small>سارا احمدی · مدیر استودیو آوان</small></aside>
+</section>

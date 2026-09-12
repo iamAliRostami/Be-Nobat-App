@@ -1,4 +1,6 @@
 @page "/businesses"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
 
 <PageTitle>کسب‌وکارها | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>خدمات</h1><p>خدمات، قیمت و مدت زمان ارائه را مدیریت کنید.</p></div><button>+ افزودن خدمت</button></div>
