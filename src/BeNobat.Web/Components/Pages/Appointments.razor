@@ -1,6 +1,147 @@
 @page "/appointments"
 @layout Layout.PublicLayout
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using System.Security.Claims
+@inject AppDbContext Db
 
 <PageTitle>نوبت‌های من | به‌نوبت</PageTitle>
-<div class="account-page"><aside class="account-menu"><div class="account-user"><span>م‌ا</span><div><b>مریم احمدی</b><small>۰۹۱۲•••۴۵۶۷</small></div></div><nav><a class="active">▦ نوبت‌های من</a><a>♡ علاقه‌مندی‌ها</a><a>♧ امتیازهای من</a><a>⚙ تنظیمات حساب</a></nav><a class="logout">خروج از حساب</a></aside><main class="account-content"><div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div><div class="tabs"><button class="active">پیش رو <b>۱</b></button><button>گذشته</button><button>لغو شده</button></div><article class="appointment-card"><div class="appointment-date"><b>۱۹</b><span>شهریور</span><small>چهارشنبه</small></div><div class="appointment-info"><span class="confirmed">● تأیید شده</span><h3>کوتاهی و استایل مو</h3><p>استودیو زیبایی آوان · شعبه ونک</p><div><span>◷ ساعت ۱۶:۳۰ تا ۱۷:۳۰</span><span>⌖ ونک، خیابان ملاصدرا</span></div></div><div class="appointment-actions"><button>نمایش جزئیات</button><button class="outline">تغییر زمان</button></div></article><div class="tip-box"><span>☀</span><div><b>یادآوری نوبت</b><p>یک روز و دو ساعت قبل از نوبت، از طریق پیامک به شما یادآوری می‌کنیم.</p></div></div></main></div>
 
+<div class="account-page">
+    <aside class="account-menu">
+        <div class="account-user"><span>@Initials</span><div><b>@DisplayName</b><small>@Email</small></div></div>
+        <nav><a class="active">▦ نوبت‌های من</a></nav>
+        <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
+    </aside>
+    <main class="account-content">
+        <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
+        <div class="tabs">
+            <button type="button" class="@(ActiveTab == "upcoming" ? "active" : "")" @onclick='() => ActiveTab = "upcoming"'>پیش رو <b>@Upcoming.Count</b></button>
+            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
+            <button type="button" class="@(ActiveTab == "cancelled" ? "active" : "")" @onclick='() => ActiveTab = "cancelled"'>لغو شده</button>
+        </div>
+
+        @{
+            var visible = ActiveTab switch
+            {
+                "past" => Past,
+                "cancelled" => Cancelled,
+                _ => Upcoming,
+            };
+        }
+
+        @if (visible.Count == 0)
+        {
+            <p class="empty-state">موردی برای نمایش وجود ندارد.</p>
+        }
+
+        @foreach (var appointment in visible)
+        {
+            <article class="appointment-card">
+                <div class="appointment-date"><b>@appointment.StartsAt.Day</b><span>@PersianMonthName(appointment.StartsAt)</span><small>@appointment.StartsAt.ToString("dddd", PersianCulture)</small></div>
+                <div class="appointment-info">
+                    <span class="@StatusCssClass(appointment.Status)">● @StatusLabel(appointment.Status)</span>
+                    <h3>@appointment.Service.Name</h3>
+                    <p>@appointment.Branch.Business.Name · @appointment.Branch.Name</p>
+                    <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ @appointment.Branch.Address</span></div>
+                </div>
+                <div class="appointment-actions">
+                    @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed && appointment.StartsAt > DateTimeOffset.Now)
+                    {
+                        <button type="button" class="outline" @onclick="() => CancelAsync(appointment.Id)">لغو نوبت</button>
+                    }
+                </div>
+            </article>
+        }
+    </main>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Guid userId;
+    private string DisplayName = "";
+    private string Email = "";
+    private string Initials = "؟";
+    private string ActiveTab = "upcoming";
+
+    private List<Appointment> Upcoming = [];
+    private List<Appointment> Past = [];
+    private List<Appointment> Cancelled = [];
+
+    private static readonly CultureInfo PersianCulture = new("fa-IR");
+    private static readonly string[] PersianMonths =
+    [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is null) return;
+        var authState = await AuthStateTask!;
+        var idText = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (idText is null || !Guid.TryParse(idText, out userId)) return;
+
+        DisplayName = authState.User.FindFirst("DisplayName")?.Value
+            ?? authState.User.Identity?.Name
+            ?? "کاربر";
+        Email = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? authState.User.Identity?.Name ?? "";
+        var parts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        Initials = parts.Length >= 2 ? $"{parts[0][0]}‌{parts[1][0]}" : DisplayName[..Math.Min(2, DisplayName.Length)];
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var appointments = await Db.Appointments
+            .Include(a => a.Service)
+            .Include(a => a.Branch).ThenInclude(b => b.Business)
+            .Where(a => a.CustomerId == userId)
+            .OrderBy(a => a.StartsAt)
+            .ToListAsync();
+
+        var now = DateTimeOffset.Now;
+        Cancelled = appointments.Where(a => a.Status == AppointmentStatus.Cancelled).ToList();
+        Upcoming = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt >= now).ToList();
+        Past = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt < now)
+            .OrderByDescending(a => a.StartsAt).ToList();
+    }
+
+    private async Task CancelAsync(Guid appointmentId)
+    {
+        var appointment = await Db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
+        if (appointment is null) return;
+
+        appointment.Status = AppointmentStatus.Cancelled;
+        appointment.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        await LoadAsync();
+    }
+
+    private static string StatusLabel(AppointmentStatus status) => status switch
+    {
+        AppointmentStatus.Pending => "در انتظار",
+        AppointmentStatus.Confirmed => "تأیید شده",
+        AppointmentStatus.Completed => "تکمیل شد",
+        AppointmentStatus.Cancelled => "لغو شده",
+        AppointmentStatus.NoShow => "عدم حضور",
+        _ => status.ToString(),
+    };
+
+    private static string StatusCssClass(AppointmentStatus status) => status switch
+    {
+        AppointmentStatus.Confirmed => "confirmed",
+        AppointmentStatus.Completed => "done",
+        AppointmentStatus.Cancelled => "cancelled",
+        _ => "pending",
+    };
+
+    private static string PersianMonthName(DateTimeOffset date)
+    {
+        var calendar = new PersianCalendar();
+        return PersianMonths[calendar.GetMonth(date.LocalDateTime) - 1];
+    }
+}

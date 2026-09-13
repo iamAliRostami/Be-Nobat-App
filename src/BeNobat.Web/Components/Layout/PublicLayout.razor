@@ -3,10 +3,29 @@
 <div class="public-shell">
     <header class="public-header">
         <a class="public-brand" href="/"><span>ب</span><strong>به‌نوبت</strong></a>
-        <nav><a href="#popular">خدمات</a><a href="#businesses">مراکز برتر</a><a href="#how">چطور کار می‌کند؟</a></nav>
-        <div class="public-actions"><a class="business-login" href="/admin">ورود کسب‌وکارها</a><a class="user-login" href="/appointments">ورود / ثبت‌نام</a></div>
+        <nav><a href="/#popular">خدمات</a><a href="/#businesses">مراکز برتر</a><a href="/#how">چطور کار می‌کند؟</a></nav>
+        <div class="public-actions">
+            <AuthorizeView>
+                <Authorized>
+                    <AuthorizeView Roles="Admin" Context="adminContext">
+                        <Authorized>
+                            <a class="business-login" href="/admin">پنل مدیریت</a>
+                        </Authorized>
+                    </AuthorizeView>
+                    <a class="user-login" href="/appointments">نوبت‌های من</a>
+                    <form method="post" action="/account/logout" class="logout-form">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="/" />
+                        <button type="submit" class="logout-button">خروج</button>
+                    </form>
+                </Authorized>
+                <NotAuthorized>
+                    <a class="business-login" href="/account/login">ورود کسب‌وکارها</a>
+                    <a class="user-login" href="/account/login">ورود / ثبت‌نام</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
     </header>
     <main class="public-main">@Body</main>
     <footer class="public-footer"><div class="public-brand"><span>ب</span><strong>به‌نوبت</strong></div><p>راه ساده‌تر برای پیدا کردن و رزرو بهترین خدمات.</p><small>© ۱۴۰۵ به‌نوبت؛ همه حقوق محفوظ است.</small></footer>
 </div>
-

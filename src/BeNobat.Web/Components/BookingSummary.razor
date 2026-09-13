@@ -1,8 +1,25 @@
-<aside class="booking-summary"><h3>خلاصه نوبت</h3><div class="summary-business"><i>✦</i><span><b>استودیو زیبایی آوان</b><small>شعبه ونک</small></span></div><dl><div><dt>خدمت</dt><dd>@Service</dd></div><div><dt>متخصص</dt><dd>اولین متخصص آزاد</dd></div>@if(Time is not null){<div><dt>زمان</dt><dd>@Time</dd></div>}<div><dt>مدت</dt><dd>۶۰ دقیقه</dd></div></dl><div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>۴۸۰,۰۰۰ <small>تومان</small></strong></div><button @onclick="OnContinue">@(Time is null ? "انتخاب زمان" : "تأیید و ثبت نوبت") <span>←</span></button><p>با ادامه، قوانین رزرو و لغو را می‌پذیرید.</p></aside>
+<aside class="booking-summary">
+    <h3>خلاصه نوبت</h3>
+    <div class="summary-business"><i>✦</i><span><b>@BusinessName</b><small>@BranchName</small></span></div>
+    <dl>
+        <div><dt>خدمت</dt><dd>@(string.IsNullOrEmpty(ServiceName) ? "—" : ServiceName)</dd></div>
+        @if (Time is not null)
+        {
+            <div><dt>زمان</dt><dd>@Time</dd></div>
+        }
+        <div><dt>مدت</dt><dd>@(DurationMinutes is null ? "—" : $"{DurationMinutes} دقیقه")</dd></div>
+    </dl>
+    <div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>@(Price is null ? "—" : Price.Value.ToString("N0")) <small>تومان</small></strong></div>
+    <button type="button" @onclick="OnContinue">@(Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
+    <p>با ادامه، قوانین رزرو و لغو را می‌پذیرید.</p>
+</aside>
 
 @code {
-    [Parameter] public string Service { get; set; } = "";
+    [Parameter] public string ServiceName { get; set; } = "";
+    [Parameter] public decimal? Price { get; set; }
+    [Parameter] public int? DurationMinutes { get; set; }
+    [Parameter] public string BusinessName { get; set; } = "";
+    [Parameter] public string BranchName { get; set; } = "";
     [Parameter] public string? Time { get; set; }
     [Parameter] public EventCallback OnContinue { get; set; }
 }
-

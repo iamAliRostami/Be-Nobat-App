@@ -1,5 +1,7 @@
 @page "/"
 @layout Layout.PublicLayout
+@rendermode InteractiveServer
+@inject AppDbContext Db
 
 <PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
 
@@ -9,12 +11,18 @@
         <h1>وقتت ارزشمنده؛<br/><em>به‌نوبت</em> رزرو کن.</h1>
         <p>بهترین متخصص‌های اطرافت را پیدا کن، زمان‌های خالی را ببین و در چند ثانیه نوبت بگیر.</p>
         <div class="search-box">
-            <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" /></label>
+            <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" @bind="SearchTerm" @bind:event="oninput" @onkeyup="OnKeyUp" /></label>
             <i></i>
-            <label><span>⌖</span><input aria-label="انتخاب شهر" value="تهران" /></label>
-            <a href="#popular">جست‌وجو</a>
+            <label><span>⌖</span><input aria-label="انتخاب شهر" @bind="City" @bind:event="oninput" /></label>
+            <a href="javascript:void(0)" @onclick="Search" @onclick:preventDefault>جست‌وجو</a>
         </div>
-        <div class="quick-tags"><span>جست‌وجوهای محبوب:</span><a href="#popular">کوتاهی مو</a><a href="#popular">دندانپزشکی</a><a href="#popular">ماساژ</a></div>
+        <div class="quick-tags">
+            <span>جست‌وجوهای محبوب:</span>
+            @foreach (var tag in QuickTags)
+            {
+                <a href="javascript:void(0)" @onclick="() => SearchFor(tag)" @onclick:preventDefault>@tag</a>
+            }
+        </div>
     </div>
     <div class="hero-visual" aria-label="نمونه کارت نوبت‌دهی">
         <div class="hero-blob"></div>
@@ -28,27 +36,51 @@
 </section>
 
 <section class="section" id="popular">
-    <div class="section-heading"><div><span>دسته‌بندی‌ها</span><h2>دنبال چه خدمتی هستی؟</h2></div><a href="#businesses">مشاهده همه ←</a></div>
+    <div class="section-heading"><div><span>دسته‌بندی‌ها</span><h2>دنبال چه خدمتی هستی؟</h2></div></div>
     <div class="categories">
-        <a href="#businesses"><i class="cat beauty">✦</i><strong>زیبایی و آرایش</strong><small>۸۴۰ مرکز</small></a>
-        <a href="#businesses"><i class="cat health">♡</i><strong>پزشکی و سلامت</strong><small>۶۲۰ مرکز</small></a>
-        <a href="#businesses"><i class="cat sport">♙</i><strong>ورزش و تندرستی</strong><small>۳۲۰ مرکز</small></a>
-        <a href="#businesses"><i class="cat consult">⌁</i><strong>مشاوره</strong><small>۲۱۰ متخصص</small></a>
-        <a href="#businesses"><i class="cat repair">⌘</i><strong>تعمیر و خدمات</strong><small>۱۸۰ مرکز</small></a>
-        <a href="#businesses"><i class="cat education">◇</i><strong>آموزش</strong><small>۱۴۰ آموزشگاه</small></a>
+        @foreach (var category in Categories)
+        {
+            <a href="javascript:void(0)" @onclick="() => SearchFor(category.Name)" @onclick:preventDefault>
+                <i class="cat @category.CssClass">@category.Icon</i><strong>@category.Name</strong>
+            </a>
+        }
     </div>
 </section>
 
 <section class="section businesses" id="businesses">
-    <div class="section-heading"><div><span>پیشنهاد به‌نوبت</span><h2>محبوب‌ترین‌های نزدیک شما</h2></div><div class="slider-buttons"><button>→</button><button>←</button></div></div>
-    <div class="business-grid">
-        <BusinessCard Name="کلینیک دندانپزشکی سپید" Category="دندانپزشکی" Location="سعادت‌آباد" Rating="۴.۹" Reviews="۱۸۶" Accent="blue" Icon="✚" />
-        <BusinessCard Name="استودیو زیبایی آوان" Category="زیبایی و آرایش" Location="ونک" Rating="۴.۹" Reviews="۲۳۸" Accent="rose" Icon="✦" />
-        <BusinessCard Name="مرکز ماساژ حس خوب" Category="ماساژ و تندرستی" Location="پاسداران" Rating="۴.۸" Reviews="۱۴۲" Accent="green" Icon="♧" />
+    <div class="section-heading">
+        <div>
+            <span>@(HasSearched ? "نتایج جست‌وجو" : "پیشنهاد به‌نوبت")</span>
+            <h2>@(HasSearched ? $"نتایج برای «{SearchTerm}»" : "محبوب‌ترین‌های نزدیک شما")</h2>
+        </div>
+        @if (HasSearched)
+        {
+            <a href="javascript:void(0)" @onclick="ClearSearch" @onclick:preventDefault>پاک کردن جست‌وجو ←</a>
+        }
     </div>
+
+    @if (Results.Count == 0)
+    {
+        <p class="empty-state">هیچ کسب‌وکاری با این مشخصات پیدا نشد.</p>
+    }
+    else
+    {
+        <div class="business-grid">
+            @foreach (var business in Results)
+            {
+                var accent = business.Category.Contains("دندان") ? "blue"
+                    : business.Category.Contains("ماساژ") || business.Category.Contains("تندرست") ? "green"
+                    : "rose";
+                var icon = business.Category.Contains("دندان") ? "✚" : business.Category.Contains("ماساژ") ? "♧" : "✦";
+                <BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
+                              Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
+                              Accent="@accent" Icon="@icon" />
+            }
+        </div>
+    }
 </section>
 
-<section class="how-it-works section">
+<section class="how-it-works section" id="how">
     <div class="section-heading centered"><div><span>ساده، سریع، مطمئن</span><h2>نوبت گرفتن به همین راحتیه</h2></div></div>
     <div class="steps">
         <article><b>۱</b><i>⌕</i><h3>پیدا کن</h3><p>خدمت یا متخصص موردنظرت را در نزدیکی خودت پیدا کن.</p></article>
@@ -58,3 +90,74 @@
         <article><b>۳</b><i>✓</i><h3>تمام!</h3><p>تأیید نوبت را بگیر؛ ما به‌موقع یادت می‌اندازیم.</p></article>
     </div>
 </section>
+
+@code {
+    private string SearchTerm { get; set; } = "";
+    private string City { get; set; } = "تهران";
+    private bool HasSearched { get; set; }
+    private List<Business> Results { get; set; } = [];
+
+    private static readonly string[] QuickTags = ["کوتاهی مو", "دندانپزشکی", "ماساژ"];
+
+    private static readonly (string Name, string Icon, string CssClass)[] Categories =
+    [
+        ("زیبایی و آرایش", "✦", "beauty"),
+        ("دندانپزشکی", "♡", "health"),
+        ("ماساژ و تندرستی", "♙", "sport"),
+        ("مشاوره", "⌁", "consult"),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Results = await Db.Businesses
+            .Include(b => b.Branches)
+            .OrderByDescending(b => b.CreatedAt)
+            .Take(12)
+            .ToListAsync();
+    }
+
+    private async Task OnKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+    private async Task SearchFor(string term)
+    {
+        SearchTerm = term;
+        await Search();
+    }
+
+    private async Task Search()
+    {
+        var term = SearchTerm.Trim();
+        var city = City.Trim();
+        HasSearched = !string.IsNullOrWhiteSpace(term);
+
+        var query = Db.Businesses.Include(b => b.Branches).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            query = query.Where(b =>
+                EF.Functions.ILike(b.Name, $"%{term}%") ||
+                EF.Functions.ILike(b.Category, $"%{term}%") ||
+                Db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
+        }
+
+        if (!string.IsNullOrWhiteSpace(city))
+        {
+            query = query.Where(b => EF.Functions.ILike(b.City, $"%{city}%"));
+        }
+
+        Results = await query.OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
+    }
+
+    private async Task ClearSearch()
+    {
+        SearchTerm = "";
+        HasSearched = false;
+        await OnInitializedAsync();
+    }
+}

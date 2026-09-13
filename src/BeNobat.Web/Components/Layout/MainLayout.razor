@@ -6,16 +6,35 @@
         <div class="branch-switcher"><span class="branch-logo">✦</span><div><small>مجموعه فعال</small><b>استودیو زیبایی آوان</b></div><span>⌄</span></div>
         <nav>
             <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
-            <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها <b>۳</b></NavLink>
-            <a href="#"><i>♧</i> مشتریان</a><a href="#"><i>♙</i> اعضای تیم</a>
+            <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink>
             <small>کسب‌وکار</small><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
-            <a href="#"><i>⌖</i> شعبه‌ها</a><a href="#"><i>⌁</i> گزارش‌ها</a>
-            <small>تنظیمات</small><a href="#"><i>⚙</i> تنظیمات مجموعه</a>
+            <small>حساب</small><a href="/" target="_top"><i>⌖</i> مشاهده صفحه عمومی</a>
         </nav>
-        <div class="sidebar-footer"><span class="customer-avatar purple">س‌ا</span><div><b>سارا احمدی</b><small>مدیر مجموعه</small></div><button>⋮</button></div>
+        <div class="sidebar-footer">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="customer-avatar purple">@Initials(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</span>
+                    <div><b>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b><small>مدیر مجموعه</small></div>
+                    <form method="post" action="/account/logout" class="logout-form">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="/" />
+                        <button type="submit" class="logout-icon-button" title="خروج">⋮</button>
+                    </form>
+                </Authorized>
+            </AuthorizeView>
+        </div>
     </aside>
     <main>
-        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><button aria-label="جست‌وجو">⌕</button><button aria-label="اعلان‌ها">♢<b></b></button><a href="/">مشاهده صفحه عمومی</a></div></header>
+        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><a href="/" target="_top">مشاهده صفحه عمومی</a></div></header>
         <section class="content">@Body</section>
     </main>
 </div>
+
+@code {
+    private static string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "؟";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}‌{parts[1][0]}" : name[..Math.Min(2, name.Length)];
+    }
+}

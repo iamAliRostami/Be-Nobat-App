@@ -21,9 +21,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Business>().HasIndex(x => x.Slug).IsUnique();
         builder.Entity<Branch>().HasOne(x => x.Business).WithMany(x => x.Branches)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Service>().HasOne(x => x.Business).WithMany(x => x.Services)
+            .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Resource>().HasOne(x => x.Branch).WithMany()
+            .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Service>().Property(x => x.Price).HasPrecision(18, 2);
         builder.Entity<Appointment>().Property(x => x.FinalPrice).HasPrecision(18, 2);
         builder.Entity<Appointment>().Property(x => x.Status).HasConversion<string>();
+        builder.Entity<Appointment>().HasOne(x => x.Branch).WithMany()
+            .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Appointment>().HasOne(x => x.Service).WithMany()
+            .HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Appointment>().HasOne(x => x.Resource).WithMany()
+            .HasForeignKey(x => x.ResourceId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Appointment>().HasOne(x => x.Customer).WithMany()
+            .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Appointment>().HasIndex(x => new { x.BranchId, x.StartsAt });
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

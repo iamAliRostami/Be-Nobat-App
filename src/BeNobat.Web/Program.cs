@@ -3,26 +3,45 @@ using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using BeNobat.Web.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(Policies.ManageBusiness, policy =>
-        policy.RequireRole(AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager));
-    options.AddPolicy(Policies.ManageAppointments, policy =>
-        policy.RequireRole(AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager, AppRoles.Staff));
-    options.AddPolicy(Policies.ViewOwnAppointments, policy => policy.RequireAuthenticatedUser());
-});
-builder.Services.AddIdentityApiEndpoints<AppUser>()
-    .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<AppDbContext>();
-builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+
+// [fix] AddIdentityApiEndpoints<T>() configures bearer-token authentication and is meant
+// for SPA/mobile clients calling the JSON /api/auth/* endpoints directly. It does not
+// integrate with SignInManager-based sign-in from server-rendered Razor/Blazor forms,
+// which is what this app's Login/Register pages need. AddIdentity<T,TRole>() + the
+// cookie scheme below is the pattern used by the official "Blazor Web App with
+// Individual Accounts" template and is what actually works here.
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthorization();
+builder.Services
+    .AddIdentity<AppUser, IdentityRole<Guid>>(options =>
+    {
+        options.SignIn.RequireConfirmedAccount = false;
+        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireUppercase = false;
+        options.Password.RequiredLength = 6;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager()
+    .AddClaimsPrincipalFactory<AppUserClaimsPrincipalFactory>()
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/account/login";
+    options.LogoutPath = "/account/logout";
+    options.AccessDeniedPath = "/account/access-denied";
+    options.Cookie.Name = "BeNobat.Auth";
+    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.SlidingExpiration = true;
+});
+
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
@@ -33,29 +52,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
-    foreach (var role in AppRoles.All)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-            await roleManager.CreateAsync(new IdentityRole<Guid>(role));
-    }
-
-    var adminEmail = builder.Configuration["BootstrapAdmin:Email"];
-    var adminPassword = builder.Configuration["BootstrapAdmin:Password"];
-    if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword))
-    {
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        var admin = await users.FindByEmailAsync(adminEmail);
-        if (admin is null)
-        {
-            admin = new AppUser { UserName = adminEmail, Email = adminEmail, DisplayName = "مدیر مجموعه", EmailConfirmed = true };
-            var result = await users.CreateAsync(admin, adminPassword);
-            if (!result.Succeeded)
-                throw new InvalidOperationException(string.Join("; ", result.Errors.Select(error => error.Description)));
-        }
-        if (!await users.IsInRoleAsync(admin, AppRoles.Owner))
-            await users.AddToRoleAsync(admin, AppRoles.Owner);
-    }
+    await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
 }
 
 if (app.Environment.IsDevelopment())
@@ -65,18 +62,33 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// [fix] UseAuthentication() was missing entirely, so no request ever had its auth
+// cookie validated into a signed-in ClaimsPrincipal -- every request looked
+// anonymous regardless of login state, which is why the admin panel could not
+// tell staff from the public and login had no visible effect.
 app.UseAuthentication();
 app.UseAuthorization();
+
+// [fix] UseAntiforgery() must run after UseAuthentication/UseAuthorization
+// (ASP.NET Core 8+ throws at startup if antiforgery is registered before
+// authorization when both are present).
 app.UseAntiforgery();
 
-app.MapGroup("/api/auth").MapIdentityApi<AppUser>();
+app.MapPost("/account/logout", async (SignInManager<AppUser> signInManager, HttpRequest request) =>
+{
+    await signInManager.SignOutAsync();
+    var returnUrl = request.Form.TryGetValue("returnUrl", out var value) ? value.ToString() : "/";
+    return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl);
+}).RequireAuthorization();
+
 app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellationToken) =>
     new DashboardSummary(
         await db.Businesses.CountAsync(cancellationToken),
         await db.Branches.CountAsync(cancellationToken),
         await db.Services.CountAsync(cancellationToken),
         await db.Appointments.CountAsync(cancellationToken)))
-    .RequireAuthorization();
+    .RequireAuthorization(policy => policy.RequireRole(DbSeeder.AdminRole));
 app.MapHealthChecks("/health");
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 

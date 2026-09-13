@@ -18,8 +18,6 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
-      BootstrapAdmin__Email: admin@benobat.local
-      BootstrapAdmin__Password: ChangeMe123!
     ports:
       - "8080:8080"
     depends_on:

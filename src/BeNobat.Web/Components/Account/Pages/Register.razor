@@ -1,0 +1,100 @@
+@page "/account/register"
+@layout Layout.PublicLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using BeNobat.Web.Domain
+@using BeNobat.Web.Infrastructure
+@inject UserManager<AppUser> UserManager
+@inject SignInManager<AppUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>ثبت‌نام | به‌نوبت</PageTitle>
+
+<div class="account-auth-page">
+    <EditForm Model="Input" FormName="register" OnValidSubmit="RegisterUser" class="auth-card">
+        <DataAnnotationsValidator />
+        <AntiforgeryToken />
+        <h1>ساخت حساب کاربری</h1>
+        <p class="auth-subtitle">برای رزرو نوبت، یک حساب کاربری بسازید.</p>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="auth-error">@ErrorMessage</div>
+        }
+
+        <label>نام و نام خانوادگی
+            <InputText @bind-Value="Input.DisplayName" autocomplete="name" />
+        </label>
+        <ValidationMessage For="() => Input.DisplayName" />
+
+        <label>ایمیل
+            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" />
+        </label>
+        <ValidationMessage For="() => Input.Email" />
+
+        <label>رمز عبور
+            <InputText @bind-Value="Input.Password" type="password" autocomplete="new-password" />
+        </label>
+        <ValidationMessage For="() => Input.Password" />
+
+        <label>تکرار رمز عبور
+            <InputText @bind-Value="Input.ConfirmPassword" type="password" autocomplete="new-password" />
+        </label>
+        <ValidationMessage For="() => Input.ConfirmPassword" />
+
+        <button type="submit" class="primary-button auth-submit">ثبت‌نام</button>
+        <p class="auth-switch">قبلاً ثبت‌نام کرده‌اید؟ <a href="/account/login">وارد شوید</a></p>
+    </EditForm>
+</div>
+
+@code {
+    private string? ErrorMessage;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private async Task RegisterUser()
+    {
+        if (Input.Password != Input.ConfirmPassword)
+        {
+            ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند.";
+            return;
+        }
+
+        var user = new AppUser
+        {
+            UserName = Input.Email,
+            Email = Input.Email,
+            DisplayName = Input.DisplayName,
+        };
+
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!result.Succeeded)
+        {
+            ErrorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        await UserManager.AddToRoleAsync(user, DbSeeder.CustomerRole);
+        await SignInManager.SignInAsync(user, isPersistent: true);
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "نام الزامی است.")]
+        public string DisplayName { get; set; } = "";
+
+        [Required(ErrorMessage = "ایمیل الزامی است.")]
+        [EmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "رمز عبور الزامی است.")]
+        [MinLength(6, ErrorMessage = "رمز عبور باید حداقل ۶ کاراکتر باشد.")]
+        public string Password { get; set; } = "";
+
+        [Required(ErrorMessage = "تکرار رمز عبور الزامی است.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

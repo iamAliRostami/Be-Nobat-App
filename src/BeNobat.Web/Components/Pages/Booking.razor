@@ -1,65 +1,304 @@
-@page "/book/{Business}"
+@page "/book/{BusinessId:guid}"
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Globalization
+@using System.Security.Claims
+@inject AppDbContext Db
+@inject NavigationManager NavigationManager
 
 <PageTitle>رزرو نوبت | به‌نوبت</PageTitle>
 
-<div class="booking-page">
-    <a class="back-link" href="/">→ بازگشت به نتایج</a>
-    <div class="booking-head">
-        <div class="booking-logo">✦</div><div><h1>@Business</h1><p><span>★ ۴.۹</span> (۲۳۸ نظر) · ونک، تهران</p></div>
-    </div>
-    <div class="booking-progress">
-        <div class="done"><b>✓</b><span>انتخاب خدمت</span></div><i></i>
-        <div class="@(Step >= 2 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۲")</b><span>انتخاب زمان</span></div><i></i>
-        <div class="@(Step >= 3 ? "active" : "")"><b>۳</b><span>تأیید نهایی</span></div>
-    </div>
+@if (Business is null)
+{
+    <div class="booking-page"><p class="empty-state">این کسب‌وکار پیدا نشد.</p></div>
+}
+else
+{
+    var business = Business!;
+    <div class="booking-page">
+        <a class="back-link" href="/">→ بازگشت به نتایج</a>
+        <div class="booking-head">
+            <div class="booking-logo">✦</div><div><h1>@business.Name</h1><p><span>★ ۴.۹</span> · @(PrimaryBranch?.Address ?? business.City)</p></div>
+        </div>
+        <div class="booking-progress">
+            <div class="@(Step > 1 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۱")</b><span>انتخاب خدمت</span></div><i></i>
+            <div class="@(Step > 2 ? "done" : Step == 2 ? "active" : "")"><b>@(Step > 2 ? "✓" : "۲")</b><span>انتخاب زمان</span></div><i></i>
+            <div class="@(Step == 3 ? "active" : "")"><b>۳</b><span>تأیید نهایی</span></div>
+        </div>
 
-    @if (Step == 1)
-    {
-        <div class="booking-layout">
-            <section class="booking-panel"><div class="booking-title"><span>۱</span><div><h2>خدمت موردنظر را انتخاب کنید</h2><p>می‌توانید یک خدمت را برای این نوبت انتخاب کنید.</p></div></div>
-                <div class="service-list">
-                    @foreach (var service in Services)
+        @if (ErrorMessage is not null)
+        {
+            <div class="auth-error">@ErrorMessage</div>
+        }
+
+        @if (Step == 1)
+        {
+            <div class="booking-layout">
+                <section class="booking-panel">
+                    <div class="booking-title"><span>۱</span><div><h2>خدمت موردنظر را انتخاب کنید</h2><p>می‌توانید یک خدمت را برای این نوبت انتخاب کنید.</p></div></div>
+                    <div class="service-list">
+                        @foreach (var service in Services)
+                        {
+                            <button type="button" class="service-option @(SelectedService?.Id == service.Id ? "selected" : "")" @onclick="() => SelectedService = service">
+                                <i>✂</i><span><strong>@service.Name</strong><small>@service.Description</small><em>◷ @service.DurationMinutes دقیقه</em></span><b>@service.Price.ToString("N0") تومان</b><u>✓</u>
+                            </button>
+                        }
+                    </div>
+                </section>
+                <BookingSummary OnContinue="NextFromStep1" ServiceName="@(SelectedService?.Name ?? "")" Price="@(SelectedService?.Price)" DurationMinutes="@(SelectedService?.DurationMinutes)" BranchName="@(PrimaryBranch?.Name ?? "")" BusinessName="@business.Name" />
+            </div>
+        }
+        else if (Step == 2)
+        {
+            <div class="booking-layout">
+                <section class="booking-panel">
+                    <div class="booking-title"><span>۲</span><div><h2>روز و ساعت را انتخاب کنید</h2><p>همه ساعت‌ها بر اساس ساعت کاری شعبه است.</p></div></div>
+                    <div class="date-strip">
+                        @foreach (var day in Days)
+                        {
+                            <button type="button" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button>
+                        }
+                    </div>
+                    <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
+                    @if (Slots.Count == 0)
                     {
-                        <button class="service-option @(SelectedService == service.Name ? "selected" : "")" @onclick="() => SelectedService = service.Name">
-                            <i>@service.Icon</i><span><strong>@service.Name</strong><small>@service.Description</small><em>◷ @service.Duration دقیقه</em></span><b>@service.Price هزار تومان</b><u>✓</u>
-                        </button>
+                        <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p>
                     }
+                    else
+                    {
+                        <div class="time-grid">
+                            @foreach (var slot in Slots)
+                            {
+                                <button type="button" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button>
+                            }
+                        </div>
+                    }
+                </section>
+                <BookingSummary OnContinue="NextFromStep2" ServiceName="@(SelectedService?.Name ?? "")" Price="@(SelectedService?.Price)" DurationMinutes="@(SelectedService?.DurationMinutes)" BranchName="@(PrimaryBranch?.Name ?? "")" BusinessName="@business.Name"
+                                Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
+            </div>
+        }
+        else
+        {
+            <section class="success-card">
+                <div class="success-icon">✓</div><span>نوبت شما ثبت شد</span><h1>منتظرت هستیم!</h1><p>جزئیات نوبت در «نوبت‌های من» قابل مشاهده است.</p>
+                <div class="success-details">
+                    <div><small>خدمت</small><b>@SelectedService?.Name</b></div>
+                    <div><small>زمان</small><b>@FormatSelectedTime()</b></div>
+                    <div><small>محل</small><b>@(PrimaryBranch?.Address ?? business.City)</b></div>
                 </div>
+                <a href="/appointments">مشاهده نوبت‌های من</a><a class="secondary-link" href="/">بازگشت به صفحه اصلی</a>
             </section>
-            <BookingSummary OnContinue="Next" Service="SelectedService" />
-        </div>
-    }
-    else if (Step == 2)
-    {
-        <div class="booking-layout">
-            <section class="booking-panel"><div class="booking-title"><span>۲</span><div><h2>روز و ساعت را انتخاب کنید</h2><p>همه ساعت‌ها بر اساس منطقه زمانی تهران است.</p></div></div>
-                <div class="date-strip">@foreach (var day in Days){<button class="@(SelectedDay == day.Day ? "selected" : "")" @onclick="() => SelectedDay = day.Day"><small>@day.Weekday</small><b>@day.Day</b><span>شهریور</span></button>}</div>
-                <h3 class="time-title">زمان‌های خالی <small>۱۲ زمان موجود</small></h3>
-                <div class="time-grid">@foreach(var time in Times){<button class="@(SelectedTime == time ? "selected" : "")" @onclick="() => SelectedTime = time">@time</button>}</div>
-            </section>
-            <BookingSummary OnContinue="Next" Service="SelectedService" Time="@(SelectedTime is null ? null : $"{SelectedDay} شهریور، ساعت {SelectedTime}")" />
-        </div>
-    }
-    else
-    {
-        <section class="success-card"><div class="success-icon">✓</div><span>نوبت شما ثبت شد</span><h1>منتظرت هستیم!</h1><p>جزئیات نوبت برای شماره همراه شما پیامک شد.</p><div class="success-details"><div><small>خدمت</small><b>@SelectedService</b></div><div><small>زمان</small><b>@SelectedDay شهریور، ساعت @SelectedTime</b></div><div><small>محل</small><b>ونک، خیابان ملاصدرا</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a><a class="secondary-link" href="/">بازگشت به صفحه اصلی</a></section>
-    }
-</div>
-
-@code {
-    [Parameter] public string Business { get; set; } = "مرکز خدماتی";
-    private int Step { get; set; } = 1;
-    private string SelectedService { get; set; } = "کوتاهی و استایل مو";
-    private int SelectedDay { get; set; } = 19;
-    private string? SelectedTime { get; set; }
-    private readonly (string Name, string Description, int Duration, int Price, string Icon)[] Services = [
-        ("کوتاهی و استایل مو", "شستشو، کوتاهی و براشینگ", 60, 480, "✂"),
-        ("رنگ و لایت", "مشاوره رنگ، رنگ و مراقبت", 120, 950, "✦"),
-        ("اصلاح و ابرو", "اصلاح صورت و طراحی ابرو", 30, 280, "♧")];
-    private readonly (string Weekday, int Day)[] Days = [("امروز",19), ("شنبه",20), ("یکشنبه",21), ("دوشنبه",22), ("سه‌شنبه",23)];
-    private readonly string[] Times = ["۱۰:۰۰", "۱۰:۳۰", "۱۱:۳۰", "۱۲:۰۰", "۱۴:۳۰", "۱۵:۰۰", "۱۶:۳۰", "۱۷:۰۰", "۱۸:۳۰"];
-    private void Next() { if (Step == 1 || SelectedTime is not null) Step++; }
+        }
+    </div>
 }
 
+@code {
+    [Parameter] public Guid BusinessId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Business? Business;
+    private Branch? PrimaryBranch;
+    private List<Service> Services = [];
+    private int Step = 1;
+    private Service? SelectedService;
+    private DateOnly SelectedDate;
+    private DateTimeOffset? SelectedSlot;
+    private List<DateTimeOffset> Slots = [];
+    private string? ErrorMessage;
+
+    private sealed record DayOption(DateOnly Date, string Weekday, string PersianDay, string PersianMonth);
+    private List<DayOption> Days = [];
+
+    private static readonly string[] PersianWeekdays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+    private static readonly string[] PersianMonths =
+    [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Business = await Db.Businesses
+            .Include(b => b.Branches)
+            .FirstOrDefaultAsync(b => b.Id == BusinessId);
+
+        if (Business is null)
+        {
+            return;
+        }
+
+        PrimaryBranch = Business.Branches.FirstOrDefault();
+
+        Services = await Db.Services
+            .Where(s => s.BusinessId == BusinessId)
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var calendar = new PersianCalendar();
+
+        Days = Enumerable.Range(0, 5).Select(offset =>
+        {
+            var date = today.AddDays(offset);
+            var asDateTime = date.ToDateTime(TimeOnly.MinValue);
+            var weekday = offset == 0 ? "امروز" : PersianWeekdays[(int)date.DayOfWeek];
+            var persianDay = calendar.GetDayOfMonth(asDateTime).ToString();
+            var persianMonth = PersianMonths[calendar.GetMonth(asDateTime) - 1];
+            return new DayOption(date, weekday, persianDay, persianMonth);
+        }).ToList();
+
+        SelectedDate = today;
+    }
+
+    private async Task NextFromStep1()
+    {
+        if (SelectedService is null)
+        {
+            ErrorMessage = "لطفاً یک خدمت را انتخاب کنید.";
+            return;
+        }
+
+        ErrorMessage = null;
+        Step = 2;
+        await LoadSlotsAsync();
+    }
+
+    private async Task SelectDate(DateOnly date)
+    {
+        SelectedDate = date;
+        SelectedSlot = null;
+        await LoadSlotsAsync();
+    }
+
+    private async Task LoadSlotsAsync()
+    {
+        if (PrimaryBranch is null || SelectedService is null)
+        {
+            Slots = [];
+            return;
+        }
+
+        var primaryBranch = PrimaryBranch;
+        var selectedService = SelectedService;
+
+        const int stepMinutes = 30;
+        var duration = TimeSpan.FromMinutes(selectedService.DurationMinutes);
+        var dayStart = new DateTimeOffset(SelectedDate.ToDateTime(new TimeOnly(primaryBranch.OpenHour, 0)));
+        var dayEnd = new DateTimeOffset(SelectedDate.ToDateTime(new TimeOnly(primaryBranch.CloseHour, 0)));
+
+        var existingAppointments = await Db.Appointments
+            .Where(a => a.BranchId == primaryBranch.Id
+                        && a.Status != AppointmentStatus.Cancelled
+                        && a.StartsAt < dayEnd
+                        && a.EndsAt > dayStart)
+            .Select(a => new { a.StartsAt, a.EndsAt })
+            .ToListAsync();
+
+        var slots = new List<DateTimeOffset>();
+        var now = DateTimeOffset.Now;
+
+        for (var start = dayStart; start + duration <= dayEnd; start = start.AddMinutes(stepMinutes))
+        {
+            var candidateStart = start;
+            var candidateEnd = candidateStart + duration;
+
+            if (candidateStart < now)
+            {
+                continue;
+            }
+
+            var overlaps = existingAppointments.Any(a => candidateStart < a.EndsAt && a.StartsAt < candidateEnd);
+            if (!overlaps)
+            {
+                slots.Add(candidateStart);
+            }
+        }
+
+        Slots = slots;
+    }
+
+    private async Task NextFromStep2()
+    {
+        if (SelectedSlot is null)
+        {
+            ErrorMessage = "لطفاً یک زمان را انتخاب کنید.";
+            return;
+        }
+
+        await ConfirmBookingAsync();
+    }
+
+    private async Task ConfirmBookingAsync()
+    {
+        if (SelectedService is null || SelectedSlot is null || PrimaryBranch is null || AuthStateTask is null)
+        {
+            return;
+        }
+
+        var selectedService = SelectedService;
+        var primaryBranch = PrimaryBranch;
+
+        var authState = await AuthStateTask;
+        var userIdText = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userIdText is null || !Guid.TryParse(userIdText, out var userId))
+        {
+            NavigationManager.NavigateTo($"/account/login?ReturnUrl=/book/{BusinessId}", forceLoad: true);
+            return;
+        }
+
+        // بازبینی نهایی تداخل، درست قبل از ذخیره، برای کم کردن پنجره‌ی race
+        // بین انتخاب زمان و ثبت نهایی (کاربر دیگری ممکن است هم‌زمان همان
+        // بازه را رزرو کرده باشد).
+        var start = SelectedSlot.Value;
+        var end = start + TimeSpan.FromMinutes(selectedService.DurationMinutes);
+
+        var conflict = await Db.Appointments.AnyAsync(a =>
+            a.BranchId == primaryBranch.Id &&
+            a.Status != AppointmentStatus.Cancelled &&
+            a.StartsAt < end &&
+            a.EndsAt > start);
+
+        if (conflict)
+        {
+            ErrorMessage = "این زمان توسط شخص دیگری رزرو شد. لطفاً زمان دیگری انتخاب کنید.";
+            Step = 2;
+            await LoadSlotsAsync();
+            SelectedSlot = null;
+            return;
+        }
+
+        var appointment = new Appointment
+        {
+            BranchId = primaryBranch.Id,
+            ServiceId = selectedService.Id,
+            CustomerId = userId,
+            StartsAt = start,
+            EndsAt = end,
+            Status = AppointmentStatus.Pending,
+            FinalPrice = selectedService.Price,
+        };
+
+        Db.Appointments.Add(appointment);
+        await Db.SaveChangesAsync();
+
+        ErrorMessage = null;
+        Step = 3;
+    }
+
+    private string FormatSelectedTime()
+    {
+        if (SelectedSlot is null)
+        {
+            return "";
+        }
+
+        var day = Days.FirstOrDefault(d => d.Date == DateOnly.FromDateTime(SelectedSlot.Value.LocalDateTime));
+        var dayLabel = day is null ? SelectedSlot.Value.ToString("yyyy/MM/dd") : $"{day.PersianDay} {day.PersianMonth}";
+        return $"{dayLabel}، ساعت {SelectedSlot.Value:HH:mm}";
+    }
+}

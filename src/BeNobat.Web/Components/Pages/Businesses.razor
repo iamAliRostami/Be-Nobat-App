@@ -1,7 +1,133 @@
 @page "/businesses"
-@attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
 
-<PageTitle>کسب‌وکارها | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>خدمات</h1><p>خدمات، قیمت و مدت زمان ارائه را مدیریت کنید.</p></div><button>+ افزودن خدمت</button></div>
-<article class="admin-panel"><div class="toolbar"><input placeholder="جست‌وجو بین خدمات..."/><button class="secondary">همه دسته‌ها ⌄</button></div><div class="service-table"><div class="table-head"><span>نام خدمت</span><span>مدت</span><span>قیمت</span><span>وضعیت</span><span></span></div><div><span><i class="rose">✂</i><b>کوتاهی و استایل مو</b></span><span>۶۰ دقیقه</span><span>۴۸۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div><div><span><i class="purple">✦</i><b>رنگ و لایت</b></span><span>۱۲۰ دقیقه</span><span>۹۵۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div><div><span><i class="green">♧</i><b>اصلاح و ابرو</b></span><span>۳۰ دقیقه</span><span>۲۸۰,۰۰۰ تومان</span><span><em class="status confirmed">فعال</em></span><button>•••</button></div></div></article>
+<PageTitle>خدمات | به‌نوبت</PageTitle>
+
+<div class="page-title"><div><h1>خدمات</h1><p>خدمات، قیمت و مدت زمان ارائه را مدیریت کنید.</p></div><button type="button" @onclick="ToggleForm">@(ShowForm ? "بستن" : "+ افزودن خدمت")</button></div>
+
+@if (ShowForm)
+{
+    <article class="admin-panel" style="margin-bottom:16px">
+        <EditForm Model="NewService" OnValidSubmit="AddService">
+            <DataAnnotationsValidator />
+            <div class="toolbar" style="flex-wrap:wrap">
+                <select @bind="SelectedBusinessId">
+                    @foreach (var business in AllBusinesses)
+                    {
+                        <option value="@business.Id.ToString()">@business.Name</option>
+                    }
+                </select>
+                <input placeholder="نام خدمت" @bind="NewService.Name" />
+                <input placeholder="مدت (دقیقه)" type="number" @bind="NewService.DurationMinutes" style="max-width:120px" />
+                <input placeholder="قیمت (تومان)" type="number" @bind="NewService.Price" style="max-width:160px" />
+                <button type="submit">ذخیره</button>
+            </div>
+            @if (FormError is not null)
+            {
+                <div class="auth-error">@FormError</div>
+            }
+        </EditForm>
+    </article>
+}
+
+<article class="admin-panel">
+    <div class="toolbar">
+        <input placeholder="جست‌وجو بین خدمات..." @bind="SearchTerm" @bind:event="oninput" />
+    </div>
+
+    @if (FilteredServices.Count == 0)
+    {
+        <p class="empty-state">خدمتی پیدا نشد.</p>
+    }
+    else
+    {
+        <div class="service-table">
+            <div class="table-head"><span>نام خدمت</span><span>مدت</span><span>قیمت</span><span>وضعیت</span><span></span></div>
+            @foreach (var service in FilteredServices)
+            {
+                <div>
+                    <span><i class="rose">✂</i><b>@service.Name</b></span>
+                    <span>@service.DurationMinutes دقیقه</span>
+                    <span>@service.Price.ToString("N0") تومان</span>
+                    <span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span>
+                    <button type="button" @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال کردن" : "فعال کردن")</button>
+                </div>
+            }
+        </div>
+    }
+</article>
+
+@code {
+    private List<Business> AllBusinesses = [];
+    private List<Service> AllServices = [];
+    private string SearchTerm = "";
+    private bool ShowForm;
+    private string? FormError;
+    private string SelectedBusinessId = "";
+    private NewServiceModel NewService = new();
+
+    private List<Service> FilteredServices =>
+        string.IsNullOrWhiteSpace(SearchTerm)
+            ? AllServices
+            : AllServices.Where(s => s.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllBusinesses = await Db.Businesses.OrderBy(b => b.Name).ToListAsync();
+        if (AllBusinesses.Count > 0)
+        {
+            SelectedBusinessId = AllBusinesses[0].Id.ToString();
+        }
+        await LoadServicesAsync();
+    }
+
+    private async Task LoadServicesAsync()
+    {
+        AllServices = await Db.Services.IgnoreQueryFilters()
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+    }
+
+    private void ToggleForm() => ShowForm = !ShowForm;
+
+    private async Task AddService()
+    {
+        if (!Guid.TryParse(SelectedBusinessId, out var businessId) || string.IsNullOrWhiteSpace(NewService.Name))
+        {
+            FormError = "لطفاً همه‌ی فیلدها را پر کنید.";
+            return;
+        }
+
+        Db.Services.Add(new Service
+        {
+            BusinessId = businessId,
+            Name = NewService.Name,
+            DurationMinutes = NewService.DurationMinutes,
+            Price = NewService.Price,
+        });
+
+        await Db.SaveChangesAsync();
+        FormError = null;
+        NewService = new NewServiceModel();
+        ShowForm = false;
+        await LoadServicesAsync();
+    }
+
+    private async Task ToggleActive(Service service)
+    {
+        var tracked = await Db.Services.IgnoreQueryFilters().FirstAsync(s => s.Id == service.Id);
+        tracked.DeletedAt = tracked.DeletedAt is null ? DateTimeOffset.UtcNow : null;
+        tracked.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        await LoadServicesAsync();
+    }
+
+    private sealed class NewServiceModel
+    {
+        public string Name { get; set; } = "";
+        public int DurationMinutes { get; set; } = 30;
+        public decimal Price { get; set; }
+    }
+}

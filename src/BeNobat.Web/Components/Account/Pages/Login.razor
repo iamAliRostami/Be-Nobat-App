@@ -1,0 +1,81 @@
+@page "/account/login"
+@layout Layout.PublicLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using BeNobat.Web.Domain
+@inject SignInManager<AppUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
+
+<PageTitle>ورود | به‌نوبت</PageTitle>
+
+<div class="account-auth-page">
+    <EditForm Model="Input" FormName="login" OnValidSubmit="LoginUser" class="auth-card">
+        <DataAnnotationsValidator />
+        <AntiforgeryToken />
+        <h1>ورود به حساب کاربری</h1>
+        <p class="auth-subtitle">برای رزرو و مشاهده نوبت‌هایتان وارد شوید.</p>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="auth-error">@ErrorMessage</div>
+        }
+
+        <label>ایمیل
+            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" />
+        </label>
+        <ValidationMessage For="() => Input.Email" />
+
+        <label>رمز عبور
+            <InputText @bind-Value="Input.Password" type="password" autocomplete="current-password" />
+        </label>
+        <ValidationMessage For="() => Input.Password" />
+
+        <label class="auth-remember"><InputCheckbox @bind-Value="Input.RememberMe" /> مرا به خاطر بسپار</label>
+
+        <button type="submit" class="primary-button auth-submit">ورود</button>
+        <p class="auth-switch">حساب کاربری ندارید؟ <a href="/account/register">ثبت‌نام کنید</a></p>
+    </EditForm>
+</div>
+
+@code {
+    private string? ErrorMessage;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email,
+            Input.Password,
+            Input.RememberMe,
+            lockoutOnFailure: true);
+
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("کاربر {Email} با موفقیت وارد شد.", Input.Email);
+            NavigationManager.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl, forceLoad: true);
+            return;
+        }
+
+        ErrorMessage = result.IsLockedOut
+            ? "حساب شما موقتاً به دلیل تلاش‌های ناموفق متعدد قفل شده است."
+            : "ایمیل یا رمز عبور اشتباه است.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required(ErrorMessage = "ایمیل الزامی است.")]
+        [EmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "رمز عبور الزامی است.")]
+        public string Password { get; set; } = "";
+
+        public bool RememberMe { get; set; }
+    }
+}
