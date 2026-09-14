@@ -51,7 +51,7 @@ public static class DbSeeder
             await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
         }
 
-        if (!await db.Businesses.IgnoreQueryFilters().AnyAsync(cancellationToken))
+        await SeedBusinessIfMissingAsync(db, "avan-beauty-studio", cancellationToken, () =>
         {
             var business = new Business
             {
@@ -72,7 +72,7 @@ public static class DbSeeder
                 CloseHour = 19,
             };
 
-            var seedServices = new List<Service>
+            var services = new List<Service>
             {
                 new()
                 {
@@ -113,10 +113,13 @@ public static class DbSeeder
 
             db.Businesses.Add(business);
             db.Branches.Add(branch);
-            db.Services.AddRange(seedServices);
+            db.Services.AddRange(services);
             db.Resources.Add(resource);
+        });
 
-            var secondBusiness = new Business
+        await SeedBusinessIfMissingAsync(db, "sepid-dental-clinic", cancellationToken, () =>
+        {
+            var business = new Business
             {
                 Name = "کلینیک دندانپزشکی سپید",
                 Slug = "sepid-dental-clinic",
@@ -125,22 +128,22 @@ public static class DbSeeder
                 Description = "کلینیک دندانپزشکی تخصصی در سعادت‌آباد.",
             };
 
-            var secondBranch = new Branch
+            var branch = new Branch
             {
-                Business = secondBusiness,
-                BusinessId = secondBusiness.Id,
+                Business = business,
+                BusinessId = business.Id,
                 Name = "شعبه سعادت‌آباد",
                 Address = "سعادت‌آباد، بلوار سرو",
                 OpenHour = 9,
                 CloseHour = 18,
             };
 
-            var secondServices = new List<Service>
+            var services = new List<Service>
             {
                 new()
                 {
-                    Business = secondBusiness,
-                    BusinessId = secondBusiness.Id,
+                    Business = business,
+                    BusinessId = business.Id,
                     Name = "معاینه و مشاوره",
                     Description = "معاینه اولیه و برنامه درمان",
                     DurationMinutes = 30,
@@ -148,8 +151,8 @@ public static class DbSeeder
                 },
                 new()
                 {
-                    Business = secondBusiness,
-                    BusinessId = secondBusiness.Id,
+                    Business = business,
+                    BusinessId = business.Id,
                     Name = "جرم‌گیری دندان",
                     Description = "جرم‌گیری و پولیش کامل",
                     DurationMinutes = 45,
@@ -157,11 +160,103 @@ public static class DbSeeder
                 },
             };
 
-            db.Businesses.Add(secondBusiness);
-            db.Branches.Add(secondBranch);
-            db.Services.AddRange(secondServices);
+            db.Businesses.Add(business);
+            db.Branches.Add(branch);
+            db.Services.AddRange(services);
+        });
 
-            await db.SaveChangesAsync(cancellationToken);
+        await SeedBusinessIfMissingAsync(db, "rahaei-massage-wellness", cancellationToken, () =>
+        {
+            var business = new Business
+            {
+                Name = "مرکز ماساژ و تندرستی رهایی",
+                Slug = "rahaei-massage-wellness",
+                Category = "ماساژ و تندرستی",
+                City = "اصفهان",
+                Description = "ماساژ درمانی و خدمات آرامش‌بخش در اصفهان.",
+            };
+
+            var branch = new Branch
+            {
+                Business = business,
+                BusinessId = business.Id,
+                Name = "شعبه چهارباغ",
+                Address = "چهارباغ بالا",
+                OpenHour = 10,
+                CloseHour = 21,
+            };
+
+            var services = new List<Service>
+            {
+                new()
+                {
+                    Business = business,
+                    BusinessId = business.Id,
+                    Name = "ماساژ سوئدی",
+                    Description = "ماساژ آرامش‌بخش کل بدن",
+                    DurationMinutes = 60,
+                    Price = 700_000,
+                },
+            };
+
+            db.Businesses.Add(business);
+            db.Branches.Add(branch);
+            db.Services.AddRange(services);
+        });
+
+        await SeedBusinessIfMissingAsync(db, "omid-family-consulting", cancellationToken, () =>
+        {
+            var business = new Business
+            {
+                Name = "مرکز مشاوره خانواده امید",
+                Slug = "omid-family-consulting",
+                Category = "مشاوره",
+                City = "تهران",
+                Description = "مشاوره خانواده، فردی و تحصیلی.",
+            };
+
+            var branch = new Branch
+            {
+                Business = business,
+                BusinessId = business.Id,
+                Name = "شعبه پاسداران",
+                Address = "پاسداران، نبش گلستان",
+                OpenHour = 9,
+                CloseHour = 17,
+            };
+
+            var services = new List<Service>
+            {
+                new()
+                {
+                    Business = business,
+                    BusinessId = business.Id,
+                    Name = "مشاوره فردی",
+                    Description = "یک جلسه ۵۰ دقیقه‌ای",
+                    DurationMinutes = 50,
+                    Price = 500_000,
+                },
+            };
+
+            db.Businesses.Add(business);
+            db.Branches.Add(branch);
+            db.Services.AddRange(services);
+        });
+    }
+
+    private static async Task SeedBusinessIfMissingAsync(
+        AppDbContext db,
+        string slug,
+        CancellationToken cancellationToken,
+        Action addEntities)
+    {
+        var exists = await db.Businesses.IgnoreQueryFilters().AnyAsync(b => b.Slug == slug, cancellationToken);
+        if (exists)
+        {
+            return;
         }
+
+        addEntities();
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

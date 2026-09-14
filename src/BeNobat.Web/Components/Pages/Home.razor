@@ -59,6 +59,11 @@
         }
     </div>
 
+    @if (CityFilterRelaxed)
+    {
+        <p class="search-hint">نتیجه‌ای در «@City» پیدا نشد؛ این نتایج از سایر شهرها نمایش داده شده‌اند.</p>
+    }
+
     @if (Results.Count == 0)
     {
         <p class="empty-state">هیچ کسب‌وکاری با این مشخصات پیدا نشد.</p>
@@ -130,28 +135,46 @@
         await Search();
     }
 
+    private bool CityFilterRelaxed;
+
     private async Task Search()
     {
         var term = SearchTerm.Trim();
         var city = City.Trim();
         HasSearched = !string.IsNullOrWhiteSpace(term);
+        CityFilterRelaxed = false;
 
-        var query = Db.Businesses.Include(b => b.Branches).AsQueryable();
+        IQueryable<Business> BaseQuery() => Db.Businesses.Include(b => b.Branches).AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(term))
+        IQueryable<Business> ApplyTerm(IQueryable<Business> query) =>
+            string.IsNullOrWhiteSpace(term)
+                ? query
+                : query.Where(b =>
+                    EF.Functions.ILike(b.Name, $"%{term}%") ||
+                    EF.Functions.ILike(b.Category, $"%{term}%") ||
+                    Db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
+
+        var withTerm = ApplyTerm(BaseQuery());
+
+        var withCity = string.IsNullOrWhiteSpace(city)
+            ? withTerm
+            : withTerm.Where(b => EF.Functions.ILike(b.City, $"%{city}%"));
+
+        Results = await withCity.OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
+
+        // شهر را فیلتر «سخت‌گیرانه» در نظر نمی‌گیریم: اگر با محدود کردن به شهر
+        // هیچ نتیجه‌ای نبود ولی بدون آن نتیجه هست، همان‌ها را نشان می‌دهیم و
+        // به کاربر می‌گوییم که این نتایج محدود به شهر انتخابی نیستند - به‌جای
+        // نمایش یک صفحه‌ی کاملاً خالی که به نظر می‌رسد جست‌وجو خراب است.
+        if (Results.Count == 0 && !string.IsNullOrWhiteSpace(city))
         {
-            query = query.Where(b =>
-                EF.Functions.ILike(b.Name, $"%{term}%") ||
-                EF.Functions.ILike(b.Category, $"%{term}%") ||
-                Db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
+            var withoutCity = await ApplyTerm(BaseQuery()).OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
+            if (withoutCity.Count > 0)
+            {
+                Results = withoutCity;
+                CityFilterRelaxed = true;
+            }
         }
-
-        if (!string.IsNullOrWhiteSpace(city))
-        {
-            query = query.Where(b => EF.Functions.ILike(b.City, $"%{city}%"));
-        }
-
-        Results = await query.OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
     }
 
     private async Task ClearSearch()

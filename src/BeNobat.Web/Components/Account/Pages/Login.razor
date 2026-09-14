@@ -12,7 +12,6 @@
 <div class="account-auth-page">
     <EditForm Model="Input" FormName="login" OnValidSubmit="LoginUser" class="auth-card">
         <DataAnnotationsValidator />
-        <AntiforgeryToken />
         <h1>ورود به حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو و مشاهده نوبت‌هایتان وارد شوید.</p>
 
@@ -42,15 +41,10 @@
     private string? ErrorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
-
-    protected override void OnInitialized()
-    {
-        Input ??= new();
-    }
 
     private async Task LoginUser()
     {

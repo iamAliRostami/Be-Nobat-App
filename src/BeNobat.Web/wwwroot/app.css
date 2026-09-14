@@ -63,3 +63,6 @@
 .form-modal>div button{border:0;background:none;font-size:16px;color:#9996a4;cursor:pointer}
 .form-modal label{display:grid;gap:6px;font-size:11px;color:#555}
 .form-modal input,.form-modal select{font:inherit;padding:10px 12px;border:1px solid #e1dfe8;border-radius:9px}
+
+/* fix: soft city-filter fallback notice on search */
+.search-hint{background:#fff7e8;color:#9a6b1f;border:1px solid #f3e2bd;border-radius:10px;padding:10px 14px;font-size:11px;margin-bottom:14px}

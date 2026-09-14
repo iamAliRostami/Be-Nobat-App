@@ -13,7 +13,6 @@
 <div class="account-auth-page">
     <EditForm Model="Input" FormName="register" OnValidSubmit="RegisterUser" class="auth-card">
         <DataAnnotationsValidator />
-        <AntiforgeryToken />
         <h1>ساخت حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو نوبت، یک حساب کاربری بسازید.</p>
 
@@ -51,12 +50,7 @@
     private string? ErrorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
-
-    protected override void OnInitialized()
-    {
-        Input ??= new();
-    }
+    private InputModel Input { get; set; } = new();
 
     private async Task RegisterUser()
     {
