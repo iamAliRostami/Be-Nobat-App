@@ -11,10 +11,8 @@
             <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
                     <NavLink href="/admin/branches"><i>⌖</i> شعب و منابع</NavLink>
-                    <NavLink href="/admin/availability"><i>◷</i> زمان‌های خالی</NavLink>
-                    <NavLink href="/admin/reviews"><i>★</i> امتیازها و نظرات</NavLink>
-                    <NavLink href="/admin/people/customers"><i>◈</i> مشتریان</NavLink>
-                    <NavLink href="/admin/people/team"><i>◎</i> اعضای تیم</NavLink>
+                    <NavLink href="/admin/customers"><i>◈</i> مشتریان</NavLink>
+                    <NavLink href="/admin/team"><i>◎</i> اعضای تیم</NavLink>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ManagePlatform" Context="platformContext">

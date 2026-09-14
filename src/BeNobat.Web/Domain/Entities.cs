@@ -40,9 +40,6 @@ public sealed class Branch : Entity
     public int CloseHour { get; set; } = 18;
     public Business Business { get; set; } = null!;
     public ICollection<Resource> Resources { get; } = [];
-    public ICollection<BranchMembership> Memberships { get; } = [];
-    public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
-    public ICollection<Review> Reviews { get; } = [];
 }
 
 public sealed class Service : Entity

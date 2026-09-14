@@ -67,9 +67,6 @@ curl http://localhost:8080/health
 | تقویم مدیر | <http://localhost:8080/admin/calendar> |
 | مدیریت خدمات | <http://localhost:8080/businesses> |
 | مدیریت شعب و منابع | <http://localhost:8080/admin/branches> |
-| مدیریت زمان‌های خالی | <http://localhost:8080/admin/availability> |
-| مدیریت امتیازها و نظرات | <http://localhost:8080/admin/reviews> |
-| اطلاعات حساب و ثبت نظر | <http://localhost:8080/account/profile> |
 | مدیریت کل کسب‌وکارها | <http://localhost:8080/platform> |
 | مدیریت کاربران و دسترسی‌ها | <http://localhost:8080/platform/access> |
 | بررسی سلامت سرویس | <http://localhost:8080/health> |
