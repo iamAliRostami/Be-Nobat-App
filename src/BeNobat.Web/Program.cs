@@ -1,6 +1,7 @@
 using BeNobat.Web.Components;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
+using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +18,15 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 // cookie scheme below is the pattern used by the official "Blazor Web App with
 // Individual Accounts" template and is what actually works here.
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    // مدیریت کل کسب‌وکار (خدمات، شعبه‌ها، تیم): فقط نقش‌های مدیریتی بالادستی.
+    .AddPolicy(Policies.ManageBusiness, policy => policy.RequireRole(
+        AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager))
+    // مدیریت نوبت‌ها (تقویم، تغییر وضعیت): مدیریتی‌ها + پرسنل.
+    .AddPolicy(Policies.ManageAppointments, policy => policy.RequireRole(
+        AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager, AppRoles.Staff))
+    // مشاهده نوبت‌های خود: کافیست کاربر لاگین کرده باشد.
+    .AddPolicy(Policies.ViewOwnAppointments, policy => policy.RequireAuthenticatedUser());
 builder.Services
     .AddIdentity<AppUser, IdentityRole<Guid>>(options =>
     {
@@ -88,7 +97,7 @@ app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellat
         await db.Branches.CountAsync(cancellationToken),
         await db.Services.CountAsync(cancellationToken),
         await db.Appointments.CountAsync(cancellationToken)))
-    .RequireAuthorization(policy => policy.RequireRole(DbSeeder.AdminRole));
+    .RequireAuthorization(Policies.ManageAppointments);
 app.MapHealthChecks("/health");
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 

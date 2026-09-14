@@ -1,6 +1,6 @@
 @page "/businesses"
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
 @inject AppDbContext Db
 
 <PageTitle>خدمات | به‌نوبت</PageTitle>

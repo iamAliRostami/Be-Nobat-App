@@ -1,7 +1,7 @@
 @page "/appointments"
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
-@attribute [Authorize]
+@attribute [Authorize(Policy = Policies.ViewOwnAppointments)]
 @using System.Globalization
 @using System.Security.Claims
 @inject AppDbContext Db

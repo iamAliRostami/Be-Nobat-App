@@ -7,7 +7,7 @@
         <div class="public-actions">
             <AuthorizeView>
                 <Authorized>
-                    <AuthorizeView Roles="Admin" Context="adminContext">
+                    <AuthorizeView Policy="@Policies.ManageAppointments" Context="adminContext">
                         <Authorized>
                             <a class="business-login" href="/admin">پنل مدیریت</a>
                         </Authorized>

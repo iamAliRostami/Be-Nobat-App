@@ -1,4 +1,5 @@
 using BeNobat.Web.Domain;
+using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,8 +7,10 @@ namespace BeNobat.Web.Infrastructure;
 
 public static class DbSeeder
 {
-    public const string AdminRole = "Admin";
-    public const string CustomerRole = "Customer";
+    // [fix] Kept for backward compatibility with anything still referencing the old
+    // simple role names; the real seeded/authoritative role set is BeNobat.Web.Security.AppRoles.
+    public const string AdminRole = AppRoles.PlatformAdmin;
+    public const string CustomerRole = AppRoles.Customer;
 
     public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration, CancellationToken cancellationToken = default)
     {
@@ -15,7 +18,7 @@ public static class DbSeeder
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
 
-        foreach (var role in new[] { AdminRole, CustomerRole })
+        foreach (var role in AppRoles.All)
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
@@ -40,12 +43,12 @@ public static class DbSeeder
             var createResult = await userManager.CreateAsync(admin, adminPassword);
             if (createResult.Succeeded)
             {
-                await userManager.AddToRoleAsync(admin, AdminRole);
+                await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
             }
         }
-        else if (!await userManager.IsInRoleAsync(admin, AdminRole))
+        else if (!await userManager.IsInRoleAsync(admin, AppRoles.PlatformAdmin))
         {
-            await userManager.AddToRoleAsync(admin, AdminRole);
+            await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
         }
 
         if (!await db.Businesses.IgnoreQueryFilters().AnyAsync(cancellationToken))
@@ -69,7 +72,7 @@ public static class DbSeeder
                 CloseHour = 19,
             };
 
-            var services = new List<Service>
+            var seedServices = new List<Service>
             {
                 new()
                 {
@@ -110,7 +113,7 @@ public static class DbSeeder
 
             db.Businesses.Add(business);
             db.Branches.Add(branch);
-            db.Services.AddRange(services);
+            db.Services.AddRange(seedServices);
             db.Resources.Add(resource);
 
             var secondBusiness = new Business

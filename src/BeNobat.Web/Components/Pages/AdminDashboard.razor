@@ -1,6 +1,6 @@
 @page "/admin"
 @rendermode InteractiveServer
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Policy = Policies.ManageAppointments)]
 @using System.Globalization
 @inject AppDbContext Db
 

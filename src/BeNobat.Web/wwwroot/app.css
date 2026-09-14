@@ -47,3 +47,19 @@
 .row-actions{display:flex;gap:6px;grid-column:1/-1;margin-top:6px}
 .row-actions button{border:1px solid #e4e1e9;background:#fff;border-radius:7px;padding:6px 11px;font-size:9px;cursor:pointer}
 .row-actions button:not(.outline){background:var(--primary);color:#fff;border-color:transparent}
+
+/* fix: styling for AdminPeople (team/customers) page */
+.people-list{display:grid;gap:8px;margin-top:10px}
+.people-list>article{display:grid;grid-template-columns:36px 1fr auto auto;align-items:center;gap:11px;padding:11px 4px;border-bottom:1px solid #f0eff4}
+.people-list>article:last-child{border:0}
+.people-list>article>div{display:grid;gap:2px}
+.people-list>article div small{font-size:9px;color:#9895a2}
+.people-list>article em{font-style:normal;font-size:9px;color:#746d9a;background:#f0edfd;padding:4px 9px;border-radius:10px}
+.people-list button{border:0;background:none;color:#b5b2bd;font-size:14px;cursor:pointer}
+.modal-backdrop{position:fixed;inset:0;background:#17152dcc;display:grid;place-items:center;z-index:50}
+.form-modal{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:380px;display:grid;gap:11px}
+.form-modal>div{display:flex;justify-content:space-between;align-items:center}
+.form-modal>div h2{font-size:15px;margin:0}
+.form-modal>div button{border:0;background:none;font-size:16px;color:#9996a4;cursor:pointer}
+.form-modal label{display:grid;gap:6px;font-size:11px;color:#555}
+.form-modal input,.form-modal select{font:inherit;padding:10px 12px;border:1px solid #e1dfe8;border-radius:9px}

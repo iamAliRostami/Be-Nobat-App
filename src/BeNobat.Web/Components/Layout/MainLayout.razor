@@ -8,6 +8,12 @@
             <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
             <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink>
             <small>کسب‌وکار</small><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
+            <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
+                <Authorized>
+                    <NavLink href="/admin/customers"><i>◈</i> مشتریان</NavLink>
+                    <NavLink href="/admin/team"><i>◎</i> اعضای تیم</NavLink>
+                </Authorized>
+            </AuthorizeView>
             <small>حساب</small><a href="/" target="_top"><i>⌖</i> مشاهده صفحه عمومی</a>
         </nav>
         <div class="sidebar-footer">

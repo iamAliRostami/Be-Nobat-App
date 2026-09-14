@@ -1,0 +1,108 @@
+is_global = true
+build_property.TargetFramework = net10.0
+build_property.TargetFramework = net10.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.EntryPointFilePath = 
+build_property.RootNamespace = BeNobat.Web
+build_property.RootNamespace = BeNobat.Web
+build_property.ProjectDir = D:\rostami\projects\be-nobat-app\src\BeNobat.Web\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 10.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = D:\rostami\projects\be-nobat-app\src\BeNobat.Web
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Account/Pages/AccessDenied.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBY2NvdW50XFBhZ2VzXEFjY2Vzc0RlbmllZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Account/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBY2NvdW50XFBhZ2VzXExvZ2luLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Account/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBY2NvdW50XFBhZ2VzXFJlZ2lzdGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/BookingSummary.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xCb29raW5nU3VtbWFyeS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/BusinessCard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xCdXNpbmVzc0NhcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Layout/PublicLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUHVibGljTGF5b3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/AdminCalendar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pbkNhbGVuZGFyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/AdminDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pbkRhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/AdminPeople.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblBlb3BsZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/Appointments.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBcHBvaW50bWVudHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/Booking.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xCb29raW5nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/Businesses.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xCdXNpbmVzc2VzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSZWRpcmVjdFRvTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/Routes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSb3V0ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/rostami/projects/be-nobat-app/src/BeNobat.Web/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 

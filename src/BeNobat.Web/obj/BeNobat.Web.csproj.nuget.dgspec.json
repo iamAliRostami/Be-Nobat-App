@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj": {}
+    "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj": {}
   },
   "projects": {
-    "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
+    "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj",
+        "projectUniqueName": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj",
         "projectName": "BeNobat.Web",
-        "projectPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj",
-        "packagesPath": "C:\\Users\\a.rostami.MAKAN.001\\.nuget\\packages\\",
-        "outputPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\obj\\",
+        "projectPath": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj",
+        "packagesPath": "C:\\Users\\administrator\\.nuget\\packages\\",
+        "outputPath": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "C:\\Users\\a.rostami.MAKAN.001\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "D:\\rostami\\projects\\be-nobat-app\\NuGet.Config",
+          "C:\\Users\\administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -77,6 +77,10 @@
             "Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore": {
               "target": "Package",
               "version": "[10.0.0, )"
+            },
+            "Microsoft.OpenApi": {
+              "target": "Package",
+              "version": "[2.7.5, )"
             },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
