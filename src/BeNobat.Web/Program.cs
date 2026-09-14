@@ -5,7 +5,13 @@ using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
+var seedDemo = args.Contains("--seed-demo", StringComparer.Ordinal);
+var hostArgs = args.Where(arg => arg != "--seed-demo").ToArray();
+var builder = WebApplication.CreateBuilder(hostArgs);
+if (seedDemo && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException("داده‌های نمایشی فقط در محیط Development قابل ایجاد هستند.");
+}
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
 
@@ -62,6 +68,17 @@ await using (var scope = app.Services.CreateAsyncScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
+    if (seedDemo)
+    {
+        await DemoSeeder.SeedAsync(scope.ServiceProvider);
+    }
+}
+
+if (seedDemo)
+{
+    app.Logger.LogInformation("داده‌های نمایشی آماده شدند؛ موارد موجود دوباره ساخته نشدند.");
+    await app.DisposeAsync();
+    return;
 }
 
 if (app.Environment.IsDevelopment())
