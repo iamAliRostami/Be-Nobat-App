@@ -13,8 +13,8 @@ public static class AppRoles
 
 public static class Policies
 {
+    public const string ManagePlatform = nameof(ManagePlatform);
     public const string ManageBusiness = nameof(ManageBusiness);
     public const string ManageAppointments = nameof(ManageAppointments);
     public const string ViewOwnAppointments = nameof(ViewOwnAppointments);
 }
-

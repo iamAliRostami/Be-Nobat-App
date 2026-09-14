@@ -35,6 +35,7 @@ public sealed class Branch : Entity
     public int OpenHour { get; set; } = 9;
     public int CloseHour { get; set; } = 18;
     public Business Business { get; set; } = null!;
+    public ICollection<Resource> Resources { get; } = [];
 }
 
 public sealed class Service : Entity
