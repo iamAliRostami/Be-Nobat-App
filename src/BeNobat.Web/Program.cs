@@ -25,6 +25,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 // Individual Accounts" template and is what actually works here.
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.ManagePlatform, policy => policy.RequireRole(AppRoles.PlatformAdmin))
     // مدیریت کل کسب‌وکار (خدمات، شعبه‌ها، تیم): فقط نقش‌های مدیریتی بالادستی.
     .AddPolicy(Policies.ManageBusiness, policy => policy.RequireRole(
         AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager))

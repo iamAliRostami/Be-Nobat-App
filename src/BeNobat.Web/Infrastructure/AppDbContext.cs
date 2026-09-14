@@ -23,7 +23,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Service>().HasOne(x => x.Business).WithMany(x => x.Services)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
-        builder.Entity<Resource>().HasOne(x => x.Branch).WithMany()
+        builder.Entity<Resource>().HasOne(x => x.Branch).WithMany(x => x.Resources)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Service>().Property(x => x.Price).HasPrecision(18, 2);
         builder.Entity<Appointment>().Property(x => x.FinalPrice).HasPrecision(18, 2);

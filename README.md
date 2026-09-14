@@ -66,6 +66,9 @@ curl http://localhost:8080/health
 | پنل مدیریت کسب‌وکار | <http://localhost:8080/admin> |
 | تقویم مدیر | <http://localhost:8080/admin/calendar> |
 | مدیریت خدمات | <http://localhost:8080/businesses> |
+| مدیریت شعب و منابع | <http://localhost:8080/admin/branches> |
+| مدیریت کل کسب‌وکارها | <http://localhost:8080/platform> |
+| مدیریت کاربران و دسترسی‌ها | <http://localhost:8080/platform/access> |
 | بررسی سلامت سرویس | <http://localhost:8080/health> |
 | سند OpenAPI در محیط Development | <http://localhost:8080/openapi/v1.json> |
 
@@ -233,7 +236,8 @@ docker compose up --build
 - صفحه‌ی کشف خدمات و مراکز پیشنهادی برای مراجعه‌کننده
 - جریان سه‌مرحله‌ای انتخاب خدمت، زمان و تأیید نوبت
 - صفحه‌ی نوبت‌های پیش‌رو و تاریخچه‌ی مراجعه‌کننده
-- داشبورد روزانه، تقویم تیم و مدیریت خدمات برای مدیر مجموعه
+- داشبورد روزانه، تقویم تیم و مدیریت خدمات، شعب، منابع، مشتریان و اعضای تیم برای مدیر مجموعه
+- پنل مدیر کل برای مدیریت همهٔ کسب‌وکارها، وضعیت انتشار و نقش‌های دسترسی کاربران
 
 زیرساخت PostgreSQL، Identity API، OpenAPI و health check نیز فعال است. داده‌های
 نمونه‌ی رابط کاربری در ادامه‌ی مهاجرت، به vertical sliceهای عملیاتی و دیتابیس

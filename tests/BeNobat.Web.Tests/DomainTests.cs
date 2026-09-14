@@ -1,4 +1,5 @@
 using BeNobat.Web.Domain;
+using BeNobat.Web.Security;
 using Xunit;
 
 namespace BeNobat.Web.Tests;
@@ -18,5 +19,20 @@ public sealed class DomainTests
         var business = new Business { Name = "Test" };
         Assert.NotEqual(Guid.Empty, business.Id);
         Assert.Equal(7, business.Id.Version);
+    }
+
+    [Fact]
+    public void Platform_administrator_is_a_distinct_supported_role()
+    {
+        Assert.Contains(AppRoles.PlatformAdmin, AppRoles.All);
+        Assert.DoesNotContain(AppRoles.Customer, new[] { AppRoles.Owner, AppRoles.Manager, AppRoles.Staff });
+    }
+
+    [Fact]
+    public void Branch_can_track_booking_resources()
+    {
+        var branch = new Branch { Name = "مرکزی" };
+        branch.Resources.Add(new Resource { Name = "اتاق یک", BranchId = branch.Id });
+        Assert.Single(branch.Resources);
     }
 }

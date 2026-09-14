@@ -1,0 +1,50 @@
+@page "/admin/branches"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject AppDbContext Db
+
+<PageTitle>شعب و منابع | به‌نوبت</PageTitle>
+<div class="page-title"><div><h1>شعب و منابع</h1><p>نشانی، ساعات کاری و منابع قابل رزرو هر شعبه را مدیریت کنید.</p></div><button @onclick="NewBranch">+ افزودن شعبه</button></div>
+
+<article class="admin-panel">
+    <div class="toolbar"><input placeholder="جست‌وجوی شعبه یا نشانی..." @bind="Query" @bind:event="oninput"/><span>@Filtered.Count() شعبه</span></div>
+    @if (!Filtered.Any()) { <p class="empty-state">هنوز شعبه‌ای ثبت نشده است.</p> }
+    <div class="management-grid">
+        @foreach (var branch in Filtered)
+        {
+            <article class="management-card">
+                <div class="panel-head"><div><h2>@branch.Name</h2><p>@branch.Business.Name · @branch.Address</p></div><em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em></div>
+                <dl><div><dt>ساعت کاری</dt><dd>@branch.OpenHour:00 تا @branch.CloseHour:00</dd></div><div><dt>منطقه زمانی</dt><dd>@branch.TimeZoneId</dd></div><div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div></dl>
+                <div class="card-actions"><button @onclick="() => EditBranch(branch)">ویرایش</button><button @onclick="() => AddResource(branch)">+ منبع</button><button class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button></div>
+                @if (branch.Resources.Count > 0) { <div class="resource-chips">@foreach(var resource in branch.Resources){<span>@resource.Name <small>@resource.Kind</small><button title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>}</div> }
+            </article>
+        }
+    </div>
+</article>
+
+@if (ShowBranchForm)
+{
+ <div class="modal-backdrop" @onclick="Close"><EditForm Model="BranchForm" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation><DataAnnotationsValidator/><div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" @onclick="Close">×</button></div>
+ <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach(var b in Businesses){<option value="@b.Id">@b.Name</option>}</select></label><label>نام شعبه<input required @bind="BranchForm.Name"/></label><label>نشانی<input @bind="BranchForm.Address"/></label><div class="form-columns"><label>شروع کار<input type="number" min="0" max="23" @bind="BranchForm.OpenHour"/></label><label>پایان کار<input type="number" min="1" max="24" @bind="BranchForm.CloseHour"/></label></div>@if(Error is not null){<div class="auth-error">@Error</div>}<button class="primary-button">ذخیره</button></EditForm></div>
+}
+@if (ResourceBranch is not null)
+{
+ <div class="modal-backdrop" @onclick="Close"><EditForm Model="ResourceForm" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation><div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" @onclick="Close">×</button></div><label>نام منبع<input required @bind="ResourceForm.Name"/></label><label>نوع<select @bind="ResourceForm.Kind"><option value="staff">عضو تیم</option><option value="room">اتاق</option><option value="equipment">تجهیزات</option></select></label><button class="primary-button">ذخیره</button></EditForm></div>
+}
+
+@code {
+ private List<Business> Businesses=[]; private List<Branch> Branches=[]; private string Query=""; private bool ShowBranchForm; private Guid? EditingBranchId; private BranchInput BranchForm=new(); private Branch? ResourceBranch; private ResourceInput ResourceForm=new(); private string? Error;
+ private IEnumerable<Branch> Filtered => Branches.Where(x => $"{x.Name} {x.Address} {x.Business.Name}".Contains(Query,StringComparison.OrdinalIgnoreCase));
+ protected override async Task OnInitializedAsync(){ Businesses=await Db.Businesses.OrderBy(x=>x.Name).ToListAsync(); await Load(); }
+ private async Task Load()=>Branches=await Db.Branches.IgnoreQueryFilters().Include(x=>x.Business).Include(x=>x.Resources).OrderBy(x=>x.Name).ToListAsync();
+ private void NewBranch(){EditingBranchId=null;BranchForm=new(){BusinessId=Businesses.FirstOrDefault()?.Id??Guid.Empty};ShowBranchForm=true;}
+ private void EditBranch(Branch x){EditingBranchId=x.Id;BranchForm=new(){BusinessId=x.BusinessId,Name=x.Name,Address=x.Address,OpenHour=x.OpenHour,CloseHour=x.CloseHour};ShowBranchForm=true;}
+ private async Task SaveBranch(){if(BranchForm.BusinessId==Guid.Empty||string.IsNullOrWhiteSpace(BranchForm.Name)||BranchForm.CloseHour<=BranchForm.OpenHour){Error="نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";return;} var x=EditingBranchId is null?new Branch{Name=BranchForm.Name}:await Db.Branches.IgnoreQueryFilters().FirstAsync(x=>x.Id==EditingBranchId);x.BusinessId=BranchForm.BusinessId;x.Name=BranchForm.Name.Trim();x.Address=BranchForm.Address.Trim();x.OpenHour=BranchForm.OpenHour;x.CloseHour=BranchForm.CloseHour;x.UpdatedAt=DateTimeOffset.UtcNow;if(EditingBranchId is null)Db.Branches.Add(x);await Db.SaveChangesAsync();Close();await Load();}
+ private async Task ToggleBranch(Branch x){var item=await Db.Branches.IgnoreQueryFilters().FirstAsync(b=>b.Id==x.Id);item.DeletedAt=item.DeletedAt is null?DateTimeOffset.UtcNow:null;await Db.SaveChangesAsync();await Load();}
+ private void AddResource(Branch x){ResourceBranch=x;ResourceForm=new();}
+ private async Task SaveResource(){if(ResourceBranch is null||string.IsNullOrWhiteSpace(ResourceForm.Name))return;Db.Resources.Add(new Resource{BranchId=ResourceBranch.Id,Name=ResourceForm.Name.Trim(),Kind=ResourceForm.Kind});await Db.SaveChangesAsync();Close();await Load();}
+ private async Task DeleteResource(Resource x){var item=await Db.Resources.FindAsync(x.Id);if(item is null)return;item.DeletedAt=DateTimeOffset.UtcNow;await Db.SaveChangesAsync();await Load();}
+ private void Close(){ShowBranchForm=false;ResourceBranch=null;Error=null;}
+ private sealed class BranchInput{public Guid BusinessId{get;set;} public string Name{get;set;}="";public string Address{get;set;}="";public int OpenHour{get;set;}=9;public int CloseHour{get;set;}=18;}
+ private sealed class ResourceInput{public string Name{get;set;}="";public string Kind{get;set;}="staff";}
+}
