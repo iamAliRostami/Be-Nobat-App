@@ -1,5 +1,4 @@
-@page "/admin/customers"
-@page "/admin/team"
+@page "/admin/people/{Mode}"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
 @inject NavigationManager Navigation

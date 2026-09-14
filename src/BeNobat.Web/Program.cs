@@ -68,6 +68,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await CompatibilitySchemaUpgrade.ApplyAsync(db);
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
     if (seedDemo)
     {

@@ -13,6 +13,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Service> Services => Set<Service>();
     public DbSet<Resource> Resources => Set<Resource>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<BranchMembership> BranchMemberships => Set<BranchMembership>();
+    public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
+    public DbSet<Review> Reviews => Set<Review>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -37,6 +40,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Appointment>().HasOne(x => x.Customer).WithMany()
             .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Appointment>().HasIndex(x => new { x.BranchId, x.StartsAt });
+        builder.Entity<BranchMembership>().HasIndex(x => new { x.BranchId, x.UserId }).IsUnique();
+        builder.Entity<BranchMembership>().HasOne(x => x.Branch).WithMany(x => x.Memberships)
+            .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<BranchMembership>().HasOne(x => x.User).WithMany(x => x.BranchMemberships)
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AvailabilityRule>().HasOne(x => x.Business).WithMany(x => x.AvailabilityRules)
+            .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AvailabilityRule>().HasOne(x => x.Branch).WithMany(x => x.AvailabilityRules)
+            .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AvailabilityRule>().HasIndex(x => new { x.BusinessId, x.BranchId, x.DayOfWeek, x.StartsAt });
+        builder.Entity<Review>().Property(x => x.Status).HasConversion<string>();
+        builder.Entity<Review>().HasIndex(x => new { x.BusinessId, x.Status });
+        builder.Entity<Review>().HasIndex(x => x.AppointmentId).IsUnique();
+        builder.Entity<Review>().HasOne(x => x.Business).WithMany(x => x.Reviews)
+            .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Review>().HasOne(x => x.Branch).WithMany(x => x.Reviews)
+            .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Review>().HasOne(x => x.Customer).WithMany(x => x.Reviews)
+            .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Review>().HasOne(x => x.Appointment).WithMany()
+            .HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Review>().ToTable(t => t.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

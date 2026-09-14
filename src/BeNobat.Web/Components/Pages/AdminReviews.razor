@@ -1,0 +1,41 @@
+@page "/admin/reviews"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject AppDbContext Db
+
+<PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
+<div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی، منتشر یا رد کنید و پاسخ رسمی بدهید.</p></div></div>
+<div class="stat-cards">
+    <article><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
+    <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
+    <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
+    <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
+</div>
+<article class="admin-panel">
+    <div class="toolbar"><select @bind="Filter"><option value="all">همه</option><option value="Pending">در انتظار</option><option value="Published">منتشرشده</option><option value="Rejected">ردشده</option></select></div>
+    <div class="review-list">
+        @foreach (var review in Filtered)
+        {
+            <article><header><div><b>@review.Customer.DisplayName</b><small>@review.Business.Name @if(review.Branch is not null){<text>· @review.Branch.Name</text>}</small></div><span class="stars">@Stars(review.Rating)</span></header><p>@review.Comment</p>
+                @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
+                <footer><em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em><button @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button><button @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button><button @onclick="() => Reply(review)">پاسخ</button></footer>
+            </article>
+        }
+    </div>
+</article>
+@if(Replying is not null){<div class="modal-backdrop" @onclick="Close"><EditForm Model="ReplyForm" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation><div><h2>پاسخ به نظر</h2><button type="button" @onclick="Close">×</button></div><label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label><button class="primary-button">ثبت پاسخ و انتشار</button></EditForm></div>}
+
+@code {
+    private List<Review> Reviews=[]; private string Filter="all"; private Review? Replying; private ReplyInput ReplyForm=new();
+    private IEnumerable<Review> Filtered => Filter=="all" ? Reviews : Reviews.Where(x=>x.Status.ToString()==Filter);
+    private double Average => Reviews.Count==0?0:Reviews.Average(x=>x.Rating);
+    protected override async Task OnInitializedAsync()=>await Load();
+    private async Task Load()=>Reviews=await Db.Reviews.IgnoreQueryFilters().Include(x=>x.Customer).Include(x=>x.Business).Include(x=>x.Branch).OrderByDescending(x=>x.CreatedAt).ToListAsync();
+    private async Task SetStatus(Review review,ReviewStatus status){review.Status=status;review.UpdatedAt=DateTimeOffset.UtcNow;await Db.SaveChangesAsync();await Load();}
+    private void Reply(Review review){Replying=review;ReplyForm=new(){Text=review.ManagerReply??""};}
+    private async Task SaveReply(){if(Replying is null)return;Replying.ManagerReply=ReplyForm.Text.Trim();Replying.Status=ReviewStatus.Published;await Db.SaveChangesAsync();Close();await Load();}
+    private void Close()=>Replying=null; private static string Stars(int n)=>new('★',n)+new string('☆',5-n);
+    private static string StatusLabel(ReviewStatus s)=>s switch{ReviewStatus.Published=>"منتشرشده",ReviewStatus.Rejected=>"ردشده",_=>"در انتظار"};
+    private static string StatusClass(ReviewStatus s)=>s switch{ReviewStatus.Published=>"confirmed",ReviewStatus.Rejected=>"cancelled",_=>"pending"};
+    private sealed class ReplyInput{public string Text{get;set;}="";}
+}
