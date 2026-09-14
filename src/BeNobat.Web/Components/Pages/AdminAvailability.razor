@@ -1,0 +1,108 @@
+@page "/admin/availability"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject AppDbContext Db
+
+<PageTitle>زمان‌های خالی | به‌نوبت</PageTitle>
+
+<div class="page-title">
+    <div><h1>زمان‌های خالی</h1><p>ساعات قابل رزرو را برای کل مجموعه یا یک شعبه مشخص کنید.</p></div>
+    <button type="button" @onclick="OpenForm">+ بازه جدید</button>
+</div>
+
+<article class="admin-panel">
+    <div class="toolbar">
+        <select @bind="BusinessFilter" @bind:after="LoadRules">
+            <option value="">همه کسب‌وکارها</option>
+            @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
+        </select>
+        <span>@Rules.Count بازه هفتگی</span>
+    </div>
+    @if (Rules.Count == 0) { <p class="empty-state">بازه‌ای تعریف نشده است؛ ساعات شعبه به‌عنوان پیش‌فرض استفاده می‌شود.</p> }
+    <div class="availability-list">
+        @foreach (var rule in Rules)
+        {
+            <article>
+                <b>@DayLabel(rule.DayOfWeek)</b>
+                <span>@rule.StartsAt.ToString("HH:mm") تا @rule.EndsAt.ToString("HH:mm")</span>
+                <small>@rule.Business.Name · @(rule.Branch?.Name ?? "کل مجموعه")</small>
+                <em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>
+                <button type="button" @onclick="() => Edit(rule)">ویرایش</button>
+                <button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button>
+            </article>
+        }
+    </div>
+</article>
+
+@if (ShowForm)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="Form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
+            <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
+            <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
+            <label>دامنه<select @bind="Form.BranchId"><option value="">کل مجموعه</option>@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
+            <label>روز هفته<select @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
+            <div class="form-columns"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
+            <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /> قابل رزرو باشد</label>
+            @if (Error is not null) { <div class="auth-error">@Error</div> }
+            <button class="primary-button">ذخیره</button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List<Business> Businesses = [];
+    private List<Branch> Branches = [];
+    private List<AvailabilityRule> Rules = [];
+    private string BusinessFilter = "";
+    private bool ShowForm;
+    private Guid? EditingId;
+    private RuleInput Form = new();
+    private string? Error;
+    private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Businesses = await Db.Businesses.OrderBy(x => x.Name).ToListAsync();
+        Branches = await Db.Branches.Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
+        await LoadRules();
+    }
+
+    private async Task LoadRules()
+    {
+        var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch).AsQueryable();
+        if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(x => x.BusinessId == businessId);
+        Rules = await query.OrderBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
+    }
+
+    private void OpenForm()
+    {
+        EditingId = null;
+        Form = new RuleInput { BusinessId = Businesses.FirstOrDefault()?.Id ?? Guid.Empty };
+        ShowForm = true;
+    }
+
+    private void Edit(AvailabilityRule rule)
+    {
+        EditingId = rule.Id;
+        Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        ShowForm = true;
+    }
+
+    private Task BusinessChanged() { Form.BranchId = null; return Task.CompletedTask; }
+
+    private async Task Save()
+    {
+        if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt) { Error = "بازه زمانی انتخاب‌شده معتبر نیست."; return; }
+        var rule = EditingId is null ? new AvailabilityRule() : await Db.AvailabilityRules.FirstAsync(x => x.Id == EditingId);
+        rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.DayOfWeek = Form.DayOfWeek;
+        rule.StartsAt = Form.StartsAt; rule.EndsAt = Form.EndsAt; rule.IsAvailable = Form.IsAvailable;
+        if (EditingId is null) Db.AvailabilityRules.Add(rule);
+        await Db.SaveChangesAsync(); Close(); await LoadRules();
+    }
+
+    private async Task Remove(AvailabilityRule rule) { Db.AvailabilityRules.Remove(rule); await Db.SaveChangesAsync(); await LoadRules(); }
+    private void Close() { ShowForm = false; Error = null; }
+    private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
+    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public DayOfWeek DayOfWeek { get; set; } = DayOfWeek.Saturday; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
+}

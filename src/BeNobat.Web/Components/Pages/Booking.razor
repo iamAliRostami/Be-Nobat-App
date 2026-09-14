@@ -187,8 +187,26 @@ else
 
         const int stepMinutes = 30;
         var duration = TimeSpan.FromMinutes(selectedService.DurationMinutes);
-        var dayStart = new DateTimeOffset(SelectedDate.ToDateTime(new TimeOnly(primaryBranch.OpenHour, 0)));
-        var dayEnd = new DateTimeOffset(SelectedDate.ToDateTime(new TimeOnly(primaryBranch.CloseHour, 0)));
+        var dayStart = new DateTimeOffset(SelectedDate.ToDateTime(TimeOnly.MinValue));
+        var dayEnd = dayStart.AddDays(1);
+
+        var rules = await Db.AvailabilityRules
+            .Where(x => x.BusinessId == BusinessId && x.DayOfWeek == SelectedDate.DayOfWeek
+                        && (x.BranchId == primaryBranch.Id || x.BranchId == null))
+            .OrderBy(x => x.StartsAt)
+            .ToListAsync();
+        var scopedRules = rules.Any(x => x.BranchId == primaryBranch.Id)
+            ? rules.Where(x => x.BranchId == primaryBranch.Id).ToList()
+            : rules.Where(x => x.BranchId == null).ToList();
+        var availableIntervals = scopedRules.Where(x => x.IsAvailable).ToList();
+        if (scopedRules.Count == 0)
+        {
+            availableIntervals.Add(new AvailabilityRule
+            {
+                StartsAt = new TimeOnly(primaryBranch.OpenHour, 0),
+                EndsAt = new TimeOnly(primaryBranch.CloseHour, 0),
+            });
+        }
 
         var existingAppointments = await Db.Appointments
             .Where(a => a.BranchId == primaryBranch.Id
@@ -201,24 +219,25 @@ else
         var slots = new List<DateTimeOffset>();
         var now = DateTimeOffset.Now;
 
-        for (var start = dayStart; start + duration <= dayEnd; start = start.AddMinutes(stepMinutes))
+        foreach (var interval in availableIntervals)
         {
-            var candidateStart = start;
-            var candidateEnd = candidateStart + duration;
-
-            if (candidateStart < now)
+            var intervalStart = new DateTimeOffset(SelectedDate.ToDateTime(interval.StartsAt));
+            var intervalEnd = new DateTimeOffset(SelectedDate.ToDateTime(interval.EndsAt));
+            for (var start = intervalStart; start + duration <= intervalEnd; start = start.AddMinutes(stepMinutes))
             {
-                continue;
-            }
+                var candidateStart = start;
+                var candidateEnd = candidateStart + duration;
+                if (candidateStart < now) continue;
 
-            var overlaps = existingAppointments.Any(a => candidateStart < a.EndsAt && a.StartsAt < candidateEnd);
-            if (!overlaps)
-            {
-                slots.Add(candidateStart);
+                var isBlocked = scopedRules.Any(x => !x.IsAvailable
+                    && candidateStart.TimeOfDay < x.EndsAt.ToTimeSpan()
+                    && x.StartsAt.ToTimeSpan() < candidateEnd.TimeOfDay);
+                var overlaps = existingAppointments.Any(a => candidateStart < a.EndsAt && a.StartsAt < candidateEnd);
+                if (!overlaps && !isBlocked) slots.Add(candidateStart);
             }
         }
 
-        Slots = slots;
+        Slots = slots.Distinct().OrderBy(x => x).ToList();
     }
 
     private async Task NextFromStep2()

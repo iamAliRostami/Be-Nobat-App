@@ -2,6 +2,7 @@
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
 @inject AppDbContext Db
+@inject IJSRuntime JS
 
 <PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
 
@@ -79,6 +80,7 @@
                 var icon = business.Category.Contains("دندان") ? "✚" : business.Category.Contains("ماساژ") ? "♧" : "✦";
                 <BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
                               Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
+                              Rating="@Rating(business)" Reviews="@business.Reviews.Count.ToString()"
                               Accent="@accent" Icon="@icon" />
             }
         </div>
@@ -116,6 +118,7 @@
     {
         Results = await Db.Businesses
             .Include(b => b.Branches)
+            .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published))
             .OrderByDescending(b => b.CreatedAt)
             .Take(12)
             .ToListAsync();
@@ -144,7 +147,8 @@
         HasSearched = !string.IsNullOrWhiteSpace(term);
         CityFilterRelaxed = false;
 
-        IQueryable<Business> BaseQuery() => Db.Businesses.Include(b => b.Branches).AsQueryable();
+        IQueryable<Business> BaseQuery() => Db.Businesses.Include(b => b.Branches)
+            .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published)).AsQueryable();
 
         IQueryable<Business> ApplyTerm(IQueryable<Business> query) =>
             string.IsNullOrWhiteSpace(term)
@@ -175,6 +179,8 @@
                 CityFilterRelaxed = true;
             }
         }
+
+        await JS.InvokeVoidAsync("beNobat.scrollToResults");
     }
 
     private async Task ClearSearch()
@@ -183,4 +189,8 @@
         HasSearched = false;
         await OnInitializedAsync();
     }
+
+    private static string Rating(Business business) => business.Reviews.Count == 0
+        ? "—"
+        : business.Reviews.Average(x => x.Rating).ToString("0.0");
 }

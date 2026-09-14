@@ -13,6 +13,8 @@ public abstract class Entity
 public sealed class AppUser : IdentityUser<Guid>
 {
     public string DisplayName { get; set; } = string.Empty;
+    public ICollection<BranchMembership> BranchMemberships { get; } = [];
+    public ICollection<Review> Reviews { get; } = [];
 }
 
 public sealed class Business : Entity
@@ -24,6 +26,8 @@ public sealed class Business : Entity
     public string Description { get; set; } = string.Empty;
     public ICollection<Branch> Branches { get; } = [];
     public ICollection<Service> Services { get; } = [];
+    public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
+    public ICollection<Review> Reviews { get; } = [];
 }
 
 public sealed class Branch : Entity
@@ -35,6 +39,10 @@ public sealed class Branch : Entity
     public int OpenHour { get; set; } = 9;
     public int CloseHour { get; set; } = 18;
     public Business Business { get; set; } = null!;
+    public ICollection<Resource> Resources { get; } = [];
+    public ICollection<BranchMembership> Memberships { get; } = [];
+    public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
+    public ICollection<Review> Reviews { get; } = [];
 }
 
 public sealed class Service : Entity
@@ -75,3 +83,43 @@ public sealed class Appointment : Entity
 }
 
 public enum AppointmentStatus { Pending, Confirmed, Completed, Cancelled, NoShow }
+
+public sealed class BranchMembership : Entity
+{
+    public Guid BranchId { get; set; }
+    public Guid UserId { get; set; }
+    public string Role { get; set; } = "Staff";
+    public Branch Branch { get; set; } = null!;
+    public AppUser User { get; set; } = null!;
+}
+
+/// <summary>A recurring opening interval. A null BranchId applies to every branch in the business.</summary>
+public sealed class AvailabilityRule : Entity
+{
+    public Guid BusinessId { get; set; }
+    public Guid? BranchId { get; set; }
+    public DayOfWeek DayOfWeek { get; set; }
+    public TimeOnly StartsAt { get; set; } = new(9, 0);
+    public TimeOnly EndsAt { get; set; } = new(18, 0);
+    public bool IsAvailable { get; set; } = true;
+    public Business Business { get; set; } = null!;
+    public Branch? Branch { get; set; }
+}
+
+public sealed class Review : Entity
+{
+    public Guid BusinessId { get; set; }
+    public Guid? BranchId { get; set; }
+    public Guid CustomerId { get; set; }
+    public Guid? AppointmentId { get; set; }
+    public int Rating { get; set; }
+    public string Comment { get; set; } = string.Empty;
+    public string? ManagerReply { get; set; }
+    public ReviewStatus Status { get; set; } = ReviewStatus.Pending;
+    public Business Business { get; set; } = null!;
+    public Branch? Branch { get; set; }
+    public AppUser Customer { get; set; } = null!;
+    public Appointment? Appointment { get; set; }
+}
+
+public enum ReviewStatus { Pending, Published, Rejected }

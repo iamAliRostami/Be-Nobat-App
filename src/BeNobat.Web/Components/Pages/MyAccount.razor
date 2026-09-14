@@ -1,0 +1,25 @@
+@page "/account/profile"
+@layout Layout.PublicLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject UserManager<AppUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AppDbContext Db
+
+<PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
+<section class="profile-page">
+    <div class="page-title"><div><h1>اطلاعات حساب کاربری</h1><p>مشخصات تماس و نظرهای ثبت‌شده خود را مدیریت کنید.</p></div></div>
+    @if(Message is not null){<div class="success-notice">@Message</div>}
+    <div class="profile-grid">
+        <EditForm Model="Profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form"><h2>مشخصات من</h2><label>نام و نام خانوادگی<input @bind="Profile.DisplayName" /></label><label>ایمیل<input value="@Profile.Email" disabled /></label><label>شماره تماس<input @bind="Profile.Phone" /></label><button class="primary-button">ذخیره تغییرات</button></EditForm>
+        <EditForm Model="ReviewForm" OnValidSubmit="SaveReview" class="admin-panel profile-form"><h2>ثبت امتیاز و نظر</h2><label>نوبت تکمیل‌شده<select @bind="ReviewForm.AppointmentId"><option value="">انتخاب کنید</option>@foreach(var appointment in CompletedAppointments){<option value="@appointment.Id">@appointment.BusinessName · @appointment.BranchName</option>}</select></label><label>امتیاز<select @bind="ReviewForm.Rating">@for(var i=5;i>=1;i--){<option value="@i">@i ستاره</option>}</select></label><label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label><button class="primary-button" disabled="@(CompletedAppointments.Count==0)">ارسال برای بررسی</button></EditForm>
+    </div>
+</section>
+
+@code {
+    private AppUser? User; private ProfileInput Profile=new(); private ReviewInput ReviewForm=new(); private List<AppointmentChoice> CompletedAppointments=[]; private string? Message;
+    protected override async Task OnInitializedAsync(){var principal=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;User=await UserManager.GetUserAsync(principal);if(User is null)return;Profile=new(){DisplayName=User.DisplayName,Email=User.Email??"",Phone=User.PhoneNumber??""};CompletedAppointments=await Db.Appointments.Where(x=>x.CustomerId==User.Id&&x.Status==AppointmentStatus.Completed&&!Db.Reviews.Any(r=>r.AppointmentId==x.Id)).Select(x=>new AppointmentChoice(x.Id,x.Branch.Business.Name,x.Branch.Name)).ToListAsync();}
+    private async Task SaveProfile(){if(User is null)return;User.DisplayName=Profile.DisplayName.Trim();User.PhoneNumber=Profile.Phone.Trim();var result=await UserManager.UpdateAsync(User);Message=result.Succeeded?"اطلاعات حساب ذخیره شد.":string.Join("، ",result.Errors.Select(x=>x.Description));}
+    private async Task SaveReview(){if(User is null||ReviewForm.AppointmentId is not Guid id)return;var appointment=await Db.Appointments.Include(x=>x.Branch).FirstOrDefaultAsync(x=>x.Id==id&&x.CustomerId==User.Id&&x.Status==AppointmentStatus.Completed);if(appointment is null)return;Db.Reviews.Add(new Review{AppointmentId=id,BusinessId=appointment.Branch.BusinessId,BranchId=appointment.BranchId,CustomerId=User.Id,Rating=Math.Clamp(ReviewForm.Rating,1,5),Comment=ReviewForm.Comment.Trim()});await Db.SaveChangesAsync();Message="نظر شما ثبت شد و پس از بررسی نمایش داده می‌شود.";ReviewForm=new();await OnInitializedAsync();}
+    private sealed class ProfileInput{public string DisplayName{get;set;}="";public string Email{get;set;}="";public string Phone{get;set;}="";}private sealed class ReviewInput{public Guid? AppointmentId{get;set;}public int Rating{get;set;}=5;public string Comment{get;set;}="";}private sealed record AppointmentChoice(Guid Id,string BusinessName,string BranchName);
+}
