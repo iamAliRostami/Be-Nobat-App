@@ -1,0 +1,11 @@
+@inject IJSRuntime JS
+<div class="ui-preferences" aria-label="تنظیمات نمایش">
+    <button type="button" title="تغییر تم" @onclick="ToggleTheme">◐</button>
+    <select aria-label="زبان" value="@Language" @onchange="ChangeLanguage"><option value="fa">فارسی</option><option value="ar">العربية</option><option value="en">English</option></select>
+</div>
+@code {
+    private string Language = "fa";
+    protected override async Task OnAfterRenderAsync(bool firstRender) { if (!firstRender) return; Language = await JS.InvokeAsync<string>("beNobat.preferences.initialize"); StateHasChanged(); }
+    private async Task ChangeLanguage(ChangeEventArgs args) { Language = args.Value?.ToString() ?? "fa"; await JS.InvokeVoidAsync("beNobat.preferences.setLanguage", Language); }
+    private Task ToggleTheme() => JS.InvokeVoidAsync("beNobat.preferences.toggleTheme").AsTask();
+}

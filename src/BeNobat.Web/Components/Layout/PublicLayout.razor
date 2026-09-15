@@ -5,6 +5,7 @@
         <a class="public-brand" href="/"><span>ب</span><strong>به‌نوبت</strong></a>
         <nav><a href="/#popular">خدمات</a><a href="/#businesses">مراکز برتر</a><a href="/#how">چطور کار می‌کند؟</a></nav>
         <div class="public-actions">
+            <UiPreferences />
             <AuthorizeView>
                 <Authorized>
                     <AuthorizeView Policy="@Policies.ManageAppointments" Context="adminContext">

@@ -46,7 +46,7 @@
         <EditForm Model="Profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form">
             <h2>مشخصات من</h2>
             <label>نام و نام خانوادگی<input @bind="Profile.DisplayName" /></label>
-            <label>شماره تماس<input @bind="Profile.Phone" /></label>
+            <label>شماره تماس<input inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
             <button class="primary-button">ذخیره تغییرات</button>
         </EditForm>
 
@@ -164,8 +164,13 @@
         if (user is null) return;
 
         ErrorMessage = null;
+        if (!UserInputValidation.TryNormalizeIranianMobile(Profile.Phone, out var phone))
+        {
+            ErrorMessage = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
+            return;
+        }
         user.DisplayName = Profile.DisplayName.Trim();
-        user.PhoneNumber = Profile.Phone.Trim();
+        user.PhoneNumber = phone;
 
         var result = await UserManager.UpdateAsync(user);
         if (result.Succeeded)

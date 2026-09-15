@@ -3,11 +3,16 @@
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @using System.Globalization
 @inject AppDbContext Db
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>داشبورد مدیریت | به‌نوبت</PageTitle>
 
 <div class="admin-welcome">
-    <div><span>@Today.ToString("dddd، d MMMM yyyy", PersianCulture)</span><h1>صبح بخیر! 👋</h1><p>امروز <b>@TodayAppointments.Count نوبت</b> در پیش دارید.</p></div>
+    <div><span>@Today.ToString("dddd، d MMMM yyyy", PersianCulture)</span><h1>صبح بخیر! 👋</h1>
+        <AuthorizeView Roles="@AppRoles.PlatformAdmin"><Authorized><p>نمای مدیریتی کل سامانه و وضعیت همه نوبت‌ها</p></Authorized></AuthorizeView>
+        <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> در شعب تحت مدیریت دارید.</p></Authorized></AuthorizeView>
+        <AuthorizeView Roles="@AppRoles.Staff"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> برای پیگیری دارید.</p></Authorized></AuthorizeView>
+    </div>
     <a class="primary-button" href="/admin/calendar">مشاهده تقویم ←</a>
 </div>
 
@@ -54,9 +59,15 @@
             <h3>دسترسی سریع</h3>
             <div>
                 <a href="/admin/calendar"><i>▦</i><span>تقویم کاری</span></a>
-                <a href="/businesses"><i>◇</i><span>مدیریت خدمات</span></a>
-                <a href="/admin/branches"><i>⌖</i><span>شعب و منابع</span></a>
-                <a href="/admin/team"><i>◎</i><span>اعضای تیم</span></a>
+                <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")"><Authorized>
+                    <a href="/businesses"><i>◇</i><span>مدیریت خدمات</span></a>
+                    <a href="/admin/branches"><i>⌖</i><span>شعب و منابع</span></a>
+                    <a href="/admin/team"><i>◎</i><span>اعضای تیم</span></a>
+                </Authorized></AuthorizeView>
+                <AuthorizeView Roles="@AppRoles.PlatformAdmin"><Authorized>
+                    <a href="/platform"><i>▤</i><span>کسب‌وکارها</span></a>
+                    <a href="/platform/access"><i>♙</i><span>کاربران و دسترسی‌ها</span></a>
+                </Authorized></AuthorizeView>
             </div>
         </section>
     </aside>
@@ -67,6 +78,7 @@
     private DateTimeOffset Today;
     private List<Appointment> TodayAppointments = [];
     private int TotalAppointments;
+    private HashSet<Guid> AllowedAppointmentIds = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -74,7 +86,19 @@
         var dayStart = new DateTimeOffset(Today.Date, Today.Offset);
         var dayEnd = dayStart.AddDays(1);
 
-        TodayAppointments = await Db.Appointments
+        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        var userIdText = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = Guid.TryParse(userIdText, out var parsed) ? parsed : Guid.Empty;
+        var appointments = Db.Appointments.AsQueryable();
+        if (!principal.IsInRole(AppRoles.PlatformAdmin))
+        {
+            if (principal.IsInRole(AppRoles.Staff))
+                appointments = appointments.Where(a => a.Resource != null && a.Resource.UserId == userId);
+            else
+                appointments = appointments.Where(a => Db.BranchMemberships.Any(m => m.UserId == userId && m.BranchId == a.BranchId));
+        }
+
+        TodayAppointments = await appointments
             .Include(a => a.Service)
             .Include(a => a.Branch)
             .Include(a => a.Customer)
@@ -82,11 +106,13 @@
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
 
-        TotalAppointments = await Db.Appointments.CountAsync();
+        TotalAppointments = await appointments.CountAsync();
+        AllowedAppointmentIds = (await appointments.Select(a => a.Id).ToListAsync()).ToHashSet();
     }
 
     private async Task UpdateStatus(Guid appointmentId, AppointmentStatus status)
     {
+        if (!AllowedAppointmentIds.Contains(appointmentId)) return;
         var appointment = await Db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
         if (appointment is null) return;
 
