@@ -7,7 +7,7 @@
         <nav>
             <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
             <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink>
-            <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")" Context="teamContext">
+            <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
                     <small>مدیریت کسب‌وکار</small>
                     <NavLink href="/businesses"><i>◇</i> خدمات</NavLink>

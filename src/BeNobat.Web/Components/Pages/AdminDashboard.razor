@@ -59,7 +59,7 @@
             <h3>دسترسی سریع</h3>
             <div>
                 <a href="/admin/calendar"><i>▦</i><span>تقویم کاری</span></a>
-                <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")"><Authorized>
+                <AuthorizeView Policy="@Policies.ManageBusiness"><Authorized>
                     <a href="/businesses"><i>◇</i><span>مدیریت خدمات</span></a>
                     <a href="/admin/branches"><i>⌖</i><span>شعب و منابع</span></a>
                     <a href="/admin/team"><i>◎</i><span>اعضای تیم</span></a>

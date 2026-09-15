@@ -9,6 +9,9 @@ public static class AppRoles
     public const string Customer = "Customer";
 
     public static readonly string[] All = [PlatformAdmin, Owner, Manager, Staff, Customer];
+    // مدیر سامانه باید همه قابلیت‌های مدیریتی نقش‌های پایین‌تر را نیز داشته باشد.
+    public static readonly string[] BusinessManagers = [PlatformAdmin, Owner, Manager];
+    public static readonly string[] AppointmentManagers = [PlatformAdmin, Owner, Manager, Staff];
 }
 
 public static class Policies

@@ -27,11 +27,9 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.ManagePlatform, policy => policy.RequireRole(AppRoles.PlatformAdmin))
     // مدیریت کل کسب‌وکار (خدمات، شعبه‌ها، تیم): فقط نقش‌های مدیریتی بالادستی.
-    .AddPolicy(Policies.ManageBusiness, policy => policy.RequireRole(
-        AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager))
+    .AddPolicy(Policies.ManageBusiness, policy => policy.RequireRole(AppRoles.BusinessManagers))
     // مدیریت نوبت‌ها (تقویم، تغییر وضعیت): مدیریتی‌ها + پرسنل.
-    .AddPolicy(Policies.ManageAppointments, policy => policy.RequireRole(
-        AppRoles.PlatformAdmin, AppRoles.Owner, AppRoles.Manager, AppRoles.Staff))
+    .AddPolicy(Policies.ManageAppointments, policy => policy.RequireRole(AppRoles.AppointmentManagers))
     // مشاهده نوبت‌های خود: کافیست کاربر لاگین کرده باشد.
     .AddPolicy(Policies.ViewOwnAppointments, policy => policy.RequireAuthenticatedUser());
 builder.Services

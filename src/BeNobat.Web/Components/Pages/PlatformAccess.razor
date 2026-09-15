@@ -17,7 +17,7 @@
                 <span class="customer-avatar purple">@UserAvatar.Initials(item.User.DisplayName)</span>
                 <div class="access-user-details"><b>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small></div>
                 <label>سطح دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
-                <div class="access-actions"><button type="button" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="outline" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button></div>
+                <div class="access-actions"><button type="button" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="outline" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="warning" @onclick="() => ResetPassword(item)" disabled="@item.Saving">ریست رمز</button></div>
                 <em class="status @(item.Disabled ? "cancelled" : "confirmed")">@(item.Disabled ? "غیرفعال" : "فعال")</em>
             </article>
         }
@@ -57,7 +57,10 @@
         if (!removeResult.Succeeded || !addResult.Succeeded)
             Error = string.Join("، ", removeResult.Errors.Concat(addResult.Errors).Select(x => x.Description));
         else
+        {
+            await UserManager.UpdateSecurityStampAsync(user);
             Message = $"دسترسی {DisplayName(user)} روی «{RoleLabel(item.SelectedRole)}» ذخیره شد.";
+        }
         await Load();
     }
 
@@ -73,7 +76,26 @@
         await Load();
     }
 
+    private async Task ResetPassword(UserAccess item)
+    {
+        item.Saving = true;
+        Message = Error = null;
+        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
+        if (user is null) { Error = "کاربر پیدا نشد."; item.Saving = false; return; }
+        var token = await UserManager.GeneratePasswordResetTokenAsync(user);
+        var result = await UserManager.ResetPasswordAsync(user, token, DefaultPassword);
+        if (result.Succeeded)
+        {
+            await UserManager.UpdateSecurityStampAsync(user);
+            Message = $"رمز عبور {DisplayName(user)} با موفقیت به «{DefaultPassword}» تغییر کرد.";
+        }
+        else
+            Error = string.Join("، ", result.Errors.Select(x => x.Description));
+        await Load();
+    }
+
     private static string DisplayName(AppUser user) => string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
+    private const string DefaultPassword = "Bn@123456";
     private static string RoleLabel(string role) => role switch { AppRoles.PlatformAdmin => "مدیر کل سامانه", AppRoles.Owner => "مدیر کسب‌وکار", AppRoles.Manager => "مدیر شعبه", AppRoles.Staff => "کارمند", _ => "مشتری" };
     private sealed class UserAccess(AppUser user, string role, bool disabled)
     {

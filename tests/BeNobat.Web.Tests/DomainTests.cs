@@ -29,6 +29,18 @@ public sealed class DomainTests
     }
 
     [Fact]
+    public void Platform_administrator_inherits_every_management_capability()
+    {
+        Assert.Contains(AppRoles.PlatformAdmin, AppRoles.BusinessManagers);
+        Assert.Contains(AppRoles.PlatformAdmin, AppRoles.AppointmentManagers);
+        Assert.Contains(AppRoles.Owner, AppRoles.BusinessManagers);
+        Assert.Contains(AppRoles.Manager, AppRoles.BusinessManagers);
+        Assert.DoesNotContain(AppRoles.Staff, AppRoles.BusinessManagers);
+        Assert.Contains(AppRoles.Staff, AppRoles.AppointmentManagers);
+        Assert.DoesNotContain(AppRoles.Customer, AppRoles.AppointmentManagers);
+    }
+
+    [Fact]
     public void Branch_can_track_booking_resources()
     {
         var branch = new Branch { Name = "مرکزی" };
