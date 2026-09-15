@@ -4,7 +4,83 @@
 @inject UserManager<AppUser> UserManager
 
 <PageTitle>دسترسی‌های سامانه | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>کاربران و دسترسی‌ها</h1><p>نقش سراسری کاربران را مشاهده و تغییر دهید.</p></div></div>
-@if(Message is not null){<div class="success-notice">@Message</div>}
-<article class="admin-panel"><div class="toolbar"><input placeholder="جست‌وجوی کاربر..." @bind="Query" @bind:event="oninput"/><span>@Filtered.Count() کاربر</span></div><div class="access-list">@foreach(var item in Filtered){<article><div><b>@(item.User.DisplayName??item.User.Email)</b><small>@item.User.Email</small></div><select value="@item.Role" @onchange="e=>ChangeRole(item,e.Value?.ToString())">@foreach(var role in AppRoles.All){<option value="@role">@RoleLabel(role)</option>}</select><em class="status @(item.Disabled?"cancelled":"confirmed")">@(item.Disabled?"غیرفعال":"فعال")</em></article>}</div></article>
-@code{private List<UserAccess> Items=[];private string Query="";private string? Message;private IEnumerable<UserAccess> Filtered=>Items.Where(x=>$"{x.User.DisplayName} {x.User.Email}".Contains(Query,StringComparison.OrdinalIgnoreCase));protected override async Task OnInitializedAsync()=>await Load();private async Task Load(){Items=[];foreach(var user in await UserManager.Users.OrderBy(x=>x.DisplayName).ToListAsync()){var roles=await UserManager.GetRolesAsync(user);Items.Add(new(user,roles.FirstOrDefault()??AppRoles.Customer,user.LockoutEnd>DateTimeOffset.UtcNow));}}private async Task ChangeRole(UserAccess item,string? role){if(role is null||!AppRoles.All.Contains(role))return;var user=await UserManager.FindByIdAsync(item.User.Id.ToString());if(user is null)return;var current=await UserManager.GetRolesAsync(user);if(current.Count>0)await UserManager.RemoveFromRolesAsync(user,current);await UserManager.AddToRoleAsync(user,role);Message="سطح دسترسی ذخیره شد.";await Load();}private static string RoleLabel(string x)=>x switch{AppRoles.PlatformAdmin=>"مدیر کل سامانه",AppRoles.Owner=>"مالک کسب‌وکار",AppRoles.Manager=>"مدیر شعبه",AppRoles.Staff=>"پرسنل",_=>"مشتری"};private sealed record UserAccess(AppUser User,string Role,bool Disabled);}
+<div class="page-title"><div><h1>کاربران و دسترسی‌ها</h1><p>نقش سراسری، اطلاعات تماس و وضعیت حساب کاربران را مدیریت کنید.</p></div></div>
+@if (Message is not null) { <div class="success-notice">@Message</div> }
+@if (Error is not null) { <div class="auth-error">@Error</div> }
+<article class="admin-panel">
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، ایمیل، موبایل یا نقش..." @bind="Query" @bind:event="oninput" /><span>@Filtered.Count() کاربر</span></div>
+    @if (!Filtered.Any()) { <p class="empty-state">کاربری با این مشخصات پیدا نشد.</p> }
+    <div class="access-list">
+        @foreach (var item in Filtered)
+        {
+            <article class="@(item.Disabled ? "disabled-row" : "")">
+                <span class="customer-avatar purple">@UserAvatar.Initials(item.User.DisplayName)</span>
+                <div class="access-user-details"><b>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small></div>
+                <label>سطح دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
+                <div class="access-actions"><button type="button" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="outline" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button></div>
+                <em class="status @(item.Disabled ? "cancelled" : "confirmed")">@(item.Disabled ? "غیرفعال" : "فعال")</em>
+            </article>
+        }
+    </div>
+</article>
+
+@code {
+    private List<UserAccess> Items = [];
+    private string Query = "";
+    private string? Message;
+    private string? Error;
+    private IEnumerable<UserAccess> Filtered => Items.Where(x => $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {x.Role} {RoleLabel(x.Role)}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
+    {
+        Items = [];
+        foreach (var user in await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync())
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            var role = AppRoles.All.FirstOrDefault(roles.Contains) ?? AppRoles.Customer;
+            Items.Add(new UserAccess(user, role, user.LockoutEnd > DateTimeOffset.UtcNow));
+        }
+    }
+
+    private async Task SaveRole(UserAccess item)
+    {
+        if (!AppRoles.All.Contains(item.SelectedRole)) return;
+        item.Saving = true;
+        Message = Error = null;
+        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
+        if (user is null) { Error = "کاربر پیدا نشد."; item.Saving = false; return; }
+        var current = await UserManager.GetRolesAsync(user);
+        var remove = current.Where(AppRoles.All.Contains).Where(x => x != item.SelectedRole).ToArray();
+        var addResult = await UserManager.IsInRoleAsync(user, item.SelectedRole) ? IdentityResult.Success : await UserManager.AddToRoleAsync(user, item.SelectedRole);
+        var removeResult = addResult.Succeeded && remove.Length > 0 ? await UserManager.RemoveFromRolesAsync(user, remove) : IdentityResult.Success;
+        if (!removeResult.Succeeded || !addResult.Succeeded)
+            Error = string.Join("، ", removeResult.Errors.Concat(addResult.Errors).Select(x => x.Description));
+        else
+            Message = $"دسترسی {DisplayName(user)} روی «{RoleLabel(item.SelectedRole)}» ذخیره شد.";
+        await Load();
+    }
+
+    private async Task ToggleAccess(UserAccess item)
+    {
+        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
+        if (user is null) return;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = item.Disabled ? null : DateTimeOffset.MaxValue;
+        var result = await UserManager.UpdateAsync(user);
+        Message = result.Succeeded ? "وضعیت دسترسی کاربر تغییر کرد." : null;
+        Error = result.Succeeded ? null : string.Join("، ", result.Errors.Select(x => x.Description));
+        await Load();
+    }
+
+    private static string DisplayName(AppUser user) => string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
+    private static string RoleLabel(string role) => role switch { AppRoles.PlatformAdmin => "مدیر کل سامانه", AppRoles.Owner => "مدیر کسب‌وکار", AppRoles.Manager => "مدیر شعبه", AppRoles.Staff => "کارمند", _ => "مشتری" };
+    private sealed class UserAccess(AppUser user, string role, bool disabled)
+    {
+        public AppUser User { get; } = user;
+        public string Role { get; } = role;
+        public string SelectedRole { get; set; } = role;
+        public bool Disabled { get; } = disabled;
+        public bool Saving { get; set; }
+    }
+}

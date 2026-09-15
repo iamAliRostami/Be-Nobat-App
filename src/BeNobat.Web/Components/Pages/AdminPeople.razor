@@ -85,7 +85,7 @@
             </div>
             <label>نام و نام خانوادگی<input required @bind="Form.Name" /></label>
             <label>ایمیل<input type="email" required disabled="@(Editing is not null)" @bind="Form.Email" /></label>
-            <label>شماره تماس<input @bind="Form.Phone" /></label>
+            <label>شماره تماس<input inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Form.Phone" /></label>
             @if (IsTeam)
             {
                 <label>نقش
@@ -204,6 +204,11 @@
     private async Task Save()
     {
         Error = null;
+        if (!UserInputValidation.TryNormalizeIranianMobile(Form.Phone, out var phone))
+        {
+            Error = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
+            return;
+        }
 
         if (Editing is null)
         {
@@ -222,7 +227,7 @@
                 Email = email,
                 EmailConfirmed = true,
                 DisplayName = Form.Name.Trim(),
-                PhoneNumber = Form.Phone.Trim(),
+                PhoneNumber = phone,
             };
 
             var password = $"Bn!{Guid.NewGuid():N}"[..12];
@@ -242,7 +247,7 @@
             if (user is null) return;
 
             user.DisplayName = Form.Name.Trim();
-            user.PhoneNumber = Form.Phone.Trim();
+            user.PhoneNumber = phone;
 
             var updateResult = await UserManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

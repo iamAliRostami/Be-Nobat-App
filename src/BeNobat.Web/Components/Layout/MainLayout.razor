@@ -7,9 +7,10 @@
         <nav>
             <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
             <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink>
-            <small>کسب‌وکار</small><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
+            <small>کسب‌وکار</small>
             <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
+                    <NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
                     <NavLink href="/admin/branches"><i>⌖</i> شعب و منابع</NavLink>
                     @* [fix] این دو صفحه وجود داشتند ولی هیچ لینکی به آن‌ها نبود:
                        «زمان‌های خالی» و «امتیازها و نظرات» عملاً فعال نشده بودند. *@
