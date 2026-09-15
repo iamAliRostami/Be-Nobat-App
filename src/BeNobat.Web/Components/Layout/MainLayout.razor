@@ -11,8 +11,12 @@
             <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
                     <NavLink href="/admin/branches"><i>⌖</i> شعب و منابع</NavLink>
-                    <NavLink href="/admin/customers"><i>◈</i> مشتریان</NavLink>
-                    <NavLink href="/admin/team"><i>◎</i> اعضای تیم</NavLink>
+                    @* [fix] این دو صفحه وجود داشتند ولی هیچ لینکی به آن‌ها نبود:
+                       «زمان‌های خالی» و «امتیازها و نظرات» عملاً فعال نشده بودند. *@
+                    <NavLink href="/admin/availability"><i>◷</i> زمان‌های خالی</NavLink>
+                    <NavLink href="/admin/reviews"><i>★</i> امتیازها و نظرات</NavLink>
+                    <NavLink href="/admin/customers" Match="NavLinkMatch.All"><i>◈</i> مشتریان</NavLink>
+                    <NavLink href="/admin/team" Match="NavLinkMatch.All"><i>◎</i> اعضای تیم</NavLink>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ManagePlatform" Context="platformContext">

@@ -13,6 +13,13 @@ public abstract class Entity
 public sealed class AppUser : IdentityUser<Guid>
 {
     public string DisplayName { get; set; } = string.Empty;
+
+    // [fix] عکس پروفایل داخل دیتابیس نگهداری می‌شود. نوشتن روی فایل‌سیستم در
+    // کانتینر (که با کاربر غیر root اجرا می‌شود) مجوز ندارد و با هر بازساخت
+    // image هم پاک می‌شد.
+    public string? AvatarContentType { get; set; }
+    public byte[]? AvatarData { get; set; }
+
     public ICollection<BranchMembership> BranchMemberships { get; } = [];
     public ICollection<Review> Reviews { get; } = [];
 }
@@ -40,6 +47,12 @@ public sealed class Branch : Entity
     public int CloseHour { get; set; } = 18;
     public Business Business { get; set; } = null!;
     public ICollection<Resource> Resources { get; } = [];
+
+    // [fix] این سه نویگیشن در AppDbContext با WithMany(...) استفاده شده بودند
+    // ولی روی موجودیت تعریف نشده بودند؛ پروژه کامپایل نمی‌شد.
+    public ICollection<BranchMembership> Memberships { get; } = [];
+    public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
+    public ICollection<Review> Reviews { get; } = [];
 }
 
 public sealed class Service : Entity
@@ -58,6 +71,12 @@ public sealed class Resource : Entity
     public Guid BranchId { get; set; }
     public required string Name { get; set; }
     public string Kind { get; set; } = "staff";
+
+    // [fix] منبع از نوع «عضو تیم» حالا می‌تواند به یک حساب کاربری واقعی وصل شود
+    // تا در صفحه‌ی شعب از لیست کشویی انتخاب شود، نه به‌صورت متن آزاد.
+    public Guid? UserId { get; set; }
+    public AppUser? User { get; set; }
+
     public Branch Branch { get; set; } = null!;
 }
 
@@ -103,6 +122,7 @@ public sealed class AvailabilityRule : Entity
     public Branch? Branch { get; set; }
 }
 
+/// <summary>نظر مشتری درباره‌ی کسب‌وکار/خدمت.</summary>
 public sealed class Review : Entity
 {
     public Guid BusinessId { get; set; }
@@ -117,6 +137,25 @@ public sealed class Review : Entity
     public Branch? Branch { get; set; }
     public AppUser Customer { get; set; } = null!;
     public Appointment? Appointment { get; set; }
+}
+
+/// <summary>
+/// [feature] امتیاز و یادداشت مجموعه درباره‌ی «سرویس‌گیرنده». جدا از Review نگه
+/// داشته شده تا جدول نظرهای عمومی دست‌نخورده بماند؛ این رکوردها هرگز برای
+/// عموم نمایش داده نمی‌شوند و فقط در پنل مدیریت دیده می‌شوند.
+/// </summary>
+public sealed class CustomerReview : Entity
+{
+    public Guid AppointmentId { get; set; }
+    public Guid BusinessId { get; set; }
+    public Guid CustomerId { get; set; }
+    public Guid AuthorId { get; set; }
+    public int Rating { get; set; }
+    public string Comment { get; set; } = string.Empty;
+    public Appointment Appointment { get; set; } = null!;
+    public Business Business { get; set; } = null!;
+    public AppUser Customer { get; set; } = null!;
+    public AppUser Author { get; set; } = null!;
 }
 
 public enum ReviewStatus { Pending, Published, Rejected }

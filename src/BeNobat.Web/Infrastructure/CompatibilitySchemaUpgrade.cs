@@ -34,5 +34,29 @@ public static class CompatibilitySchemaUpgrade
                 CONSTRAINT "FK_Reviews_Appointments_AppointmentId" FOREIGN KEY ("AppointmentId") REFERENCES benobat."Appointments" ("Id") ON DELETE SET NULL);
             CREATE INDEX IF NOT EXISTS "IX_Reviews_BusinessId_Status" ON benobat."Reviews" ("BusinessId", "Status");
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_Reviews_AppointmentId" ON benobat."Reviews" ("AppointmentId") WHERE "AppointmentId" IS NOT NULL;
+
+            -- [fix] عکس پروفایل کاربر (ذخیره در دیتابیس، نه فایل‌سیستم کانتینر).
+            ALTER TABLE benobat."AspNetUsers" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
+            ALTER TABLE benobat."AspNetUsers" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;
+
+            -- [feature] اتصال منبع «عضو تیم» به حساب کاربری تا در شعب از لیست کشویی انتخاب شود.
+            ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "UserId" uuid NULL;
+            ALTER TABLE benobat."Resources" DROP CONSTRAINT IF EXISTS "FK_Resources_AspNetUsers_UserId";
+            ALTER TABLE benobat."Resources" ADD CONSTRAINT "FK_Resources_AspNetUsers_UserId"
+                FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE SET NULL;
+            CREATE INDEX IF NOT EXISTS "IX_Resources_UserId" ON benobat."Resources" ("UserId");
+
+            -- [feature] امتیاز و نظر مجموعه درباره‌ی سرویس‌گیرنده.
+            CREATE TABLE IF NOT EXISTS benobat."CustomerReviews" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "AppointmentId" uuid NOT NULL, "BusinessId" uuid NOT NULL,
+                "CustomerId" uuid NOT NULL, "AuthorId" uuid NOT NULL, "Rating" integer NOT NULL, "Comment" text NOT NULL,
+                CONSTRAINT "CK_CustomerReviews_Rating" CHECK ("Rating" BETWEEN 1 AND 5),
+                CONSTRAINT "FK_CustomerReviews_Appointments_AppointmentId" FOREIGN KEY ("AppointmentId") REFERENCES benobat."Appointments" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_CustomerReviews_Businesses_BusinessId" FOREIGN KEY ("BusinessId") REFERENCES benobat."Businesses" ("Id") ON DELETE RESTRICT,
+                CONSTRAINT "FK_CustomerReviews_AspNetUsers_CustomerId" FOREIGN KEY ("CustomerId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE RESTRICT,
+                CONSTRAINT "FK_CustomerReviews_AspNetUsers_AuthorId" FOREIGN KEY ("AuthorId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE RESTRICT);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_CustomerReviews_AppointmentId" ON benobat."CustomerReviews" ("AppointmentId");
+            CREATE INDEX IF NOT EXISTS "IX_CustomerReviews_BusinessId_CustomerId" ON benobat."CustomerReviews" ("BusinessId", "CustomerId");
             """, cancellationToken);
 }

@@ -2,21 +2,51 @@
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
 @inject AppDbContext Db
+@inject UserManager<AppUser> UserManager
 
 <PageTitle>شعب و منابع | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>شعب و منابع</h1><p>نشانی، ساعات کاری و منابع قابل رزرو هر شعبه را مدیریت کنید.</p></div><button @onclick="NewBranch">+ افزودن شعبه</button></div>
+<div class="page-title">
+    <div><h1>شعب و منابع</h1><p>نشانی، ساعات کاری، اعضا و منابع قابل رزرو هر شعبه را مدیریت کنید.</p></div>
+    <button type="button" @onclick="NewBranch">+ افزودن شعبه</button>
+</div>
+
+@if (Message is not null) { <div class="success-notice">@Message</div> }
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی شعبه یا نشانی..." @bind="Query" @bind:event="oninput"/><span>@Filtered.Count() شعبه</span></div>
+    <div class="toolbar">
+        <input placeholder="جست‌وجوی شعبه یا نشانی..." @bind="Query" @bind:event="oninput" />
+        <span>@Filtered.Count() شعبه</span>
+    </div>
     @if (!Filtered.Any()) { <p class="empty-state">هنوز شعبه‌ای ثبت نشده است.</p> }
     <div class="management-grid">
         @foreach (var branch in Filtered)
         {
             <article class="management-card">
-                <div class="panel-head"><div><h2>@branch.Name</h2><p>@branch.Business.Name · @branch.Address</p></div><em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em></div>
-                <dl><div><dt>ساعت کاری</dt><dd>@branch.OpenHour:00 تا @branch.CloseHour:00</dd></div><div><dt>منطقه زمانی</dt><dd>@branch.TimeZoneId</dd></div><div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div></dl>
-                <div class="card-actions"><button @onclick="() => EditBranch(branch)">ویرایش</button><button @onclick="() => AddResource(branch)">+ منبع</button><button class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button></div>
-                @if (branch.Resources.Count > 0) { <div class="resource-chips">@foreach(var resource in branch.Resources){<span>@resource.Name <small>@resource.Kind</small><button title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>}</div> }
+                <div class="panel-head">
+                    <div><h2>@branch.Name</h2><p>@branch.Business.Name · @branch.Address</p></div>
+                    <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
+                </div>
+                <dl>
+                    <div><dt>ساعت کاری</dt><dd>@branch.OpenHour:00 تا @branch.CloseHour:00</dd></div>
+                    <div><dt>منطقه زمانی</dt><dd>@branch.TimeZoneId</dd></div>
+                    <div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div>
+                    <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
+                </dl>
+                <div class="card-actions">
+                    <button type="button" @onclick="() => EditBranch(branch)">ویرایش</button>
+                    <button type="button" @onclick="() => AddResource(branch)">+ منبع</button>
+                    <button type="button" @onclick="() => OpenMembers(branch)">اعضا</button>
+                    <button type="button" class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
+                </div>
+                @if (branch.Resources.Count > 0)
+                {
+                    <div class="resource-chips">
+                        @foreach (var resource in branch.Resources)
+                        {
+                            <span>@resource.Name <small>@KindLabel(resource.Kind)</small><button type="button" title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>
+                        }
+                    </div>
+                }
             </article>
         }
     </div>
@@ -24,27 +54,416 @@
 
 @if (ShowBranchForm)
 {
- <div class="modal-backdrop" @onclick="Close"><EditForm Model="BranchForm" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation><DataAnnotationsValidator/><div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" @onclick="Close">×</button></div>
- <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach(var b in Businesses){<option value="@b.Id">@b.Name</option>}</select></label><label>نام شعبه<input required @bind="BranchForm.Name"/></label><label>نشانی<input @bind="BranchForm.Address"/></label><div class="form-columns"><label>شروع کار<input type="number" min="0" max="23" @bind="BranchForm.OpenHour"/></label><label>پایان کار<input type="number" min="1" max="24" @bind="BranchForm.CloseHour"/></label></div>@if(Error is not null){<div class="auth-error">@Error</div>}<button class="primary-button">ذخیره</button></EditForm></div>
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="BranchForm" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
+            <DataAnnotationsValidator />
+            <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" @onclick="Close">×</button></div>
+            <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id">@b.Name</option> }</select></label>
+            <label>نام شعبه<input required @bind="BranchForm.Name" /></label>
+            <label>نشانی<input @bind="BranchForm.Address" /></label>
+            <div class="form-columns">
+                <label>شروع کار<input type="number" min="0" max="23" @bind="BranchForm.OpenHour" /></label>
+                <label>پایان کار<input type="number" min="1" max="24" @bind="BranchForm.CloseHour" /></label>
+            </div>
+            @if (Error is not null) { <div class="auth-error">@Error</div> }
+            <button class="primary-button">ذخیره</button>
+        </EditForm>
+    </div>
 }
+
+@* [fix] فرم منبع فقط یک فیلد متنی «نام منبع» داشت؛ برای منبع از نوع «عضو تیم»
+   هیچ راهی برای انتخاب یک عضو واقعی از لیست وجود نداشت. حالا وقتی نوع روی
+   «عضو تیم» باشد، لیست کشویی اعضای تیم نمایش داده می‌شود و منبع به حساب
+   کاربری همان عضو وصل می‌شود. *@
 @if (ResourceBranch is not null)
 {
- <div class="modal-backdrop" @onclick="Close"><EditForm Model="ResourceForm" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation><div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" @onclick="Close">×</button></div><label>نام منبع<input required @bind="ResourceForm.Name"/></label><label>نوع<select @bind="ResourceForm.Kind"><option value="staff">عضو تیم</option><option value="room">اتاق</option><option value="equipment">تجهیزات</option></select></label><button class="primary-button">ذخیره</button></EditForm></div>
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="ResourceForm" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation>
+            <div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
+            <label>نوع
+                <select @bind="ResourceForm.Kind" @bind:after="KindChanged">
+                    <option value="staff">عضو تیم</option>
+                    <option value="room">اتاق</option>
+                    <option value="equipment">تجهیزات</option>
+                </select>
+            </label>
+            @if (ResourceForm.Kind == "staff")
+            {
+                <label>عضو تیم
+                    <select @bind="ResourceForm.UserId" @bind:after="TeamMemberChanged">
+                        <option value="">— انتخاب از لیست اعضای تیم —</option>
+                        @foreach (var member in TeamMembers)
+                        {
+                            <option value="@member.Id">@MemberLabel(member)</option>
+                        }
+                    </select>
+                </label>
+                @if (TeamMembers.Count == 0)
+                {
+                    <small>هنوز عضو تیمی ثبت نشده است؛ ابتدا از بخش «اعضای تیم» یک عضو اضافه کنید.</small>
+                }
+            }
+            <label>نام نمایشی منبع<input required @bind="ResourceForm.Name" /></label>
+            @if (Error is not null) { <div class="auth-error">@Error</div> }
+            <button class="primary-button">ذخیره</button>
+        </EditForm>
+    </div>
+}
+
+@* [feature] «عضویت در کسب‌وکار» اصلاً رابط کاربری نداشت؛ جدول BranchMemberships
+   ساخته می‌شد ولی هیچ صفحه‌ای رکوردی در آن ثبت نمی‌کرد. *@
+@if (MemberBranch is not null)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <div class="form-modal" @onclick:stopPropagation>
+            <div><h2>اعضای @MemberBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
+
+            @if (Memberships.Count == 0)
+            {
+                <p class="empty-state">هنوز عضوی به این شعبه اضافه نشده است.</p>
+            }
+            else
+            {
+                <div class="people-list">
+                    @foreach (var membership in Memberships)
+                    {
+                        <article>
+                            <span class="customer-avatar purple">@UserAvatar.Initials(membership.User.DisplayName)</span>
+                            <div><b>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small>@membership.User.Email</small></div>
+                            <em>@RoleLabel(membership.Role)</em>
+                            <div class="inline-actions"><button type="button" class="danger-link" @onclick="() => RemoveMember(membership)">حذف</button></div>
+                        </article>
+                    }
+                </div>
+            }
+
+            <EditForm Model="MemberForm" OnValidSubmit="AddMember">
+                <label>کاربر
+                    <select @bind="MemberForm.UserId">
+                        <option value="">— انتخاب کاربر —</option>
+                        @foreach (var candidate in MemberCandidates)
+                        {
+                            <option value="@candidate.Id">@MemberLabel(candidate)</option>
+                        }
+                    </select>
+                </label>
+                <label>نقش در شعبه
+                    <select @bind="MemberForm.Role">
+                        <option value="@AppRoles.Staff">پرسنل</option>
+                        <option value="@AppRoles.Manager">مدیر</option>
+                        <option value="@AppRoles.Owner">مالک</option>
+                    </select>
+                </label>
+                @if (Error is not null) { <div class="auth-error">@Error</div> }
+                <button class="primary-button">افزودن عضو</button>
+            </EditForm>
+        </div>
+    </div>
 }
 
 @code {
- private List<Business> Businesses=[]; private List<Branch> Branches=[]; private string Query=""; private bool ShowBranchForm; private Guid? EditingBranchId; private BranchInput BranchForm=new(); private Branch? ResourceBranch; private ResourceInput ResourceForm=new(); private string? Error;
- private IEnumerable<Branch> Filtered => Branches.Where(x => $"{x.Name} {x.Address} {x.Business.Name}".Contains(Query,StringComparison.OrdinalIgnoreCase));
- protected override async Task OnInitializedAsync(){ Businesses=await Db.Businesses.OrderBy(x=>x.Name).ToListAsync(); await Load(); }
- private async Task Load()=>Branches=await Db.Branches.IgnoreQueryFilters().Include(x=>x.Business).Include(x=>x.Resources).OrderBy(x=>x.Name).ToListAsync();
- private void NewBranch(){EditingBranchId=null;BranchForm=new(){BusinessId=Businesses.FirstOrDefault()?.Id??Guid.Empty};ShowBranchForm=true;}
- private void EditBranch(Branch x){EditingBranchId=x.Id;BranchForm=new(){BusinessId=x.BusinessId,Name=x.Name,Address=x.Address,OpenHour=x.OpenHour,CloseHour=x.CloseHour};ShowBranchForm=true;}
- private async Task SaveBranch(){if(BranchForm.BusinessId==Guid.Empty||string.IsNullOrWhiteSpace(BranchForm.Name)||BranchForm.CloseHour<=BranchForm.OpenHour){Error="نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";return;} var x=EditingBranchId is null?new Branch{Name=BranchForm.Name}:await Db.Branches.IgnoreQueryFilters().FirstAsync(x=>x.Id==EditingBranchId);x.BusinessId=BranchForm.BusinessId;x.Name=BranchForm.Name.Trim();x.Address=BranchForm.Address.Trim();x.OpenHour=BranchForm.OpenHour;x.CloseHour=BranchForm.CloseHour;x.UpdatedAt=DateTimeOffset.UtcNow;if(EditingBranchId is null)Db.Branches.Add(x);await Db.SaveChangesAsync();Close();await Load();}
- private async Task ToggleBranch(Branch x){var item=await Db.Branches.IgnoreQueryFilters().FirstAsync(b=>b.Id==x.Id);item.DeletedAt=item.DeletedAt is null?DateTimeOffset.UtcNow:null;await Db.SaveChangesAsync();await Load();}
- private void AddResource(Branch x){ResourceBranch=x;ResourceForm=new();}
- private async Task SaveResource(){if(ResourceBranch is null||string.IsNullOrWhiteSpace(ResourceForm.Name))return;Db.Resources.Add(new Resource{BranchId=ResourceBranch.Id,Name=ResourceForm.Name.Trim(),Kind=ResourceForm.Kind});await Db.SaveChangesAsync();Close();await Load();}
- private async Task DeleteResource(Resource x){var item=await Db.Resources.FindAsync(x.Id);if(item is null)return;item.DeletedAt=DateTimeOffset.UtcNow;await Db.SaveChangesAsync();await Load();}
- private void Close(){ShowBranchForm=false;ResourceBranch=null;Error=null;}
- private sealed class BranchInput{public Guid BusinessId{get;set;} public string Name{get;set;}="";public string Address{get;set;}="";public int OpenHour{get;set;}=9;public int CloseHour{get;set;}=18;}
- private sealed class ResourceInput{public string Name{get;set;}="";public string Kind{get;set;}="staff";}
+    private List<Business> Businesses = [];
+    private List<Branch> Branches = [];
+    private List<AppUser> TeamMembers = [];
+    private List<AppUser> AllUsers = [];
+    private List<BranchMembership> Memberships = [];
+
+    private string Query = "";
+    private bool ShowBranchForm;
+    private Guid? EditingBranchId;
+    private BranchInput BranchForm = new();
+    private Branch? ResourceBranch;
+    private ResourceInput ResourceForm = new();
+    private Branch? MemberBranch;
+    private MemberInput MemberForm = new();
+    private string? Error;
+    private string? Message;
+
+    private static readonly string[] TeamRoles = [AppRoles.Owner, AppRoles.Manager, AppRoles.Staff];
+
+    private IEnumerable<Branch> Filtered =>
+        Branches.Where(x => $"{x.Name} {x.Address} {x.Business.Name}".Contains(Query, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<AppUser> MemberCandidates =>
+        AllUsers.Where(u => Memberships.All(m => m.UserId != u.Id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        Businesses = await Db.Businesses.OrderBy(x => x.Name).ToListAsync();
+        AllUsers = await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync();
+        await LoadTeamMembers();
+        await Load();
+    }
+
+    private async Task LoadTeamMembers()
+    {
+        var ids = new HashSet<Guid>();
+        var members = new List<AppUser>();
+
+        foreach (var role in TeamRoles)
+        {
+            foreach (var user in await UserManager.GetUsersInRoleAsync(role))
+            {
+                if (ids.Add(user.Id))
+                {
+                    members.Add(user);
+                }
+            }
+        }
+
+        TeamMembers = members.OrderBy(x => x.DisplayName).ToList();
+    }
+
+    private async Task Load() =>
+        Branches = await Db.Branches.IgnoreQueryFilters()
+            .Include(x => x.Business)
+            .Include(x => x.Resources)
+            .Include(x => x.Memberships)
+            .OrderBy(x => x.Name)
+            .ToListAsync();
+
+    private void NewBranch()
+    {
+        EditingBranchId = null;
+        BranchForm = new BranchInput { BusinessId = Businesses.FirstOrDefault()?.Id ?? Guid.Empty };
+        Error = Message = null;
+        ShowBranchForm = true;
+    }
+
+    private void EditBranch(Branch branch)
+    {
+        EditingBranchId = branch.Id;
+        BranchForm = new BranchInput
+        {
+            BusinessId = branch.BusinessId,
+            Name = branch.Name,
+            Address = branch.Address,
+            OpenHour = branch.OpenHour,
+            CloseHour = branch.CloseHour,
+        };
+        Error = Message = null;
+        ShowBranchForm = true;
+    }
+
+    private async Task SaveBranch()
+    {
+        if (BranchForm.BusinessId == Guid.Empty || string.IsNullOrWhiteSpace(BranchForm.Name) || BranchForm.CloseHour <= BranchForm.OpenHour)
+        {
+            Error = "نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";
+            return;
+        }
+
+        var branch = EditingBranchId is null
+            ? new Branch { Name = BranchForm.Name }
+            : await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingBranchId);
+
+        branch.BusinessId = BranchForm.BusinessId;
+        branch.Name = BranchForm.Name.Trim();
+        branch.Address = BranchForm.Address.Trim();
+        branch.OpenHour = BranchForm.OpenHour;
+        branch.CloseHour = BranchForm.CloseHour;
+        branch.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (EditingBranchId is null) Db.Branches.Add(branch);
+        await Db.SaveChangesAsync();
+        Close();
+        await Load();
+    }
+
+    private async Task ToggleBranch(Branch branch)
+    {
+        var item = await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == branch.Id);
+        item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null;
+        await Db.SaveChangesAsync();
+        await Load();
+    }
+
+    private void AddResource(Branch branch)
+    {
+        ResourceBranch = branch;
+        ResourceForm = new ResourceInput();
+        Error = Message = null;
+    }
+
+    private void KindChanged()
+    {
+        if (ResourceForm.Kind != "staff")
+        {
+            ResourceForm.UserId = null;
+        }
+    }
+
+    private void TeamMemberChanged()
+    {
+        var member = TeamMembers.FirstOrDefault(x => x.Id == ResourceForm.UserId);
+        if (member is not null)
+        {
+            // نام منبع به‌طور پیش‌فرض همان نام عضو است، ولی قابل ویرایش می‌ماند.
+            ResourceForm.Name = string.IsNullOrWhiteSpace(member.DisplayName) ? member.Email ?? "" : member.DisplayName;
+        }
+    }
+
+    private async Task SaveResource()
+    {
+        var branch = ResourceBranch;
+        if (branch is null) return;
+
+        if (ResourceForm.Kind == "staff" && ResourceForm.UserId is null)
+        {
+            Error = "برای منبع از نوع «عضو تیم» باید یک عضو را از لیست انتخاب کنید.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(ResourceForm.Name))
+        {
+            Error = "نام منبع الزامی است.";
+            return;
+        }
+
+        if (ResourceForm.UserId is Guid userId &&
+            await Db.Resources.AnyAsync(x => x.BranchId == branch.Id && x.UserId == userId))
+        {
+            Error = "این عضو از قبل به‌عنوان منبع این شعبه ثبت شده است.";
+            return;
+        }
+
+        Db.Resources.Add(new Resource
+        {
+            BranchId = branch.Id,
+            Name = ResourceForm.Name.Trim(),
+            Kind = ResourceForm.Kind,
+            UserId = ResourceForm.UserId,
+        });
+
+        await Db.SaveChangesAsync();
+        Close();
+        await Load();
+    }
+
+    private async Task DeleteResource(Resource resource)
+    {
+        var item = await Db.Resources.FindAsync(resource.Id);
+        if (item is null) return;
+
+        item.DeletedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        await Load();
+    }
+
+    private async Task OpenMembers(Branch branch)
+    {
+        MemberBranch = branch;
+        MemberForm = new MemberInput();
+        Error = Message = null;
+        await LoadMemberships();
+    }
+
+    private async Task LoadMemberships()
+    {
+        var branch = MemberBranch;
+        if (branch is null) return;
+
+        Memberships = await Db.BranchMemberships
+            .Include(x => x.User)
+            .Where(x => x.BranchId == branch.Id)
+            .OrderBy(x => x.User.DisplayName)
+            .ToListAsync();
+    }
+
+    private async Task AddMember()
+    {
+        var branch = MemberBranch;
+        if (branch is null) return;
+
+        if (MemberForm.UserId is not Guid userId)
+        {
+            Error = "یک کاربر را انتخاب کنید.";
+            return;
+        }
+
+        if (await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == userId))
+        {
+            Error = "این کاربر از قبل عضو این شعبه است.";
+            return;
+        }
+
+        Db.BranchMemberships.Add(new BranchMembership
+        {
+            BranchId = branch.Id,
+            UserId = userId,
+            Role = MemberForm.Role,
+        });
+
+        var user = await UserManager.FindByIdAsync(userId.ToString());
+        if (user is not null && !await UserManager.IsInRoleAsync(user, MemberForm.Role))
+        {
+            // عضویت در شعبه بدون نقش متناظر عملاً بی‌اثر است؛ نقش را هم می‌دهیم.
+            await UserManager.AddToRoleAsync(user, MemberForm.Role);
+        }
+
+        await Db.SaveChangesAsync();
+        Error = null;
+        Message = "عضو جدید به شعبه اضافه شد.";
+        MemberForm = new MemberInput();
+        await LoadTeamMembers();
+        await LoadMemberships();
+        await Load();
+    }
+
+    private async Task RemoveMember(BranchMembership membership)
+    {
+        Db.BranchMemberships.Remove(membership);
+        await Db.SaveChangesAsync();
+        await LoadMemberships();
+        await Load();
+    }
+
+    private void Close()
+    {
+        ShowBranchForm = false;
+        ResourceBranch = null;
+        MemberBranch = null;
+        Error = null;
+    }
+
+    private static string MemberLabel(AppUser user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : $"{user.DisplayName} ({user.Email})";
+
+    private static string KindLabel(string kind) => kind switch
+    {
+        "staff" => "عضو تیم",
+        "room" => "اتاق",
+        "equipment" => "تجهیزات",
+        _ => kind,
+    };
+
+    private static string RoleLabel(string role) => role switch
+    {
+        AppRoles.Owner => "مالک",
+        AppRoles.Manager => "مدیر",
+        AppRoles.Staff => "پرسنل",
+        _ => role,
+    };
+
+    private sealed class BranchInput
+    {
+        public Guid BusinessId { get; set; }
+        public string Name { get; set; } = "";
+        public string Address { get; set; } = "";
+        public int OpenHour { get; set; } = 9;
+        public int CloseHour { get; set; } = 18;
+    }
+
+    private sealed class ResourceInput
+    {
+        public string Name { get; set; } = "";
+        public string Kind { get; set; } = "staff";
+        public Guid? UserId { get; set; }
+    }
+
+    private sealed class MemberInput
+    {
+        public Guid? UserId { get; set; }
+        public string Role { get; set; } = AppRoles.Staff;
+    }
 }

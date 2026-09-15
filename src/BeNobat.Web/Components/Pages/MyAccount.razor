@@ -7,19 +7,279 @@
 @inject AppDbContext Db
 
 <PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
+
 <section class="profile-page">
-    <div class="page-title"><div><h1>اطلاعات حساب کاربری</h1><p>مشخصات تماس و نظرهای ثبت‌شده خود را مدیریت کنید.</p></div></div>
-    @if(Message is not null){<div class="success-notice">@Message</div>}
-    <div class="profile-grid">
-        <EditForm Model="Profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form"><h2>مشخصات من</h2><label>نام و نام خانوادگی<input @bind="Profile.DisplayName" /></label><label>ایمیل<input value="@Profile.Email" disabled /></label><label>شماره تماس<input @bind="Profile.Phone" /></label><button class="primary-button">ذخیره تغییرات</button></EditForm>
-        <EditForm Model="ReviewForm" OnValidSubmit="SaveReview" class="admin-panel profile-form"><h2>ثبت امتیاز و نظر</h2><label>نوبت تکمیل‌شده<select @bind="ReviewForm.AppointmentId"><option value="">انتخاب کنید</option>@foreach(var appointment in CompletedAppointments){<option value="@appointment.Id">@appointment.BusinessName · @appointment.BranchName</option>}</select></label><label>امتیاز<select @bind="ReviewForm.Rating">@for(var i=5;i>=1;i--){<option value="@i">@i ستاره</option>}</select></label><label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label><button class="primary-button" disabled="@(CompletedAppointments.Count==0)">ارسال برای بررسی</button></EditForm>
+    <div class="page-title">
+        <div><h1>اطلاعات حساب کاربری</h1><p>عکس، مشخصات تماس، ایمیل و نظرهای ثبت‌شده‌ی خود را مدیریت کنید.</p></div>
     </div>
+
+    @if (Message is not null) { <div class="success-notice">@Message</div> }
+    @if (ErrorMessage is not null) { <div class="auth-error">@ErrorMessage</div> }
+
+    <div class="profile-grid">
+        @* [feature] تا پیش از این عکس پروفایل اصلاً وجود نداشت. *@
+        <article class="admin-panel profile-form">
+            <h2>عکس پروفایل</h2>
+            <div class="avatar-editor">
+                @if (User is not null && UserAvatar.Has(User))
+                {
+                    <img class="avatar-preview" src="@UserAvatar.Url(User)" alt="عکس پروفایل" />
+                }
+                else
+                {
+                    <span class="avatar-preview placeholder">@UserAvatar.Initials(User?.DisplayName)</span>
+                }
+                <div>
+                    <label class="file-label">
+                        انتخاب عکس
+                        <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" />
+                    </label>
+                    <small>PNG، JPEG یا WebP؛ حداکثر ۲ مگابایت.</small>
+                    @if (User is not null && UserAvatar.Has(User))
+                    {
+                        <button type="button" class="danger-link" @onclick="RemoveAvatar">حذف عکس</button>
+                    }
+                </div>
+            </div>
+        </article>
+
+        <EditForm Model="Profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form">
+            <h2>مشخصات من</h2>
+            <label>نام و نام خانوادگی<input @bind="Profile.DisplayName" /></label>
+            <label>شماره تماس<input @bind="Profile.Phone" /></label>
+            <button class="primary-button">ذخیره تغییرات</button>
+        </EditForm>
+
+        @* [feature] ایمیل قبلاً disabled بود و هیچ راهی برای تغییرش نبود.
+           این فرم عمداً یک POST معمولی به سرور است (نه فرم تعاملی): تغییر ایمیل
+           SecurityStamp را عوض می‌کند و باید همان‌جا با RefreshSignInAsync کوکی
+           ورود تازه شود، وگرنه کاربر بعد از چند دقیقه از حساب بیرون می‌افتد. *@
+        <form method="post" action="/account/change-email" class="admin-panel profile-form">
+            <AntiforgeryToken />
+            <h2>ایمیل حساب</h2>
+            <label>ایمیل<input name="email" type="email" required dir="ltr" value="@Profile.Email" /></label>
+            <small>پس از تغییر، برای ورود باید از ایمیل جدید استفاده کنید.</small>
+            <button type="submit" class="primary-button">تغییر ایمیل</button>
+        </form>
+
+        <EditForm Model="ReviewForm" OnValidSubmit="SaveReview" class="admin-panel profile-form">
+            <h2>ثبت امتیاز و نظر برای خدمت</h2>
+            @if (CompletedAppointments.Count == 0)
+            {
+                <p class="empty-state">نوبت تکمیل‌شده‌ای بدون نظر ندارید.</p>
+            }
+            else
+            {
+                <label>نوبت تکمیل‌شده
+                    <select @bind="ReviewForm.AppointmentId">
+                        <option value="">انتخاب کنید</option>
+                        @foreach (var appointment in CompletedAppointments)
+                        {
+                            <option value="@appointment.Id">@appointment.BusinessName · @appointment.BranchName · @appointment.ServiceName</option>
+                        }
+                    </select>
+                </label>
+                <label>امتیاز
+                    <select @bind="ReviewForm.Rating">
+                        @for (var i = 5; i >= 1; i--)
+                        {
+                            <option value="@i">@i ستاره</option>
+                        }
+                    </select>
+                </label>
+                <label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label>
+            }
+            <button class="primary-button" disabled="@(CompletedAppointments.Count == 0)">ارسال برای بررسی</button>
+        </EditForm>
+    </div>
+
+    @* [feature] امتیازی که مجموعه‌ها به شما داده‌اند هم نمایش داده می‌شود. *@
+    @if (ReceivedRating is not null)
+    {
+        <article class="admin-panel">
+            <h2>امتیاز شما به‌عنوان مراجعه‌کننده</h2>
+            <p class="empty-state">میانگین @ReceivedRating.Value.ToString("0.0") از ۵ بر اساس @ReceivedCount ارزیابی مجموعه‌ها.</p>
+        </article>
+    }
 </section>
 
 @code {
-    private AppUser? User; private ProfileInput Profile=new(); private ReviewInput ReviewForm=new(); private List<AppointmentChoice> CompletedAppointments=[]; private string? Message;
-    protected override async Task OnInitializedAsync(){var principal=(await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;User=await UserManager.GetUserAsync(principal);if(User is null)return;Profile=new(){DisplayName=User.DisplayName,Email=User.Email??"",Phone=User.PhoneNumber??""};CompletedAppointments=await Db.Appointments.Where(x=>x.CustomerId==User.Id&&x.Status==AppointmentStatus.Completed&&!Db.Reviews.Any(r=>r.AppointmentId==x.Id)).Select(x=>new AppointmentChoice(x.Id,x.Branch.Business.Name,x.Branch.Name)).ToListAsync();}
-    private async Task SaveProfile(){if(User is null)return;User.DisplayName=Profile.DisplayName.Trim();User.PhoneNumber=Profile.Phone.Trim();var result=await UserManager.UpdateAsync(User);Message=result.Succeeded?"اطلاعات حساب ذخیره شد.":string.Join("، ",result.Errors.Select(x=>x.Description));}
-    private async Task SaveReview(){if(User is null||ReviewForm.AppointmentId is not Guid id)return;var appointment=await Db.Appointments.Include(x=>x.Branch).FirstOrDefaultAsync(x=>x.Id==id&&x.CustomerId==User.Id&&x.Status==AppointmentStatus.Completed);if(appointment is null)return;Db.Reviews.Add(new Review{AppointmentId=id,BusinessId=appointment.Branch.BusinessId,BranchId=appointment.BranchId,CustomerId=User.Id,Rating=Math.Clamp(ReviewForm.Rating,1,5),Comment=ReviewForm.Comment.Trim()});await Db.SaveChangesAsync();Message="نظر شما ثبت شد و پس از بررسی نمایش داده می‌شود.";ReviewForm=new();await OnInitializedAsync();}
-    private sealed class ProfileInput{public string DisplayName{get;set;}="";public string Email{get;set;}="";public string Phone{get;set;}="";}private sealed class ReviewInput{public Guid? AppointmentId{get;set;}public int Rating{get;set;}=5;public string Comment{get;set;}="";}private sealed record AppointmentChoice(Guid Id,string BusinessName,string BranchName);
+    [SupplyParameterFromQuery(Name = "emailChanged")] private string? EmailChanged { get; set; }
+    [SupplyParameterFromQuery(Name = "emailError")] private string? EmailError { get; set; }
+
+    private AppUser? User;
+    private ProfileInput Profile = new();
+    private ReviewInput ReviewForm = new();
+    private List<AppointmentChoice> CompletedAppointments = [];
+    private double? ReceivedRating;
+    private int ReceivedCount;
+    private string? Message;
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // پیام‌های برگشتی از endpoint تغییر ایمیل.
+        Message = EmailChanged == "1" ? "ایمیل حساب با موفقیت تغییر کرد." : null;
+        ErrorMessage = EmailError switch
+        {
+            "duplicate" => "این ایمیل قبلاً برای حساب دیگری ثبت شده است.",
+            "invalid" => "ایمیل واردشده معتبر نیست.",
+            _ => null,
+        };
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        User = await UserManager.GetUserAsync(principal);
+        if (User is null) return;
+
+        Profile = new ProfileInput
+        {
+            DisplayName = User.DisplayName,
+            Email = User.Email ?? "",
+            Phone = User.PhoneNumber ?? "",
+        };
+
+        var userId = User.Id;
+
+        CompletedAppointments = await Db.Appointments
+            .Where(x => x.CustomerId == userId
+                && x.Status == AppointmentStatus.Completed
+                && !Db.Reviews.Any(r => r.AppointmentId == x.Id))
+            .OrderByDescending(x => x.StartsAt)
+            .Select(x => new AppointmentChoice(x.Id, x.Branch.Business.Name, x.Branch.Name, x.Service.Name))
+            .ToListAsync();
+
+        var received = await Db.CustomerReviews.Where(x => x.CustomerId == userId).ToListAsync();
+        ReceivedCount = received.Count;
+        ReceivedRating = received.Count == 0 ? null : received.Average(x => (double)x.Rating);
+    }
+
+    private async Task SaveProfile()
+    {
+        var user = User;
+        if (user is null) return;
+
+        ErrorMessage = null;
+        user.DisplayName = Profile.DisplayName.Trim();
+        user.PhoneNumber = Profile.Phone.Trim();
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            Message = "اطلاعات حساب ذخیره شد.";
+        }
+        else
+        {
+            ErrorMessage = string.Join("، ", result.Errors.Select(x => x.Description).Distinct(StringComparer.Ordinal));
+        }
+    }
+
+    private async Task UploadAvatar(InputFileChangeEventArgs e)
+    {
+        var user = User;
+        if (user is null) return;
+
+        Message = ErrorMessage = null;
+        var file = e.File;
+
+        if (!UserAvatar.AllowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            ErrorMessage = "فقط فایل‌های PNG، JPEG و WebP پذیرفته می‌شوند.";
+            return;
+        }
+
+        if (file.Size > UserAvatar.MaxBytes)
+        {
+            ErrorMessage = "حجم عکس نباید بیشتر از ۲ مگابایت باشد.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(UserAvatar.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+
+            user.AvatarData = buffer.ToArray();
+            user.AvatarContentType = file.ContentType.ToLowerInvariant();
+
+            var result = await UserManager.UpdateAsync(user);
+            Message = result.Succeeded ? "عکس پروفایل به‌روزرسانی شد." : null;
+            ErrorMessage = result.Succeeded
+                ? null
+                : string.Join("، ", result.Errors.Select(x => x.Description).Distinct(StringComparer.Ordinal));
+        }
+        catch (IOException)
+        {
+            ErrorMessage = "خواندن فایل انجام نشد؛ دوباره تلاش کنید.";
+        }
+    }
+
+    private async Task RemoveAvatar()
+    {
+        var user = User;
+        if (user is null) return;
+
+        user.AvatarData = null;
+        user.AvatarContentType = null;
+        await UserManager.UpdateAsync(user);
+        Message = "عکس پروفایل حذف شد.";
+        ErrorMessage = null;
+    }
+
+    private async Task SaveReview()
+    {
+        var user = User;
+        if (user is null || ReviewForm.AppointmentId is not Guid id) return;
+
+        var userId = user.Id;
+        var appointment = await Db.Appointments
+            .Include(x => x.Branch)
+            .FirstOrDefaultAsync(x => x.Id == id && x.CustomerId == userId && x.Status == AppointmentStatus.Completed);
+
+        if (appointment is null) return;
+
+        // جلوگیری از ثبت نظر تکراری اگر بین بارگذاری صفحه و ارسال، چیزی ثبت شده باشد.
+        if (await Db.Reviews.AnyAsync(x => x.AppointmentId == id))
+        {
+            ErrorMessage = "برای این نوبت قبلاً نظر ثبت شده است.";
+            return;
+        }
+
+        Db.Reviews.Add(new Review
+        {
+            AppointmentId = id,
+            BusinessId = appointment.Branch.BusinessId,
+            BranchId = appointment.BranchId,
+            CustomerId = userId,
+            Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
+            Comment = ReviewForm.Comment.Trim(),
+        });
+
+        await Db.SaveChangesAsync();
+        Message = "نظر شما ثبت شد و پس از بررسی نمایش داده می‌شود.";
+        ErrorMessage = null;
+        ReviewForm = new ReviewInput();
+        await LoadAsync();
+    }
+
+    private sealed class ProfileInput
+    {
+        public string DisplayName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+    }
+
+    private sealed class ReviewInput
+    {
+        public Guid? AppointmentId { get; set; }
+        public int Rating { get; set; } = 5;
+        public string Comment { get; set; } = "";
+    }
+
+    private sealed record AppointmentChoice(Guid Id, string BusinessName, string BranchName, string ServiceName);
 }

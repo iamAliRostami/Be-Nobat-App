@@ -9,11 +9,14 @@
                 <Authorized>
                     <AuthorizeView Policy="@Policies.ManageAppointments" Context="adminContext">
                         <Authorized>
-                            <a class="business-login" href="/admin">پنل مدیریت</a>
+                            <NavLink class="nav-pill" href="/admin">پنل مدیریت</NavLink>
                         </Authorized>
                     </AuthorizeView>
-                    <a class="user-login" href="/appointments">نوبت‌های من</a>
-                    <a class="business-login" href="/account/profile">حساب من</a>
+                    @* [fix] «نوبت‌های من» قبلاً یک <a> با کلاس ثابت user-login بود و همیشه -
+                       حتی در صفحه‌ی اصلی - روشن/پررنگ دیده می‌شد. حالا NavLink است و فقط
+                       وقتی واقعاً روی /appointments هستیم حالت فعال می‌گیرد. *@
+                    <NavLink class="nav-pill" href="/appointments" Match="NavLinkMatch.Prefix">نوبت‌های من</NavLink>
+                    <NavLink class="nav-pill" href="/account/profile" Match="NavLinkMatch.Prefix">حساب من</NavLink>
                     <form method="post" action="/account/logout" class="logout-form">
                         <AntiforgeryToken />
                         <input type="hidden" name="returnUrl" value="/" />
@@ -21,8 +24,10 @@
                     </form>
                 </Authorized>
                 <NotAuthorized>
-                    <a class="business-login" href="/account/login">ورود کسب‌وکارها</a>
-                    <a class="user-login" href="/account/login">ورود / ثبت‌نام</a>
+                    @* [fix] قبلاً هر دو دکمه به /account/login می‌رفتند و هیچ‌کدام حالت فعال
+                       نداشتند؛ با سوییچ بین ورود و ثبت‌نام ظاهر هدر تغییر نمی‌کرد. *@
+                    <NavLink class="nav-pill" href="/account/login" Match="NavLinkMatch.All">ورود</NavLink>
+                    <NavLink class="nav-pill" href="/account/register" Match="NavLinkMatch.All">ثبت‌نام</NavLink>
                 </NotAuthorized>
             </AuthorizeView>
         </div>

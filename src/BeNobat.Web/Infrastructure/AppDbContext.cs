@@ -16,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BranchMembership> BranchMemberships => Set<BranchMembership>();
     public DbSet<AvailabilityRule> AvailabilityRules => Set<AvailabilityRule>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<CustomerReview> CustomerReviews => Set<CustomerReview>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -28,6 +29,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Resource>().HasOne(x => x.Branch).WithMany(x => x.Resources)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+        // [feature] پیوند اختیاری منبع «عضو تیم» به حساب کاربری.
+        builder.Entity<Resource>().HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Service>().Property(x => x.Price).HasPrecision(18, 2);
         builder.Entity<Appointment>().Property(x => x.FinalPrice).HasPrecision(18, 2);
         builder.Entity<Appointment>().Property(x => x.Status).HasConversion<string>();
@@ -62,6 +66,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Review>().HasOne(x => x.Appointment).WithMany()
             .HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Review>().ToTable(t => t.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
+
+        // [feature] امتیازدهی مجموعه به سرویس‌گیرنده.
+        builder.Entity<CustomerReview>().HasIndex(x => x.AppointmentId).IsUnique();
+        builder.Entity<CustomerReview>().HasIndex(x => new { x.BusinessId, x.CustomerId });
+        builder.Entity<CustomerReview>().HasOne(x => x.Appointment).WithMany()
+            .HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<CustomerReview>().HasOne(x => x.Business).WithMany()
+            .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CustomerReview>().HasOne(x => x.Customer).WithMany()
+            .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CustomerReview>().HasOne(x => x.Author).WithMany()
+            .HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<CustomerReview>()
+            .ToTable(t => t.HasCheckConstraint("CK_CustomerReviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

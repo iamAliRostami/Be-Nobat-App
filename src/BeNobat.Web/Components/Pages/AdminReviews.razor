@@ -1,41 +1,261 @@
 @page "/admin/reviews"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
+@using System.Security.Claims
 @inject AppDbContext Db
 
 <PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی، منتشر یا رد کنید و پاسخ رسمی بدهید.</p></div></div>
-<div class="stat-cards">
-    <article><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
-    <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
-    <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
-    <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
+<div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی و پاسخ دهید، و به مراجعه‌کنندگان امتیاز بدهید.</p></div></div>
+
+@* [feature] امتیازدهی دوطرفه: تا پیش از این فقط مشتری می‌توانست به خدمت امتیاز
+   بدهد و هیچ راهی برای ارزیابی «سرویس‌گیرنده» وجود نداشت. *@
+<div class="tabs">
+    <button type="button" class="@(Tab == "incoming" ? "active" : "")" @onclick='() => Tab = "incoming"'>نظر مشتریان <b>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</b></button>
+    <button type="button" class="@(Tab == "outgoing" ? "active" : "")" @onclick='() => Tab = "outgoing"'>ارزیابی مراجعه‌کنندگان <b>@Pending.Count</b></button>
 </div>
-<article class="admin-panel">
-    <div class="toolbar"><select @bind="Filter"><option value="all">همه</option><option value="Pending">در انتظار</option><option value="Published">منتشرشده</option><option value="Rejected">ردشده</option></select></div>
-    <div class="review-list">
-        @foreach (var review in Filtered)
-        {
-            <article><header><div><b>@review.Customer.DisplayName</b><small>@review.Business.Name @if(review.Branch is not null){<text>· @review.Branch.Name</text>}</small></div><span class="stars">@Stars(review.Rating)</span></header><p>@review.Comment</p>
-                @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
-                <footer><em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em><button @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button><button @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button><button @onclick="() => Reply(review)">پاسخ</button></footer>
-            </article>
-        }
+
+@if (Message is not null) { <div class="success-notice">@Message</div> }
+
+@if (Tab == "incoming")
+{
+    <div class="stat-cards">
+        <article><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
+        <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
+        <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
+        <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
     </div>
-</article>
-@if(Replying is not null){<div class="modal-backdrop" @onclick="Close"><EditForm Model="ReplyForm" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation><div><h2>پاسخ به نظر</h2><button type="button" @onclick="Close">×</button></div><label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label><button class="primary-button">ثبت پاسخ و انتشار</button></EditForm></div>}
+    <article class="admin-panel">
+        <div class="toolbar">
+            <select @bind="Filter">
+                <option value="all">همه</option>
+                <option value="Pending">در انتظار</option>
+                <option value="Published">منتشرشده</option>
+                <option value="Rejected">ردشده</option>
+            </select>
+        </div>
+        @if (!Filtered.Any()) { <p class="empty-state">نظری در این وضعیت وجود ندارد.</p> }
+        <div class="review-list">
+            @foreach (var review in Filtered)
+            {
+                <article>
+                    <header>
+                        <div><b>@DisplayNameOf(review.Customer)</b><small>@review.Business.Name @if (review.Branch is not null) { <text>· @review.Branch.Name</text> }</small></div>
+                        <span class="stars">@Stars(review.Rating)</span>
+                    </header>
+                    <p>@review.Comment</p>
+                    @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
+                    <footer>
+                        <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
+                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" @onclick="() => Reply(review)">پاسخ</button>
+                    </footer>
+                </article>
+            }
+        </div>
+    </article>
+}
+else
+{
+    <article class="admin-panel">
+        <div class="panel-head"><div><h2>نوبت‌های تکمیل‌شده بدون ارزیابی</h2><p>به حضور و همکاری مراجعه‌کننده امتیاز بدهید. این امتیاز عمومی نیست.</p></div></div>
+        @if (Pending.Count == 0)
+        {
+            <p class="empty-state">همه نوبت‌های تکمیل‌شده ارزیابی شده‌اند.</p>
+        }
+        <div class="review-list">
+            @foreach (var appointment in Pending)
+            {
+                <article>
+                    <header>
+                        <div><b>@DisplayNameOf(appointment.Customer)</b><small>@appointment.Service.Name · @appointment.Branch.Name · @appointment.StartsAt.ToString("yyyy/MM/dd")</small></div>
+                    </header>
+                    <footer>
+                        <select @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
+                            @for (var i = 5; i >= 1; i--)
+                            {
+                                <option value="@i" selected="@(DraftRating(appointment.Id) == i)">@i ستاره</option>
+                            }
+                        </select>
+                        <input placeholder="یادداشت اختیاری..." value="@DraftComment(appointment.Id)" @onchange="e => SetDraftComment(appointment.Id, e.Value?.ToString())" />
+                        <button type="button" @onclick="() => RateCustomer(appointment)">ثبت امتیاز</button>
+                    </footer>
+                </article>
+            }
+        </div>
+    </article>
+
+    <article class="admin-panel">
+        <div class="panel-head"><div><h2>ارزیابی‌های ثبت‌شده</h2><p>@CustomerReviews.Count مورد</p></div></div>
+        @if (CustomerReviews.Count == 0) { <p class="empty-state">هنوز ارزیابی‌ای ثبت نشده است.</p> }
+        <div class="review-list">
+            @foreach (var item in CustomerReviews)
+            {
+                <article>
+                    <header>
+                        <div><b>@DisplayNameOf(item.Customer)</b><small>@item.Business.Name · ثبت توسط @DisplayNameOf(item.Author) · @item.CreatedAt.ToString("yyyy/MM/dd")</small></div>
+                        <span class="stars">@Stars(item.Rating)</span>
+                    </header>
+                    @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
+                    <footer><button type="button" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
+                </article>
+            }
+        </div>
+    </article>
+}
+
+@if (Replying is not null)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="ReplyForm" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
+            <div><h2>پاسخ به نظر</h2><button type="button" @onclick="Close">×</button></div>
+            <label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label>
+            <button class="primary-button">ثبت پاسخ و انتشار</button>
+        </EditForm>
+    </div>
+}
 
 @code {
-    private List<Review> Reviews=[]; private string Filter="all"; private Review? Replying; private ReplyInput ReplyForm=new();
-    private IEnumerable<Review> Filtered => Filter=="all" ? Reviews : Reviews.Where(x=>x.Status.ToString()==Filter);
-    private double Average => Reviews.Count==0?0:Reviews.Average(x=>x.Rating);
-    protected override async Task OnInitializedAsync()=>await Load();
-    private async Task Load()=>Reviews=await Db.Reviews.IgnoreQueryFilters().Include(x=>x.Customer).Include(x=>x.Business).Include(x=>x.Branch).OrderByDescending(x=>x.CreatedAt).ToListAsync();
-    private async Task SetStatus(Review review,ReviewStatus status){review.Status=status;review.UpdatedAt=DateTimeOffset.UtcNow;await Db.SaveChangesAsync();await Load();}
-    private void Reply(Review review){Replying=review;ReplyForm=new(){Text=review.ManagerReply??""};}
-    private async Task SaveReply(){if(Replying is null)return;Replying.ManagerReply=ReplyForm.Text.Trim();Replying.Status=ReviewStatus.Published;await Db.SaveChangesAsync();Close();await Load();}
-    private void Close()=>Replying=null; private static string Stars(int n)=>new('★',n)+new string('☆',5-n);
-    private static string StatusLabel(ReviewStatus s)=>s switch{ReviewStatus.Published=>"منتشرشده",ReviewStatus.Rejected=>"ردشده",_=>"در انتظار"};
-    private static string StatusClass(ReviewStatus s)=>s switch{ReviewStatus.Published=>"confirmed",ReviewStatus.Rejected=>"cancelled",_=>"pending"};
-    private sealed class ReplyInput{public string Text{get;set;}="";}
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private List<Review> Reviews = [];
+    private List<Appointment> Pending = [];
+    private List<CustomerReview> CustomerReviews = [];
+    private readonly Dictionary<Guid, (int Rating, string Comment)> Drafts = new();
+
+    private string Tab = "incoming";
+    private string Filter = "all";
+    private string? Message;
+    private Review? Replying;
+    private ReplyInput ReplyForm = new();
+    private Guid CurrentUserId;
+
+    private IEnumerable<Review> Filtered => Filter == "all" ? Reviews : Reviews.Where(x => x.Status.ToString() == Filter);
+    private double Average => Reviews.Count == 0 ? 0 : Reviews.Average(x => x.Rating);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var state = await AuthStateTask;
+            var idText = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (idText is not null && Guid.TryParse(idText, out var id)) CurrentUserId = id;
+        }
+
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        Reviews = await Db.Reviews.IgnoreQueryFilters()
+            .Include(x => x.Customer).Include(x => x.Business).Include(x => x.Branch)
+            .OrderByDescending(x => x.CreatedAt).ToListAsync();
+
+        Pending = await Db.Appointments
+            .Include(x => x.Customer).Include(x => x.Service)
+            .Include(x => x.Branch).ThenInclude(x => x.Business)
+            .Where(x => x.Status == AppointmentStatus.Completed
+                && !Db.CustomerReviews.Any(r => r.AppointmentId == x.Id))
+            .OrderByDescending(x => x.StartsAt)
+            .Take(50)
+            .ToListAsync();
+
+        CustomerReviews = await Db.CustomerReviews
+            .Include(x => x.Customer).Include(x => x.Author).Include(x => x.Business)
+            .OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync();
+    }
+
+    private int DraftRating(Guid id) => Drafts.TryGetValue(id, out var draft) ? draft.Rating : 5;
+    private string DraftComment(Guid id) => Drafts.TryGetValue(id, out var draft) ? draft.Comment : "";
+
+    private void SetDraftRating(Guid id, string? value)
+    {
+        var rating = int.TryParse(value, out var parsed) ? Math.Clamp(parsed, 1, 5) : 5;
+        Drafts[id] = (rating, DraftComment(id));
+    }
+
+    private void SetDraftComment(Guid id, string? value) => Drafts[id] = (DraftRating(id), value ?? "");
+
+    private async Task RateCustomer(Appointment appointment)
+    {
+        if (CurrentUserId == Guid.Empty) return;
+
+        // ارزیابی تکراری مجاز نیست (ایندکس یکتا روی AppointmentId هم همین را تضمین می‌کند).
+        if (await Db.CustomerReviews.AnyAsync(x => x.AppointmentId == appointment.Id))
+        {
+            await Load();
+            return;
+        }
+
+        Db.CustomerReviews.Add(new CustomerReview
+        {
+            AppointmentId = appointment.Id,
+            BusinessId = appointment.Branch.BusinessId,
+            CustomerId = appointment.CustomerId,
+            AuthorId = CurrentUserId,
+            Rating = DraftRating(appointment.Id),
+            Comment = DraftComment(appointment.Id).Trim(),
+        });
+
+        await Db.SaveChangesAsync();
+        Drafts.Remove(appointment.Id);
+        Message = "امتیاز مراجعه‌کننده ثبت شد.";
+        await Load();
+    }
+
+    private async Task DeleteCustomerReview(CustomerReview item)
+    {
+        Db.CustomerReviews.Remove(item);
+        await Db.SaveChangesAsync();
+        Message = "ارزیابی حذف شد.";
+        await Load();
+    }
+
+    private async Task SetStatus(Review review, ReviewStatus status)
+    {
+        review.Status = status;
+        review.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        await Load();
+    }
+
+    private void Reply(Review review)
+    {
+        Replying = review;
+        ReplyForm = new ReplyInput { Text = review.ManagerReply ?? "" };
+    }
+
+    private async Task SaveReply()
+    {
+        if (Replying is null) return;
+        Replying.ManagerReply = ReplyForm.Text.Trim();
+        Replying.Status = ReviewStatus.Published;
+        Replying.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        Close();
+        await Load();
+    }
+
+    private void Close() => Replying = null;
+
+    private static string DisplayNameOf(AppUser user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
+
+    private static string Stars(int n) => new string('★', n) + new string('☆', 5 - n);
+
+    private static string StatusLabel(ReviewStatus s) => s switch
+    {
+        ReviewStatus.Published => "منتشرشده",
+        ReviewStatus.Rejected => "ردشده",
+        _ => "در انتظار",
+    };
+
+    private static string StatusClass(ReviewStatus s) => s switch
+    {
+        ReviewStatus.Published => "confirmed",
+        ReviewStatus.Rejected => "cancelled",
+        _ => "pending",
+    };
+
+    private sealed class ReplyInput { public string Text { get; set; } = ""; }
 }

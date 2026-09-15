@@ -14,6 +14,12 @@
         <DataAnnotationsValidator />
         <h1>ورود به حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو و مشاهده نوبت‌هایتان وارد شوید.</p>
+        @* [fix] تب فعال بین «ورود» و «ثبت‌نام» باید با سوییچ کردن تغییر کند. *@
+        <div class="auth-tabs">
+            <NavLink href="/account/login" Match="NavLinkMatch.All">ورود</NavLink>
+            <NavLink href="/account/register" Match="NavLinkMatch.All">ثبت‌نام</NavLink>
+        </div>
+
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {

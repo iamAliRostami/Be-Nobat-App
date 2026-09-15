@@ -45,6 +45,9 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddClaimsPrincipalFactory<AppUserClaimsPrincipalFactory>()
+    // [fix] پیام‌های خطای Identity به فارسی؛ قبلاً متن انگلیسی خام
+    // (مثل "Username 'x' is already taken.") در فرم ثبت‌نام نمایش داده می‌شد.
+    .AddErrorDescriber<PersianIdentityErrorDescriber>()
     .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -109,6 +112,77 @@ app.MapPost("/account/logout", async (SignInManager<AppUser> signInManager, Http
     var returnUrl = request.Form.TryGetValue("returnUrl", out var value) ? value.ToString() : "/";
     return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl);
 }).RequireAuthorization();
+
+// [feature] تغییر ایمیل حساب. عمداً یک endpoint جداست و نه کد داخل کامپوننت
+// تعاملی: تغییر ایمیل/نام کاربری، SecurityStamp را عوض می‌کند و بدون
+// RefreshSignInAsync کوکی کاربر در اولین اعتبارسنجی باطل می‌شد و کاربر بی‌دلیل
+// از حساب بیرون می‌افتاد. RefreshSignInAsync فقط جایی کار می‌کند که HttpContext
+// در دسترس باشد.
+app.MapPost("/account/change-email", async (
+    HttpContext http,
+    Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery,
+    UserManager<AppUser> userManager,
+    SignInManager<AppUser> signInManager) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(http);
+    }
+    catch (Microsoft.AspNetCore.Antiforgery.AntiforgeryValidationException)
+    {
+        return Results.LocalRedirect("/account/profile?emailError=invalid");
+    }
+
+    var user = await userManager.GetUserAsync(http.User);
+    if (user is null)
+    {
+        return Results.LocalRedirect("/account/login");
+    }
+
+    var email = http.Request.Form["email"].ToString().Trim();
+
+    if (string.IsNullOrWhiteSpace(email) || !email.Contains('@') || email.Length > 256)
+    {
+        return Results.LocalRedirect("/account/profile?emailError=invalid");
+    }
+
+    if (string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.LocalRedirect("/account/profile");
+    }
+
+    var existing = await userManager.FindByEmailAsync(email);
+    if (existing is not null && existing.Id != user.Id)
+    {
+        return Results.LocalRedirect("/account/profile?emailError=duplicate");
+    }
+
+    if (!(await userManager.SetEmailAsync(user, email)).Succeeded ||
+        !(await userManager.SetUserNameAsync(user, email)).Succeeded)
+    {
+        return Results.LocalRedirect("/account/profile?emailError=invalid");
+    }
+
+    user.EmailConfirmed = true;
+    await userManager.UpdateAsync(user);
+    await signInManager.RefreshSignInAsync(user);
+
+    return Results.LocalRedirect("/account/profile?emailChanged=1");
+}).RequireAuthorization();
+
+// [feature] سرو کردن عکس پروفایل کاربر. تصویر داخل دیتابیس نگهداری می‌شود،
+// چون مسیر wwwroot در image داکر فقط-خواندنی است و با هر build پاک می‌شود.
+app.MapGet("/media/avatar/{id:guid}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
+{
+    var avatar = await db.Users
+        .Where(u => u.Id == id && u.AvatarData != null)
+        .Select(u => new { u.AvatarData, u.AvatarContentType })
+        .FirstOrDefaultAsync(cancellationToken);
+
+    return avatar is null
+        ? Results.NotFound()
+        : Results.File(avatar.AvatarData!, avatar.AvatarContentType ?? "image/png");
+}).AllowAnonymous();
 
 app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellationToken) =>
     new DashboardSummary(

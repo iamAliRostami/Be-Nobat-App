@@ -180,13 +180,33 @@
             }
         }
 
-        await JS.InvokeVoidAsync("beNobat.scrollToResults");
+        // [fix] اسکرول را به بعد از رندر شدن نتایج موکول می‌کنیم؛ قبلاً همین‌جا
+        // صدا زده می‌شد، یعنی وقتی DOM هنوز نتایج قبلی را نشان می‌داد.
+        ScrollToResultsPending = true;
+    }
+
+    private bool ScrollToResultsPending;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!ScrollToResultsPending) return;
+        ScrollToResultsPending = false;
+
+        try
+        {
+            await JS.InvokeVoidAsync("beNobat.scrollToResults", "#businesses");
+        }
+        catch (JSDisconnectedException)
+        {
+            // کاربر صفحه را بسته است؛ چیزی برای اسکرول کردن نمانده.
+        }
     }
 
     private async Task ClearSearch()
     {
         SearchTerm = "";
         HasSearched = false;
+        CityFilterRelaxed = false;
         await OnInitializedAsync();
     }
 

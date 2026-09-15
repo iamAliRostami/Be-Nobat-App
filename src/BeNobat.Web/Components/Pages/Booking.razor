@@ -54,6 +54,31 @@ else
             <div class="booking-layout">
                 <section class="booking-panel">
                     <div class="booking-title"><span>۲</span><div><h2>روز و ساعت را انتخاب کنید</h2><p>همه ساعت‌ها بر اساس ساعت کاری شعبه است.</p></div></div>
+                    <div class="booking-filters">
+                        @if (Branches.Count > 1)
+                        {
+                            <label>شعبه
+                                <select @bind="SelectedBranchId" @bind:after="BranchChanged">
+                                    @foreach (var branch in Branches)
+                                    {
+                                        <option value="@branch.Id">@branch.Name</option>
+                                    }
+                                </select>
+                            </label>
+                        }
+                        @if (BranchResources.Count > 0)
+                        {
+                            <label>عضو تیم
+                                <select @bind="SelectedResourceId" @bind:after="ResourceChanged">
+                                    <option value="">فرقی نمی‌کند</option>
+                                    @foreach (var resource in BranchResources)
+                                    {
+                                        <option value="@resource.Id">@resource.Name</option>
+                                    }
+                                </select>
+                            </label>
+                        }
+                    </div>
                     <div class="date-strip">
                         @foreach (var day in Days)
                         {
@@ -101,7 +126,16 @@ else
     private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     private Business? Business;
-    private Branch? PrimaryBranch;
+
+    // [feature] انتخاب شعبه و عضو تیم. قبلاً همیشه اولین شعبه به‌صورت ثابت
+    // استفاده می‌شد و کسب‌وکارهای چندشعبه‌ای عملاً فقط یک شعبه قابل رزرو داشتند؛
+    // منابع (اعضای تیم/اتاق) هم اصلاً در رزرو دخالتی نداشتند.
+    private List<Branch> Branches = [];
+    private Guid SelectedBranchId;
+    private List<Resource> BranchResources = [];
+    private Guid? SelectedResourceId;
+    private Branch? PrimaryBranch => Branches.FirstOrDefault(x => x.Id == SelectedBranchId) ?? Branches.FirstOrDefault();
+
     private List<Service> Services = [];
     private int Step = 1;
     private Service? SelectedService;
@@ -131,7 +165,9 @@ else
             return;
         }
 
-        PrimaryBranch = Business.Branches.FirstOrDefault();
+        Branches = Business.Branches.OrderBy(x => x.Name).ToList();
+        SelectedBranchId = Branches.FirstOrDefault()?.Id ?? Guid.Empty;
+        await LoadResourcesAsync();
 
         Services = await Db.Services
             .Where(s => s.BusinessId == BusinessId)
@@ -152,6 +188,33 @@ else
         }).ToList();
 
         SelectedDate = today;
+    }
+
+    private async Task LoadResourcesAsync()
+    {
+        var branchId = PrimaryBranch?.Id;
+        BranchResources = branchId is null
+            ? []
+            : await Db.Resources.Where(x => x.BranchId == branchId && x.Kind == "staff")
+                .OrderBy(x => x.Name).ToListAsync();
+
+        if (SelectedResourceId is Guid current && BranchResources.All(x => x.Id != current))
+        {
+            SelectedResourceId = null;
+        }
+    }
+
+    private async Task BranchChanged()
+    {
+        SelectedSlot = null;
+        await LoadResourcesAsync();
+        await LoadSlotsAsync();
+    }
+
+    private async Task ResourceChanged()
+    {
+        SelectedSlot = null;
+        await LoadSlotsAsync();
     }
 
     private async Task NextFromStep1()
@@ -176,14 +239,14 @@ else
 
     private async Task LoadSlotsAsync()
     {
-        if (PrimaryBranch is null || SelectedService is null)
+        var primaryBranch = PrimaryBranch;
+        var selectedService = SelectedService;
+
+        if (primaryBranch is null || selectedService is null)
         {
             Slots = [];
             return;
         }
-
-        var primaryBranch = PrimaryBranch;
-        var selectedService = SelectedService;
 
         const int stepMinutes = 30;
         var duration = TimeSpan.FromMinutes(selectedService.DurationMinutes);
@@ -208,11 +271,15 @@ else
             });
         }
 
+        // اگر عضو تیم مشخصی انتخاب شده باشد، فقط تداخل با نوبت‌های همان عضو
+        // (و نوبت‌های بدون منبع) مهم است؛ در غیر این صورت کل شعبه ملاک است.
+        var resourceId = SelectedResourceId;
         var existingAppointments = await Db.Appointments
             .Where(a => a.BranchId == primaryBranch.Id
                         && a.Status != AppointmentStatus.Cancelled
                         && a.StartsAt < dayEnd
-                        && a.EndsAt > dayStart)
+                        && a.EndsAt > dayStart
+                        && (resourceId == null || a.ResourceId == null || a.ResourceId == resourceId))
             .Select(a => new { a.StartsAt, a.EndsAt })
             .ToListAsync();
 
@@ -253,13 +320,13 @@ else
 
     private async Task ConfirmBookingAsync()
     {
-        if (SelectedService is null || SelectedSlot is null || PrimaryBranch is null || AuthStateTask is null)
+        var selectedService = SelectedService;
+        var primaryBranch = PrimaryBranch;
+
+        if (selectedService is null || SelectedSlot is null || primaryBranch is null || AuthStateTask is null)
         {
             return;
         }
-
-        var selectedService = SelectedService;
-        var primaryBranch = PrimaryBranch;
 
         var authState = await AuthStateTask;
         var userIdText = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -276,11 +343,13 @@ else
         var start = SelectedSlot.Value;
         var end = start + TimeSpan.FromMinutes(selectedService.DurationMinutes);
 
+        var resourceId = SelectedResourceId;
         var conflict = await Db.Appointments.AnyAsync(a =>
             a.BranchId == primaryBranch.Id &&
             a.Status != AppointmentStatus.Cancelled &&
             a.StartsAt < end &&
-            a.EndsAt > start);
+            a.EndsAt > start &&
+            (resourceId == null || a.ResourceId == null || a.ResourceId == resourceId));
 
         if (conflict)
         {
@@ -295,6 +364,7 @@ else
         {
             BranchId = primaryBranch.Id,
             ServiceId = selectedService.Id,
+            ResourceId = SelectedResourceId,
             CustomerId = userId,
             StartsAt = start,
             EndsAt = end,

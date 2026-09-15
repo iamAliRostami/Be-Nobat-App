@@ -10,8 +10,21 @@
 
 <div class="account-page">
     <aside class="account-menu">
-        <div class="account-user"><span>@Initials</span><div><b>@DisplayName</b><small>@Email</small></div></div>
-        <nav><a class="active">▦ نوبت‌های من</a></nav>
+        <div class="account-user">
+            @if (UserAvatar.Has(CurrentUser))
+            {
+                <img class="customer-avatar" src="@UserAvatar.Url(CurrentUser!)" alt="" />
+            }
+            else
+            {
+                <span>@Initials</span>
+            }
+            <div><b>@DisplayName</b><small>@Email</small></div>
+        </div>
+        <nav>
+            <NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink>
+            <NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink>
+        </nav>
         <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
     </aside>
     <main class="account-content">
@@ -51,11 +64,41 @@
                     {
                         <button type="button" class="outline" @onclick="() => CancelAsync(appointment.Id)">لغو نوبت</button>
                     }
+                    @* [feature] ثبت نظر مستقیماً از همین فهرست؛ قبلاً فقط از صفحه‌ی
+                       «اطلاعات حساب» و با انتخاب از یک لیست کشویی ممکن بود. *@
+                    @if (appointment.Status == AppointmentStatus.Completed && !ReviewedAppointmentIds.Contains(appointment.Id))
+                    {
+                        <button type="button" @onclick="() => OpenReview(appointment)">ثبت نظر</button>
+                    }
+                    else if (appointment.Status == AppointmentStatus.Completed)
+                    {
+                        <span class="review-done">نظر ثبت شد</span>
+                    }
                 </div>
             </article>
         }
     </main>
 </div>
+
+@if (Reviewing is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseReview">
+        <EditForm Model="ReviewForm" OnValidSubmit="SubmitReview" class="form-modal" @onclick:stopPropagation>
+            <div><h2>نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" @onclick="CloseReview">×</button></div>
+            <label>امتیاز
+                <select @bind="ReviewForm.Rating">
+                    @for (var i = 5; i >= 1; i--)
+                    {
+                        <option value="@i">@i ستاره</option>
+                    }
+                </select>
+            </label>
+            <label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label>
+            @if (ReviewError is not null) { <div class="auth-error">@ReviewError</div> }
+            <button class="primary-button">ارسال برای بررسی</button>
+        </EditForm>
+    </div>
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
@@ -65,6 +108,12 @@
     private string Email = "";
     private string Initials = "؟";
     private string ActiveTab = "upcoming";
+
+    private AppUser? CurrentUser;
+    private HashSet<Guid> ReviewedAppointmentIds = [];
+    private Appointment? Reviewing;
+    private ReviewInput ReviewForm = new();
+    private string? ReviewError;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
@@ -91,6 +140,8 @@
         var parts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Initials = parts.Length >= 2 ? $"{parts[0][0]}‌{parts[1][0]}" : DisplayName[..Math.Min(2, DisplayName.Length)];
 
+        CurrentUser = await Db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
         await LoadAsync();
     }
 
@@ -102,6 +153,11 @@
             .Where(a => a.CustomerId == userId)
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
+
+        ReviewedAppointmentIds = (await Db.Reviews
+            .Where(r => r.CustomerId == userId && r.AppointmentId != null)
+            .Select(r => r.AppointmentId!.Value)
+            .ToListAsync()).ToHashSet();
 
         var now = DateTimeOffset.Now;
         Cancelled = appointments.Where(a => a.Status == AppointmentStatus.Cancelled).ToList();
@@ -138,6 +194,52 @@
         AppointmentStatus.Cancelled => "cancelled",
         _ => "pending",
     };
+
+    private void OpenReview(Appointment appointment)
+    {
+        Reviewing = appointment;
+        ReviewForm = new ReviewInput();
+        ReviewError = null;
+    }
+
+    private void CloseReview()
+    {
+        Reviewing = null;
+        ReviewError = null;
+    }
+
+    private async Task SubmitReview()
+    {
+        if (Reviewing is null) return;
+
+        var appointmentId = Reviewing.Id;
+
+        if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
+        {
+            ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
+            return;
+        }
+
+        Db.Reviews.Add(new Review
+        {
+            AppointmentId = appointmentId,
+            BusinessId = Reviewing.Branch.BusinessId,
+            BranchId = Reviewing.BranchId,
+            CustomerId = userId,
+            Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
+            Comment = ReviewForm.Comment.Trim(),
+        });
+
+        await Db.SaveChangesAsync();
+        CloseReview();
+        await LoadAsync();
+    }
+
+    private sealed class ReviewInput
+    {
+        public int Rating { get; set; } = 5;
+        public string Comment { get; set; } = "";
+    }
 
     private static string PersianMonthName(DateTimeOffset date)
     {

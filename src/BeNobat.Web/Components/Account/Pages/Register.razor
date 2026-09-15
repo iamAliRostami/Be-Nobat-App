@@ -15,10 +15,22 @@
         <DataAnnotationsValidator />
         <h1>ساخت حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو نوبت، یک حساب کاربری بسازید.</p>
+        @* [fix] تب فعال بین «ورود» و «ثبت‌نام» باید با سوییچ کردن تغییر کند. *@
+        <div class="auth-tabs">
+            <NavLink href="/account/login" Match="NavLinkMatch.All">ورود</NavLink>
+            <NavLink href="/account/register" Match="NavLinkMatch.All">ثبت‌نام</NavLink>
+        </div>
+
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
-            <div class="auth-error">@ErrorMessage</div>
+            <div class="auth-error">
+                @ErrorMessage
+                @if (EmailTaken)
+                {
+                    <a href="/account/login">وارد شوید</a>
+                }
+            </div>
         }
 
         <label>نام و نام خانوادگی
@@ -48,30 +60,54 @@
 
 @code {
     private string? ErrorMessage;
+    private bool EmailTaken;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
 
     private async Task RegisterUser()
     {
+        ErrorMessage = null;
+        EmailTaken = false;
+
         if (Input.Password != Input.ConfirmPassword)
         {
             ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند.";
             return;
         }
 
+        // [fix] ایمیل را قبل از ساخت حساب نرمال می‌کنیم. بدون این کار
+        // «Ali@Example.com » و «ali@example.com» دو حساب جدا می‌ساختند.
+        var email = Input.Email.Trim();
+
+        // [fix] تکراری بودن ایمیل را خودمان پیش از CreateAsync بررسی می‌کنیم تا
+        // به‌جای متن خام Identity، یک پیام فارسی همراه با لینک ورود نشان دهیم.
+        if (await UserManager.FindByEmailAsync(email) is not null)
+        {
+            EmailTaken = true;
+            ErrorMessage = "این ایمیل قبلاً ثبت شده است.";
+            return;
+        }
+
         var user = new AppUser
         {
-            UserName = Input.Email,
-            Email = Input.Email,
-            DisplayName = Input.DisplayName,
+            UserName = email,
+            Email = email,
+            DisplayName = Input.DisplayName.Trim(),
         };
 
         var result = await UserManager.CreateAsync(user, Input.Password);
 
         if (!result.Succeeded)
         {
-            ErrorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+            // [fix] وقتی ایمیل تکراری باشد Identity هم‌زمان DuplicateUserName و
+            // DuplicateEmail برمی‌گرداند؛ بدون Distinct یک پیام دو بار چاپ می‌شد.
+            EmailTaken = result.Errors.Any(e =>
+                e.Code is nameof(IdentityErrorDescriber.DuplicateUserName) or nameof(IdentityErrorDescriber.DuplicateEmail));
+
+            ErrorMessage = string.Join(" ", result.Errors
+                .Select(e => e.Description)
+                .Distinct(StringComparer.Ordinal));
             return;
         }
 
