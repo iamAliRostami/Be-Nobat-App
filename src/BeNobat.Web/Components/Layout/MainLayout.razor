@@ -22,8 +22,8 @@
             <AuthorizeView Policy="@Policies.ManagePlatform" Context="platformContext">
                 <Authorized>
                     <small>مدیریت سامانه</small>
-                    <NavLink href="/platform"><i>▤</i> کسب‌وکارها</NavLink>
-                    <NavLink href="/platform/access"><i>♙</i> کاربران و دسترسی‌ها</NavLink>
+                    <NavLink href="/platform" Match="NavLinkMatch.All"><i>▤</i> کسب‌وکارها</NavLink>
+                    <NavLink href="/platform/access" Match="NavLinkMatch.All"><i>♙</i> کاربران و دسترسی‌ها</NavLink>
                 </Authorized>
             </AuthorizeView>
             <small>حساب</small><a href="/" target="_top"><i>⌖</i> مشاهده صفحه عمومی</a>

@@ -90,9 +90,10 @@
             @if (ResourceForm.Kind == "staff")
             {
                 <label>عضو تیم
+                    <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="TeamMemberQuery" @bind:event="oninput" />
                     <select @bind="ResourceForm.UserId" @bind:after="TeamMemberChanged">
                         <option value="">— انتخاب از لیست اعضای تیم —</option>
-                        @foreach (var member in TeamMembers)
+                        @foreach (var member in FilteredTeamMembers)
                         {
                             <option value="@member.Id">@MemberLabel(member)</option>
                         }
@@ -115,7 +116,7 @@
 @if (MemberBranch is not null)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <div class="form-modal" @onclick:stopPropagation>
+        <div class="form-modal membership-modal" @onclick:stopPropagation>
             <div><h2>اعضای @MemberBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
 
             @if (Memberships.Count == 0)
@@ -129,7 +130,7 @@
                     {
                         <article>
                             <span class="customer-avatar purple">@UserAvatar.Initials(membership.User.DisplayName)</span>
-                            <div><b>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small>@membership.User.Email</small></div>
+                            <div><b>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small>@membership.User.Email · @(string.IsNullOrWhiteSpace(membership.User.PhoneNumber) ? "بدون شماره تماس" : membership.User.PhoneNumber)</small></div>
                             <em>@RoleLabel(membership.Role)</em>
                             <div class="inline-actions"><button type="button" class="danger-link" @onclick="() => RemoveMember(membership)">حذف</button></div>
                         </article>
@@ -137,11 +138,12 @@
                 </div>
             }
 
-            <EditForm Model="MemberForm" OnValidSubmit="AddMember">
+            <EditForm Model="MemberForm" OnValidSubmit="AddMember" class="member-form">
                 <label>کاربر
+                    <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="MemberQuery" @bind:event="oninput" />
                     <select @bind="MemberForm.UserId">
                         <option value="">— انتخاب کاربر —</option>
-                        @foreach (var candidate in MemberCandidates)
+                        @foreach (var candidate in FilteredMemberCandidates)
                         {
                             <option value="@candidate.Id">@MemberLabel(candidate)</option>
                         }
@@ -165,10 +167,11 @@
     private List<Business> Businesses = [];
     private List<Branch> Branches = [];
     private List<AppUser> TeamMembers = [];
-    private List<AppUser> AllUsers = [];
     private List<BranchMembership> Memberships = [];
 
     private string Query = "";
+    private string MemberQuery = "";
+    private string TeamMemberQuery = "";
     private bool ShowBranchForm;
     private Guid? EditingBranchId;
     private BranchInput BranchForm = new();
@@ -185,12 +188,17 @@
         Branches.Where(x => $"{x.Name} {x.Address} {x.Business.Name}".Contains(Query, StringComparison.OrdinalIgnoreCase));
 
     private IEnumerable<AppUser> MemberCandidates =>
-        AllUsers.Where(u => Memberships.All(m => m.UserId != u.Id));
+        TeamMembers.Where(u => Memberships.All(m => m.UserId != u.Id));
+
+    private IEnumerable<AppUser> FilteredMemberCandidates => MemberCandidates.Where(u => MatchesUser(u, MemberQuery));
+    private IEnumerable<AppUser> FilteredTeamMembers => TeamMembers.Where(u => MatchesUser(u, TeamMemberQuery));
+
+    private static bool MatchesUser(AppUser user, string query) =>
+        $"{user.DisplayName} {user.Email} {user.PhoneNumber}".Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
         Businesses = await Db.Businesses.OrderBy(x => x.Name).ToListAsync();
-        AllUsers = await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync();
         await LoadTeamMembers();
         await Load();
     }
@@ -282,6 +290,7 @@
     {
         ResourceBranch = branch;
         ResourceForm = new ResourceInput();
+        TeamMemberQuery = "";
         Error = Message = null;
     }
 
@@ -354,6 +363,7 @@
     {
         MemberBranch = branch;
         MemberForm = new MemberInput();
+        MemberQuery = "";
         Error = Message = null;
         await LoadMemberships();
     }
