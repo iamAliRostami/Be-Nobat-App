@@ -35,4 +35,21 @@ public sealed class DomainTests
         branch.Resources.Add(new Resource { Name = "اتاق یک", BranchId = branch.Id });
         Assert.Single(branch.Resources);
     }
+
+    [Theory]
+    [InlineData("09121234567", "09121234567")]
+    [InlineData("۰۹۱۲۱۲۳۴۵۶۷", "09121234567")]
+    [InlineData("+989121234567", "09121234567")]
+    public void Iranian_mobile_numbers_are_normalized(string input, string expected)
+    {
+        Assert.True(UserInputValidation.TryNormalizeIranianMobile(input, out var normalized));
+        Assert.Equal(expected, normalized);
+    }
+
+    [Theory]
+    [InlineData("0912123456")]
+    [InlineData("02112345678")]
+    [InlineData("0912ABC4567")]
+    public void Invalid_mobile_numbers_are_rejected(string input) =>
+        Assert.False(UserInputValidation.TryNormalizeIranianMobile(input, out _));
 }

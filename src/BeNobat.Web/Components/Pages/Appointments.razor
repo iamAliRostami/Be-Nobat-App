@@ -29,6 +29,7 @@
     </aside>
     <main class="account-content">
         <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
+        @if (ReviewMessage is not null) { <div class="success-notice">@ReviewMessage</div> }
         <div class="tabs">
             <button type="button" class="@(ActiveTab == "upcoming" ? "active" : "")" @onclick='() => ActiveTab = "upcoming"'>پیش رو <b>@Upcoming.Count</b></button>
             <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
@@ -114,6 +115,7 @@
     private Appointment? Reviewing;
     private ReviewInput ReviewForm = new();
     private string? ReviewError;
+    private string? ReviewMessage;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
@@ -200,6 +202,7 @@
         Reviewing = appointment;
         ReviewForm = new ReviewInput();
         ReviewError = null;
+        ReviewMessage = null;
     }
 
     private void CloseReview()
@@ -214,6 +217,17 @@
 
         var appointmentId = Reviewing.Id;
 
+        var appointment = await Db.Appointments
+            .Include(a => a.Branch)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId
+                && a.CustomerId == userId
+                && a.Status == AppointmentStatus.Completed);
+        if (appointment is null)
+        {
+            ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
+            return;
+        }
+
         if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
         {
             ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
@@ -223,8 +237,8 @@
         Db.Reviews.Add(new Review
         {
             AppointmentId = appointmentId,
-            BusinessId = Reviewing.Branch.BusinessId,
-            BranchId = Reviewing.BranchId,
+            BusinessId = appointment.Branch.BusinessId,
+            BranchId = appointment.BranchId,
             CustomerId = userId,
             Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
             Comment = ReviewForm.Comment.Trim(),
@@ -233,6 +247,7 @@
         await Db.SaveChangesAsync();
         CloseReview();
         await LoadAsync();
+        ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
     }
 
     private sealed class ReviewInput
