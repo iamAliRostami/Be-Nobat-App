@@ -214,6 +214,17 @@
 
         var appointmentId = Reviewing.Id;
 
+        var appointment = await Db.Appointments
+            .Include(a => a.Branch)
+            .FirstOrDefaultAsync(a => a.Id == appointmentId
+                && a.CustomerId == userId
+                && a.Status == AppointmentStatus.Completed);
+        if (appointment is null)
+        {
+            ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
+            return;
+        }
+
         if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
         {
             ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
@@ -223,8 +234,8 @@
         Db.Reviews.Add(new Review
         {
             AppointmentId = appointmentId,
-            BusinessId = Reviewing.Branch.BusinessId,
-            BranchId = Reviewing.BranchId,
+            BusinessId = appointment.Branch.BusinessId,
+            BranchId = appointment.BranchId,
             CustomerId = userId,
             Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
             Comment = ReviewForm.Comment.Trim(),
