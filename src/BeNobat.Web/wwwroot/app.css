@@ -60,7 +60,13 @@
 .logout-form{display:contents}
 .logout-button{background:none;border:1px solid #e3f0ee;border-radius:9px;padding:8px 13px;font-size:11px;color:var(--primary);cursor:pointer}
 .logout-icon-button{background:none;border:0;color:#a8b5b2;cursor:pointer;font-size:14px}
-.ui-preferences{display:flex;align-items:center;gap:5px;direction:ltr}.ui-preferences select,.ui-preferences button{height:32px;border:1px solid #deebe8;border-radius:8px;background:var(--surface,#fff);color:var(--text,#3f4e4a);font:inherit;font-size:10px;padding:0 7px}.ui-preferences button{width:32px;font-size:16px;cursor:pointer}
+/* [fix] ارتفاع دکمه‌ی تم و select زبان با دکمه‌های کناری (نوبت‌های من، پنل مدیریت و...)
+   یکی نبود چون height ثابت ۳۲px داشتند در حالی‌که آن دکمه‌ها با padding عمودی‌شان
+   بلندتر رندر می‌شوند. به‌جای حدس‌زدن یک عدد ثابت، با stretch در فلکس، دقیقاً هم‌ارتفاعِ
+   بلندترین همسایه‌ی خود در ردیف actions می‌شوند. */
+.ui-preferences{display:flex;align-items:stretch;gap:5px;direction:ltr}
+.ui-preferences select,.ui-preferences button{height:100%;box-sizing:border-box;border:1px solid var(--outline);border-radius:8px;background:var(--surface);color:var(--on-surface);font:inherit;font-size:10px;padding:0 7px}
+.ui-preferences button{width:38px;flex:0 0 auto;font-size:16px;cursor:pointer}
 
 .empty-state{color:var(--muted);font-size:12px;text-align:center;padding:30px 10px;background:#f5faf9;border-radius:12px;border:1px dashed #e3f0ee}
 
@@ -213,10 +219,18 @@ html[data-theme="dark"]{
   background:var(--background);
 }
 html[data-theme="dark"] body,html[data-theme="dark"] .public-shell,html[data-theme="dark"] .shell>main{background:var(--background);color:var(--on-surface)}
-html[data-theme="dark"] .shell header,html[data-theme="dark"] .admin-panel,html[data-theme="dark"] .quick-panel,html[data-theme="dark"] .stat-cards article,html[data-theme="dark"] .booking-panel,html[data-theme="dark"] .booking-summary,html[data-theme="dark"] .account-menu,html[data-theme="dark"] .appointment-card,html[data-theme="dark"] .form-modal,html[data-theme="dark"] .auth-card,html[data-theme="dark"] .business-card,html[data-theme="dark"] .management-card,html[data-theme="dark"] .review-list>article,html[data-theme="dark"] .success-card,html[data-theme="dark"] .categories a{background:var(--surface);border-color:var(--outline-soft);box-shadow:none;color:var(--on-surface)}
+html[data-theme="dark"] .shell header,html[data-theme="dark"] .admin-panel,html[data-theme="dark"] .quick-panel,html[data-theme="dark"] .stat-cards article,html[data-theme="dark"] .booking-panel,html[data-theme="dark"] .booking-summary,html[data-theme="dark"] .account-menu,html[data-theme="dark"] .appointment-card,html[data-theme="dark"] .form-modal,html[data-theme="dark"] .auth-card,html[data-theme="dark"] .business-card,html[data-theme="dark"] .management-card,html[data-theme="dark"] .review-list>article,html[data-theme="dark"] .success-card,html[data-theme="dark"] .categories a,html[data-theme="dark"] .search-box,html[data-theme="dark"] .service-option,html[data-theme="dark"] .date-strip button,html[data-theme="dark"] .time-grid button{background:var(--surface);border-color:var(--outline-soft);box-shadow:none;color:var(--on-surface)}
+html[data-theme="dark"] .service-option:hover,html[data-theme="dark"] .service-option.selected,html[data-theme="dark"] .date-strip button.selected{border-color:var(--primary);background:var(--primary-container);color:var(--on-surface)}
+html[data-theme="dark"] .time-grid button.selected{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+html[data-theme="dark"] .service-option>u{border-color:var(--outline)}
 html[data-theme="dark"] .sidebar,html[data-theme="dark"] .public-footer{background:#0B1211;border-color:var(--outline-soft)}
 html[data-theme="dark"] .hero{background:linear-gradient(130deg,#111A19 12%,#0E1514)}
-html[data-theme="dark"] input,html[data-theme="dark"] select,html[data-theme="dark"] textarea,html[data-theme="dark"] button.outline,html[data-theme="dark"] .row-actions{background:#1D2725!important;color:var(--on-surface)!important;border-color:var(--outline)!important}
+html[data-theme="dark"] .toolbar input,html[data-theme="dark"] .auth-card input,html[data-theme="dark"] .profile-form input,html[data-theme="dark"] .profile-form select,html[data-theme="dark"] .profile-form textarea,html[data-theme="dark"] .form-modal input,html[data-theme="dark"] .form-modal select,html[data-theme="dark"] .form-modal textarea,html[data-theme="dark"] .member-form input,html[data-theme="dark"] .member-form select,html[data-theme="dark"] .booking-filters select,html[data-theme="dark"] .access-list select,html[data-theme="dark"] button.outline,html[data-theme="dark"] .row-actions{background:#1D2725!important;color:var(--on-surface)!important;border-color:var(--outline)!important}
+/* [fix] فیلدهای بدون-حاشیه‌ای مثل input داخل .search-box قرار است شفاف بمانند و رنگ را
+   از کارت اطراف‌شان بگیرند؛ قبلاً قانون کلی «input» بالا رویشان یک جعبه‌ی توپر مشکی
+   می‌کشید که با پس‌زمینه‌ی روشنِ خودِ search-box هم‌خوانی نداشت. */
+html[data-theme="dark"] .search-box input{background:transparent!important;border:0!important;color:var(--on-surface)!important}
+html[data-theme="dark"] .ui-preferences select{background:var(--surface)!important;color:var(--on-surface)!important;border-color:var(--outline)!important}
 html[data-theme="dark"] .empty-state,html[data-theme="dark"] .membership-list>article,html[data-theme="dark"] .success-details,html[data-theme="dark"] .auth-tabs,html[data-theme="dark"] .tip-box{background:#1B2422;color:var(--on-surface-variant);border-color:var(--outline-soft)!important}
 html[data-theme="dark"] .primary-button,html[data-theme="dark"] .page-title button,html[data-theme="dark"] .booking-summary>button,html[data-theme="dark"] .auth-submit,html[data-theme="dark"] .access-actions button:not(.outline),html[data-theme="dark"] .row-actions button:not(.outline),html[data-theme="dark"] .search-box>a,html[data-theme="dark"] .public-actions .user-login{background:var(--primary);color:var(--on-primary)}
 html[data-theme="dark"] small,html[data-theme="dark"] .empty-state,html[data-theme="dark"] .auth-subtitle{color:var(--on-surface-variant)}
@@ -267,7 +281,18 @@ h1,h2,h3{color:var(--on-surface);font-weight:700}
 .section-heading span,.section-heading>a,.reviews-link,.auth-switch a,.public-header nav a:hover{color:var(--primary)}
 
 /* رنگ‌های معنایی */
-.validation-message,.logout,.card-actions .danger-link{color:var(--error)}
+.validation-message,.card-actions .danger-link{color:var(--error)}
+/* [fix] «خروج از حساب» در صفحه‌ی نوبت‌های من یک <button> واقعی است؛ کلاس .logout قبلاً
+   فقط رنگ متن را ست می‌کرد و ظاهر پیش‌فرض دکمه‌ی مرورگر (حاشیه و پس‌زمینه‌ی خاکستری)
+   دست‌نخورده می‌ماند. حالا همان شکلِ Outlined بقیه‌ی دکمه‌ها را با تُن قرمزِ هشدار می‌گیرد. */
+.logout{display:inline-block;background:var(--surface);color:var(--error);border:1px solid var(--outline);border-radius:var(--radius-button);padding:10px 14px;font-size:11px;font-weight:600;cursor:pointer;width:100%}
+.logout:hover{border-color:var(--error);background:#ba1a1a0f}
+html[data-theme="dark"] .logout:hover{background:#ffb4ab1a}
+/* [fix] «حذف عکس» در صفحه‌ی حساب من هم به همین شکل، دکمه‌ی خامِ مرورگر بود؛ حالا هم‌شکل
+   با «انتخاب عکس» (.file-label) کنارش است، فقط با تُن قرمزِ هشدار به‌جای پرایمری. */
+.danger-link{display:inline-block;background:none;border:1px solid transparent;border-radius:9px;padding:8px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--error)}
+.danger-link:hover{background:#ba1a1a14}
+html[data-theme="dark"] .danger-link:hover{background:#ffb4ab1f}
 .auth-error{background:#ba1a1a14;border:1px solid #ba1a1a2e;color:var(--error)}
 html[data-theme="dark"] .auth-error{background:#ffb4ab1f;border-color:#ffb4ab3d}
 .stars,.score span,.rating span,.tip-box span{color:var(--accent)}

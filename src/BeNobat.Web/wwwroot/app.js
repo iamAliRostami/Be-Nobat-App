@@ -77,19 +77,33 @@ window.beNobat = {
         document.documentElement.dataset.theme = value;
         localStorage.setItem('benobat-theme', value);
     }
+    function ensureTranslationObserver() {
+        if (window.beNobatTranslationObserver) return;
+        window.beNobatTranslationObserver = new MutationObserver(records => {
+            if (translating) return;
+            for (const record of records) for (const node of record.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) translate(node);
+        });
+        window.beNobatTranslationObserver.observe(document.body, {childList:true, subtree:true});
+    }
+    // [fix] حالت روشن/تیره بعد از جابه‌جایی بین صفحه‌ها به حالت پیش‌فرض برمی‌گشت. علتش
+    // این بود که تم فقط یک‌بار، داخل OnAfterRenderAsync(firstRender) کامپوننت
+    // UiPreferences اعمال می‌شد؛ چون آن کامپوننت داخل layout مشترک است، بین ناوبری‌های
+    // «enhanced navigation» بلیزور دوباره ساخته نمی‌شود، ولی خودِ ناوبری بلیزور صفت
+    // data-theme را که فقط با جاوااسکریپت روی <html> نشسته بود پاک می‌کرد. راه‌حل: تم و
+    // زبان را مستقل از چرخه‌ی عمر کامپوننت، همین‌جا و بعد از هر ناوبری enhanced دوباره
+    // اعمال می‌کنیم.
+    function applyPreferencesFromStorage() {
+        applyTheme(localStorage.getItem('benobat-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+        setLanguage(localStorage.getItem('benobat-language') || 'fa');
+        ensureTranslationObserver();
+    }
+    applyPreferencesFromStorage();
+    window.Blazor?.addEventListener?.('enhancedload', applyPreferencesFromStorage);
+
     window.beNobat.preferences = {
         initialize: () => {
-            const selected = localStorage.getItem('benobat-language') || 'fa';
-            applyTheme(localStorage.getItem('benobat-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-            setLanguage(selected);
-            if (!window.beNobatTranslationObserver) {
-                window.beNobatTranslationObserver = new MutationObserver(records => {
-                    if (translating) return;
-                    for (const record of records) for (const node of record.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) translate(node);
-                });
-                window.beNobatTranslationObserver.observe(document.body, {childList:true, subtree:true});
-            }
-            return selected;
+            applyPreferencesFromStorage();
+            return language;
         },
         setLanguage,
         toggleTheme: () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')
