@@ -1,4 +1,4 @@
-@inject AppDbContext Db
+@inject IServiceScopeFactory ScopeFactory
 
 @if (UserAvatar.Has(Account))
 {
@@ -22,8 +22,18 @@ else
     protected override async Task OnParametersSetAsync()
     {
         var value = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        Account = Guid.TryParse(value, out var id)
-            ? await Db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id)
-            : null;
+        if (!Guid.TryParse(value, out var id))
+        {
+            Account = null;
+            return;
+        }
+
+        // Layouts and their page body are prerendered concurrently. Resolving the
+        // layout's avatar with the page-scoped DbContext caused Home and this child
+        // component to execute on the same Npgsql connection at the same time.
+        // A short independent DI scope gives this lookup its own DbContext/connection.
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Account = await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
     }
 }
