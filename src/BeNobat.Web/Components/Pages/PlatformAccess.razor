@@ -16,7 +16,7 @@
             <article class="@(item.Disabled ? "disabled-row" : "")">
                 <span class="customer-avatar purple">@UserAvatar.Initials(item.User.DisplayName)</span>
                 <div class="access-user-details"><b>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small></div>
-                <label>سطح دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
+                <label>دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
                 <div class="access-actions"><button type="button" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="outline" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="warning" @onclick="() => ResetPassword(item)" disabled="@item.Saving">ریست رمز</button></div>
                 <em class="status @(item.Disabled ? "cancelled" : "confirmed")">@(item.Disabled ? "غیرفعال" : "فعال")</em>
             </article>

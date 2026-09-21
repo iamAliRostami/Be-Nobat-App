@@ -44,7 +44,7 @@
         </div>
     </aside>
     <main>
-        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><UiPreferences /><a href="/" target="_top">مشاهده صفحه عمومی</a></div></header>
+        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><UiPreferences /><a href="/" target="_top">مشاهده صفحه عمومی</a><form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout-button">خروج</button></form></div></header>
         <section class="content">@Body</section>
     </main>
 </div>
