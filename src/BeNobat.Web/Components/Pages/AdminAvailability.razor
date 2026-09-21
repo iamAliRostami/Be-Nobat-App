@@ -12,7 +12,7 @@
 
 <article class="admin-panel">
     <div class="toolbar">
-        <select @bind="BusinessFilter" @bind:after="LoadRules">
+        <select aria-label="فیلتر کسب‌وکار" @bind="BusinessFilter" @bind:after="LoadRules">
             <option value="">همه کسب‌وکارها</option>
             @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
         </select>
@@ -42,8 +42,8 @@
             <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
             <label>دامنه<select @bind="Form.BranchId"><option value="">کل مجموعه</option>@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
             <label>روز هفته<select @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
-            <div class="form-columns"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
-            <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /> قابل رزرو باشد</label>
+            <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
+            <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }
             <button class="primary-button">ذخیره</button>
         </EditForm>
