@@ -179,6 +179,8 @@ img.customer-avatar{object-fit:cover}
 .review-list footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #f0f7f6;padding-top:9px}
 .review-list footer button{border:1px solid #dfefec;background:#fff;border-radius:8px;padding:6px 11px;font-size:10px;color:#5d716c;cursor:pointer}
 .review-list footer button:hover{border-color:#cde1dd;color:var(--primary)}
+.review-rating-select{font:inherit;padding:8px 11px;border:1px solid #ddeae8;border-radius:9px;background:#fff;color:#323e3b;cursor:pointer}
+.header-avatar{width:34px;height:34px;object-fit:cover;border-radius:50%;display:grid;place-items:center;background:#eef6f4;color:var(--primary);font-size:10px;font-weight:700;align-self:center}
 .stars{color:#f2b84b;font-size:12px;letter-spacing:1px;white-space:nowrap}
 .reviews-link{font-size:10px;color:var(--primary);font-weight:700}
 

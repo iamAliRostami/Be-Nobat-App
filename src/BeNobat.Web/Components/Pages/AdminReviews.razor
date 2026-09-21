@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @using System.Security.Claims
 @inject AppDbContext Db
+@inject AdminAccessScope Access
 
 <PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی و پاسخ دهید، و به مراجعه‌کنندگان امتیاز بدهید.</p></div></div>
@@ -71,7 +72,7 @@ else
                         <div><b>@DisplayNameOf(appointment.Customer)</b><small>@appointment.Service.Name · @appointment.Branch.Name · @appointment.StartsAt.ToString("yyyy/MM/dd")</small></div>
                     </header>
                     <footer>
-                        <select @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
+                        <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
                             @for (var i = 5; i >= 1; i--)
                             {
                                 <option value="@i" selected="@(DraftRating(appointment.Id) == i)">@i ستاره</option>
@@ -107,7 +108,7 @@ else
 @if (Replying is not null)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="ReplyForm" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="ReplyForm" FormName="review-reply" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
             <div><h2>پاسخ به نظر</h2><button type="button" @onclick="Close">×</button></div>
             <label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label>
             <button class="primary-button">ثبت پاسخ و انتشار</button>
@@ -147,11 +148,13 @@ else
 
     private async Task Load()
     {
-        Reviews = await Db.Reviews.IgnoreQueryFilters()
+        var reviewQuery = await Access.ReviewsAsync();
+        Reviews = await reviewQuery
             .Include(x => x.Customer).Include(x => x.Business).Include(x => x.Branch)
             .OrderByDescending(x => x.CreatedAt).ToListAsync();
 
-        Pending = await Db.Appointments
+        var appointmentQuery = await Access.AppointmentsAsync();
+        Pending = await appointmentQuery
             .Include(x => x.Customer).Include(x => x.Service)
             .Include(x => x.Branch).ThenInclude(x => x.Business)
             .Where(x => x.Status == AppointmentStatus.Completed
@@ -160,7 +163,8 @@ else
             .Take(50)
             .ToListAsync();
 
-        CustomerReviews = await Db.CustomerReviews
+        var customerReviewQuery = await Access.CustomerReviewsAsync();
+        CustomerReviews = await customerReviewQuery
             .Include(x => x.Customer).Include(x => x.Author).Include(x => x.Business)
             .OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync();
     }
@@ -179,10 +183,12 @@ else
     private async Task RateCustomer(Appointment appointment)
     {
         if (CurrentUserId == Guid.Empty) return;
+        if (!await Access.CanAccessBranchAsync(appointment.BranchId)) return;
 
         // ارزیابی تکراری مجاز نیست (ایندکس یکتا روی AppointmentId هم همین را تضمین می‌کند).
         if (await Db.CustomerReviews.AnyAsync(x => x.AppointmentId == appointment.Id))
         {
+            Message = $"برای {DisplayNameOf(appointment.Customer)} قبلاً امتیاز ثبت شده است.";
             await Load();
             return;
         }
@@ -197,9 +203,10 @@ else
             Comment = DraftComment(appointment.Id).Trim(),
         });
 
+        var savedRating = DraftRating(appointment.Id);
         await Db.SaveChangesAsync();
         Drafts.Remove(appointment.Id);
-        Message = "امتیاز مراجعه‌کننده ثبت شد.";
+        Message = $"امتیاز {savedRating} از ۵ برای {DisplayNameOf(appointment.Customer)} ثبت شد.";
         await Load();
     }
 

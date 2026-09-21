@@ -84,7 +84,7 @@
 @if (Reviewing is not null)
 {
     <div class="modal-backdrop" @onclick="CloseReview">
-        <EditForm Model="ReviewForm" OnValidSubmit="SubmitReview" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="ReviewForm" FormName="appointment-review" OnValidSubmit="SubmitReview" class="form-modal" @onclick:stopPropagation>
             <div><h2>نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" @onclick="CloseReview">×</button></div>
             <label>امتیاز
                 <select @bind="ReviewForm.Rating">

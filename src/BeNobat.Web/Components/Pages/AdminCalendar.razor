@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @using System.Globalization
 @inject AppDbContext Db
+@inject AdminAccessScope Access
 
 <PageTitle>تقویم نوبت‌ها | به‌نوبت</PageTitle>
 
@@ -58,7 +59,8 @@
         var dayStart = new DateTimeOffset(SelectedDate.Date, SelectedDate.Offset);
         var dayEnd = dayStart.AddDays(1);
 
-        DayAppointments = await Db.Appointments
+        var appointments = await Access.AppointmentsAsync();
+        DayAppointments = await appointments
             .Include(a => a.Service)
             .Include(a => a.Branch).ThenInclude(b => b.Business)
             .Include(a => a.Customer)

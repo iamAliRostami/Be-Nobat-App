@@ -8,6 +8,7 @@
             <UiPreferences />
             <AuthorizeView>
                 <Authorized>
+                    <UserAvatarBadge User="context.User" CssClass="header-avatar" />
                     <AuthorizeView Policy="@Policies.ManageAppointments" Context="adminContext">
                         <Authorized>
                             <NavLink class="nav-pill" href="/admin">پنل مدیریت</NavLink>

@@ -24,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 // cookie scheme below is the pattern used by the official "Blazor Web App with
 // Individual Accounts" template and is what actually works here.
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AdminAccessScope>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.ManagePlatform, policy => policy.RequireRole(AppRoles.PlatformAdmin))
     // مدیریت کل کسب‌وکار (خدمات، شعبه‌ها، تیم): فقط نقش‌های مدیریتی بالادستی.

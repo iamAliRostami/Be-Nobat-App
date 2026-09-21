@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject AppDbContext Db
 @inject UserManager<AppUser> UserManager
+@inject AdminAccessScope Access
 
 <PageTitle>شعب و منابع | به‌نوبت</PageTitle>
 <div class="page-title">
@@ -55,7 +56,7 @@
 @if (ShowBranchForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="BranchForm" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="BranchForm" FormName="admin-branch" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
             <DataAnnotationsValidator />
             <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" @onclick="Close">×</button></div>
             <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id">@b.Name</option> }</select></label>
@@ -78,7 +79,7 @@
 @if (ResourceBranch is not null)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="ResourceForm" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="ResourceForm" FormName="admin-resource" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation>
             <div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
             <label>نوع
                 <select @bind="ResourceForm.Kind" @bind:after="KindChanged">
@@ -138,7 +139,7 @@
                 </div>
             }
 
-            <EditForm Model="MemberForm" OnValidSubmit="AddMember" class="member-form">
+            <EditForm Model="MemberForm" FormName="branch-member" OnValidSubmit="AddMember" class="member-form">
                 <label>کاربر
                     <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="MemberQuery" @bind:event="oninput" />
                     <select @bind="MemberForm.UserId">
@@ -198,7 +199,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Businesses = await Db.Businesses.OrderBy(x => x.Name).ToListAsync();
+        var accessibleBranches = await Access.BranchesAsync();
+        var businessIds = accessibleBranches.Select(x => x.BusinessId).Distinct();
+        Businesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
         await LoadTeamMembers();
         await Load();
     }
@@ -219,16 +222,25 @@
             }
         }
 
+        if (!await Access.IsPlatformAdminAsync())
+        {
+            var allowedIds = await (await Access.BranchesAsync())
+                .SelectMany(x => x.Memberships).Select(x => x.UserId).Distinct().ToListAsync();
+            members = members.Where(x => allowedIds.Contains(x.Id)).ToList();
+        }
         TeamMembers = members.OrderBy(x => x.DisplayName).ToList();
     }
 
-    private async Task Load() =>
-        Branches = await Db.Branches.IgnoreQueryFilters()
+    private async Task Load()
+    {
+        var query = await Access.BranchesAsync();
+        Branches = await query.IgnoreQueryFilters()
             .Include(x => x.Business)
             .Include(x => x.Resources)
             .Include(x => x.Memberships)
             .OrderBy(x => x.Name)
             .ToListAsync();
+    }
 
     private void NewBranch()
     {

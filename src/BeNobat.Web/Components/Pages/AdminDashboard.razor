@@ -3,7 +3,7 @@
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @using System.Globalization
 @inject AppDbContext Db
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AdminAccessScope Access
 
 <PageTitle>داشبورد مدیریت | به‌نوبت</PageTitle>
 
@@ -86,17 +86,7 @@
         var dayStart = new DateTimeOffset(Today.Date, Today.Offset);
         var dayEnd = dayStart.AddDays(1);
 
-        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-        var userIdText = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var userId = Guid.TryParse(userIdText, out var parsed) ? parsed : Guid.Empty;
-        var appointments = Db.Appointments.AsQueryable();
-        if (!principal.IsInRole(AppRoles.PlatformAdmin))
-        {
-            if (principal.IsInRole(AppRoles.Staff))
-                appointments = appointments.Where(a => a.Resource != null && a.Resource.UserId == userId);
-            else
-                appointments = appointments.Where(a => Db.BranchMemberships.Any(m => m.UserId == userId && m.BranchId == a.BranchId));
-        }
+        var appointments = await Access.AppointmentsAsync();
 
         TodayAppointments = await appointments
             .Include(a => a.Service)

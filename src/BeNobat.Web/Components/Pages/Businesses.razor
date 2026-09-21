@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @inject AppDbContext Db
+@inject AdminAccessScope Access
 
 <PageTitle>خدمات | به‌نوبت</PageTitle>
 
@@ -10,7 +11,7 @@
 @if (ShowForm)
 {
     <article class="admin-panel" style="margin-bottom:16px">
-        <EditForm Model="NewService" OnValidSubmit="AddService">
+        <EditForm Model="NewService" FormName="new-service" OnValidSubmit="AddService">
             <DataAnnotationsValidator />
             <div class="toolbar" style="flex-wrap:wrap">
                 <select @bind="SelectedBusinessId">
@@ -75,7 +76,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AllBusinesses = await Db.Businesses.OrderBy(b => b.Name).ToListAsync();
+        var branchQuery = await Access.BranchesAsync();
+        var businessIds = branchQuery.Select(x => x.BusinessId).Distinct();
+        AllBusinesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(b => b.Name).ToListAsync();
         if (AllBusinesses.Count > 0)
         {
             SelectedBusinessId = AllBusinesses[0].Id.ToString();
@@ -85,7 +88,8 @@
 
     private async Task LoadServicesAsync()
     {
-        AllServices = await Db.Services.IgnoreQueryFilters()
+        var ids = AllBusinesses.Select(x => x.Id).ToList();
+        AllServices = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId))
             .OrderBy(s => s.Name)
             .ToListAsync();
     }
