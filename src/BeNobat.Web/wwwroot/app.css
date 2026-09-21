@@ -297,3 +297,42 @@ html[data-theme="dark"] .danger-link:hover{background:#ffb4ab1f}
 html[data-theme="dark"] .auth-error{background:#ffb4ab1f;border-color:#ffb4ab3d}
 .stars,.score span,.rating span,.tip-box span{color:var(--accent)}
 .pulse{background:var(--accent);box-shadow:0 0 0 4px #f2b84b33}
+
+/* ===== اصلاح چیدمان‌های نسخه نهایی ===== */
+/* سه ناحیه‌ی هدر عمومی مستقل می‌مانند: برند راست، ناوبری وسط و عملیات چپ. */
+@media(min-width:901px){
+  .public-header{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+  .public-brand{justify-self:start}
+  .public-header nav{justify-self:center}
+  .public-actions{justify-self:end;align-items:stretch;white-space:nowrap}
+}
+
+/* عنوان دکمه‌ی افزودن خدمت در عرض طبیعی خودش جا می‌گیرد. */
+.page-title>button{min-width:max-content;white-space:nowrap;flex:0 0 auto}
+
+/* منوی مدیریت تمام ارتفاع پنجره را می‌گیرد؛ فقط فهرست میانی اسکرول می‌شود. */
+.sidebar{height:100vh;position:sticky;top:0;overflow:hidden}
+.sidebar nav{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-left:4px;scrollbar-width:thin}
+.sidebar-footer{flex:0 0 auto;background:#0E3B34;position:relative;z-index:1}
+.sidebar-footer div{min-width:0}
+.sidebar-footer b,.sidebar-footer small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-footer .logout-icon-button{width:auto;min-width:44px;padding:6px 8px;white-space:nowrap;color:#bad5d0;border:1px solid #28564e;border-radius:8px;font-size:10px}
+
+/* اکشن‌های هر نوبت کنار هم هستند؛ قانون عمومی div نباید آن‌ها را grid کند. */
+.schedule-row>.row-actions{display:flex;flex-direction:row;align-items:center;flex-wrap:wrap}
+
+/* فیلتر صفحه‌ی زمان‌های خالی هم‌ظاهر سایر ورودی‌های برنامه است. */
+.toolbar .toolbar-select{min-width:220px;padding:10px 38px 10px 14px;font:inherit;color:var(--on-surface);background-color:var(--surface);border:1px solid var(--outline);border-radius:var(--radius-input);cursor:pointer}
+.form-modal .availability-time-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.availability-time-fields label{min-width:0}
+.availability-time-fields input{width:100%;min-width:0}
+.form-modal .check-label{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px}
+.form-modal .check-label input{width:18px;height:18px;flex:0 0 18px;margin:0}
+html[data-theme="dark"] .toolbar .toolbar-select{background-color:#1D2725;color:var(--on-surface);border-color:var(--outline)}
+
+@media(max-width:560px){
+  .public-actions{gap:4px}
+  .public-actions .nav-pill,.logout-button{padding:7px 9px;font-size:10px}
+  .toolbar{align-items:stretch;flex-wrap:wrap}
+  .toolbar .toolbar-select{width:100%;min-width:0}
+}
