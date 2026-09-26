@@ -7,7 +7,7 @@
 <PageTitle>زمان‌های خالی | به‌نوبت</PageTitle>
 
 <div class="page-title">
-    <div><h1>زمان‌های خالی</h1><p>ساعات قابل رزرو را برای کل مجموعه یا یک شعبه مشخص کنید.</p></div>
+    <div><h1>زمان‌های خالی</h1><p>ساعات قابل رزرو شعبه یا هر کارمند را مشخص کنید.</p></div>
     <button type="button" @onclick="OpenForm">+ بازه جدید</button>
 </div>
 
@@ -26,7 +26,7 @@
             <article>
                 <b>@DayLabel(rule.DayOfWeek)</b>
                 <span>@rule.StartsAt.ToString("HH:mm") تا @rule.EndsAt.ToString("HH:mm")</span>
-                <small>@rule.Business.Name · @(rule.Branch?.Name ?? "کل مجموعه")</small>
+                <small>@rule.Business.Name · @(rule.Branch?.Name ?? "کل مجموعه") · @(rule.Resource?.Name ?? "همه منابع")</small>
                 <em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>
                 <button type="button" @onclick="() => Edit(rule)">ویرایش</button>
                 <button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button>
@@ -42,6 +42,7 @@
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
             <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
             <label>دامنه<select @bind="Form.BranchId">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
+            <label>کارمند ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label>
             <label>روز هفته<select @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
             <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
@@ -55,6 +56,7 @@
     private List<Business> Businesses = [];
     private List<Branch> Branches = [];
     private List<AvailabilityRule> Rules = [];
+    private List<Resource> Resources = [];
     private string BusinessFilter = "";
     private bool ShowForm;
     private Guid? EditingId;
@@ -62,6 +64,7 @@
     private string? Error;
     private bool IsPlatformAdmin;
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
+    private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,6 +73,8 @@
         Branches = await branchQuery.Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
         var businessIds = Branches.Select(x => x.BusinessId).Distinct().ToList();
         Businesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
+        var branchIds = Branches.Select(x => x.Id).ToList();
+        Resources = await Db.Resources.Where(x => branchIds.Contains(x.BranchId)).OrderBy(x => x.Name).ToListAsync();
         await LoadRules();
     }
 
@@ -77,7 +82,7 @@
     {
         var branchIds = Branches.Select(x => x.Id).ToList();
         var businessIds = Businesses.Select(x => x.Id).ToList();
-        var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch)
+        var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch).Include(x => x.Resource)
             .Where(x => businessIds.Contains(x.BusinessId) && (x.BranchId == null || branchIds.Contains(x.BranchId.Value)));
         if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(x => x.BusinessId == businessId);
         Rules = await query.OrderBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
@@ -95,18 +100,19 @@
     private void Edit(AvailabilityRule rule)
     {
         EditingId = rule.Id;
-        Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
         ShowForm = true;
     }
 
-    private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; return Task.CompletedTask; }
+    private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; return Task.CompletedTask; }
 
     private async Task Save()
     {
         if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt || (!IsPlatformAdmin && Form.BranchId is null)) { Error = "بازه زمانی و شعبه انتخاب‌شده معتبر نیست."; return; }
+        if (Form.ResourceId is Guid resourceId && !AvailableResources.Any(x => x.Id == resourceId)) { Error = "کارمند باید متعلق به شعبه انتخاب‌شده باشد."; return; }
         if (Form.BranchId is Guid branchId && !await Access.CanAccessBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
         var rule = EditingId is null ? new AvailabilityRule() : await Db.AvailabilityRules.FirstAsync(x => x.Id == EditingId);
-        rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.DayOfWeek = Form.DayOfWeek;
+        rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.ResourceId = Form.ResourceId; rule.DayOfWeek = Form.DayOfWeek;
         rule.StartsAt = Form.StartsAt; rule.EndsAt = Form.EndsAt; rule.IsAvailable = Form.IsAvailable;
         if (EditingId is null) Db.AvailabilityRules.Add(rule);
         await Db.SaveChangesAsync(); Close(); await LoadRules();
@@ -115,5 +121,5 @@
     private async Task Remove(AvailabilityRule rule) { Db.AvailabilityRules.Remove(rule); await Db.SaveChangesAsync(); await LoadRules(); }
     private void Close() { ShowForm = false; Error = null; }
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
-    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public DayOfWeek DayOfWeek { get; set; } = DayOfWeek.Saturday; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
+    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DayOfWeek DayOfWeek { get; set; } = DayOfWeek.Saturday; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

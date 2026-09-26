@@ -94,7 +94,7 @@
                     <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="TeamMemberQuery" @bind:event="oninput" />
                     <select @bind="ResourceForm.UserId" @bind:after="TeamMemberChanged">
                         <option value="">— انتخاب از لیست اعضای تیم —</option>
-                        @foreach (var member in FilteredTeamMembers)
+                        @foreach (var member in ResourceTeamMembers)
                         {
                             <option value="@member.Id">@MemberLabel(member)</option>
                         }
@@ -193,6 +193,8 @@
 
     private IEnumerable<AppUser> FilteredMemberCandidates => MemberCandidates.Where(u => MatchesUser(u, MemberQuery));
     private IEnumerable<AppUser> FilteredTeamMembers => TeamMembers.Where(u => MatchesUser(u, TeamMemberQuery));
+    private IEnumerable<AppUser> ResourceTeamMembers => FilteredTeamMembers.Where(u =>
+        ResourceBranch is not null && ResourceBranch.Memberships.Any(m => m.UserId == u.Id));
 
     private static bool MatchesUser(AppUser user, string query) =>
         $"{user.DisplayName} {user.Email} {user.PhoneNumber}".Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -345,6 +347,13 @@
             await Db.Resources.AnyAsync(x => x.BranchId == branch.Id && x.UserId == userId))
         {
             Error = "این عضو از قبل به‌عنوان منبع این شعبه ثبت شده است.";
+            return;
+        }
+
+        if (ResourceForm.UserId is Guid memberId &&
+            !await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == memberId))
+        {
+            Error = "کارمند باید ابتدا عضو همین شعبه باشد.";
             return;
         }
 
