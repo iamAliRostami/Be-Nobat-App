@@ -35,10 +35,10 @@
         @foreach (var appointment in TodayAppointments)
         {
             <div class="schedule-row">
-                <time>@appointment.StartsAt.ToString("HH:mm")<small>@appointment.Service.DurationMinutes دقیقه</small></time>
+                <time>@appointment.StartsAt.ToString("HH:mm")<small>@((appointment.EndsAt - appointment.StartsAt).TotalMinutes.ToString("0")) دقیقه</small></time>
                 <i class="line @(appointment.Status == AppointmentStatus.Completed ? "done" : "")"></i>
                 <span class="customer-avatar rose">@CustomerInitials(appointment)</span>
-                <div><b>@CustomerName(appointment)</b><small>@appointment.Service.Name · @appointment.Branch.Name</small></div>
+                <div><b>@CustomerName(appointment)</b><small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Name</small></div>
                 <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                 @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
                 {
@@ -90,6 +90,8 @@
 
         TodayAppointments = await appointments
             .Include(a => a.Service)
+            .Include(a => a.Services).ThenInclude(x => x.Service)
+            .Include(a => a.Resource)
             .Include(a => a.Branch)
             .Include(a => a.Customer)
             .Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd)
@@ -114,6 +116,10 @@
 
     private static string CustomerName(Appointment appointment) =>
         string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
+
+    private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
+        ? appointment.Service.Name
+        : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
 
     private static string CustomerInitials(Appointment appointment)
     {

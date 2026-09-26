@@ -53,6 +53,7 @@ public sealed class Branch : Entity
     public ICollection<BranchMembership> Memberships { get; } = [];
     public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
     public ICollection<Review> Reviews { get; } = [];
+    public ICollection<BranchService> BranchServices { get; } = [];
 }
 
 public sealed class Service : Entity
@@ -64,6 +65,27 @@ public sealed class Service : Entity
     public decimal Price { get; set; }
     public string Currency { get; set; } = "IRR";
     public Business Business { get; set; } = null!;
+    public ICollection<BranchService> BranchServices { get; } = [];
+    public ICollection<ServiceResource> ServiceResources { get; } = [];
+}
+
+/// <summary>فعال‌بودن و قیمت یک خدمت در یک شعبه.</summary>
+public sealed class BranchService : Entity
+{
+    public Guid BranchId { get; set; }
+    public Guid ServiceId { get; set; }
+    public decimal? Price { get; set; }
+    public Branch Branch { get; set; } = null!;
+    public Service Service { get; set; } = null!;
+}
+
+/// <summary>کارمند/منبعی که مجاز به ارائه‌ی خدمت در همان شعبه است.</summary>
+public sealed class ServiceResource : Entity
+{
+    public Guid ServiceId { get; set; }
+    public Guid ResourceId { get; set; }
+    public Service Service { get; set; } = null!;
+    public Resource Resource { get; set; } = null!;
 }
 
 public sealed class Resource : Entity
@@ -78,6 +100,8 @@ public sealed class Resource : Entity
     public AppUser? User { get; set; }
 
     public Branch Branch { get; set; } = null!;
+    public ICollection<ServiceResource> ServiceResources { get; } = [];
+    public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
 }
 
 public sealed class Appointment : Entity
@@ -96,6 +120,18 @@ public sealed class Appointment : Entity
     public Service Service { get; set; } = null!;
     public Resource? Resource { get; set; }
     public AppUser Customer { get; set; } = null!;
+    public ICollection<AppointmentService> Services { get; } = [];
+}
+
+/// <summary>آیتم‌های خدمت یک رزرو چندخدمتی با قیمت و مدت تثبیت‌شده.</summary>
+public sealed class AppointmentService : Entity
+{
+    public Guid AppointmentId { get; set; }
+    public Guid ServiceId { get; set; }
+    public int DurationMinutes { get; set; }
+    public decimal Price { get; set; }
+    public Appointment Appointment { get; set; } = null!;
+    public Service Service { get; set; } = null!;
 }
 
 public enum AppointmentStatus { Pending, Confirmed, Completed, Cancelled, NoShow }
@@ -114,12 +150,14 @@ public sealed class AvailabilityRule : Entity
 {
     public Guid BusinessId { get; set; }
     public Guid? BranchId { get; set; }
+    public Guid? ResourceId { get; set; }
     public DayOfWeek DayOfWeek { get; set; }
     public TimeOnly StartsAt { get; set; } = new(9, 0);
     public TimeOnly EndsAt { get; set; } = new(18, 0);
     public bool IsAvailable { get; set; } = true;
     public Business Business { get; set; } = null!;
     public Branch? Branch { get; set; }
+    public Resource? Resource { get; set; }
 }
 
 /// <summary>نظر مشتری درباره‌ی کسب‌وکار/خدمت.</summary>

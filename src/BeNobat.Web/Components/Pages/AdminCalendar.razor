@@ -32,7 +32,7 @@
                     <time>@appointment.StartsAt.ToString("HH:mm") - @appointment.EndsAt.ToString("HH:mm")</time>
                     <div>
                         <b>@(string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email : appointment.Customer.DisplayName)</b>
-                        <small>@appointment.Service.Name · @appointment.Branch.Business.Name · @appointment.Branch.Name</small>
+                        <small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Business.Name · @appointment.Branch.Name</small>
                     </div>
                     <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                 </article>
@@ -62,12 +62,18 @@
         var appointments = await Access.AppointmentsAsync();
         DayAppointments = await appointments
             .Include(a => a.Service)
+            .Include(a => a.Services).ThenInclude(x => x.Service)
+            .Include(a => a.Resource)
             .Include(a => a.Branch).ThenInclude(b => b.Business)
             .Include(a => a.Customer)
             .Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd)
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
     }
+
+    private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
+        ? appointment.Service.Name
+        : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {
