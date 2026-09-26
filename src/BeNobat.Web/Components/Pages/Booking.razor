@@ -25,6 +25,24 @@ else
         </div>
         @if (ErrorMessage is not null) { <div class="auth-error">@ErrorMessage</div> }
 
+        @if (ShowBookingRules)
+        {
+            <div class="modal-backdrop" @onclick="CloseBookingRules">
+                <section class="form-modal booking-rules-modal" role="dialog" aria-modal="true" aria-labelledby="booking-rules-title" @onclick:stopPropagation>
+                    <div><h2 id="booking-rules-title">قوانین رزرو نوبت</h2><button type="button" aria-label="بستن" @onclick="CloseBookingRules">×</button></div>
+                    <ol>
+                        <li>لطفاً حداقل ۱۰ دقیقه پیش از شروع نوبت در شعبه حضور داشته باشید.</li>
+                        <li>مدت و مبلغ نمایش‌داده‌شده بر اساس خدمات انتخابی است؛ خدمات اضافه با هماهنگی شما محاسبه می‌شود.</li>
+                        <li>لغو یا جابه‌جایی نوبت باید حداقل ۲۴ ساعت قبل انجام شود؛ در غیر این صورت ممکن است هزینه لغو اعمال شود.</li>
+                        <li>تأخیر بیش از ۱۵ دقیقه می‌تواند باعث کوتاه‌شدن خدمت یا لغو نوبت شود.</li>
+                        <li>نوبت برای شعبه، کارمند و ساعت انتخاب‌شده ثبت می‌شود و تغییر ارائه‌دهنده منوط به ظرفیت مجموعه است.</li>
+                        <li>در صورت تعطیلی اضطراری یا عدم حضور کارمند، مجموعه برای هماهنگی زمان جایگزین با شما تماس می‌گیرد.</li>
+                    </ol>
+                    <button type="button" class="primary-button" @onclick="AcceptBookingRules">قوانین را مطالعه کردم و می‌پذیرم</button>
+                </section>
+            </div>
+        }
+
         @if (Step == 1)
         {
             <div class="booking-layout">
@@ -43,7 +61,7 @@ else
                         }
                     </div>
                 </section>
-                <BookingSummary OnContinue="NextFromStep1" Disabled="@(SelectedServiceIds.Count == 0)" DisabledReason="ابتدا حداقل یک خدمت را انتخاب کنید." ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" />
+                <BookingSummary OnContinue="NextFromStep1" OnShowTerms="OpenBookingRules" RequireTerms="true" TermsAccepted="@BookingRulesAccepted" Disabled="@(SelectedServiceIds.Count == 0 || !BookingRulesAccepted)" DisabledReason="@StepOneDisabledReason" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" />
             </div>
         }
         else if (Step == 2)
@@ -62,7 +80,7 @@ else
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
                     else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button> }</div> }
                 </section>
-                <BookingSummary OnContinue="NextFromStep2" Disabled="@(SelectedResourceId is null || SelectedSlot is null)" DisabledReason="@BookingDisabledReason" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
+                <BookingSummary OnContinue="NextFromStep2" OnShowTerms="OpenBookingRules" RequireTerms="true" TermsAccepted="@BookingRulesAccepted" Disabled="@(!BookingRulesAccepted || SelectedResourceId is null || SelectedSlot is null)" DisabledReason="@BookingDisabledReason" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
             </div>
         }
         else
@@ -90,13 +108,20 @@ else
     private DateTimeOffset? SelectedSlot;
     private List<DateTimeOffset> Slots = [];
     private string? ErrorMessage;
+    private bool ShowBookingRules;
+    private bool BookingRulesAccepted;
     private sealed record DayOption(DateOnly Date, string Weekday, string PersianDay, string PersianMonth);
     private List<DayOption> Days = [];
     private IEnumerable<Service> SelectedServices => Services.Where(x => SelectedServiceIds.Contains(x.Id));
     private string SelectedServicesLabel => string.Join("، ", SelectedServices.Select(x => x.Name));
     private int? SelectedDuration => SelectedServiceIds.Count == 0 ? null : BookingPolicy.TotalDuration(SelectedServices);
     private decimal? SelectedPrice => SelectedServiceIds.Count == 0 ? null : SelectedServices.Sum(ServicePrice);
-    private string BookingDisabledReason => SelectedResourceId is null
+    private string StepOneDisabledReason => SelectedServiceIds.Count == 0
+        ? "ابتدا حداقل یک خدمت را انتخاب کنید."
+        : "برای ادامه باید قوانین رزرو را مطالعه و تأیید کنید.";
+    private string BookingDisabledReason => !BookingRulesAccepted
+        ? "برای ثبت نوبت باید قوانین رزرو را مطالعه و تأیید کنید."
+        : SelectedResourceId is null
         ? (EligibleResources.Count == 0 ? "برای این خدمات ارائه‌دهنده‌ای تعریف نشده است." : "ابتدا ارائه‌دهنده را انتخاب کنید.")
         : Slots.Count == 0 ? "این کارمند در روز انتخاب‌شده زمان خالی ندارد." : "یک ساعت خالی را انتخاب کنید.";
     private static readonly string[] PersianWeekdays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
@@ -137,7 +162,10 @@ else
             SelectedResourceId = EligibleResources[0].Id;
         }
     }
-    private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } if (!BookingRulesAccepted) { ErrorMessage = "برای ادامه، قوانین رزرو را مطالعه و تأیید کنید."; OpenBookingRules(); return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private void OpenBookingRules() => ShowBookingRules = true;
+    private void CloseBookingRules() => ShowBookingRules = false;
+    private void AcceptBookingRules() { BookingRulesAccepted = true; ShowBookingRules = false; ErrorMessage = null; }
     private void BackToServices() { Step = 1; SelectedSlot = null; ErrorMessage = null; }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsAsync(); }
@@ -173,7 +201,7 @@ else
         Slots = slots.Distinct().OrderBy(x => x).ToList();
     }
 
-    private async Task NextFromStep2() { if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; } if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; } await ConfirmBookingAsync(); }
+    private async Task NextFromStep2() { if (!BookingRulesAccepted) { ErrorMessage = "پیش از ثبت نوبت، قوانین رزرو را تأیید کنید."; return; } if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; } if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; } await ConfirmBookingAsync(); }
     private async Task ConfirmBookingAsync()
     {
         if (SelectedSlot is null || SelectedBranch is null || SelectedResourceId is null || AuthStateTask is null || SelectedDuration is null) return;

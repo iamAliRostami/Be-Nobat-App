@@ -10,12 +10,20 @@
         <div><dt>مدت</dt><dd>@(DurationMinutes is null ? "—" : $"{DurationMinutes} دقیقه")</dd></div>
     </dl>
     <div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>@(Price is null ? "—" : Price.Value.ToString("N0")) <small>تومان</small></strong></div>
+    @if (RequireTerms)
+    {
+        <div class="booking-terms-consent">
+            <span class="terms-check @(TermsAccepted ? "accepted" : "")">@(TermsAccepted ? "✓" : "!")</span>
+            <span>@(TermsAccepted ? "قوانین رزرو را پذیرفته‌اید." : "برای ادامه، قوانین رزرو را مطالعه و تأیید کنید.")</span>
+            <button type="button" @onclick="OnShowTerms">@(TermsAccepted ? "مشاهده قوانین" : "مطالعه و تأیید قوانین")</button>
+        </div>
+    }
     <button type="button" disabled="@Disabled" title="@(Disabled ? DisabledReason : null)" @onclick="OnContinue">@(Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
     @if (Disabled && !string.IsNullOrWhiteSpace(DisabledReason))
     {
         <small class="summary-disabled-reason">@DisabledReason</small>
     }
-    <p>با ادامه، قوانین رزرو و لغو را می‌پذیرید.</p>
+    <p>ثبت نوبت تنها پس از پذیرش قوانین امکان‌پذیر است.</p>
 </aside>
 
 @code {
@@ -27,5 +35,8 @@
     [Parameter] public string? Time { get; set; }
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? DisabledReason { get; set; }
+    [Parameter] public bool RequireTerms { get; set; }
+    [Parameter] public bool TermsAccepted { get; set; }
+    [Parameter] public EventCallback OnShowTerms { get; set; }
     [Parameter] public EventCallback OnContinue { get; set; }
 }
