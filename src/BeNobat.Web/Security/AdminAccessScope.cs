@@ -37,6 +37,12 @@ public sealed class AdminAccessScope(
         var query = db.Appointments.AsQueryable();
         if (await IsPlatformAdminAsync()) return query;
         var id = await UserIdAsync();
+        var principal = await PrincipalAsync();
+        if (principal.IsInRole(AppRoles.Staff) &&
+            !principal.IsInRole(AppRoles.Owner) && !principal.IsInRole(AppRoles.Manager))
+        {
+            return query.Where(a => a.Resource != null && a.Resource.UserId == id);
+        }
         return query.Where(a => db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == a.BranchId));
     }
 

@@ -56,8 +56,8 @@
                 <div class="appointment-date"><b>@appointment.StartsAt.Day</b><span>@PersianMonthName(appointment.StartsAt)</span><small>@appointment.StartsAt.ToString("dddd", PersianCulture)</small></div>
                 <div class="appointment-info">
                     <span class="@StatusCssClass(appointment.Status)">● @StatusLabel(appointment.Status)</span>
-                    <h3>@appointment.Service.Name</h3>
-                    <p>@appointment.Branch.Business.Name · @appointment.Branch.Name</p>
+                    <h3>@ServiceLabel(appointment)</h3>
+                    <p>@appointment.Branch.Business.Name · @appointment.Branch.Name · @(appointment.Resource?.Name ?? "بدون کارمند")</p>
                     <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ @appointment.Branch.Address</span></div>
                 </div>
                 <div class="appointment-actions">
@@ -151,6 +151,8 @@
     {
         var appointments = await Db.Appointments
             .Include(a => a.Service)
+            .Include(a => a.Services).ThenInclude(x => x.Service)
+            .Include(a => a.Resource)
             .Include(a => a.Branch).ThenInclude(b => b.Business)
             .Where(a => a.CustomerId == userId)
             .OrderBy(a => a.StartsAt)
@@ -167,6 +169,10 @@
         Past = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt < now)
             .OrderByDescending(a => a.StartsAt).ToList();
     }
+
+    private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
+        ? appointment.Service.Name
+        : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
 
     private async Task CancelAsync(Guid appointmentId)
     {
