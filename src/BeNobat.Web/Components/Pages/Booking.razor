@@ -162,7 +162,29 @@ else
             SelectedResourceId = EligibleResources[0].Id;
         }
     }
-    private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } if (!BookingRulesAccepted) { ErrorMessage = "برای ادامه، قوانین رزرو را مطالعه و تأیید کنید."; OpenBookingRules(); return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private async Task NextFromStep1()
+    {
+        if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; }
+        if (!BookingRulesAccepted) { ErrorMessage = "برای ادامه، قوانین رزرو را مطالعه و تأیید کنید."; OpenBookingRules(); return; }
+
+        // مرحله را پیش از واکشی ظرفیت تغییر می‌دهیم تا کلیک کاربر فوراً بازخورد
+        // بصری داشته باشد و شکست واکشی زمان‌ها او را بی‌صدا در مرحله قبل نگه ندارد.
+        ErrorMessage = null;
+        Step = 2;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await LoadEligibleResourcesAsync();
+            await LoadSlotsAsync();
+        }
+        catch (Exception)
+        {
+            EligibleResources = [];
+            Slots = [];
+            ErrorMessage = "دریافت ارائه‌دهندگان و زمان‌های خالی با مشکل روبه‌رو شد. لطفاً دوباره تلاش کنید.";
+        }
+    }
     private void OpenBookingRules() => ShowBookingRules = true;
     private void CloseBookingRules() => ShowBookingRules = false;
     private void AcceptBookingRules() { BookingRulesAccepted = true; ShowBookingRules = false; ErrorMessage = null; }

@@ -18,7 +18,7 @@
             <button type="button" @onclick="OnShowTerms">@(TermsAccepted ? "مشاهده قوانین" : "مطالعه و تأیید قوانین")</button>
         </div>
     }
-    <button type="button" disabled="@Disabled" title="@(Disabled ? DisabledReason : null)" @onclick="OnContinue">@(Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
+    <button type="button" disabled="@(Disabled || IsSubmitting)" title="@(Disabled ? DisabledReason : null)" @onclick="ContinueAsync">@(IsSubmitting ? "لطفاً صبر کنید…" : Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
     @if (Disabled && !string.IsNullOrWhiteSpace(DisabledReason))
     {
         <small class="summary-disabled-reason">@DisabledReason</small>
@@ -39,4 +39,19 @@
     [Parameter] public bool TermsAccepted { get; set; }
     [Parameter] public EventCallback OnShowTerms { get; set; }
     [Parameter] public EventCallback OnContinue { get; set; }
+    private bool IsSubmitting;
+
+    private async Task ContinueAsync()
+    {
+        if (Disabled || IsSubmitting) return;
+        IsSubmitting = true;
+        try
+        {
+            await OnContinue.InvokeAsync();
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
 }
