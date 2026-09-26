@@ -32,7 +32,7 @@
         <div class="sidebar-footer">
             <AuthorizeView>
                 <Authorized>
-                    <span class="customer-avatar purple">@Initials(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</span>
+                    <UserAvatarBadge User="context.User" />
                     <div><b>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b><small>@RoleLabel(context.User)</small></div>
                     <form method="post" action="/account/logout" class="logout-form">
                         <AntiforgeryToken />

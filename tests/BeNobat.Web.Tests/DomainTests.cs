@@ -48,6 +48,36 @@ public sealed class DomainTests
         Assert.Single(branch.Resources);
     }
 
+    [Fact]
+    public void Multi_service_booking_sums_duration_and_price()
+    {
+        var services = new[]
+        {
+            new Service { Name = "اصلاح", DurationMinutes = 30, Price = 200_000 },
+            new Service { Name = "رنگ", DurationMinutes = 60, Price = 500_000 },
+        };
+        Assert.Equal(90, BookingPolicy.TotalDuration(services));
+        Assert.Equal(700_000, BookingPolicy.TotalPrice(services));
+    }
+
+    [Fact]
+    public void Past_slots_are_never_bookable()
+    {
+        var now = DateTimeOffset.UtcNow;
+        Assert.False(BookingPolicy.IsBookable(now.AddSeconds(-1), now));
+        Assert.True(BookingPolicy.IsBookable(now, now));
+    }
+
+    [Theory]
+    [InlineData(10, 11, 10, 11, true)]
+    [InlineData(10, 11, 11, 12, false)]
+    [InlineData(10, 12, 11, 13, true)]
+    public void Appointment_overlap_uses_half_open_intervals(int start, int end, int otherStart, int otherEnd, bool expected)
+    {
+        var day = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        Assert.Equal(expected, BookingPolicy.Overlaps(day.AddHours(start), day.AddHours(end), day.AddHours(otherStart), day.AddHours(otherEnd)));
+    }
+
     [Theory]
     [InlineData("09121234567", "09121234567")]
     [InlineData("۰۹۱۲۱۲۳۴۵۶۷", "09121234567")]

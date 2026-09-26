@@ -10,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject UserManager<AppUser> UserManager
 @inject AppDbContext Db
+@inject AdminAccessScope Access
 @implements IDisposable
 
 <PageTitle>@Title | به‌نوبت</PageTitle>
@@ -77,7 +78,7 @@
 @if (ShowForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="Form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="Form" FormName="admin-person" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
             <DataAnnotationsValidator />
             <div>
                 <h2>@(Editing is null ? (IsTeam ? "عضو تیم جدید" : "مشتری جدید") : "ویرایش کاربر")</h2>
@@ -152,15 +153,22 @@
 
     private async Task Load()
     {
-        var users = await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync();
+        var appointments = await Access.AppointmentsAsync();
+        var allowedUserIds = IsTeam
+            ? await (await Access.BranchesAsync()).SelectMany(x => x.Memberships).Select(x => x.UserId).Distinct().ToListAsync()
+            : await appointments.Select(x => x.CustomerId).Distinct().ToListAsync();
+        var usersQuery = UserManager.Users.AsQueryable();
+        if (!await Access.IsPlatformAdminAsync()) usersQuery = usersQuery.Where(x => allowedUserIds.Contains(x.Id));
+        var users = await usersQuery.OrderBy(x => x.DisplayName).ToListAsync();
 
-        var visits = await Db.Appointments
+        var visits = await appointments
             .GroupBy(x => x.CustomerId)
             .Select(x => new { x.Key, Count = x.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count);
 
         // [feature] میانگین امتیازی که مجموعه به هر سرویس‌گیرنده داده است.
-        var ratings = await Db.CustomerReviews
+        var customerReviews = await Access.CustomerReviewsAsync();
+        var ratings = await customerReviews
             .GroupBy(x => x.CustomerId)
             .Select(x => new { x.Key, Average = x.Average(r => (double)r.Rating) })
             .ToDictionaryAsync(x => x.Key, x => x.Average);

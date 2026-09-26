@@ -58,5 +58,36 @@ public static class CompatibilitySchemaUpgrade
                 CONSTRAINT "FK_CustomerReviews_AspNetUsers_AuthorId" FOREIGN KEY ("AuthorId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE RESTRICT);
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_CustomerReviews_AppointmentId" ON benobat."CustomerReviews" ("AppointmentId");
             CREATE INDEX IF NOT EXISTS "IX_CustomerReviews_BusinessId_CustomerId" ON benobat."CustomerReviews" ("BusinessId", "CustomerId");
+
+            -- مدل صریح خدمت شعبه، ارائه‌دهنده خدمت و رزرو چندخدمتی.
+            CREATE TABLE IF NOT EXISTS benobat."BranchServices" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL, "DeletedAt" timestamptz NULL,
+                "BranchId" uuid NOT NULL, "ServiceId" uuid NOT NULL, "Price" numeric(18,2) NULL,
+                CONSTRAINT "FK_BranchServices_Branches_BranchId" FOREIGN KEY ("BranchId") REFERENCES benobat."Branches" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_BranchServices_Services_ServiceId" FOREIGN KEY ("ServiceId") REFERENCES benobat."Services" ("Id") ON DELETE CASCADE);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_BranchServices_BranchId_ServiceId" ON benobat."BranchServices" ("BranchId", "ServiceId");
+            CREATE INDEX IF NOT EXISTS "IX_BranchServices_ServiceId" ON benobat."BranchServices" ("ServiceId");
+
+            CREATE TABLE IF NOT EXISTS benobat."ServiceResources" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL, "DeletedAt" timestamptz NULL,
+                "ServiceId" uuid NOT NULL, "ResourceId" uuid NOT NULL,
+                CONSTRAINT "FK_ServiceResources_Services_ServiceId" FOREIGN KEY ("ServiceId") REFERENCES benobat."Services" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_ServiceResources_Resources_ResourceId" FOREIGN KEY ("ResourceId") REFERENCES benobat."Resources" ("Id") ON DELETE CASCADE);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_ServiceResources_ServiceId_ResourceId" ON benobat."ServiceResources" ("ServiceId", "ResourceId");
+            CREATE INDEX IF NOT EXISTS "IX_ServiceResources_ResourceId" ON benobat."ServiceResources" ("ResourceId");
+
+            CREATE TABLE IF NOT EXISTS benobat."AppointmentServices" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL, "DeletedAt" timestamptz NULL,
+                "AppointmentId" uuid NOT NULL, "ServiceId" uuid NOT NULL, "DurationMinutes" integer NOT NULL, "Price" numeric(18,2) NOT NULL,
+                CONSTRAINT "FK_AppointmentServices_Appointments_AppointmentId" FOREIGN KEY ("AppointmentId") REFERENCES benobat."Appointments" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_AppointmentServices_Services_ServiceId" FOREIGN KEY ("ServiceId") REFERENCES benobat."Services" ("Id") ON DELETE RESTRICT);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_AppointmentServices_AppointmentId_ServiceId" ON benobat."AppointmentServices" ("AppointmentId", "ServiceId");
+            CREATE INDEX IF NOT EXISTS "IX_AppointmentServices_ServiceId" ON benobat."AppointmentServices" ("ServiceId");
+
+            ALTER TABLE benobat."AvailabilityRules" ADD COLUMN IF NOT EXISTS "ResourceId" uuid NULL;
+            ALTER TABLE benobat."AvailabilityRules" DROP CONSTRAINT IF EXISTS "FK_AvailabilityRules_Resources_ResourceId";
+            ALTER TABLE benobat."AvailabilityRules" ADD CONSTRAINT "FK_AvailabilityRules_Resources_ResourceId"
+                FOREIGN KEY ("ResourceId") REFERENCES benobat."Resources" ("Id") ON DELETE CASCADE;
+            CREATE INDEX IF NOT EXISTS "IX_AvailabilityRules_ResourceId" ON benobat."AvailabilityRules" ("ResourceId");
             """, cancellationToken);
 }
