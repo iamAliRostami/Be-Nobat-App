@@ -68,7 +68,7 @@ else
         {
             <div class="booking-layout">
                 <section class="booking-panel">
-                    <button type="button" class="back-link" @onclick="BackToServices">→ بازگشت به انتخاب خدمات</button>
+                    <button type="button" class="outline booking-back-button" @onclick="BackToServices">→ بازگشت به انتخاب خدمات</button>
                     <div class="booking-title"><span>۲</span><div><h2>کارمند، روز و ساعت را انتخاب کنید</h2><p>فقط کارکنانی نمایش داده می‌شوند که همه خدمات انتخابی را ارائه می‌کنند.</p></div></div>
                     <div class="booking-filters">
                         <label>ارائه‌دهنده خدمت<select @bind="SelectedResourceId" @bind:after="ResourceChanged"><option value="">— انتخاب کارمند —</option>@foreach (var resource in EligibleResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
@@ -176,13 +176,24 @@ else
         try
         {
             await LoadEligibleResourcesAsync();
-            await LoadSlotsAsync();
         }
         catch (Exception)
         {
             EligibleResources = [];
             Slots = [];
-            ErrorMessage = "دریافت ارائه‌دهندگان و زمان‌های خالی با مشکل روبه‌رو شد. لطفاً دوباره تلاش کنید.";
+            ErrorMessage = "دریافت ارائه‌دهندگان خدمت با مشکل روبه‌رو شد. لطفاً دوباره تلاش کنید.";
+            return;
+        }
+
+        try
+        {
+            await LoadSlotsAsync();
+        }
+        catch (Exception)
+        {
+            // خطای محاسبه زمان نباید فهرست صحیح کارکنان را مخفی کند.
+            Slots = [];
+            ErrorMessage = "ارائه‌دهنده پیدا شد، اما دریافت زمان‌های خالی ممکن نبود. لطفاً روز یا کارمند را دوباره انتخاب کنید.";
         }
     }
     private void OpenBookingRules() => ShowBookingRules = true;
@@ -197,7 +208,7 @@ else
         if (SelectedBranch is null || SelectedResourceId is null || SelectedDuration is null) { Slots = []; return; }
         var branch = SelectedBranch;
         var duration = TimeSpan.FromMinutes(SelectedDuration.Value);
-        var zone = TimeZoneInfo.FindSystemTimeZoneById(branch.TimeZoneId);
+        var zone = ResolveTimeZone(branch.TimeZoneId);
         var localStart = SelectedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
         var dayStart = new DateTimeOffset(localStart, zone.GetUtcOffset(localStart));
         var dayEnd = dayStart.AddDays(1);
@@ -224,6 +235,16 @@ else
     }
 
     private async Task NextFromStep2() { if (!BookingRulesAccepted) { ErrorMessage = "پیش از ثبت نوبت، قوانین رزرو را تأیید کنید."; return; } if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; } if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; } await ConfirmBookingAsync(); }
+    private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
+    {
+        if (TimeZoneInfo.TryFindSystemTimeZoneById(timeZoneId, out var zone)) return zone;
+
+        // imageهای کوچک لینوکس همیشه دیتابیس tzdata ندارند. برای شعب ایران
+        // از offset رسمی فعلی استفاده می‌کنیم تا نبود tzdata رزرو را از کار نیندازد.
+        return timeZoneId.Equals("Asia/Tehran", StringComparison.OrdinalIgnoreCase)
+            ? TimeZoneInfo.CreateCustomTimeZone("Asia/Tehran-Fallback", TimeSpan.FromHours(3.5), "تهران", "تهران")
+            : TimeZoneInfo.Utc;
+    }
     private async Task ConfirmBookingAsync()
     {
         if (SelectedSlot is null || SelectedBranch is null || SelectedResourceId is null || AuthStateTask is null || SelectedDuration is null) return;
