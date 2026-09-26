@@ -10,7 +10,11 @@
         <div><dt>مدت</dt><dd>@(DurationMinutes is null ? "—" : $"{DurationMinutes} دقیقه")</dd></div>
     </dl>
     <div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>@(Price is null ? "—" : Price.Value.ToString("N0")) <small>تومان</small></strong></div>
-    <button type="button" @onclick="OnContinue">@(Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
+    <button type="button" disabled="@Disabled" title="@(Disabled ? DisabledReason : null)" @onclick="OnContinue">@(Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
+    @if (Disabled && !string.IsNullOrWhiteSpace(DisabledReason))
+    {
+        <small class="summary-disabled-reason">@DisabledReason</small>
+    }
     <p>با ادامه، قوانین رزرو و لغو را می‌پذیرید.</p>
 </aside>
 
@@ -21,5 +25,7 @@
     [Parameter] public string BusinessName { get; set; } = "";
     [Parameter] public string BranchName { get; set; } = "";
     [Parameter] public string? Time { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? DisabledReason { get; set; }
     [Parameter] public EventCallback OnContinue { get; set; }
 }

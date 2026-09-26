@@ -43,13 +43,14 @@ else
                         }
                     </div>
                 </section>
-                <BookingSummary OnContinue="NextFromStep1" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" />
+                <BookingSummary OnContinue="NextFromStep1" Disabled="@(SelectedServiceIds.Count == 0)" DisabledReason="ابتدا حداقل یک خدمت را انتخاب کنید." ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" />
             </div>
         }
         else if (Step == 2)
         {
             <div class="booking-layout">
                 <section class="booking-panel">
+                    <button type="button" class="back-link" @onclick="BackToServices">→ بازگشت به انتخاب خدمات</button>
                     <div class="booking-title"><span>۲</span><div><h2>کارمند، روز و ساعت را انتخاب کنید</h2><p>فقط کارکنانی نمایش داده می‌شوند که همه خدمات انتخابی را ارائه می‌کنند.</p></div></div>
                     <div class="booking-filters">
                         <label>ارائه‌دهنده خدمت<select @bind="SelectedResourceId" @bind:after="ResourceChanged"><option value="">— انتخاب کارمند —</option>@foreach (var resource in EligibleResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
@@ -61,7 +62,7 @@ else
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
                     else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button> }</div> }
                 </section>
-                <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
+                <BookingSummary OnContinue="NextFromStep2" Disabled="@(SelectedResourceId is null || SelectedSlot is null)" DisabledReason="@BookingDisabledReason" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
             </div>
         }
         else
@@ -95,6 +96,9 @@ else
     private string SelectedServicesLabel => string.Join("، ", SelectedServices.Select(x => x.Name));
     private int? SelectedDuration => SelectedServiceIds.Count == 0 ? null : BookingPolicy.TotalDuration(SelectedServices);
     private decimal? SelectedPrice => SelectedServiceIds.Count == 0 ? null : SelectedServices.Sum(ServicePrice);
+    private string BookingDisabledReason => SelectedResourceId is null
+        ? (EligibleResources.Count == 0 ? "برای این خدمات ارائه‌دهنده‌ای تعریف نشده است." : "ابتدا ارائه‌دهنده را انتخاب کنید.")
+        : Slots.Count == 0 ? "این کارمند در روز انتخاب‌شده زمان خالی ندارد." : "یک ساعت خالی را انتخاب کنید.";
     private static readonly string[] PersianWeekdays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
     private static readonly string[] PersianMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 
@@ -128,8 +132,13 @@ else
         if (SelectedServiceIds.Count == 0) { EligibleResources = staff; return; }
         var assignments = await Db.ServiceResources.Where(x => SelectedServiceIds.Contains(x.ServiceId)).ToListAsync();
         EligibleResources = assignments.Count == 0 ? staff : staff.Where(r => SelectedServiceIds.All(s => assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
+        if (EligibleResources.Count == 1)
+        {
+            SelectedResourceId = EligibleResources[0].Id;
+        }
     }
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private void BackToServices() { Step = 1; SelectedSlot = null; ErrorMessage = null; }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsAsync(); }
 
