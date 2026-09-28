@@ -143,7 +143,7 @@ else
         var localStart = SelectedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
         var dayStart = new DateTimeOffset(localStart, zone.GetUtcOffset(localStart));
         var dayEnd = dayStart.AddDays(1);
-        var rules = await Db.AvailabilityRules.Where(x => x.BusinessId == BusinessId && x.DayOfWeek == SelectedDate.DayOfWeek && (x.ResourceId == SelectedResourceId || (x.ResourceId == null && (x.BranchId == branch.Id || x.BranchId == null)))).OrderBy(x => x.StartsAt).ToListAsync();
+        var rules = await Db.AvailabilityRules.Where(x => x.BusinessId == BusinessId && (x.EffectiveDate == SelectedDate || (x.EffectiveDate == null && x.DayOfWeek == SelectedDate.DayOfWeek)) && (x.ResourceId == SelectedResourceId || (x.ResourceId == null && (x.BranchId == branch.Id || x.BranchId == null)))).OrderBy(x => x.StartsAt).ToListAsync();
         var scoped = rules.Any(x => x.ResourceId == SelectedResourceId) ? rules.Where(x => x.ResourceId == SelectedResourceId).ToList() : rules.Any(x => x.BranchId == branch.Id) ? rules.Where(x => x.ResourceId == null && x.BranchId == branch.Id).ToList() : rules.Where(x => x.ResourceId == null && x.BranchId == null).ToList();
         var intervals = scoped.Where(x => x.IsAvailable).ToList();
         if (scoped.Count == 0) intervals.Add(new AvailabilityRule { StartsAt = new(branch.OpenHour, 0), EndsAt = new(branch.CloseHour, 0) });
