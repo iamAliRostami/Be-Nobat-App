@@ -376,3 +376,59 @@ html[data-theme="dark"] .auth-error{background:#ffb4ab1f;border-color:#ffb4ab3d}
 .public-user-menu>summary{min-height:38px;padding:3px 7px}.public-user-menu>summary .header-avatar{margin:0}.booking-calendar>summary i{margin-inline-start:auto}.booking-date-navigation input[type="date"],.availability-form-modal input[type="date"]{direction:ltr;text-align:left;padding-inline:10px 34px;color-scheme:light}.availability-form-modal input[type="date"]::-webkit-calendar-picker-indicator,.booking-date-navigation input[type="date"]::-webkit-calendar-picker-indicator{position:absolute;inset-inline-end:9px}.availability-form-modal input[type="date"],.booking-date-navigation input[type="date"]{position:relative}
 .availability-empty{margin-top:14px;min-height:150px;border:1px dashed var(--outline,#cadbd7);border-radius:12px;background:#f6faf9;display:grid;place-items:center;align-content:center;gap:6px;text-align:center;color:var(--muted,#687a75)}.availability-empty span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e4f2ef;color:var(--primary);font-size:20px}.availability-empty b{font-size:12px;color:var(--on-surface,#27332f)}.availability-empty small{font-size:9px}.availability-main span{direction:rtl!important;display:flex;align-items:center;gap:6px;text-align:start!important}.availability-main span time{direction:ltr}.availability-main span i{font-style:normal;color:var(--muted)}
 .admin-header-actions{align-items:center}.admin-header-actions>.ui-preferences{height:38px}.admin-header-actions .ui-preferences{display:flex;gap:10px}.admin-header-actions>.public-user-menu>summary{height:38px}.availability-form-modal .form-columns{align-items:start}.availability-form-modal input,.availability-form-modal select{height:40px;box-sizing:border-box}
+
+/* =====================================================================
+   رفع باگ‌های گزارش‌شده (پوشه‌ی BUGS)
+   ===================================================================== */
+
+/* [fix] سه دایره‌ی هدر (تم، زبان، آواتار کاربر) هم‌اندازه نبودند (۳۴ / ۳۴ / ۳۰) و آواتار
+   روی hover به مربعِ گوشه‌گرد تبدیل می‌شد در حالی که دو دکمه‌ی دیگر دایره می‌ماندند.
+   حالا هر سه یک اندازه، یک شکل و یک رفتار hover دارند. */
+:root{--header-control:36px}
+.ui-preferences{height:auto;align-items:center}
+.admin-header-actions>.ui-preferences{height:auto}
+.ui-preferences .language-menu>summary,
+.ui-preferences .theme-toggle,
+.public-user-menu>summary,
+.admin-header-actions>.public-user-menu>summary{
+  width:var(--header-control);height:var(--header-control);min-height:0;padding:0;box-sizing:border-box;
+  border:0;border-radius:50%;background:#edf8f6;color:var(--primary);
+  display:grid;place-items:center;cursor:pointer;
+  transition:background .2s,transform .2s}
+.ui-preferences .language-menu>summary:hover,
+.ui-preferences .theme-toggle:hover,
+.public-user-menu>summary:hover,
+.ui-preferences .language-menu[open]>summary,
+.public-user-menu[open]>summary{background:#dfeeea;transform:translateY(-1px)}
+.public-user-menu>summary .header-avatar{width:100%;height:100%;margin:0;border-radius:50%;background:transparent;font-size:11px}
+html[data-theme="dark"] .public-user-menu>summary{background:var(--primary-container);color:var(--primary)}
+html[data-theme="dark"] .ui-preferences .language-menu>summary:hover,
+html[data-theme="dark"] .ui-preferences .theme-toggle:hover,
+html[data-theme="dark"] .public-user-menu>summary:hover,
+html[data-theme="dark"] .ui-preferences .language-menu[open]>summary,
+html[data-theme="dark"] .public-user-menu[open]>summary{background:#27463f}
+
+/* [fix] قلب کارت کسب‌وکار وسط دایره نبود (گلیف متنی ♡ فاصله‌ی داخلی وابسته به فونت دارد)؛
+   حالا SVG است و با grid دقیقاً وسط قرار می‌گیرد. */
+.business-cover button{display:grid;place-items:center;padding:0;line-height:0}
+.business-cover button svg{display:block}
+
+/* [fix] مرحله‌ی دوم رزرو راه برگشت نداشت. */
+button.back-link{background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:11px;color:#758581}
+button.back-link:hover{color:var(--primary)}
+.step-actions{display:flex;justify-content:flex-start;margin-top:22px;padding-top:16px;border-top:1px dashed var(--outline-soft)}
+.step-back{background:var(--surface);color:var(--primary);border:1px solid var(--outline);border-radius:var(--radius-button);padding:9px 16px;font:600 11px Vazirmatn,system-ui,sans-serif;cursor:pointer}
+.step-back:hover{border-color:var(--primary);background:var(--primary-container)}
+
+/* [fix] ردیف‌های «زمان‌های خالی»: هفت آیتم داخل یک grid چهارستونه می‌رفت، آیتم‌ها به
+   ردیف دوم می‌ریختند و دکمه‌های ویرایش/حذف و برچسب «بدون نوبت» تا آخر کشیده می‌شدند.
+   با flex-wrap هر آیتم به اندازه‌ی محتوای خودش می‌ماند. */
+.availability-list>article,.availability-list article{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px 16px!important;padding:14px 4px!important}
+.availability-list>article>b{flex:1 1 230px}
+.availability-list>article>span{flex:0 1 auto;white-space:nowrap}
+.availability-list>article>small{flex:1 1 260px}
+.availability-list>article>em,.availability-list>article>button{flex:0 0 auto;width:auto}
+
+/* [fix] در صفحه‌ی خدمات شعب، نام خدمت و «مدت · قیمت» بدون فاصله به هم چسبیده بودند. */
+.service-table b{display:grid;gap:2px}
+.service-table b small{display:block;font-weight:400}

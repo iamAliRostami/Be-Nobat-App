@@ -17,7 +17,7 @@
 else
 {
     <div class="booking-page">
-        <a class="back-link" href="/">→ بازگشت به نتایج</a>
+        @if (Step == 2) { <button type="button" class="back-link" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> } else { <a class="back-link" href="/">→ بازگشت به نتایج</a> }
         <div class="booking-head"><div class="booking-logo">✦</div><div><h1>@Business.Name</h1><p>@(SelectedBranch?.Address ?? Business.City)</p></div></div>
         <div class="booking-progress">
             <div class="@(Step > 1 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۱")</b><span>خدمات</span></div><i></i>
@@ -61,6 +61,7 @@ else
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
                     else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button> }</div> }
+                    <div class="step-actions"><button type="button" class="step-back" @onclick="BackToStep1">→ مرحله قبل: انتخاب خدمات</button></div>
                 </section>
                 <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
             </div>
@@ -131,6 +132,7 @@ else
         EligibleResources = assignments.Count == 0 ? staff : staff.Where(r => SelectedServiceIds.All(s => assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
     }
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsAsync(); }
 
