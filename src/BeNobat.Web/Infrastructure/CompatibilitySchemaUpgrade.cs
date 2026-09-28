@@ -85,9 +85,12 @@ public static class CompatibilitySchemaUpgrade
             CREATE INDEX IF NOT EXISTS "IX_AppointmentServices_ServiceId" ON benobat."AppointmentServices" ("ServiceId");
 
             ALTER TABLE benobat."AvailabilityRules" ADD COLUMN IF NOT EXISTS "ResourceId" uuid NULL;
+            ALTER TABLE benobat."AvailabilityRules" ADD COLUMN IF NOT EXISTS "EffectiveDate" date NULL;
             ALTER TABLE benobat."AvailabilityRules" DROP CONSTRAINT IF EXISTS "FK_AvailabilityRules_Resources_ResourceId";
             ALTER TABLE benobat."AvailabilityRules" ADD CONSTRAINT "FK_AvailabilityRules_Resources_ResourceId"
                 FOREIGN KEY ("ResourceId") REFERENCES benobat."Resources" ("Id") ON DELETE CASCADE;
             CREATE INDEX IF NOT EXISTS "IX_AvailabilityRules_ResourceId" ON benobat."AvailabilityRules" ("ResourceId");
+            CREATE INDEX IF NOT EXISTS "IX_AvailabilityRules_SchedulingScope" ON benobat."AvailabilityRules"
+                ("BusinessId", "BranchId", "ResourceId", "EffectiveDate", "DayOfWeek", "StartsAt");
             """, cancellationToken);
 }

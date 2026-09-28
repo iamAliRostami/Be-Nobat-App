@@ -17,19 +17,27 @@
             <option value="">همه کسب‌وکارها</option>
             @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
         </select>
-        <span>@Rules.Count بازه هفتگی</span>
+        <div class="availability-tabs">
+            <button type="button" class="@(ActiveTab == "active" ? "active" : "")" @onclick='() => ActiveTab = "active"'>جاری و آینده</button>
+            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
+        </div>
+        <span>@VisibleRules.Count() بازه</span>
     </div>
-    @if (Rules.Count == 0) { <p class="empty-state">بازه‌ای تعریف نشده است؛ ساعات شعبه به‌عنوان پیش‌فرض استفاده می‌شود.</p> }
+    @if (!VisibleRules.Any()) { <p class="empty-state">در این بخش بازه‌ای وجود ندارد.</p> }
     <div class="availability-list">
-        @foreach (var rule in Rules)
+        @foreach (var rule in VisibleRules)
         {
             <article>
-                <b>@DayLabel(rule.DayOfWeek)</b>
+                <b>@DayLabel(rule.DayOfWeek) · @DateLabel(rule)</b>
                 <span>@rule.StartsAt.ToString("HH:mm") تا @rule.EndsAt.ToString("HH:mm")</span>
                 <small>@rule.Business.Name · @(rule.Branch?.Name ?? "کل مجموعه") · @(rule.Resource?.Name ?? "همه منابع")</small>
                 <em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>
-                <button type="button" @onclick="() => Edit(rule)">ویرایش</button>
-                <button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button>
+                @if (BookedRuleIds.Contains(rule.Id)) { <em class="status pending">دارای نوبت ثبت‌شده</em> } else { <em class="status done">بدون نوبت</em> }
+                @if (!IsPast(rule))
+                {
+                    <button type="button" @onclick="() => Edit(rule)">ویرایش</button>
+                    <button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button>
+                }
             </article>
         }
     </div>
@@ -43,7 +51,8 @@
             <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
             <label>دامنه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
             <label>کارمند ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label>
-            <label>روز هفته<select @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
+            <label>تاریخ<input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /></label>
+            <label>روز هفته<select disabled @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
             <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }
@@ -57,12 +66,17 @@
     private List<Branch> Branches = [];
     private List<AvailabilityRule> Rules = [];
     private List<Resource> Resources = [];
+    private HashSet<Guid> BookedRuleIds = [];
     private string BusinessFilter = "";
+    private string ActiveTab = "active";
     private bool ShowForm;
     private Guid? EditingId;
     private RuleInput Form = new();
     private string? Error;
     private bool IsPlatformAdmin;
+    private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+    private string TodayIso => Today.ToString("yyyy-MM-dd");
+    private IEnumerable<AvailabilityRule> VisibleRules => ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x));
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
 
@@ -86,6 +100,7 @@
             .Where(x => businessIds.Contains(x.BusinessId) && (x.BranchId == null || branchIds.Contains(x.BranchId.Value)));
         if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(x => x.BusinessId == businessId);
         Rules = await query.OrderBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
+        await LoadBookedRules();
     }
 
     private void OpenForm()
@@ -93,39 +108,61 @@
         EditingId = null;
         var business = Businesses.FirstOrDefault();
         var businessId = business?.Id ?? Guid.Empty;
-        Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id };
+        Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id, EffectiveDate = Today, DayOfWeek = Today.DayOfWeek };
         ShowForm = true;
     }
 
     private void Edit(AvailabilityRule rule)
     {
         EditingId = rule.Id;
-        Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        if (IsPast(rule)) return;
+        Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, EffectiveDate = rule.EffectiveDate ?? Today, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
         ShowForm = true;
     }
 
     private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; return Task.CompletedTask; }
     private Task BranchChanged() { Form.ResourceId = null; return Task.CompletedTask; }
+    private Task DateChanged() { Form.DayOfWeek = Form.EffectiveDate.DayOfWeek; return Task.CompletedTask; }
 
     private async Task Save()
     {
         if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt || (!IsPlatformAdmin && Form.BranchId is null)) { Error = "بازه زمانی و شعبه انتخاب‌شده معتبر نیست."; return; }
+        if (Form.EffectiveDate < Today) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
         if (Form.ResourceId is Guid resourceId && !AvailableResources.Any(x => x.Id == resourceId)) { Error = "کارمند باید متعلق به شعبه انتخاب‌شده باشد."; return; }
         if (Form.BranchId is Guid branchId && !await Access.CanAccessBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
         var duplicateOrOverlap = await Db.AvailabilityRules.AnyAsync(x =>
             x.Id != EditingId && x.BusinessId == Form.BusinessId && x.BranchId == Form.BranchId &&
-            x.ResourceId == Form.ResourceId && x.DayOfWeek == Form.DayOfWeek &&
+            x.ResourceId == Form.ResourceId && x.EffectiveDate == Form.EffectiveDate && x.DayOfWeek == Form.DayOfWeek &&
             x.IsAvailable == Form.IsAvailable && x.StartsAt < Form.EndsAt && Form.StartsAt < x.EndsAt);
         if (duplicateOrOverlap) { Error = "برای این دامنه، کارمند و روز یک بازه هم‌پوشان از همین نوع قبلاً تعریف شده است."; return; }
         var rule = EditingId is null ? new AvailabilityRule() : await Db.AvailabilityRules.FirstAsync(x => x.Id == EditingId);
-        rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.ResourceId = Form.ResourceId; rule.DayOfWeek = Form.DayOfWeek;
+        rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.ResourceId = Form.ResourceId; rule.EffectiveDate = Form.EffectiveDate; rule.DayOfWeek = Form.EffectiveDate.DayOfWeek;
         rule.StartsAt = Form.StartsAt; rule.EndsAt = Form.EndsAt; rule.IsAvailable = Form.IsAvailable;
         if (EditingId is null) Db.AvailabilityRules.Add(rule);
         await Db.SaveChangesAsync(); Close(); await LoadRules();
     }
 
-    private async Task Remove(AvailabilityRule rule) { Db.AvailabilityRules.Remove(rule); await Db.SaveChangesAsync(); await LoadRules(); }
+    private async Task Remove(AvailabilityRule rule) { if (IsPast(rule)) return; Db.AvailabilityRules.Remove(rule); await Db.SaveChangesAsync(); await LoadRules(); }
+    private async Task LoadBookedRules()
+    {
+        BookedRuleIds = [];
+        if (Rules.Count == 0) return;
+        var businessIds = Rules.Select(x => x.BusinessId).Distinct().ToList();
+        var appointmentQuery = await Access.AppointmentsAsync();
+        var appointments = await appointmentQuery.Include(x => x.Branch)
+            .Where(x => x.Status != AppointmentStatus.Cancelled && businessIds.Contains(x.Branch.BusinessId)).ToListAsync();
+        foreach (var rule in Rules)
+        {
+            var booked = appointments.Any(a => (rule.BranchId == null || a.BranchId == rule.BranchId) &&
+                (rule.ResourceId == null || a.ResourceId == rule.ResourceId) &&
+                (rule.EffectiveDate == null ? a.StartsAt.DayOfWeek == rule.DayOfWeek : DateOnly.FromDateTime(a.StartsAt.DateTime) == rule.EffectiveDate) &&
+                a.StartsAt.TimeOfDay < rule.EndsAt.ToTimeSpan() && rule.StartsAt.ToTimeSpan() < a.EndsAt.TimeOfDay);
+            if (booked) BookedRuleIds.Add(rule.Id);
+        }
+    }
     private void Close() { ShowForm = false; Error = null; }
+    private bool IsPast(AvailabilityRule rule) => rule.EffectiveDate is DateOnly date && date < Today;
+    private static string DateLabel(AvailabilityRule rule) => rule.EffectiveDate?.ToString("yyyy/MM/dd") ?? "هفتگی";
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
-    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DayOfWeek DayOfWeek { get; set; } = DayOfWeek.Saturday; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
+    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = DateOnly.FromDateTime(DateTime.Today); public DayOfWeek DayOfWeek { get; set; } = DateTime.Today.DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }
