@@ -1,7 +1,7 @@
 @page "/"
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
-@inject AppDbContext Db
+@inject IDbContextFactory<AppDbContext> DbFactory
 @inject IJSRuntime JS
 
 <PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
@@ -116,7 +116,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Results = await Db.Businesses
+        await using var db = await DbFactory.CreateDbContextAsync();
+        Results = await db.Businesses
             .Include(b => b.Branches)
             .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published))
             .OrderByDescending(b => b.CreatedAt)
@@ -142,12 +143,13 @@
 
     private async Task Search()
     {
+        await using var db = await DbFactory.CreateDbContextAsync();
         var term = SearchTerm.Trim();
         var city = City.Trim();
         HasSearched = !string.IsNullOrWhiteSpace(term);
         CityFilterRelaxed = false;
 
-        IQueryable<Business> BaseQuery() => Db.Businesses.Include(b => b.Branches)
+        IQueryable<Business> BaseQuery() => db.Businesses.Include(b => b.Branches)
             .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published)).AsQueryable();
 
         IQueryable<Business> ApplyTerm(IQueryable<Business> query) =>
@@ -156,7 +158,7 @@
                 : query.Where(b =>
                     EF.Functions.ILike(b.Name, $"%{term}%") ||
                     EF.Functions.ILike(b.Category, $"%{term}%") ||
-                    Db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
+                    db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
 
         var withTerm = ApplyTerm(BaseQuery());
 
