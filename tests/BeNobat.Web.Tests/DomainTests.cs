@@ -94,4 +94,11 @@ public sealed class DomainTests
     [InlineData("0912ABC4567")]
     public void Invalid_mobile_numbers_are_rejected(string input) =>
         Assert.False(UserInputValidation.TryNormalizeIranianMobile(input, out _));
+
+    [Theory]
+    [InlineData("Room 12 · ۳۴ · ٥٦", "fa", "Room ۱۲ · ۳۴ · ۵۶")]
+    [InlineData("Room 12 · ۳۴ · ٥٦", "ar", "Room ١٢ · ٣٤ · ٥٦")]
+    [InlineData("Room 12 · ۳۴ · ٥٦", "en", "Room 12 · 34 · 56")]
+    public void Display_digits_follow_the_selected_language(string input, string language, string expected) =>
+        Assert.Equal(expected, LocalizedDate.LocalizeDigits(input, language));
 }

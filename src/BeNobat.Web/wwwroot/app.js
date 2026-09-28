@@ -33,6 +33,23 @@ window.beNobat = {
     let language = 'fa';
     let translating = false;
 
+    // Keep every number shown by the UI consistent with the selected language.
+    // Normalize all three digit sets first so switching from Persian or Arabic to
+    // English also works for numbers that were authored with localized digits.
+    function localizeDigits(value) {
+        const digitSets = {
+            fa: '۰۱۲۳۴۵۶۷۸۹',
+            ar: '٠١٢٣٤٥٦٧٨٩',
+            en: '0123456789'
+        };
+        const target = digitSets[language] || digitSets.en;
+        return String(value).replace(/[0-9٠-٩۰-۹]/g, digit => {
+            const code = digit.charCodeAt(0);
+            const index = code >= 0x06f0 ? code - 0x06f0 : code >= 0x0660 ? code - 0x0660 : code - 0x30;
+            return target[index];
+        });
+    }
+
     function translate(root = document.body) {
         if (!root || translating) return;
         translating = true;
@@ -40,7 +57,8 @@ window.beNobat = {
         const nodes = [];
         while (walker.nextNode()) nodes.push(walker.currentNode);
         for (const node of nodes) {
-            if (node.parentElement?.closest('script,style')) continue;
+            // Code can contain credentials/identifiers whose characters must stay exact.
+            if (node.parentElement?.closest('script,style,code,pre')) continue;
             if (!originals.has(node)) originals.set(node, node.nodeValue);
             const original = originals.get(node);
             const key = original.trim();
@@ -50,7 +68,7 @@ window.beNobat = {
                 translated = dictionary[key] || Object.keys(dictionary).sort((a,b) => b.length-a.length)
                     .reduce((text, source) => text.replaceAll(source, dictionary[source]), key);
             }
-            node.nodeValue = original.replace(key, translated);
+            node.nodeValue = localizeDigits(original.replace(key, translated));
         }
         const elements = [root, ...(root.querySelectorAll?.('[placeholder],[title],[aria-label]') || [])];
         for (const element of elements) for (const attribute of ['placeholder','title','aria-label']) {
@@ -61,7 +79,7 @@ window.beNobat = {
             const dictionary = translations[language] || {};
             const translated = language === 'fa' ? original : Object.keys(dictionary).sort((a,b) => b.length-a.length)
                 .reduce((text, source) => text.replaceAll(source, dictionary[source]), original);
-            element.setAttribute(attribute, translated);
+            element.setAttribute(attribute, localizeDigits(translated));
         }
         translating = false;
     }

@@ -41,8 +41,15 @@ public static class LocalizedDate
     public static string LocalizeDigits(string value, string language)
     {
         const string latin = "0123456789";
+        const string persian = "۰۱۲۳۴۵۶۷۸۹";
+        const string arabic = "٠١٢٣٤٥٦٧٨٩";
         var target = language switch { "fa" => "۰۱۲۳۴۵۶۷۸۹", "ar" => "٠١٢٣٤٥٦٧٨٩", _ => latin };
-        if (target == latin) return value;
-        return string.Concat(value.Select(character => char.IsAsciiDigit(character) ? target[character - '0'] : character));
+        return string.Concat(value.Select(character =>
+        {
+            var index = latin.IndexOf(character);
+            if (index < 0) index = persian.IndexOf(character);
+            if (index < 0) index = arabic.IndexOf(character);
+            return index < 0 ? character : target[index];
+        }));
     }
 }
