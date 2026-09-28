@@ -44,7 +44,28 @@
         </div>
     </aside>
     <main>
-        <header><div class="mobile-brand">به‌نوبت</div><div class="admin-header-actions"><UiPreferences /><a href="/" target="_top">مشاهده صفحه عمومی</a><form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout-button">خروج</button></form></div></header>
+        <header>
+            <div class="mobile-brand">به‌نوبت</div>
+            <div class="admin-header-actions">
+                <UiPreferences />
+                <AuthorizeView>
+                    <Authorized>
+                        <details class="public-user-menu">
+                            <summary aria-label="باز کردن منوی حساب کاربری" title="حساب کاربری"><UserAvatarBadge User="context.User" CssClass="header-avatar" /></summary>
+                            <div>
+                                <NavLink href="/account/profile" Match="NavLinkMatch.Prefix">حساب من</NavLink>
+                                <NavLink href="/appointments" Match="NavLinkMatch.Prefix">نوبت‌های من</NavLink>
+                                <a href="/" target="_top">صفحه عمومی</a>
+                                <form method="post" action="/account/logout">
+                                    <AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" />
+                                    <button type="submit">خروج</button>
+                                </form>
+                            </div>
+                        </details>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </header>
         <section class="content">@Body</section>
     </main>
 </div>
