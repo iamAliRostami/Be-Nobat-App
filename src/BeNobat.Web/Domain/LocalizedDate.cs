@@ -14,8 +14,8 @@ public static class LocalizedDate
         var value = date.ToDateTime(TimeOnly.MinValue);
         return language switch
         {
-            "fa" => $"{Persian.GetYear(value):0000}/{Persian.GetMonth(value):00}/{Persian.GetDayOfMonth(value):00}",
-            "ar" => $"{Hijri.GetYear(value):0000}/{Hijri.GetMonth(value):00}/{Hijri.GetDayOfMonth(value):00} هـ",
+            "fa" => LocalizeDigits($"{Persian.GetYear(value):0000}/{Persian.GetMonth(value):00}/{Persian.GetDayOfMonth(value):00}", "fa"),
+            "ar" => LocalizeDigits($"{Hijri.GetYear(value):0000}/{Hijri.GetMonth(value):00}/{Hijri.GetDayOfMonth(value):00} هـ", "ar"),
             _ => value.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture),
         };
     }
@@ -25,8 +25,8 @@ public static class LocalizedDate
         var value = date.ToDateTime(TimeOnly.MinValue);
         return language switch
         {
-            "fa" => (Persian.GetDayOfMonth(value).ToString(CultureInfo.InvariantCulture), PersianMonths[Persian.GetMonth(value) - 1]),
-            "ar" => (Hijri.GetDayOfMonth(value).ToString(CultureInfo.InvariantCulture), ArabicMonths[Hijri.GetMonth(value) - 1]),
+            "fa" => (LocalizeDigits(Persian.GetDayOfMonth(value).ToString(CultureInfo.InvariantCulture), "fa"), PersianMonths[Persian.GetMonth(value) - 1]),
+            "ar" => (LocalizeDigits(Hijri.GetDayOfMonth(value).ToString(CultureInfo.InvariantCulture), "ar"), ArabicMonths[Hijri.GetMonth(value) - 1]),
             _ => (date.Day.ToString(CultureInfo.InvariantCulture), value.ToString("MMM", CultureInfo.InvariantCulture)),
         };
     }
@@ -36,5 +36,13 @@ public static class LocalizedDate
         if (isToday) return language switch { "en" => "Today", "ar" => "اليوم", _ => "امروز" };
         var culture = CultureInfo.GetCultureInfo(language switch { "en" => "en-US", "ar" => "ar-SA", _ => "fa-IR" });
         return culture.DateTimeFormat.GetDayName(date.DayOfWeek);
+    }
+
+    public static string LocalizeDigits(string value, string language)
+    {
+        const string latin = "0123456789";
+        var target = language switch { "fa" => "۰۱۲۳۴۵۶۷۸۹", "ar" => "٠١٢٣٤٥٦٧٨٩", _ => latin };
+        if (target == latin) return value;
+        return string.Concat(value.Select(character => char.IsAsciiDigit(character) ? target[character - '0'] : character));
     }
 }
