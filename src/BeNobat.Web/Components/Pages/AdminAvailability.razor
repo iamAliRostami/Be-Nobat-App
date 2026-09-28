@@ -24,12 +24,12 @@
         </div>
         <span>@VisibleRules.Count() بازه</span>
     </div>
-    @if (!VisibleRules.Any()) { <p class="empty-state">در این بخش بازه‌ای وجود ندارد.</p> }
+    @if (!VisibleRules.Any()) { <div class="availability-empty"><span>◷</span><b>زمان خالی‌ای در این بخش وجود ندارد</b><small>برای افزودن ظرفیت جدید، از دکمه «بازه جدید» استفاده کنید.</small></div> }
     <div class="availability-list">
         @foreach (var rule in VisibleRules)
         {
             <article>
-                <div class="availability-main"><b>@DayLabel(rule.DayOfWeek)</b><strong>@DateLabel(rule)</strong><span>@LocalTime(rule.StartsAt) تا @LocalTime(rule.EndsAt)</span></div>
+                <div class="availability-main"><b>@DayLabel(rule.DayOfWeek)</b><strong>@DateLabel(rule)</strong><span><time>@LocalTime(rule.StartsAt)</time><i>تا</i><time>@LocalTime(rule.EndsAt)</time></span></div>
                 <small class="availability-scope">@rule.Business.Name · @(rule.Branch?.Name ?? "کل مجموعه") · @(rule.Resource?.Name ?? "همه منابع")</small>
                 <div class="availability-state"><em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>@if (BookedRuleIds.Contains(rule.Id)) { <em class="status pending">رزرو شده</em> } else { <em class="status done">بدون رزرو</em> }</div>
                 @if (!IsPast(rule)) { <div class="availability-actions"><button type="button" @onclick="() => Edit(rule)">ویرایش</button><button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button></div> }

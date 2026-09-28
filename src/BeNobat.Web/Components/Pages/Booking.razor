@@ -76,7 +76,7 @@ else
                     </div>
                     @if (EligibleResources.Count == 0) { <p class="empty-state">برای ترکیب خدمات انتخابی، کارمند فعالی در این شعبه تعریف نشده است.</p> }
                     <details class="booking-calendar" open>
-                        <summary><span>انتخاب روز</span><b>@LocalizedDate.Format(SelectedDate, Language)</b><i>⌄</i></summary>
+                        <summary><span>انتخاب روز</span><i>⌄</i></summary>
                         <div class="booking-date-navigation"><button type="button" disabled="@(DaysStart <= Today)" @onclick:preventDefault @onclick="PreviousWeek">هفته قبل</button><label>تاریخ<input type="date" min="@TodayIso" @bind="SelectedDate" @bind:after="SelectedDateChanged" /></label><button type="button" @onclick:preventDefault @onclick="NextWeek">هفته بعد</button></div>
                         <div class="date-strip">@foreach (var day in Days) { <button type="button" disabled="@(day.Date < Today)" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
                     </details>
