@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject AppDbContext Db
 @inject AdminAccessScope Access
+@inject IJSRuntime JS
 
 <PageTitle>زمان‌های خالی | به‌نوبت</PageTitle>
 
@@ -51,7 +52,7 @@
             <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
             <label>دامنه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
             <label>کارمند ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label>
-            <label>تاریخ<input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /></label>
+            <label>تاریخ<input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /><small>@LocalizedDate.Format(Form.EffectiveDate, Language)</small></label>
             <label>روز هفته<select disabled @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
             <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
@@ -74,6 +75,7 @@
     private RuleInput Form = new();
     private string? Error;
     private bool IsPlatformAdmin;
+    private string Language = "fa";
     private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
     private string TodayIso => Today.ToString("yyyy-MM-dd");
     private IEnumerable<AvailabilityRule> VisibleRules => ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x));
@@ -99,8 +101,15 @@
         var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch).Include(x => x.Resource)
             .Where(x => businessIds.Contains(x.BusinessId) && (x.BranchId == null || branchIds.Contains(x.BranchId.Value)));
         if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(x => x.BusinessId == businessId);
-        Rules = await query.OrderBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
+        Rules = await query.OrderBy(x => x.EffectiveDate).ThenBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
         await LoadBookedRules();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
+        StateHasChanged();
     }
 
     private void OpenForm()
@@ -162,7 +171,17 @@
     }
     private void Close() { ShowForm = false; Error = null; }
     private bool IsPast(AvailabilityRule rule) => rule.EffectiveDate is DateOnly date && date < Today;
-    private static string DateLabel(AvailabilityRule rule) => rule.EffectiveDate?.ToString("yyyy/MM/dd") ?? "هفتگی";
+    private string DateLabel(AvailabilityRule rule)
+    {
+        var date = rule.EffectiveDate ?? NextOccurrence(rule.DayOfWeek);
+        var prefix = rule.EffectiveDate is null ? (Language switch { "en" => "Weekly · next", "ar" => "أسبوعي · التالي", _ => "هفتگی · نوبت بعد" }) : "";
+        return string.IsNullOrEmpty(prefix) ? LocalizedDate.Format(date, Language) : $"{prefix}: {LocalizedDate.Format(date, Language)}";
+    }
+    private DateOnly NextOccurrence(DayOfWeek day)
+    {
+        var offset = ((int)day - (int)Today.DayOfWeek + 7) % 7;
+        return Today.AddDays(offset);
+    }
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
     private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = DateOnly.FromDateTime(DateTime.Today); public DayOfWeek DayOfWeek { get; set; } = DateTime.Today.DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

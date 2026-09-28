@@ -6,6 +6,7 @@
 @using System.Security.Claims
 @inject AppDbContext Db
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 <PageTitle>رزرو نوبت | به‌نوبت</PageTitle>
 
@@ -74,6 +75,11 @@ else
                         <label>ارائه‌دهنده خدمت<select @bind="SelectedResourceId" @bind:after="ResourceChanged"><option value="">— انتخاب کارمند —</option>@foreach (var resource in EligibleResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
                     </div>
                     @if (EligibleResources.Count == 0) { <p class="empty-state">برای ترکیب خدمات انتخابی، کارمند فعالی در این شعبه تعریف نشده است.</p> }
+                    <div class="booking-date-navigation">
+                        <button type="button" @onclick="PreviousWeek">هفته قبل</button>
+                        <label>انتخاب تاریخ <input type="date" @bind="SelectedDate" @bind:after="SelectedDateChanged" /></label>
+                        <button type="button" @onclick="NextWeek">هفته بعد</button>
+                    </div>
                     <div class="date-strip">@foreach (var day in Days) { <button type="button" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
                     <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
@@ -110,6 +116,8 @@ else
     private string? ErrorMessage;
     private bool ShowBookingRules;
     private bool BookingRulesAccepted;
+    private string Language = "fa";
+    private DateOnly DaysStart;
     private sealed record DayOption(DateOnly Date, string Weekday, string PersianDay, string PersianMonth);
     private List<DayOption> Days = [];
     private IEnumerable<Service> SelectedServices => Services.Where(x => SelectedServiceIds.Contains(x.Id));
@@ -124,8 +132,6 @@ else
         : SelectedResourceId is null
         ? (EligibleResources.Count == 0 ? "برای این خدمات ارائه‌دهنده‌ای تعریف نشده است." : "ابتدا ارائه‌دهنده را انتخاب کنید.")
         : Slots.Count == 0 ? "این کارمند در روز انتخاب‌شده زمان خالی ندارد." : "یک ساعت خالی را انتخاب کنید.";
-    private static readonly string[] PersianWeekdays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
-    private static readonly string[] PersianMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 
     protected override async Task OnInitializedAsync()
     {
@@ -134,11 +140,26 @@ else
         Branches = Business.Branches.OrderBy(x => x.Name).ToList();
         SelectedBranchId = Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var calendar = new PersianCalendar();
-        Days = Enumerable.Range(0, 14).Select(offset => { var date = today.AddDays(offset); var dt = date.ToDateTime(TimeOnly.MinValue); return new DayOption(date, offset == 0 ? "امروز" : PersianWeekdays[(int)date.DayOfWeek], calendar.GetDayOfMonth(dt).ToString(), PersianMonths[calendar.GetMonth(dt) - 1]); }).ToList();
         SelectedDate = today;
+        DaysStart = today;
+        BuildDays();
         await LoadBranchServicesAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
+        BuildDays();
+        StateHasChanged();
+    }
+
+    private void BuildDays() => Days = Enumerable.Range(0, 14).Select(offset =>
+    {
+        var date = DaysStart.AddDays(offset);
+        var parts = LocalizedDate.DayAndMonth(date, Language);
+        return new DayOption(date, LocalizedDate.Weekday(date, Language, date == DateOnly.FromDateTime(DateTime.UtcNow)), parts.Day, parts.Month);
+    }).ToList();
 
     private decimal ServicePrice(Service service) => BranchServices.FirstOrDefault(x => x.ServiceId == service.Id)?.Price ?? service.Price;
     private async Task LoadBranchServicesAsync()
@@ -201,7 +222,15 @@ else
     private void AcceptBookingRules() { BookingRulesAccepted = true; ShowBookingRules = false; ErrorMessage = null; }
     private async Task BackToServicesAsync() { Step = 1; SelectedSlot = null; ErrorMessage = null; await InvokeAsync(StateHasChanged); }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
-    private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsAsync(); }
+    private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsSafelyAsync(); }
+    private async Task SelectedDateChanged() { DaysStart = SelectedDate; BuildDays(); SelectedSlot = null; await LoadSlotsSafelyAsync(); }
+    private async Task PreviousWeek() { DaysStart = DaysStart.AddDays(-7); SelectedDate = DaysStart; BuildDays(); SelectedSlot = null; await LoadSlotsSafelyAsync(); }
+    private async Task NextWeek() { DaysStart = DaysStart.AddDays(7); SelectedDate = DaysStart; BuildDays(); SelectedSlot = null; await LoadSlotsSafelyAsync(); }
+    private async Task LoadSlotsSafelyAsync()
+    {
+        try { await LoadSlotsAsync(); ErrorMessage = null; }
+        catch (Exception) { Slots = []; ErrorMessage = "دریافت زمان‌های خالی این تاریخ ممکن نبود. لطفاً تاریخ دیگری را انتخاب کنید."; }
+    }
 
     private async Task LoadSlotsAsync()
     {
@@ -213,8 +242,11 @@ else
         var dayStart = new DateTimeOffset(localStart, zone.GetUtcOffset(localStart));
         var dayEnd = dayStart.AddDays(1);
         var rules = await Db.AvailabilityRules.Where(x => x.BusinessId == BusinessId && x.DayOfWeek == SelectedDate.DayOfWeek
-            && (x.EffectiveDate == null || x.EffectiveDate == SelectedDate)
-            && (x.ResourceId == SelectedResourceId || (x.ResourceId == null && (x.BranchId == branch.Id || x.BranchId == null)))).OrderBy(x => x.StartsAt).ToListAsync();
+            && (x.ResourceId == SelectedResourceId || (x.ResourceId == null && (x.BranchId == branch.Id || x.BranchId == null))))
+            .OrderBy(x => x.StartsAt).ToListAsync();
+        // فیلتر DateOnly پس از materialize انجام می‌شود تا نسخه‌های متفاوت
+        // provider PostgreSQL باعث خطای ترجمه و از کار افتادن انتخاب روز نشوند.
+        rules = rules.Where(x => x.EffectiveDate == null || x.EffectiveDate == SelectedDate).ToList();
         if (rules.Any(x => x.EffectiveDate == SelectedDate)) rules = rules.Where(x => x.EffectiveDate == SelectedDate).ToList();
         var scoped = rules.Any(x => x.ResourceId == SelectedResourceId) ? rules.Where(x => x.ResourceId == SelectedResourceId).ToList() : rules.Any(x => x.BranchId == branch.Id) ? rules.Where(x => x.ResourceId == null && x.BranchId == branch.Id).ToList() : rules.Where(x => x.ResourceId == null && x.BranchId == null).ToList();
         var intervals = scoped.Where(x => x.IsAvailable).ToList();

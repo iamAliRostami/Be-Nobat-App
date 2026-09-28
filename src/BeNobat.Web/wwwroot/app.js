@@ -106,6 +106,8 @@ window.beNobat = {
             return language;
         },
         setLanguage,
+        getLanguage: () => language,
+        reload: () => window.location.reload(),
         toggleTheme: () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')
     };
 })();
