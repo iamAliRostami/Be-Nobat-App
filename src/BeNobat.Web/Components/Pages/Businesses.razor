@@ -12,7 +12,7 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="service-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2><button type="button" @onclick="Close">×</button></div>
-            <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }</select></label>
+            <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in BusinessOptions) { <option value="@business.Id">@business.Name</option> }</select></label>
             <label>نام خدمت<input required @bind="Form.Name" /></label>
             <div class="form-columns"><label>مدت (دقیقه)<input type="number" min="5" @bind="Form.DurationMinutes" /></label><label>قیمت پایه (تومان)<input type="number" min="0" @bind="Form.Price" /></label></div>
             <label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@foreach (var branch in FormBranches) { <option value="@branch.Id">@branch.Name</option> }</select></label>
@@ -39,7 +39,7 @@
 </article>
 
 @code {
-    private List<Business> Businesses = [];
+    private List<Business> BusinessOptions = [];
     private List<Branch> Branches = [];
     private List<Service> Services = [];
     private List<Resource> Resources = [];
@@ -58,12 +58,12 @@
         var query = await Access.BranchesAsync();
         Branches = await query.OrderBy(x => x.Name).ToListAsync();
         var ids = Branches.Select(x => x.BusinessId).Distinct().ToList();
-        Businesses = await Db.Businesses.Where(x => ids.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
+        BusinessOptions = await Db.Businesses.Where(x => ids.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
         Resources = await Db.Resources.Where(x => Branches.Select(b => b.Id).Contains(x.BranchId)).OrderBy(x => x.Name).ToListAsync();
         await Load();
     }
-    private async Task Load() { var ids = Businesses.Select(x => x.Id).ToList(); Services = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId)).Include(x => x.BranchServices).ThenInclude(x => x.Branch).Include(x => x.ServiceResources).ThenInclude(x => x.Resource).OrderBy(x => x.Name).ToListAsync(); }
-    private void OpenNew() { EditingId = null; var businessId = Businesses.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId, BranchId = Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty }; SelectedResourceIds = []; Error = null; ShowForm = true; }
+    private async Task Load() { var ids = BusinessOptions.Select(x => x.Id).ToList(); Services = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId)).Include(x => x.BranchServices).ThenInclude(x => x.Branch).Include(x => x.ServiceResources).ThenInclude(x => x.Resource).OrderBy(x => x.Name).ToListAsync(); }
+    private void OpenNew() { EditingId = null; var businessId = BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId, BranchId = Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty }; SelectedResourceIds = []; Error = null; ShowForm = true; }
     private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, Name = service.Name, DurationMinutes = service.DurationMinutes, Price = service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty, BranchPrice = assignment?.Price }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).ToHashSet(); Error = null; ShowForm = true; }
     private Task BusinessChanged() { Form.BranchId = FormBranches.FirstOrDefault()?.Id ?? Guid.Empty; SelectedResourceIds.Clear(); return Task.CompletedTask; }
     private Task BranchChanged() { SelectedResourceIds.RemoveWhere(x => FormResources.All(r => r.Id != x)); return Task.CompletedTask; }
