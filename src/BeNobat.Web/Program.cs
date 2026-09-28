@@ -15,7 +15,10 @@ if (seedDemo && !builder.Environment.IsDevelopment())
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
 
-builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+// Razor components in the same circuit may initialize concurrently (for example,
+// a page and the avatar in its layout). A scoped DbContext would then be shared by
+// both components even though DbContext does not support parallel operations.
+builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // [fix] AddIdentityApiEndpoints<T>() configures bearer-token authentication and is meant
 // for SPA/mobile clients calling the JSON /api/auth/* endpoints directly. It does not
