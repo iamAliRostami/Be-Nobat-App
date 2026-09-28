@@ -151,8 +151,6 @@ public sealed class AvailabilityRule : Entity
     public Guid BusinessId { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? ResourceId { get; set; }
-    /// <summary>تاریخ اجرای بازه؛ مقدار خالی فقط برای قواعد هفتگی قدیمی است.</summary>
-    public DateOnly? EffectiveDate { get; set; }
     public DayOfWeek DayOfWeek { get; set; }
     public TimeOnly StartsAt { get; set; } = new(9, 0);
     public TimeOnly EndsAt { get; set; } = new(18, 0);

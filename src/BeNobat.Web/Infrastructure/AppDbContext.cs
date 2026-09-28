@@ -69,7 +69,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<AvailabilityRule>().HasOne(x => x.Resource).WithMany(x => x.AvailabilityRules)
             .HasForeignKey(x => x.ResourceId).OnDelete(DeleteBehavior.Cascade);
-        builder.Entity<AvailabilityRule>().HasIndex(x => new { x.BusinessId, x.BranchId, x.ResourceId, x.EffectiveDate, x.DayOfWeek, x.StartsAt });
+        builder.Entity<AvailabilityRule>().HasIndex(x => new { x.BusinessId, x.BranchId, x.DayOfWeek, x.StartsAt });
         builder.Entity<Review>().Property(x => x.Status).HasConversion<string>();
         builder.Entity<Review>().HasIndex(x => new { x.BusinessId, x.Status });
         builder.Entity<Review>().HasIndex(x => x.AppointmentId).IsUnique();
