@@ -38,6 +38,13 @@ public static class LocalizedDate
         return culture.DateTimeFormat.GetDayName(date.DayOfWeek);
     }
 
+    public static string FormatTime(TimeOnly time, string language) => LocalizeDigits(time.ToString("HH:mm", CultureInfo.InvariantCulture), language);
+
+    public static string FormatTime(DateTimeOffset value, string language) => LocalizeDigits(value.ToString("HH:mm", CultureInfo.InvariantCulture), language);
+
+    public static string FormatNumber(IFormattable value, string language, string? format = null) =>
+        LocalizeDigits(value.ToString(format, CultureInfo.InvariantCulture) ?? "", language);
+
     public static string LocalizeDigits(string value, string language)
     {
         const string latin = "0123456789";

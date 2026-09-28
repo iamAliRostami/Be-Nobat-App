@@ -40,7 +40,7 @@ window.beNobat = {
         const nodes = [];
         while (walker.nextNode()) nodes.push(walker.currentNode);
         for (const node of nodes) {
-            if (node.parentElement?.closest('script,style')) continue;
+            if (node.parentElement?.closest('script,style,code,pre,[data-no-digit-localize]')) continue;
             if (!originals.has(node)) originals.set(node, node.nodeValue);
             const original = originals.get(node);
             const key = original.trim();
@@ -50,7 +50,7 @@ window.beNobat = {
                 translated = dictionary[key] || Object.keys(dictionary).sort((a,b) => b.length-a.length)
                     .reduce((text, source) => text.replaceAll(source, dictionary[source]), key);
             }
-            node.nodeValue = original.replace(key, translated);
+            node.nodeValue = localizeDigits(original.replace(key, translated));
         }
         const elements = [root, ...(root.querySelectorAll?.('[placeholder],[title],[aria-label]') || [])];
         for (const element of elements) for (const attribute of ['placeholder','title','aria-label']) {
@@ -64,6 +64,22 @@ window.beNobat = {
             element.setAttribute(attribute, translated);
         }
         translating = false;
+    }
+
+    function toLatinDigits(value) {
+        return value.replace(/[۰-۹٠-٩]/g, character => {
+            const persian = '۰۱۲۳۴۵۶۷۸۹'.indexOf(character);
+            if (persian >= 0) return String(persian);
+            const arabic = '٠١٢٣٤٥٦٧٨٩'.indexOf(character);
+            return arabic >= 0 ? String(arabic) : character;
+        });
+    }
+
+    function localizeDigits(value) {
+        const latin = toLatinDigits(value);
+        if (language === 'en') return latin;
+        const digits = language === 'ar' ? '٠١٢٣٤٥٦٧٨٩' : '۰۱۲۳۴۵۶۷۸۹';
+        return latin.replace(/[0-9]/g, digit => digits[digit]);
     }
 
     function setLanguage(value) {
@@ -112,9 +128,20 @@ window.beNobat = {
     };
 
     // Native <details> does not close when the user clicks elsewhere.
-    document.addEventListener('click', event => {
-        for (const menu of document.querySelectorAll('.public-user-menu[open]')) {
-            if (!menu.contains(event.target)) menu.removeAttribute('open');
+    document.addEventListener('pointerdown', event => {
+        const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+        if (!target) return;
+        const backdrop = target.closest('.public-user-menu-backdrop');
+        if (backdrop) {
+            backdrop.closest('details')?.removeAttribute('open');
+            return;
         }
+        for (const menu of document.querySelectorAll('.public-user-menu[open]')) {
+            if (!menu.contains(target)) menu.removeAttribute('open');
+        }
+    }, true);
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        for (const menu of document.querySelectorAll('.public-user-menu[open]')) menu.removeAttribute('open');
     });
 })();

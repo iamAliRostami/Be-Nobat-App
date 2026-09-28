@@ -9,7 +9,8 @@
             <AuthorizeView>
                 <Authorized>
                     <details class="public-user-menu">
-                        <summary aria-label="باز کردن منوی حساب کاربری" title="حساب کاربری"><UserAvatarBadge User="context.User" CssClass="header-avatar" /></summary>
+                        <summary aria-label="حساب کاربری"><UserAvatarBadge User="context.User" CssClass="header-avatar" /><i>⌄</i></summary>
+                        <div class="public-user-menu-backdrop" aria-hidden="true"></div>
                         <div>
                             <NavLink href="/account/profile" Match="NavLinkMatch.Prefix">حساب من</NavLink>
                             <NavLink href="/appointments" Match="NavLinkMatch.Prefix">نوبت‌های من</NavLink>

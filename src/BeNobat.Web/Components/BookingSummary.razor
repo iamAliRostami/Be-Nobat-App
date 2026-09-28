@@ -7,9 +7,9 @@
         {
             <div><dt>زمان</dt><dd>@Time</dd></div>
         }
-        <div><dt>مدت</dt><dd>@(DurationMinutes is null ? "—" : $"{DurationMinutes} دقیقه")</dd></div>
+        <div><dt>مدت</dt><dd>@(DurationMinutes is null ? "—" : $"{LocalizedDate.FormatNumber(DurationMinutes.Value, Language)} دقیقه")</dd></div>
     </dl>
-    <div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>@(Price is null ? "—" : Price.Value.ToString("N0")) <small>تومان</small></strong></div>
+    <div class="summary-total"><span>مبلغ قابل پرداخت</span><strong>@(Price is null ? "—" : LocalizedDate.FormatNumber(Price.Value, Language, "N0")) <small>تومان</small></strong></div>
     @if (RequireTerms)
     {
         <div class="booking-terms-consent">
@@ -38,6 +38,7 @@
     [Parameter] public bool TermsAccepted { get; set; }
     [Parameter] public EventCallback OnShowTerms { get; set; }
     [Parameter] public EventCallback OnContinue { get; set; }
+    [Parameter] public string Language { get; set; } = "fa";
     private bool IsSubmitting;
 
     private async Task ContinueAsync()
