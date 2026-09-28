@@ -47,13 +47,10 @@
 @if (ShowForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal availability-form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
-            <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label>
-            <label>دامنه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label>
-            <label>کارمند ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label>
-            <label>تاریخ<input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /><small>@LocalizedDate.Format(Form.EffectiveDate, Language)</small></label>
-            <label>روز هفته<select disabled @bind="Form.DayOfWeek">@foreach(var day in Enum.GetValues<DayOfWeek>()){<option value="@day">@DayLabel(day)</option>}</select></label>
+            <div class="form-columns"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label></div>
+            <div class="form-columns"><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label><label>تاریخ<input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /><small>@LocalizedDate.Format(Form.EffectiveDate, Language) · @DayLabel(Form.DayOfWeek)</small></label></div>
             <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }

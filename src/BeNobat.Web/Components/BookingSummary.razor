@@ -19,11 +19,10 @@
         </div>
     }
     <button type="button" disabled="@(Disabled || IsSubmitting)" title="@(Disabled ? DisabledReason : null)" @onclick="ContinueAsync">@(IsSubmitting ? "لطفاً صبر کنید…" : Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>
-    @if (Disabled && !string.IsNullOrWhiteSpace(DisabledReason))
+    @if (Disabled && !string.IsNullOrWhiteSpace(DisabledReason) && !(RequireTerms && !TermsAccepted))
     {
         <small class="summary-disabled-reason">@DisabledReason</small>
     }
-    <p>ثبت نوبت تنها پس از پذیرش قوانین امکان‌پذیر است.</p>
 </aside>
 
 @code {

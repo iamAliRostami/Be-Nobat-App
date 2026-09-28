@@ -75,12 +75,11 @@ else
                         <label>ارائه‌دهنده خدمت<select @bind="SelectedResourceId" @bind:after="ResourceChanged"><option value="">— انتخاب کارمند —</option>@foreach (var resource in EligibleResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
                     </div>
                     @if (EligibleResources.Count == 0) { <p class="empty-state">برای ترکیب خدمات انتخابی، کارمند فعالی در این شعبه تعریف نشده است.</p> }
-                    <div class="booking-date-navigation">
-                        <button type="button" @onclick="PreviousWeek">هفته قبل</button>
-                        <label>انتخاب تاریخ <input type="date" @bind="SelectedDate" @bind:after="SelectedDateChanged" /></label>
-                        <button type="button" @onclick="NextWeek">هفته بعد</button>
-                    </div>
-                    <div class="date-strip">@foreach (var day in Days) { <button type="button" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
+                    <details class="booking-calendar" open>
+                        <summary><span>انتخاب روز</span><b>@LocalizedDate.Format(SelectedDate, Language)</b><i>⌄</i></summary>
+                        <div class="booking-date-navigation"><button type="button" @onclick:preventDefault @onclick="PreviousWeek">هفته قبل</button><label>تاریخ<input type="date" @bind="SelectedDate" @bind:after="SelectedDateChanged" /></label><button type="button" @onclick:preventDefault @onclick="NextWeek">هفته بعد</button></div>
+                        <div class="date-strip">@foreach (var day in Days) { <button type="button" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
+                    </details>
                     <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
