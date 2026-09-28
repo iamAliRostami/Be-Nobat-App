@@ -7,6 +7,6 @@
 @code {
     private string Language = "fa";
     protected override async Task OnAfterRenderAsync(bool firstRender) { if (!firstRender) return; Language = await JS.InvokeAsync<string>("beNobat.preferences.initialize"); StateHasChanged(); }
-    private async Task ChangeLanguage(ChangeEventArgs args) { Language = args.Value?.ToString() ?? "fa"; await JS.InvokeVoidAsync("beNobat.preferences.setLanguage", Language); }
+    private async Task ChangeLanguage(ChangeEventArgs args) { Language = args.Value?.ToString() ?? "fa"; await JS.InvokeVoidAsync("beNobat.preferences.setLanguage", Language); await JS.InvokeVoidAsync("beNobat.preferences.reload"); }
     private Task ToggleTheme() => JS.InvokeVoidAsync("beNobat.preferences.toggleTheme").AsTask();
 }

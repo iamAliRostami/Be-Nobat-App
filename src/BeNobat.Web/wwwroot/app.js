@@ -106,6 +106,15 @@ window.beNobat = {
             return language;
         },
         setLanguage,
+        getLanguage: () => language,
+        reload: () => window.location.reload(),
         toggleTheme: () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')
     };
+
+    // Native <details> does not close when the user clicks elsewhere.
+    document.addEventListener('click', event => {
+        for (const menu of document.querySelectorAll('.public-user-menu[open]')) {
+            if (!menu.contains(event.target)) menu.removeAttribute('open');
+        }
+    });
 })();
