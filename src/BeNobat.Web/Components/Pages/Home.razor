@@ -81,7 +81,7 @@
                 <BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
                               Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
                               Rating="@Rating(business)" Reviews="@business.Reviews.Count.ToString()"
-                              Accent="@accent" Icon="@icon" />
+                              Accent="@accent" Icon="@icon" ReturnUrl="@SearchReturnUrl" />
             }
         </div>
     }
@@ -99,6 +99,8 @@
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = "q")] private string? QueryTerm { get; set; }
+    [SupplyParameterFromQuery(Name = "city")] private string? QueryCity { get; set; }
     private string SearchTerm { get; set; } = "";
     private string City { get; set; } = "تهران";
     private bool HasSearched { get; set; }
@@ -116,6 +118,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!string.IsNullOrWhiteSpace(QueryTerm))
+        {
+            SearchTerm = QueryTerm;
+            City = QueryCity ?? "";
+            await Search();
+            return;
+        }
         await using var db = await DbFactory.CreateDbContextAsync();
         Results = await db.Businesses
             .Include(b => b.Branches)
@@ -124,6 +133,10 @@
             .Take(12)
             .ToListAsync();
     }
+
+    private string SearchReturnUrl => HasSearched
+        ? $"/?q={Uri.EscapeDataString(SearchTerm.Trim())}&city={Uri.EscapeDataString(City.Trim())}#businesses"
+        : "/#businesses";
 
     private async Task OnKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {

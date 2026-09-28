@@ -17,7 +17,8 @@
 else
 {
     <div class="booking-page">
-        @if (Step == 2) { <button type="button" class="back-link" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> } else { <a class="back-link" href="/">→ بازگشت به نتایج</a> }
+        @if (Step == 2) { <button type="button" class="booking-back-button" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> }
+        else if (Step == 1) { <a class="booking-back-button" href="@SafeReturnUrl">→ بازگشت به نتایج</a> }
         <div class="booking-head"><div class="booking-logo">✦</div><div><h1>@Business.Name</h1><p>@(SelectedBranch?.Address ?? Business.City)</p></div></div>
         <div class="booking-progress">
             <div class="@(Step > 1 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۱")</b><span>خدمات</span></div><i></i>
@@ -52,16 +53,19 @@ else
             <div class="booking-layout">
                 <section class="booking-panel">
                     <div class="booking-title"><span>۲</span><div><h2>کارمند، روز و ساعت را انتخاب کنید</h2><p>فقط کارکنانی نمایش داده می‌شوند که همه خدمات انتخابی را ارائه می‌کنند.</p></div></div>
-                    <div class="booking-filters">
+                    <div class="booking-filters provider-filter">
                         <label>ارائه‌دهنده خدمت<select @bind="SelectedResourceId" @bind:after="ResourceChanged"><option value="">— انتخاب کارمند —</option>@foreach (var resource in EligibleResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
                     </div>
                     @if (EligibleResources.Count == 0) { <p class="empty-state">برای ترکیب خدمات انتخابی، کارمند فعالی در این شعبه تعریف نشده است.</p> }
-                    <div class="date-strip">@foreach (var day in Days) { <button type="button" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
+                    <details class="booking-calendar" open>
+                        <summary>انتخاب تاریخ <b>@LocalizedDate.Format(SelectedDate, "fa")</b><i>⌄</i></summary>
+                        <div class="booking-date-navigation"><label>رفتن به تاریخ<input type="date" min="@TodayIso" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="DateInputChanged" /></label></div>
+                        <div class="date-strip">@foreach (var day in Days) { <button type="button" disabled="@IsLoadingSlots" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
+                    </details>
                     <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
                     else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button> }</div> }
-                    <div class="step-actions"><button type="button" class="step-back" @onclick="BackToStep1">→ مرحله قبل: انتخاب خدمات</button></div>
                 </section>
                 <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
             </div>
@@ -75,6 +79,7 @@ else
 
 @code {
     [Parameter] public Guid BusinessId { get; set; }
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
     private Business? Business;
     private List<Branch> Branches = [];
@@ -91,14 +96,16 @@ else
     private DateTimeOffset? SelectedSlot;
     private List<DateTimeOffset> Slots = [];
     private string? ErrorMessage;
+    private bool IsLoadingSlots;
     private sealed record DayOption(DateOnly Date, string Weekday, string PersianDay, string PersianMonth);
     private List<DayOption> Days = [];
     private IEnumerable<Service> SelectedServices => Services.Where(x => SelectedServiceIds.Contains(x.Id));
     private string SelectedServicesLabel => string.Join("، ", SelectedServices.Select(x => x.Name));
     private int? SelectedDuration => SelectedServiceIds.Count == 0 ? null : BookingPolicy.TotalDuration(SelectedServices);
     private decimal? SelectedPrice => SelectedServiceIds.Count == 0 ? null : SelectedServices.Sum(ServicePrice);
-    private static readonly string[] PersianWeekdays = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
-    private static readonly string[] PersianMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
+    private DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
+    private string TodayIso => Today.ToString("yyyy-MM-dd");
+    private string SafeReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//") ? ReturnUrl : "/#businesses";
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,10 +113,8 @@ else
         if (Business is null) return;
         Branches = Business.Branches.OrderBy(x => x.Name).ToList();
         SelectedBranchId = Branches.FirstOrDefault()?.Id ?? Guid.Empty;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var calendar = new PersianCalendar();
-        Days = Enumerable.Range(0, 14).Select(offset => { var date = today.AddDays(offset); var dt = date.ToDateTime(TimeOnly.MinValue); return new DayOption(date, offset == 0 ? "امروز" : PersianWeekdays[(int)date.DayOfWeek], calendar.GetDayOfMonth(dt).ToString(), PersianMonths[calendar.GetMonth(dt) - 1]); }).ToList();
-        SelectedDate = today;
+        SelectedDate = Today;
+        BuildDays(SelectedDate);
         await LoadBranchServicesAsync();
     }
 
@@ -134,11 +139,28 @@ else
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
     private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
-    private async Task SelectDate(DateOnly date) { SelectedDate = date; SelectedSlot = null; await LoadSlotsAsync(); }
+    private async Task SelectDate(DateOnly date)
+    {
+        if (date < Today || IsLoadingSlots) return;
+        SelectedDate = date; SelectedSlot = null; BuildDays(date); await LoadSlotsAsync();
+    }
+    private async Task DateInputChanged(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var date)) await SelectDate(date < Today ? Today : date);
+    }
+    private void BuildDays(DateOnly anchor)
+    {
+        var start = anchor < Today ? Today : anchor;
+        Days = Enumerable.Range(0, 14).Select(offset => { var date = start.AddDays(offset); var parts = LocalizedDate.DayAndMonth(date, "fa"); return new DayOption(date, LocalizedDate.Weekday(date, "fa", date == Today), parts.Day, parts.Month); }).ToList();
+    }
 
     private async Task LoadSlotsAsync()
     {
         if (SelectedBranch is null || SelectedResourceId is null || SelectedDuration is null) { Slots = []; return; }
+        IsLoadingSlots = true;
+        ErrorMessage = null;
+        try
+        {
         var branch = SelectedBranch;
         var duration = TimeSpan.FromMinutes(SelectedDuration.Value);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(branch.TimeZoneId);
@@ -165,6 +187,13 @@ else
             }
         }
         Slots = slots.Distinct().OrderBy(x => x).ToList();
+        }
+        catch (Exception)
+        {
+            Slots = [];
+            ErrorMessage = "دریافت زمان‌های خالی ممکن نشد. لطفاً تاریخ دیگری را انتخاب کنید یا به مرحله قبل بازگردید.";
+        }
+        finally { IsLoadingSlots = false; }
     }
 
     private async Task NextFromStep2() { if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; } if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; } await ConfirmBookingAsync(); }

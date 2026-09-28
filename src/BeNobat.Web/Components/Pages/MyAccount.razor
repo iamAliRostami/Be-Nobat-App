@@ -8,6 +8,17 @@
 
 <PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
 
+<div class="account-page">
+    <aside class="account-menu">
+        <div class="account-user">
+            @if (User is not null && UserAvatar.Has(User)) { <img class="customer-avatar" src="@UserAvatar.Url(User)" alt="" /> }
+            else { <span>@UserAvatar.Initials(User?.DisplayName)</span> }
+            <div><b>@(User?.DisplayName ?? "کاربر")</b><small>@User?.Email</small></div>
+        </div>
+        <nav><NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink><NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink></nav>
+        <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
+    </aside>
+    <main class="account-content">
 <section class="profile-page">
     <div class="page-title">
         <div><h1>اطلاعات حساب کاربری</h1><p>عکس، مشخصات تماس، ایمیل و نظرهای ثبت‌شده‌ی خود را مدیریت کنید.</p></div>
@@ -102,6 +113,8 @@
         </article>
     }
 </section>
+    </main>
+</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "emailChanged")] private string? EmailChanged { get; set; }
