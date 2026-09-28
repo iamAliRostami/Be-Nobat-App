@@ -1,4 +1,4 @@
-@inject AppDbContext Db
+@inject IDbContextFactory<AppDbContext> DbFactory
 
 @if (UserAvatar.Has(Account))
 {
@@ -22,8 +22,9 @@ else
     protected override async Task OnParametersSetAsync()
     {
         var value = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        await using var db = await DbFactory.CreateDbContextAsync();
         Account = Guid.TryParse(value, out var id)
-            ? await Db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id)
+            ? await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id)
             : null;
     }
 }

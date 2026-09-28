@@ -18,7 +18,7 @@
             <label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@foreach (var branch in FormBranches) { <option value="@branch.Id">@branch.Name</option> }</select></label>
             <label>قیمت در این شعبه (اختیاری)<input type="number" min="0" @bind="Form.BranchPrice" /></label>
             <fieldset><legend>کارکنان ارائه‌دهنده</legend>
-                @if (FormResources.Count == 0) { <small>ابتدا در صفحه شعب، منبع «عضو تیم» تعریف کنید.</small> }
+                @if (!FormResources.Any()) { <small>ابتدا در صفحه شعب، منبع «عضو تیم» تعریف کنید.</small> }
                 @foreach (var resource in FormResources) { <label class="check-label"><input type="checkbox" checked="@SelectedResourceIds.Contains(resource.Id)" @onchange="() => ToggleResource(resource.Id)" /><span>@resource.Name</span></label> }
             </fieldset>
             @if (Error is not null) { <div class="auth-error">@Error</div> }

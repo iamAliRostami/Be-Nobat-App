@@ -1,12 +1,14 @@
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 <div class="ui-preferences" aria-label="تنظیمات نمایش">
-    <button type="button" title="تغییر تم" @onclick="ToggleTheme">◐</button>
-    <select aria-label="زبان" value="@Language" @onchange="ChangeLanguage"><option value="fa">فارسی</option><option value="ar">العربية</option><option value="en">English</option></select>
+    <button class="language-toggle" type="button" title="@LanguageTitle" aria-label="@LanguageTitle" @onclick="ChangeLanguage">@LanguageLabel</button>
+    <button class="theme-toggle" type="button" title="تغییر حالت روشن و تیره" aria-label="تغییر حالت روشن و تیره" @onclick="ToggleTheme"><span aria-hidden="true"></span></button>
 </div>
 @code {
     private string Language = "fa";
+    private string LanguageLabel => Language switch { "en" => "EN", "ar" => "عر", _ => "فا" };
+    private string LanguageTitle => Language switch { "en" => "Language: English; change language", "ar" => "اللغة: العربية؛ تغيير اللغة", _ => "زبان: فارسی؛ تغییر زبان" };
     protected override async Task OnAfterRenderAsync(bool firstRender) { if (!firstRender) return; Language = await JS.InvokeAsync<string>("beNobat.preferences.initialize"); StateHasChanged(); }
-    private async Task ChangeLanguage(ChangeEventArgs args) { Language = args.Value?.ToString() ?? "fa"; await JS.InvokeVoidAsync("beNobat.preferences.setLanguage", Language); await JS.InvokeVoidAsync("beNobat.preferences.reload"); }
+    private async Task ChangeLanguage() { Language = Language switch { "fa" => "ar", "ar" => "en", _ => "fa" }; await JS.InvokeVoidAsync("beNobat.preferences.setLanguage", Language); await JS.InvokeVoidAsync("beNobat.preferences.reload"); }
     private Task ToggleTheme() => JS.InvokeVoidAsync("beNobat.preferences.toggleTheme").AsTask();
 }

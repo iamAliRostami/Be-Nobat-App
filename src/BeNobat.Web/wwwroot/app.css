@@ -69,13 +69,13 @@
 .logout-form{display:contents}
 .logout-button{background:none;border:1px solid #e3f0ee;border-radius:9px;padding:8px 13px;font-size:11px;color:var(--primary);cursor:pointer}
 .logout-icon-button{background:none;border:0;color:#a8b5b2;cursor:pointer;font-size:14px}
-/* [fix] ارتفاع دکمه‌ی تم و select زبان با دکمه‌های کناری (نوبت‌های من، پنل مدیریت و...)
-   یکی نبود چون height ثابت ۳۲px داشتند در حالی‌که آن دکمه‌ها با padding عمودی‌شان
-   بلندتر رندر می‌شوند. به‌جای حدس‌زدن یک عدد ثابت، با stretch در فلکس، دقیقاً هم‌ارتفاعِ
-   بلندترین همسایه‌ی خود در ردیف actions می‌شوند. */
-.ui-preferences{display:flex;align-items:stretch;gap:5px;direction:ltr}
-.ui-preferences select,.ui-preferences button{height:100%;box-sizing:border-box;border:1px solid var(--outline);border-radius:8px;background:var(--surface);color:var(--on-surface);font:inherit;font-size:10px;padding:0 7px}
-.ui-preferences button{width:38px;flex:0 0 auto;font-size:16px;cursor:pointer}
+.ui-preferences{display:flex;align-items:center;gap:10px;direction:ltr;height:38px}
+.ui-preferences button{display:grid;place-items:center;box-sizing:border-box;padding:0;flex:0 0 auto;cursor:pointer;font:inherit;line-height:1;transition:border-color .2s,background .2s,transform .2s}
+.ui-preferences button:hover{transform:translateY(-1px)}
+.ui-preferences .language-toggle{width:34px;height:34px;border:0;border-radius:50%;background:#edf8f6;color:var(--primary);font-size:11px;font-weight:700}
+.ui-preferences .theme-toggle{width:38px;height:38px;border:1px solid var(--outline);border-radius:9px;background:var(--surface)}
+.ui-preferences .theme-toggle:hover{border-color:var(--primary)}
+.ui-preferences .theme-toggle span{display:block;width:17px;height:17px;border:1.5px solid var(--primary);border-radius:50%;background:linear-gradient(90deg,var(--primary) 50%,var(--surface) 50%);box-shadow:0 0 0 2px var(--surface) inset}
 
 .empty-state{color:var(--muted);font-size:12px;text-align:center;padding:30px 10px;background:#f5faf9;border-radius:12px;border:1px dashed #e3f0ee}
 
@@ -244,7 +244,8 @@ html[data-theme="dark"] .toolbar input,html[data-theme="dark"] .toolbar select,h
    از کارت اطراف‌شان بگیرند؛ قبلاً قانون کلی «input» بالا رویشان یک جعبه‌ی توپر مشکی
    می‌کشید که با پس‌زمینه‌ی روشنِ خودِ search-box هم‌خوانی نداشت. */
 html[data-theme="dark"] .search-box input{background:transparent!important;border:0!important;color:var(--on-surface)!important}
-html[data-theme="dark"] .ui-preferences select{background:var(--surface)!important;color:var(--on-surface)!important;border-color:var(--outline)!important}
+html[data-theme="dark"] .ui-preferences .language-toggle{background:var(--primary-container);color:var(--primary)}
+html[data-theme="dark"] .ui-preferences .theme-toggle{background:var(--surface);border-color:var(--outline)}
 html[data-theme="dark"] .empty-state,html[data-theme="dark"] .membership-list>article,html[data-theme="dark"] .success-details,html[data-theme="dark"] .auth-tabs,html[data-theme="dark"] .tip-box{background:#1B2422;color:var(--on-surface-variant);border-color:var(--outline-soft)!important}
 html[data-theme="dark"] .primary-button,html[data-theme="dark"] .page-title button,html[data-theme="dark"] .booking-summary>button,html[data-theme="dark"] .auth-submit,html[data-theme="dark"] .access-actions button:not(.outline),html[data-theme="dark"] .row-actions button:not(.outline),html[data-theme="dark"] .search-box>a,html[data-theme="dark"] .public-actions .user-login{background:var(--primary);color:var(--on-primary)}
 html[data-theme="dark"] small,html[data-theme="dark"] .empty-state,html[data-theme="dark"] .auth-subtitle{color:var(--on-surface-variant)}
@@ -363,7 +364,7 @@ html[data-theme="dark"] .auth-error{background:#ffb4ab1f;border-color:#ffb4ab3d}
 .booking-calendar{margin-top:16px;border:1px solid #e1eeeb;border-radius:11px;padding:10px}.booking-calendar>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;color:#536963;font-size:11px}.booking-calendar>summary::-webkit-details-marker{display:none}.booking-calendar>summary b{margin-inline-start:auto;color:var(--primary)}.booking-calendar>summary i{font-style:normal;transition:transform .2s}.booking-calendar[open]>summary i{transform:rotate(180deg)}.booking-calendar .booking-date-navigation{margin-top:12px}.booking-calendar .date-strip{margin-top:10px}
 
 /* Final interaction polish from the annotated UX review. */
-.ui-preferences>button{display:grid;place-items:center;padding:0;line-height:1}.booking-back-button{padding:6px 10px;margin-bottom:10px;font-size:10px}.booking-date-navigation button:disabled,.date-strip button:disabled{opacity:.4;cursor:not-allowed;background:#f1f3f2;color:#8e9996;border-color:#e2e8e6}.booking-terms-consent+button{margin-top:12px}
+.booking-back-button{padding:6px 10px;margin-bottom:10px;font-size:10px}.booking-date-navigation button:disabled,.date-strip button:disabled{opacity:.4;cursor:not-allowed;background:#f1f3f2;color:#8e9996;border-color:#e2e8e6}.booking-terms-consent+button{margin-top:12px}
 .toolbar .availability-tabs button{background:#fff!important;color:#58706a!important;border:1px solid #cbded9!important;box-shadow:none!important}.toolbar .availability-tabs button.active{background:var(--primary)!important;color:#fff!important;border-color:var(--primary)!important}
 .availability-list article{display:grid!important;grid-template-columns:minmax(180px,.75fr) minmax(260px,1fr) auto auto;gap:18px!important;align-items:center;padding:15px 4px!important}.availability-main{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center}.availability-main b{font-size:12px}.availability-main strong{font-size:11px;color:var(--primary)}.availability-main span{grid-column:1/-1;color:var(--muted);font-size:10px;direction:ltr;text-align:right}.availability-scope{font-size:10px!important;color:var(--muted)!important}.availability-state,.availability-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}.availability-actions button{width:64px;min-height:30px;margin:0!important}.availability-actions .danger-link{color:var(--error)}
 @media(max-width:800px){.availability-list article{grid-template-columns:1fr auto}.availability-scope{grid-column:1/-1}.availability-actions{grid-column:2}.public-user-menu>summary span{display:none}}
@@ -371,4 +372,4 @@ html[data-theme="dark"] .auth-error{background:#ffb4ab1f;border-color:#ffb4ab3d}
 /* Follow-up spacing/alignment fixes for native controls and empty states. */
 .public-user-menu>summary{min-height:38px;padding:3px 7px}.public-user-menu>summary .header-avatar{margin:0}.booking-calendar>summary i{margin-inline-start:auto}.booking-date-navigation input[type="date"],.availability-form-modal input[type="date"]{direction:ltr;text-align:left;padding-inline:10px 34px;color-scheme:light}.availability-form-modal input[type="date"]::-webkit-calendar-picker-indicator,.booking-date-navigation input[type="date"]::-webkit-calendar-picker-indicator{position:absolute;inset-inline-end:9px}.availability-form-modal input[type="date"],.booking-date-navigation input[type="date"]{position:relative}
 .availability-empty{margin-top:14px;min-height:150px;border:1px dashed var(--outline,#cadbd7);border-radius:12px;background:#f6faf9;display:grid;place-items:center;align-content:center;gap:6px;text-align:center;color:var(--muted,#687a75)}.availability-empty span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e4f2ef;color:var(--primary);font-size:20px}.availability-empty b{font-size:12px;color:var(--on-surface,#27332f)}.availability-empty small{font-size:9px}.availability-main span{direction:rtl!important;display:flex;align-items:center;gap:6px;text-align:start!important}.availability-main span time{direction:ltr}.availability-main span i{font-style:normal;color:var(--muted)}
-.admin-header-actions{align-items:center}.admin-header-actions>.ui-preferences,.admin-header-actions>a,.admin-header-actions>form{height:36px}.admin-header-actions .ui-preferences{display:flex;gap:7px}.admin-header-actions .ui-preferences>*{height:36px;box-sizing:border-box}.admin-header-actions>a,.admin-header-actions .logout-button{min-height:36px}.availability-form-modal .form-columns{align-items:start}.availability-form-modal input,.availability-form-modal select{height:40px;box-sizing:border-box}
+.admin-header-actions{align-items:center}.admin-header-actions>.ui-preferences{height:38px}.admin-header-actions>a,.admin-header-actions>form{height:38px}.admin-header-actions .ui-preferences{display:flex;gap:10px}.admin-header-actions>a,.admin-header-actions .logout-button{min-height:38px}.availability-form-modal .form-columns{align-items:start}.availability-form-modal input,.availability-form-modal select{height:40px;box-sizing:border-box}
