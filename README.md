@@ -106,6 +106,12 @@ PostgreSQL را حذف می‌کند؛ بنابراین این دستور را �
 docker compose up -d
 ```
 
+برای اجرای صریح با image موجود و بدون build:
+
+```bash
+docker compose up -d --no-build web
+```
+
 ### نسخه دمو با Docker
 
 برای Seed کردن موارد دموِ مفقود، بدون پاک کردن داده دمو موجود:
@@ -114,16 +120,34 @@ docker compose up -d
 docker compose --profile demo run --rm seed-demo
 ```
 
+اگر image قبلاً ساخته شده است، Seed بدون build:
+
+```bash
+docker compose --profile demo run --rm --no-build seed-demo
+```
+
 برای حذف داده‌های دمو قبلی و Seed کامل از ابتدا:
 
 ```bash
 docker compose --profile demo run --rm reset-demo
 ```
 
+اگر image قبلاً ساخته شده است، Reset و Seed بدون build:
+
+```bash
+docker compose --profile demo run --rm --no-build reset-demo
+```
+
 بعد از هرکدام، برنامه را اجرا کنید:
 
 ```bash
 docker compose up --build -d web
+```
+
+برای اجرای نسخه دمو با image موجود و بدون build:
+
+```bash
+docker compose up -d --no-build web
 ```
 
 این فرمان اطلاعات واقعی یا حساب مدیر سیستم را حذف نمی‌کند. کسب‌وکارهای دمو،
