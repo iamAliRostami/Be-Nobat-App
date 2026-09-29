@@ -36,6 +36,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Resource>().HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Service>().Property(x => x.Price).HasPrecision(18, 2);
+        builder.Entity<Service>().ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Services_Duration", "\"DurationMinutes\" > 0");
+            t.HasCheckConstraint("CK_Services_Price", "\"Price\" >= 0");
+        });
         builder.Entity<BranchService>().Property(x => x.Price).HasPrecision(18, 2);
         builder.Entity<BranchService>().HasIndex(x => new { x.BranchId, x.ServiceId }).IsUnique();
         builder.Entity<BranchService>().HasOne(x => x.Branch).WithMany(x => x.BranchServices).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
@@ -54,6 +59,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Appointment>().HasOne(x => x.Customer).WithMany()
             .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Appointment>().HasIndex(x => new { x.BranchId, x.StartsAt });
+        builder.Entity<Appointment>().ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Appointments_TimeRange", "\"EndsAt\" > \"StartsAt\"");
+            t.HasCheckConstraint("CK_Appointments_FinalPrice", "\"FinalPrice\" >= 0");
+        });
         builder.Entity<AppointmentService>().Property(x => x.Price).HasPrecision(18, 2);
         builder.Entity<AppointmentService>().HasIndex(x => new { x.AppointmentId, x.ServiceId }).IsUnique();
         builder.Entity<AppointmentService>().HasOne(x => x.Appointment).WithMany(x => x.Services).HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);

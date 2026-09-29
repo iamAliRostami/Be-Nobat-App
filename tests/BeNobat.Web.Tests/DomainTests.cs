@@ -65,7 +65,20 @@ public sealed class DomainTests
     {
         var now = DateTimeOffset.UtcNow;
         Assert.False(BookingPolicy.IsBookable(now.AddSeconds(-1), now));
-        Assert.True(BookingPolicy.IsBookable(now, now));
+        Assert.False(BookingPolicy.IsBookable(now.AddMinutes(29), now));
+        Assert.True(BookingPolicy.IsBookable(now.AddMinutes(30), now));
+    }
+
+    [Theory]
+    [InlineData(AppointmentStatus.Pending, 120, true)]
+    [InlineData(AppointmentStatus.Confirmed, 119, false)]
+    [InlineData(AppointmentStatus.Completed, 180, false)]
+    [InlineData(AppointmentStatus.Cancelled, 180, false)]
+    public void Customer_cancellation_requires_active_status_and_two_hours_notice(AppointmentStatus status, int minutes, bool expected)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var appointment = new Appointment { Status = status, StartsAt = now.AddMinutes(minutes) };
+        Assert.Equal(expected, BookingPolicy.CanCustomerCancel(appointment, now));
     }
 
     [Theory]

@@ -203,9 +203,56 @@ public static class CommercialDemoSeeder
                         CreatedAt = now, UpdatedAt = now
                     };
                 db.Appointments.Add(appointment);
+                appointment.Services.Add(new AppointmentService
+                {
+                    Id = Id($"appointment-service-{appointmentId}-{service.Id}"),
+                    ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = service.Price,
+                    CreatedAt = appointment.CreatedAt, UpdatedAt = appointment.UpdatedAt
+                });
                 existing.Add(appointment);
                 ids.Add(appointmentId);
             }
+        }
+        await db.SaveChangesAsync(ct);
+
+        var demoBranchBusinessIds = demoBranches.ToDictionary(x => x.Branch.Id, x => x.Branch.BusinessId);
+        var demoBranchIds = demoBranchBusinessIds.Keys.ToHashSet();
+        var demoAppointments = existing.Where(x => demoBranchIds.Contains(x.BranchId) && x.DeletedAt is null).ToList();
+        var appointmentIds = demoAppointments.Select(x => x.Id).ToList();
+        var snapshotAppointmentIds = (await db.AppointmentServices.IgnoreQueryFilters()
+            .Where(x => appointmentIds.Contains(x.AppointmentId)).Select(x => x.AppointmentId).ToListAsync(ct)).ToHashSet();
+        foreach (var appointment in demoAppointments.Where(x => !snapshotAppointmentIds.Contains(x.Id)))
+        {
+            var service = demoBranches.First(x => x.Branch.Id == appointment.BranchId).Services.First(x => x.Id == appointment.ServiceId);
+            db.AppointmentServices.Add(new AppointmentService
+            {
+                Id = Id($"appointment-service-{appointment.Id}-{service.Id}"), AppointmentId = appointment.Id,
+                ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = appointment.FinalPrice,
+                CreatedAt = appointment.CreatedAt, UpdatedAt = appointment.UpdatedAt
+            });
+        }
+
+        var completed = demoAppointments.Where(x => x.Status == AppointmentStatus.Completed).Take(60).ToList();
+        var reviewedAppointmentIds = (await db.Reviews.IgnoreQueryFilters().Where(x => x.AppointmentId != null)
+            .Select(x => x.AppointmentId!.Value).ToListAsync(ct)).ToHashSet();
+        string[] comments =
+        [
+            "برخورد حرفه‌ای و شروع دقیق در زمان رزرو.", "کیفیت خدمت عالی بود و دوباره مراجعه می‌کنم.",
+            "محیط تمیز و آرام و فرایند رزرو بسیار راحت بود.", "توضیحات کامل بود و از نتیجه رضایت داشتم.",
+            "تجربه خوبی بود؛ پیشنهاد می‌کنم.", "پرسنل خوش‌برخورد بودند و معطلی نداشتم."
+        ];
+        for (var i = 0; i < completed.Count; i++)
+        {
+            var appointment = completed[i];
+            if (reviewedAppointmentIds.Contains(appointment.Id)) continue;
+            db.Reviews.Add(new Review
+            {
+                Id = Id($"review-{appointment.Id}"), AppointmentId = appointment.Id,
+                BusinessId = demoBranchBusinessIds[appointment.BranchId],
+                BranchId = appointment.BranchId, CustomerId = appointment.CustomerId,
+                Rating = i % 7 == 0 ? 4 : 5, Comment = comments[i % comments.Length],
+                Status = ReviewStatus.Published, CreatedAt = appointment.EndsAt.AddHours(2), UpdatedAt = appointment.EndsAt.AddHours(2)
+            });
         }
         await db.SaveChangesAsync(ct);
     }

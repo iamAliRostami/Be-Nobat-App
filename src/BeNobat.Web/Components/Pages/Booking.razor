@@ -259,19 +259,32 @@ else
         var userText = (await AuthStateTask).User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userText, out var userId)) { NavigationManager.NavigateTo($"/account/login?ReturnUrl=/book/{BusinessId}", true); return; }
         var start = SelectedSlot.Value; var end = start.AddMinutes(SelectedDuration.Value);
-        if (!BookingPolicy.IsBookable(start, DateTimeOffset.UtcNow)) { ErrorMessage = "زمان انتخاب‌شده گذشته است."; await LoadSlotsAsync(); return; }
+        if (!BookingPolicy.IsBookable(start, DateTimeOffset.UtcNow)) { ErrorMessage = "رزرو باید حداقل ۳۰ دقیقه پیش از شروع نوبت انجام شود."; await LoadSlotsAsync(); return; }
+        await using var transaction = await Db.Database.BeginTransactionAsync();
+        // An advisory transaction lock is stable across application instances and closes the
+        // race between the last conflict check and INSERT for this provider.
+        var resourceLockKey = BitConverter.ToInt64(SelectedResourceId.Value.ToByteArray(), 0);
+        await Db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({resourceLockKey})");
+        await LoadSlotsAsync();
+        if (!Slots.Contains(start))
+        {
+            await transaction.RollbackAsync();
+            ErrorMessage = "این زمان دیگر قابل رزرو نیست؛ لطفاً یکی از زمان‌های به‌روز را انتخاب کنید.";
+            SelectedSlot = null;
+            return;
+        }
         var selectedServiceIds = SelectedServiceIds.ToList();
         var isEligibleProvider = await Db.Resources.AnyAsync(r => r.Id == SelectedResourceId && r.BranchId == SelectedBranch.Id && r.Kind == "staff") &&
             await Db.ServiceResources.Where(x => x.ResourceId == SelectedResourceId && selectedServiceIds.Contains(x.ServiceId))
                 .Select(x => x.ServiceId).Distinct().CountAsync() == selectedServiceIds.Count;
-        if (!isEligibleProvider) { ErrorMessage = "این کارمند برای همه خدمات انتخاب‌شده به‌عنوان ارائه‌دهنده تعریف نشده است."; SelectedResourceId = null; SelectedSlot = null; await LoadEligibleResourcesAsync(); return; }
+        if (!isEligibleProvider) { await transaction.RollbackAsync(); ErrorMessage = "این کارمند برای همه خدمات انتخاب‌شده به‌عنوان ارائه‌دهنده تعریف نشده است."; SelectedResourceId = null; SelectedSlot = null; await LoadEligibleResourcesAsync(); return; }
         var conflict = await Db.Appointments.AnyAsync(a => a.ResourceId == SelectedResourceId && a.Status != AppointmentStatus.Cancelled && a.StartsAt < end && a.EndsAt > start);
-        if (conflict) { ErrorMessage = "این زمان رزرو شده است؛ زمان دیگری انتخاب کنید."; SelectedSlot = null; await LoadSlotsAsync(); return; }
+        if (conflict) { await transaction.RollbackAsync(); ErrorMessage = "این زمان رزرو شده است؛ زمان دیگری انتخاب کنید."; SelectedSlot = null; await LoadSlotsAsync(); return; }
         var selected = SelectedServices.ToList();
         var first = selected[0];
         var appointment = new Appointment { BranchId = SelectedBranch.Id, ServiceId = first.Id, ResourceId = SelectedResourceId, CustomerId = userId, StartsAt = start, EndsAt = end, FinalPrice = SelectedPrice!.Value };
         foreach (var service in selected) appointment.Services.Add(new AppointmentService { ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = ServicePrice(service) });
-        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); ErrorMessage = null; Step = 3;
+        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync(); ErrorMessage = null; Step = 3;
     }
     // Built from the slot itself (not from the visible week) so it stays correct after the strip moves,
     // and always uses the calendar of the active language.

@@ -30,6 +30,7 @@
     <main class="account-content">
         <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
         @if (ReviewMessage is not null) { <div class="success-notice">@ReviewMessage</div> }
+        @if (ActionError is not null) { <div class="auth-error">@ActionError</div> }
         <div class="tabs">
             <button type="button" class="@(ActiveTab == "upcoming" ? "active" : "")" @onclick='() => ActiveTab = "upcoming"'>پیش رو <b>@Upcoming.Count</b></button>
             <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
@@ -61,7 +62,7 @@
                     <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ @appointment.Branch.Address</span></div>
                 </div>
                 <div class="appointment-actions">
-                    @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed && appointment.StartsAt > DateTimeOffset.Now)
+                    @if (BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
                     {
                         <button type="button" class="outline" @onclick="() => CancelAsync(appointment.Id)">لغو نوبت</button>
                     }
@@ -116,6 +117,7 @@
     private ReviewInput ReviewForm = new();
     private string? ReviewError;
     private string? ReviewMessage;
+    private string? ActionError;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
@@ -178,10 +180,16 @@
     {
         var appointment = await Db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
         if (appointment is null) return;
+        if (!BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
+        {
+            ActionError = "لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است؛ برای موارد فوری با شعبه تماس بگیرید.";
+            return;
+        }
 
         appointment.Status = AppointmentStatus.Cancelled;
         appointment.UpdatedAt = DateTimeOffset.UtcNow;
         await Db.SaveChangesAsync();
+        ActionError = null;
         await LoadAsync();
     }
 

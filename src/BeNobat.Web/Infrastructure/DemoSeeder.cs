@@ -223,7 +223,54 @@ public static class DemoSeeder
         }
         await db.SaveChangesAsync(cancellationToken);
         await CommercialDemoSeeder.SeedAsync(serviceProvider, cancellationToken);
+        await EnsureBookableDemoGraphAsync(db, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Keeps every demo tenant operational, including databases seeded by older versions
+    /// that only had businesses, branches and services without the booking relationships.
+    /// </summary>
+    private static async Task EnsureBookableDemoGraphAsync(AppDbContext db, CancellationToken ct)
+    {
+        var demoSlugs = new HashSet<string>(
+        [
+            "avan-beauty-studio", "sepid-dental-clinic", "rahaei-massage-wellness", "omid-family-consulting",
+            "demo-niloufar", "demo-labkhand", "demo-tavan", "demo-aramesh", "demo-aryana", "demo-roshana"
+        ]);
+        var businesses = await db.Businesses.Include(x => x.Services).Include(x => x.Branches).ThenInclude(x => x.Resources)
+            .Where(x => demoSlugs.Contains(x.Slug)).ToListAsync(ct);
+        var businessIds = businesses.Select(x => x.Id).ToList();
+        var branchIds = businesses.SelectMany(x => x.Branches).Select(x => x.Id).ToList();
+        var resourceIds = businesses.SelectMany(x => x.Branches).SelectMany(x => x.Resources).Select(x => x.Id).ToList();
+        var branchServices = await db.BranchServices.Where(x => branchIds.Contains(x.BranchId)).ToListAsync(ct);
+        var serviceResources = await db.ServiceResources.Where(x => resourceIds.Contains(x.ResourceId)).ToListAsync(ct);
+        var availability = await db.AvailabilityRules.Where(x => businessIds.Contains(x.BusinessId)).ToListAsync(ct);
+
+        foreach (var business in businesses)
+        foreach (var branch in business.Branches)
+        {
+            foreach (var service in business.Services)
+            {
+                if (!branchServices.Any(x => x.BranchId == branch.Id && x.ServiceId == service.Id))
+                    db.BranchServices.Add(new BranchService { BranchId = branch.Id, ServiceId = service.Id, Price = service.Price });
+                foreach (var resource in branch.Resources.Where(x => x.Kind == "staff"))
+                    if (!serviceResources.Any(x => x.ResourceId == resource.Id && x.ServiceId == service.Id))
+                        db.ServiceResources.Add(new ServiceResource { ResourceId = resource.Id, ServiceId = service.Id });
+            }
+
+            foreach (var resource in branch.Resources.Where(x => x.Kind == "staff"))
+            foreach (var day in Enum.GetValues<DayOfWeek>().Where(x => x != DayOfWeek.Friday))
+            {
+                if (availability.Any(x => x.ResourceId == resource.Id && x.EffectiveDate == null && x.DayOfWeek == day)) continue;
+                db.AvailabilityRules.Add(new AvailabilityRule
+                {
+                    BusinessId = business.Id, BranchId = branch.Id, ResourceId = resource.Id, DayOfWeek = day,
+                    StartsAt = new TimeOnly(branch.OpenHour, 0), EndsAt = new TimeOnly(branch.CloseHour, 0), IsAvailable = true
+                });
+            }
+        }
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task SeedBusinessIfMissingAsync(

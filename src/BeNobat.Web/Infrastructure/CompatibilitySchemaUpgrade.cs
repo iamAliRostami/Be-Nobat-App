@@ -92,5 +92,19 @@ public static class CompatibilitySchemaUpgrade
             CREATE INDEX IF NOT EXISTS "IX_AvailabilityRules_ResourceId" ON benobat."AvailabilityRules" ("ResourceId");
             CREATE INDEX IF NOT EXISTS "IX_AvailabilityRules_SchedulingScope" ON benobat."AvailabilityRules"
                 ("BusinessId", "BranchId", "ResourceId", "EffectiveDate", "DayOfWeek", "StartsAt");
+
+            -- Guard business invariants even when data is written outside the web UI.
+            DO $$ BEGIN
+                ALTER TABLE benobat."Services" ADD CONSTRAINT "CK_Services_Duration" CHECK ("DurationMinutes" > 0) NOT VALID;
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Services" ADD CONSTRAINT "CK_Services_Price" CHECK ("Price" >= 0) NOT VALID;
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Appointments" ADD CONSTRAINT "CK_Appointments_TimeRange" CHECK ("EndsAt" > "StartsAt") NOT VALID;
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Appointments" ADD CONSTRAINT "CK_Appointments_FinalPrice" CHECK ("FinalPrice" >= 0) NOT VALID;
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
             """, cancellationToken);
 }
