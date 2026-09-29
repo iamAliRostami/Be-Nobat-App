@@ -143,6 +143,7 @@ else
     private bool ShowTerms;
     private bool TermsAccepted;
     private string? TrackingCode;
+    private string? BookingFailureCode;
     private sealed record DayOption(DateOnly Date, string Weekday, string DayNumber, string Month);
     private const int WindowDays = 7;
     private string Language = "fa";
@@ -303,15 +304,18 @@ else
     private void AcceptTerms() { TermsAccepted = true; ShowTerms = false; }
     private async Task ConfirmBookingAsync()
     {
+        BookingFailureCode = null;
         try
         {
             await ConfirmBookingCoreAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to confirm booking for business {BusinessId}, branch {BranchId}, resource {ResourceId}", BusinessId, SelectedBranchId, SelectedResourceId);
+            BookingFailureCode = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            Logger.LogError(ex, "Booking confirmation failed. Reference {BookingFailureCode}; business {BusinessId}; branch {BranchId}; resource {ResourceId}; slot {SelectedSlot}",
+                BookingFailureCode, BusinessId, SelectedBranchId, SelectedResourceId, SelectedSlot);
             Db.ChangeTracker.Clear();
-            ErrorMessage = "ثبت نوبت انجام نشد. لطفاً دوباره تلاش کنید؛ در صورت تکرار، زمان دیگری را انتخاب کنید.";
+            ErrorMessage = $"ثبت نوبت انجام نشد. دوباره تلاش کنید؛ در صورت تکرار، کد خطا {BookingFailureCode} را به پشتیبانی اعلام کنید.";
         }
     }
 
@@ -323,6 +327,9 @@ else
         if (!Guid.TryParse(userText, out var userId)) { NavigationManager.NavigateTo($"/account/login?ReturnUrl=/book/{BusinessId}", true); return; }
         var start = SelectedSlot.Value; var end = start.AddMinutes(SelectedDuration.Value);
         if (!BookingPolicy.IsBookable(start, DateTimeOffset.UtcNow)) { ErrorMessage = "رزرو باید حداقل ۳۰ دقیقه پیش از شروع نوبت انجام شود."; await LoadSlotsAsync(); return; }
+        // Npgsql only accepts UTC DateTimeOffset values for PostgreSQL timestamptz.
+        // Keep the selected local value for display, but use UTC for every database query/write.
+        var startUtc = start.ToUniversalTime(); var endUtc = end.ToUniversalTime();
         await using var transaction = await Db.Database.BeginTransactionAsync();
         // An advisory transaction lock is stable across application instances and closes the
         // race between the last conflict check and INSERT for this provider.
@@ -347,11 +354,11 @@ else
             await Db.ServiceResources.Where(x => x.ResourceId == SelectedResourceId && selectedServiceIds.Contains(x.ServiceId))
                 .Select(x => x.ServiceId).Distinct().CountAsync() == selectedServiceIds.Count;
         if (!isEligibleProvider) { await transaction.RollbackAsync(); ErrorMessage = "این کارمند برای همه خدمات انتخاب‌شده به‌عنوان ارائه‌دهنده تعریف نشده است."; SelectedResourceId = null; SelectedSlot = null; await LoadEligibleResourcesAsync(); return; }
-        var conflict = await Db.Appointments.AnyAsync(a => a.ResourceId == SelectedResourceId && a.Status != AppointmentStatus.Cancelled && a.StartsAt < end && a.EndsAt > start);
+        var conflict = await Db.Appointments.AnyAsync(a => a.ResourceId == SelectedResourceId && a.Status != AppointmentStatus.Cancelled && a.StartsAt < endUtc && a.EndsAt > startUtc);
         if (conflict) { await transaction.RollbackAsync(); ErrorMessage = "این زمان رزرو شده است؛ زمان دیگری انتخاب کنید."; SelectedSlot = null; await LoadSlotsAsync(); return; }
         var selected = SelectedServices.ToList();
         var first = selected[0];
-        var appointment = new Appointment { BranchId = SelectedBranch.Id, ServiceId = first.Id, ResourceId = SelectedResourceId, CustomerId = userId, StartsAt = start, EndsAt = end, FinalPrice = SelectedPrice!.Value };
+        var appointment = new Appointment { BranchId = SelectedBranch.Id, ServiceId = first.Id, ResourceId = SelectedResourceId, CustomerId = userId, StartsAt = startUtc, EndsAt = endUtc, FinalPrice = SelectedPrice!.Value };
         foreach (var service in selected) appointment.Services.Add(new AppointmentService { ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = ServicePrice(service) });
         Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync();
         TrackingCode = appointment.Id.ToString("N")[..10].ToUpperInvariant(); ErrorMessage = null; Step = 4;
