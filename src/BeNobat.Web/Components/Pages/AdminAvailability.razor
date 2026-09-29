@@ -47,9 +47,9 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal availability-form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
-            <div class="form-columns"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label></div>
-            <div class="form-columns"><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label><label class="localized-date-field">تاریخ<span class="localized-date-shell"><input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /><span class="localized-date-value">@LocalizedDate.Format(Form.EffectiveDate, Language)</span></span><small>@DayLabel(Form.DayOfWeek)</small></label></div>
-            <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
+            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label></div>
+            <label class="localized-date-field"><span class="localized-date-heading"><span>تاریخ</span><small>@LocalizedDate.Weekday(Form.EffectiveDate, Language)</small></span><div class="localized-date-inputs"><select aria-label="سال" @bind="LocalYear" @bind:after="LocalizedDateChanged">@foreach(var year in LocalYears){<option value="@year">@LocalizedDate.FormatNumber(year, Language)</option>}</select><select aria-label="ماه" @bind="LocalMonth" @bind:after="LocalizedDateChanged">@foreach(var month in LocalMonths){<option value="@month">@LocalizedDate.MonthName(month, Language)</option>}</select><select aria-label="روز" @bind="LocalDay" @bind:after="LocalizedDateChanged">@foreach(var day in LocalDays){<option value="@day">@LocalizedDate.FormatNumber(day, Language)</option>}</select></div></label>
+            <div class="time-range"><label>از<select @bind="StartMinutes" @bind:after="StartTimeChanged">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><label>تا<select @bind="EndMinutes">@foreach(var minutes in TimeOptions(Form.EndsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }
             <button class="primary-button">ذخیره</button>
@@ -72,8 +72,28 @@
     private bool IsPlatformAdmin;
     private string Language = "fa";
     private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
-    private string TodayIso => Today.ToString("yyyy-MM-dd");
-    private IEnumerable<AvailabilityRule> VisibleRules => ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x));
+    private int LocalYear;
+    private int LocalMonth;
+    private int LocalDay;
+    private DateTimeOffset CurrentLocalNow => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, FormTimeZone);
+    private DateOnly FormToday => DateOnly.FromDateTime(CurrentLocalNow.DateTime);
+    private TimeZoneInfo FormTimeZone => TimeZoneInfo.FindSystemTimeZoneById(
+        Branches.FirstOrDefault(x => x.Id == Form.BranchId)?.TimeZoneId ??
+        Branches.FirstOrDefault(x => x.BusinessId == Form.BusinessId)?.TimeZoneId ?? "Asia/Tehran");
+    private IEnumerable<int> LocalYears => Enumerable.Range(LocalizedDate.GetParts(FormToday, Language).Year, 11);
+    private IEnumerable<int> LocalMonths => Enumerable.Range(IsCurrentLocalYear ? TodayParts.Month : 1, 12 - (IsCurrentLocalYear ? TodayParts.Month : 1) + 1);
+    private IEnumerable<int> LocalDays => Enumerable.Range(IsCurrentLocalMonth ? TodayParts.Day : 1, LocalDaysInMonth - (IsCurrentLocalMonth ? TodayParts.Day : 1) + 1);
+    private int LocalDaysInMonth => LocalizedDate.DaysInMonth(LocalYear, LocalMonth, Language);
+    private (int Year, int Month, int Day) TodayParts => LocalizedDate.GetParts(FormToday, Language);
+    private bool IsCurrentLocalYear => LocalYear == TodayParts.Year;
+    private bool IsCurrentLocalMonth => IsCurrentLocalYear && LocalMonth == TodayParts.Month;
+    private int StartMinutes { get => Form.StartsAt.Hour * 60 + Form.StartsAt.Minute; set => Form.StartsAt = new TimeOnly(value / 60, value % 60); }
+    private int EndMinutes { get => Form.EndsAt.Hour * 60 + Form.EndsAt.Minute; set => Form.EndsAt = new TimeOnly(value / 60, value % 60); }
+    private IEnumerable<AvailabilityRule> VisibleRules => (ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x)))
+        .OrderBy(RuleSortDate)
+        .ThenBy(x => x.StartsAt)
+        .ThenBy(x => x.EndsAt)
+        .ThenBy(x => x.Business.Name);
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
 
@@ -104,6 +124,7 @@
     {
         if (!firstRender) return;
         Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
+        SetLocalizedDateParts();
         StateHasChanged();
     }
 
@@ -112,7 +133,11 @@
         EditingId = null;
         var business = Businesses.FirstOrDefault();
         var businessId = business?.Id ?? Guid.Empty;
-        Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id, EffectiveDate = Today, DayOfWeek = Today.DayOfWeek };
+        Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id };
+        Form.EffectiveDate = FormToday;
+        Form.DayOfWeek = FormToday.DayOfWeek;
+        SetLocalizedDateParts();
+        EnsureFutureTimes();
         ShowForm = true;
     }
 
@@ -121,22 +146,60 @@
         EditingId = rule.Id;
         if (IsPast(rule)) return;
         Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, EffectiveDate = rule.EffectiveDate ?? Today, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        SetLocalizedDateParts();
+        EnsureFutureTimes();
         ShowForm = true;
     }
 
     private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; return Task.CompletedTask; }
     private Task BranchChanged() { Form.ResourceId = null; return Task.CompletedTask; }
-    private Task DateChanged()
+    private void SetLocalizedDateParts() => (LocalYear, LocalMonth, LocalDay) = LocalizedDate.GetParts(Form.EffectiveDate, Language);
+    private Task LocalizedDateChanged()
     {
-        if (Form.EffectiveDate < Today) Form.EffectiveDate = Today;
+        if (!LocalMonths.Contains(LocalMonth)) LocalMonth = LocalMonths.First();
+        if (!LocalDays.Contains(LocalDay)) LocalDay = LocalDays.First();
+        LocalDay = Math.Min(LocalDay, LocalDaysInMonth);
+        Form.EffectiveDate = LocalizedDate.FromParts(LocalYear, LocalMonth, LocalDay, Language);
+        if (Form.EffectiveDate < FormToday) Form.EffectiveDate = FormToday;
+        SetLocalizedDateParts();
         Form.DayOfWeek = Form.EffectiveDate.DayOfWeek;
+        EnsureFutureTimes();
         return Task.CompletedTask;
     }
+    private IEnumerable<int> TimeOptions(TimeOnly selected)
+    {
+        var selectedMinutes = selected.Hour * 60 + selected.Minute;
+        var minimum = Form.EffectiveDate == FormToday ? NextQuarterHour() : 0;
+        return Enumerable.Range(0, 96).Select(x => x * 15).Where(x => x >= minimum).Append(selectedMinutes).Where(x => x >= minimum).Distinct().Order();
+    }
+    private int NextQuarterHour() => (int)Math.Ceiling(CurrentLocalNow.TimeOfDay.TotalMinutes / 15) * 15;
+    private void EnsureFutureTimes()
+    {
+        if (Form.EffectiveDate != FormToday) return;
+        var minimum = NextQuarterHour();
+        if (minimum >= 1440)
+        {
+            Form.EffectiveDate = FormToday.AddDays(1);
+            Form.DayOfWeek = Form.EffectiveDate.DayOfWeek;
+            Form.StartsAt = new TimeOnly(9, 0);
+            Form.EndsAt = new TimeOnly(18, 0);
+            SetLocalizedDateParts();
+            return;
+        }
+        if (StartMinutes < minimum) StartMinutes = minimum;
+        if (EndMinutes <= StartMinutes) EndMinutes = Math.Min(1439, StartMinutes + 15);
+    }
+    private Task StartTimeChanged()
+    {
+        if (EndMinutes <= StartMinutes) EndMinutes = Math.Min(1439, StartMinutes + 15);
+        return Task.CompletedTask;
+    }
+    private string FormatTimeOption(int minutes) => LocalizedDate.LocalizeDigits($"{minutes / 60:00}:{minutes % 60:00}", Language);
 
     private async Task Save()
     {
         if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt || (!IsPlatformAdmin && Form.BranchId is null)) { Error = "بازه زمانی و شعبه انتخاب‌شده معتبر نیست."; return; }
-        if (Form.EffectiveDate < Today) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
+        if (Form.EffectiveDate < FormToday) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
         if (Form.ResourceId is Guid resourceId && !AvailableResources.Any(x => x.Id == resourceId)) { Error = "کارمند باید متعلق به شعبه انتخاب‌شده باشد."; return; }
         if (Form.BranchId is Guid branchId && !await Access.CanAccessBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
         var duplicateOrOverlap = await Db.AvailabilityRules.AnyAsync(x =>
@@ -171,6 +234,7 @@
     }
     private void Close() { ShowForm = false; Error = null; }
     private bool IsPast(AvailabilityRule rule) => rule.EffectiveDate is DateOnly date && date < Today;
+    private DateOnly RuleSortDate(AvailabilityRule rule) => rule.EffectiveDate ?? NextOccurrence(rule.DayOfWeek);
     private string DateLabel(AvailabilityRule rule)
     {
         var date = rule.EffectiveDate ?? NextOccurrence(rule.DayOfWeek);

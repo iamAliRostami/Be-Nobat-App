@@ -9,6 +9,37 @@ public static class LocalizedDate
     private static readonly string[] PersianMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
     private static readonly string[] ArabicMonths = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
 
+    public static (int Year, int Month, int Day) GetParts(DateOnly date, string language)
+    {
+        var value = date.ToDateTime(TimeOnly.MinValue);
+        return language switch
+        {
+            "fa" => (Persian.GetYear(value), Persian.GetMonth(value), Persian.GetDayOfMonth(value)),
+            "ar" => (Hijri.GetYear(value), Hijri.GetMonth(value), Hijri.GetDayOfMonth(value)),
+            _ => (date.Year, date.Month, date.Day),
+        };
+    }
+
+    public static DateOnly FromParts(int year, int month, int day, string language)
+    {
+        var calendar = language switch { "fa" => (Calendar)Persian, "ar" => Hijri, _ => new GregorianCalendar() };
+        day = Math.Min(day, calendar.GetDaysInMonth(year, month));
+        return DateOnly.FromDateTime(calendar.ToDateTime(year, month, day, 0, 0, 0, 0));
+    }
+
+    public static int DaysInMonth(int year, int month, string language)
+    {
+        var calendar = language switch { "fa" => (Calendar)Persian, "ar" => Hijri, _ => new GregorianCalendar() };
+        return calendar.GetDaysInMonth(year, month);
+    }
+
+    public static string MonthName(int month, string language) => language switch
+    {
+        "fa" => PersianMonths[month - 1],
+        "ar" => ArabicMonths[month - 1],
+        _ => CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month),
+    };
+
     public static string Format(DateOnly date, string language)
     {
         var value = date.ToDateTime(TimeOnly.MinValue);
