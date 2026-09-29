@@ -437,6 +437,8 @@ button.back-link:hover{color:var(--primary)}
 /* [fix] در صفحه‌ی خدمات شعب، نام خدمت و «مدت · قیمت» بدون فاصله به هم چسبیده بودند. */
 .service-table b{display:grid;gap:2px}
 .service-table b small{display:block;font-weight:400}
+.branch-services-table .table-head,.branch-services-table>div{grid-template-columns:minmax(0,1.5fr) minmax(110px,.8fr) minmax(110px,.8fr) minmax(150px,1.2fr) .55fr minmax(110px,max-content)}
+@media(max-width:560px){.branch-services-table .table-head,.branch-services-table>div{grid-template-columns:minmax(0,1fr) minmax(100px,.7fr) max-content}.branch-services-table span:nth-child(3),.branch-services-table span:nth-child(4),.branch-services-table span:nth-child(5){display:none}.branch-services-table span:nth-child(2){display:block}.branch-services-table .inline-actions{display:flex}}
 
 /* ===== Booking calendar: language-aware picker + week strip with prev/next ===== */
 .booking-date-goto{display:grid;gap:5px}

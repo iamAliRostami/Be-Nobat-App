@@ -29,11 +29,11 @@
 
 <article class="admin-panel">
     <div class="toolbar"><input placeholder="جست‌وجو بین خدمات..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
-    <div class="service-table">
-        <div class="table-head"><span>خدمت</span><span>شعب</span><span>ارائه‌دهندگان</span><span>وضعیت</span><span></span></div>
+    <div class="service-table branch-services-table">
+        <div class="table-head"><span>خدمت</span><span>نام کسب‌وکار</span><span>شعب</span><span>ارائه‌دهندگان</span><span>وضعیت</span><span></span></div>
         @foreach (var service in Filtered)
         {
-            <div><span><i class="rose">✂</i><b>@service.Name<small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان</small></b></span><span>@string.Join("، ", service.BranchServices.Select(x => x.Branch.Name))</span><span>@string.Join("، ", service.ServiceResources.Select(x => x.Resource.Name))</span><span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span><span class="inline-actions"><button @onclick="() => Edit(service)">تنظیم</button><button @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span></div>
+            <div><span><i class="rose">✂</i><b>@service.Name<small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان</small></b></span><span>@BusinessName(service.BusinessId)</span><span>@string.Join("، ", service.BranchServices.Select(x => x.Branch.Name))</span><span>@string.Join("، ", service.ServiceResources.Select(x => x.Resource.Name))</span><span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span><span class="inline-actions"><button @onclick="() => Edit(service)">تنظیم</button><button @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span></div>
         }
     </div>
 </article>
@@ -55,6 +55,7 @@
         $"{x.Name} {BusinessOptions.FirstOrDefault(b => b.Id == x.BusinessId)?.Name}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<Branch> FormBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> FormResources => Resources.Where(x => x.BranchId == Form.BranchId && x.Kind == "staff");
+    private string BusinessName(Guid businessId) => BusinessOptions.FirstOrDefault(x => x.Id == businessId)?.Name ?? "—";
 
     protected override async Task OnInitializedAsync()
     {
