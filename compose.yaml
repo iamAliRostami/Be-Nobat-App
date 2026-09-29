@@ -27,6 +27,18 @@ services:
   seed-demo:
     profiles: ["demo"]
     build: .
+    command: ["--seed-demo"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      Seed__DemoPassword: Demo123456
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  reset-demo:
+    profiles: ["demo"]
+    build: .
     command: ["--reset-demo"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development

@@ -108,10 +108,21 @@ docker compose up -d
 
 ### نسخه دمو با Docker
 
-برای حذف فقط داده‌های نمایشی قبلی و ساخت دوباره‌ی یک دیتاست سالم و کامل، اجرا کنید:
+برای Seed کردن موارد دموِ مفقود، بدون پاک کردن داده دمو موجود:
 
 ```bash
 docker compose --profile demo run --rm seed-demo
+```
+
+برای حذف داده‌های دمو قبلی و Seed کامل از ابتدا:
+
+```bash
+docker compose --profile demo run --rm reset-demo
+```
+
+بعد از هرکدام، برنامه را اجرا کنید:
+
+```bash
 docker compose up --build -d web
 ```
 
