@@ -86,21 +86,20 @@ else
             <div class="booking-layout">
                 <section class="booking-panel booking-confirmation">
                     <div class="booking-title"><span>۳</span><div><h2>بررسی و تأیید نهایی</h2><p>پیش از ثبت نوبت، مشخصات و قوانین رزرو را بررسی کنید.</p></div></div>
-                    <dl class="confirmation-details">
-                        <div><dt>کسب‌وکار</dt><dd>@Business.Name</dd></div>
-                        <div><dt>شعبه</dt><dd>@SelectedBranch?.Name</dd></div>
-                        <div><dt>خدمات</dt><dd>@SelectedServicesLabel</dd></div>
-                        <div><dt>ارائه‌دهنده</dt><dd>@SelectedResource?.Name</dd></div>
-                        <div><dt>تاریخ و ساعت</dt><dd>@FormatSelectedTime()</dd></div>
-                        <div><dt>مبلغ</dt><dd>@SelectedPrice?.ToString("N0") تومان</dd></div>
-                    </dl>
+                    <div class="confirmation-business"><i>✦</i><div><h3>@Business.Name</h3><b>@SelectedBranch?.Name</b><small>@SelectedBranch?.Address</small></div></div>
+                    <div class="confirmation-details">
+                        <article class="confirmation-primary"><small>خدمت انتخابی</small><strong>@SelectedServicesLabel</strong><span>@SelectedDuration دقیقه</span></article>
+                        <article><small>متخصص شما</small><strong>@SelectedResource?.Name</strong></article>
+                        <article><small>زمان مراجعه</small><strong>@FormatSelectedTime()</strong></article>
+                        <article class="confirmation-price"><small>مبلغ قابل پرداخت</small><strong>@SelectedPrice?.ToString("N0") <span>تومان</span></strong></article>
+                    </div>
                 </section>
                 <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted)" DisabledReason="برای ثبت نوبت، قوانین رزرو را مطالعه و تأیید کنید." />
             </div>
         }
         else
         {
-            <section class="success-card"><div class="success-icon">✓</div><span>نوبت شما ثبت شد</span><h1>منتظرت هستیم!</h1><p>جزئیات نوبت در «نوبت‌های من» قابل مشاهده است.</p><div class="success-details"><div><small>خدمات</small><b>@SelectedServicesLabel</b></div><div><small>ارائه‌دهنده</small><b>@SelectedResource?.Name</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
+            <section class="success-card"><div class="success-icon">✓</div><span>نوبت شما ثبت شد</span><h1>منتظرت هستیم!</h1><p>جزئیات نوبت در «نوبت‌های من» قابل مشاهده است.</p><div class="success-details"><div><small>شماره پیگیری</small><b>@TrackingCode</b></div><div><small>خدمات</small><b>@SelectedServicesLabel</b></div><div><small>متخصص</small><b>@SelectedResource?.Name</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
         }
     </div>
 }
@@ -143,6 +142,7 @@ else
     private bool IsLoadingSlots;
     private bool ShowTerms;
     private bool TermsAccepted;
+    private string? TrackingCode;
     private sealed record DayOption(DateOnly Date, string Weekday, string DayNumber, string Month);
     private const int WindowDays = 7;
     private string Language = "fa";
@@ -303,6 +303,20 @@ else
     private void AcceptTerms() { TermsAccepted = true; ShowTerms = false; }
     private async Task ConfirmBookingAsync()
     {
+        try
+        {
+            await ConfirmBookingCoreAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to confirm booking for business {BusinessId}, branch {BranchId}, resource {ResourceId}", BusinessId, SelectedBranchId, SelectedResourceId);
+            Db.ChangeTracker.Clear();
+            ErrorMessage = "ثبت نوبت انجام نشد. لطفاً دوباره تلاش کنید؛ در صورت تکرار، زمان دیگری را انتخاب کنید.";
+        }
+    }
+
+    private async Task ConfirmBookingCoreAsync()
+    {
         if (!TermsAccepted) { ErrorMessage = "برای ثبت نوبت ابتدا قوانین رزرو را مطالعه و تأیید کنید."; return; }
         if (SelectedSlot is null || SelectedBranch is null || SelectedResourceId is null || AuthStateTask is null || SelectedDuration is null) return;
         var userText = (await AuthStateTask).User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -339,7 +353,8 @@ else
         var first = selected[0];
         var appointment = new Appointment { BranchId = SelectedBranch.Id, ServiceId = first.Id, ResourceId = SelectedResourceId, CustomerId = userId, StartsAt = start, EndsAt = end, FinalPrice = SelectedPrice!.Value };
         foreach (var service in selected) appointment.Services.Add(new AppointmentService { ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = ServicePrice(service) });
-        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync(); ErrorMessage = null; Step = 4;
+        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync();
+        TrackingCode = appointment.Id.ToString("N")[..10].ToUpperInvariant(); ErrorMessage = null; Step = 4;
     }
     // Built from the slot itself (not from the visible week) so it stays correct after the strip moves,
     // and always uses the calendar of the active language.
