@@ -81,6 +81,18 @@ public sealed class DomainTests
         Assert.Equal(expected, BookingPolicy.CanCustomerCancel(appointment, now));
     }
 
+    [Fact]
+    public void Appointment_query_day_window_is_always_utc()
+    {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+        var (start, end) = BookingPolicy.UtcDayWindow(new DateOnly(2026, 9, 29), zone);
+
+        Assert.Equal(TimeSpan.Zero, start.Offset);
+        Assert.Equal(TimeSpan.Zero, end.Offset);
+        Assert.Equal(TimeSpan.FromHours(24), end - start);
+        Assert.Equal(new DateTimeOffset(2026, 9, 28, 20, 30, 0, TimeSpan.Zero), start);
+    }
+
     [Theory]
     [InlineData(10, 11, 10, 11, true)]
     [InlineData(10, 11, 11, 12, false)]

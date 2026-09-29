@@ -5,11 +5,18 @@ namespace BeNobat.Web.Infrastructure;
 
 public static class DemoSeeder
 {
-    public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
+    private static readonly string[] DemoSlugs =
+    [
+        "avan-beauty-studio", "sepid-dental-clinic", "rahaei-massage-wellness", "omid-family-consulting",
+        "demo-niloufar", "demo-labkhand", "demo-tavan", "demo-aramesh", "demo-aryana", "demo-roshana"
+    ];
+
+    public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default, bool reset = false)
     {
         var db = serviceProvider.GetRequiredService<AppDbContext>();
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         await db.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(7261401)", cancellationToken);
+        if (reset) await ResetAsync(db, cancellationToken);
         await SeedBusinessIfMissingAsync(db, "avan-beauty-studio", cancellationToken, () =>
         {
             var business = new Business
@@ -233,11 +240,7 @@ public static class DemoSeeder
     /// </summary>
     private static async Task EnsureBookableDemoGraphAsync(AppDbContext db, CancellationToken ct)
     {
-        var demoSlugs = new HashSet<string>(
-        [
-            "avan-beauty-studio", "sepid-dental-clinic", "rahaei-massage-wellness", "omid-family-consulting",
-            "demo-niloufar", "demo-labkhand", "demo-tavan", "demo-aramesh", "demo-aryana", "demo-roshana"
-        ]);
+        var demoSlugs = DemoSlugs.ToHashSet();
         var businesses = await db.Businesses.Include(x => x.Services).Include(x => x.Branches).ThenInclude(x => x.Resources)
             .Where(x => demoSlugs.Contains(x.Slug)).ToListAsync(ct);
         var businessIds = businesses.Select(x => x.Id).ToList();
@@ -270,6 +273,32 @@ public static class DemoSeeder
                 });
             }
         }
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task ResetAsync(AppDbContext db, CancellationToken ct)
+    {
+        var businessIds = await db.Businesses.IgnoreQueryFilters().Where(x => DemoSlugs.Contains(x.Slug)).Select(x => x.Id).ToListAsync(ct);
+        var branchIds = await db.Branches.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).Select(x => x.Id).ToListAsync(ct);
+        var appointmentIds = await db.Appointments.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).Select(x => x.Id).ToListAsync(ct);
+        var resourceIds = await db.Resources.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).Select(x => x.Id).ToListAsync(ct);
+        var serviceIds = await db.Services.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).Select(x => x.Id).ToListAsync(ct);
+
+        await db.CustomerReviews.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
+        await db.Reviews.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
+        await db.AppointmentServices.IgnoreQueryFilters().Where(x => appointmentIds.Contains(x.AppointmentId)).ExecuteDeleteAsync(ct);
+        await db.Appointments.IgnoreQueryFilters().Where(x => appointmentIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.AvailabilityRules.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
+        await db.ServiceResources.IgnoreQueryFilters().Where(x => resourceIds.Contains(x.ResourceId)).ExecuteDeleteAsync(ct);
+        await db.BranchServices.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).ExecuteDeleteAsync(ct);
+        await db.BranchMemberships.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).ExecuteDeleteAsync(ct);
+        await db.Resources.IgnoreQueryFilters().Where(x => resourceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.Services.IgnoreQueryFilters().Where(x => serviceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.Branches.IgnoreQueryFilters().Where(x => branchIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.Businesses.IgnoreQueryFilters().Where(x => businessIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+
+        var demoUsers = await db.Users.Where(x => x.Email != null && x.Email.EndsWith("@demo.benobat.example")).ToListAsync(ct);
+        db.Users.RemoveRange(demoUsers);
         await db.SaveChangesAsync(ct);
     }
 

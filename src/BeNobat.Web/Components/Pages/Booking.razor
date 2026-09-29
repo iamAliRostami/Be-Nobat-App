@@ -7,6 +7,7 @@
 @inject AppDbContext Db
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
+@inject ILogger<Booking> Logger
 
 <PageTitle>رزرو نوبت | به‌نوبت</PageTitle>
 
@@ -220,9 +221,9 @@ else
         var branch = SelectedBranch;
         var duration = TimeSpan.FromMinutes(SelectedDuration.Value);
         var zone = TimeZoneInfo.FindSystemTimeZoneById(branch.TimeZoneId);
-        var localStart = SelectedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        var dayStart = new DateTimeOffset(localStart, zone.GetUtcOffset(localStart));
-        var dayEnd = dayStart.AddDays(1);
+        // PostgreSQL timestamptz parameters must be UTC. Passing Tehran's +03:30 offset
+        // makes Npgsql throw before the availability query can return any slots.
+        var (dayStart, dayEnd) = BookingPolicy.UtcDayWindow(SelectedDate, zone);
         var rules = await Db.AvailabilityRules.Where(x => x.BusinessId == BusinessId && (x.EffectiveDate == SelectedDate || (x.EffectiveDate == null && x.DayOfWeek == SelectedDate.DayOfWeek)) && (x.ResourceId == SelectedResourceId || (x.ResourceId == null && (x.BranchId == branch.Id || x.BranchId == null)))).OrderBy(x => x.StartsAt).ToListAsync();
         var scoped = rules.Any(x => x.ResourceId == SelectedResourceId) ? rules.Where(x => x.ResourceId == SelectedResourceId).ToList() : rules.Any(x => x.BranchId == branch.Id) ? rules.Where(x => x.ResourceId == null && x.BranchId == branch.Id).ToList() : rules.Where(x => x.ResourceId == null && x.BranchId == null).ToList();
         var intervals = scoped.Where(x => x.IsAvailable).ToList();
@@ -244,8 +245,10 @@ else
         }
         Slots = slots.Distinct().OrderBy(x => x).ToList();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Failed to load booking slots for business {BusinessId}, branch {BranchId}, resource {ResourceId}, date {Date}",
+                BusinessId, SelectedBranchId, SelectedResourceId, SelectedDate);
             Slots = [];
             ErrorMessage = "دریافت زمان‌های خالی ممکن نشد. لطفاً تاریخ دیگری را انتخاب کنید یا به مرحله قبل بازگردید.";
         }

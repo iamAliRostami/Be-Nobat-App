@@ -14,6 +14,15 @@ public static class BookingPolicy
         (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed) &&
         appointment.StartsAt >= now.Add(CustomerCancellationNotice);
 
+    public static (DateTimeOffset Start, DateTimeOffset End) UtcDayWindow(DateOnly date, TimeZoneInfo zone)
+    {
+        var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var start = new DateTimeOffset(local, zone.GetUtcOffset(local)).ToUniversalTime();
+        var nextLocal = date.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var end = new DateTimeOffset(nextLocal, zone.GetUtcOffset(nextLocal)).ToUniversalTime();
+        return (start, end);
+    }
+
     public static bool Overlaps(DateTimeOffset startsAt, DateTimeOffset endsAt,
         DateTimeOffset otherStartsAt, DateTimeOffset otherEndsAt) =>
         startsAt < otherEndsAt && otherStartsAt < endsAt;

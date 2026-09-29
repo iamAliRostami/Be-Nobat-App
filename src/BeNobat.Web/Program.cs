@@ -5,10 +5,12 @@ using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-var seedDemo = args.Contains("--seed-demo", StringComparer.Ordinal);
-var hostArgs = args.Where(arg => arg != "--seed-demo").ToArray();
+var resetDemo = args.Contains("--reset-demo", StringComparer.Ordinal);
+var seedDemo = resetDemo || args.Contains("--seed-demo", StringComparer.Ordinal);
+var hostArgs = args.Where(arg => arg is not "--seed-demo" and not "--reset-demo").ToArray();
 var builder = WebApplication.CreateBuilder(hostArgs);
-if (seedDemo && !builder.Environment.IsDevelopment())
+var seedDemoOnStartup = builder.Configuration.GetValue<bool>("Seed:DemoOnStartup");
+if ((seedDemo || seedDemoOnStartup) && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException("داده‌های نمایشی فقط در محیط Development قابل ایجاد هستند.");
 }
@@ -75,9 +77,9 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.EnsureCreatedAsync();
     await CompatibilitySchemaUpgrade.ApplyAsync(db);
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
-    if (seedDemo)
+    if (seedDemo || seedDemoOnStartup)
     {
-        await DemoSeeder.SeedAsync(scope.ServiceProvider);
+        await DemoSeeder.SeedAsync(scope.ServiceProvider, reset: resetDemo);
     }
 }
 
