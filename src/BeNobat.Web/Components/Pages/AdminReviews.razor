@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @inject AppDbContext Db
 @inject AdminAccessScope Access
+@inject IJSRuntime JS
 
 <PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی و پاسخ دهید، و به مراجعه‌کنندگان امتیاز بدهید.</p></div></div>
@@ -58,7 +59,7 @@
 }
 else
 {
-    <article class="admin-panel">
+    <article class="admin-panel outgoing-reviews">
         <div class="panel-head"><div><h2>نوبت‌های تکمیل‌شده بدون ارزیابی</h2><p>به حضور و همکاری مراجعه‌کننده امتیاز بدهید. این امتیاز عمومی نیست.</p></div></div>
         @if (Pending.Count == 0)
         {
@@ -69,7 +70,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b>@DisplayNameOf(appointment.Customer)</b><small>@appointment.Service.Name · @appointment.Branch.Name · @appointment.StartsAt.ToString("yyyy/MM/dd")</small></div>
+                        <div><b>@DisplayNameOf(appointment.Customer)</b><small>@appointment.Service.Name · @appointment.Branch.Name · @FormatDate(appointment.StartsAt)</small></div>
                     </header>
                     <footer>
                         <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
@@ -94,7 +95,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b>@DisplayNameOf(item.Customer)</b><small>@item.Business.Name · ثبت توسط @DisplayNameOf(item.Author) · @item.CreatedAt.ToString("yyyy/MM/dd")</small></div>
+                        <div><b>@DisplayNameOf(item.Customer)</b><small>@item.Business.Name · ثبت توسط @DisplayNameOf(item.Author) · @FormatDate(item.CreatedAt)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
                     @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
@@ -130,6 +131,7 @@ else
     private Review? Replying;
     private ReplyInput ReplyForm = new();
     private Guid CurrentUserId;
+    private string Language = "fa";
 
     private IEnumerable<Review> Filtered => Filter == "all" ? Reviews : Reviews.Where(x => x.Status.ToString() == Filter);
     private double Average => Reviews.Count == 0 ? 0 : Reviews.Average(x => x.Rating);
@@ -145,6 +147,15 @@ else
 
         await Load();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
+        StateHasChanged();
+    }
+
+    private string FormatDate(DateTimeOffset value) => LocalizedDate.Format(DateOnly.FromDateTime(value.DateTime), Language);
 
     private async Task Load()
     {

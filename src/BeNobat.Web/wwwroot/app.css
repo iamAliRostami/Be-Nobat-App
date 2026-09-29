@@ -66,9 +66,7 @@
 .auth-switch a{color:var(--primary);font-weight:600}
 .validation-message{color:#ba1a1a;font-size:10px;display:block;margin-top:-4px}
 
-.logout-form{display:contents}
 .logout-button{background:none;border:1px solid #e3f0ee;border-radius:9px;padding:8px 13px;font-size:11px;color:var(--primary);cursor:pointer}
-.logout-icon-button{background:none;border:0;color:#a8b5b2;cursor:pointer;font-size:14px}
 .ui-preferences{display:flex;align-items:center;gap:10px;direction:ltr;height:38px}
 .ui-preferences button{display:grid;place-items:center;box-sizing:border-box;padding:0;flex:0 0 auto;cursor:pointer;font:inherit;line-height:1;transition:border-color .2s,background .2s,transform .2s}
 .ui-preferences button:hover{transform:translateY(-1px)}
@@ -183,6 +181,8 @@ img.customer-avatar{object-fit:cover}
 .review-list footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid #f0f7f6;padding-top:9px}
 .review-list footer button{border:1px solid #dfefec;background:#fff;border-radius:8px;padding:6px 11px;font-size:10px;color:#5d716c;cursor:pointer}
 .review-list footer button:hover{border-color:#cde1dd;color:var(--primary)}
+.outgoing-reviews .review-list footer{display:grid;grid-template-columns:140px minmax(220px,1fr) 110px;align-items:stretch;gap:10px}.outgoing-reviews .review-list footer select,.outgoing-reviews .review-list footer input,.outgoing-reviews .review-list footer button{height:40px;box-sizing:border-box;border:1px solid #d9e8e5;border-radius:9px;background:#fff;color:#33423e;padding:0 12px;font:inherit}.outgoing-reviews .review-list footer button{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}.outgoing-reviews .review-list footer input:focus,.outgoing-reviews .review-list footer select:focus{outline:2px solid color-mix(in srgb,var(--primary) 20%,transparent);border-color:var(--primary)}
+@media(max-width:700px){.outgoing-reviews .review-list footer{grid-template-columns:1fr}.outgoing-reviews .review-list footer button{width:100%}}
 .review-rating-select{font:inherit;padding:8px 11px;border:1px solid #ddeae8;border-radius:9px;background:#fff;color:#323e3b;cursor:pointer}
 .header-avatar{width:34px;height:34px;object-fit:cover;border-radius:50%;display:grid;place-items:center;background:#eef6f4;color:var(--primary);font-size:10px;font-weight:700;align-self:center}
 .stars{color:#f2b84b;font-size:12px;letter-spacing:1px;white-space:nowrap}
@@ -260,6 +260,7 @@ html[dir="ltr"] body{text-align:left}html[dir="ltr"] .sidebar nav a i{margin-rig
 .booking-filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .booking-filters label{display:grid;gap:5px;font-size:11px;color:#6c7c78;min-width:180px}
 .booking-filters select{border:1px solid #e3f0ee;border-radius:9px;padding:9px 11px;font:inherit;background:#fff;color:#323e3b}
+.booking-filters.provider-filter{margin-top:18px;padding-top:4px}.booking-filters.provider-filter label{gap:8px;font-weight:600;color:#425650}.booking-filters.provider-filter select{min-height:42px;font-weight:400}.booking-back-button{display:inline-flex;align-items:center;text-decoration:none}
 
 /* ===== لایه‌ی کامپوننت‌ها – برگردان styles.xml اپ اندروید به وب =====
    Widget.BeNobat.Button / .Outlined / .Text، Widget.BeNobat.Card،

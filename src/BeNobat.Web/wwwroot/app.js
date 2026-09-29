@@ -155,9 +155,10 @@ window.beNobat = {
         toggleTheme: () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')
     };
 
-    // Native <details> does not close when the user clicks elsewhere.
+    // Native <details> does not close when the user clicks elsewhere. Keep both
+    // header menus consistent: clicking outside either menu closes it.
     document.addEventListener('click', event => {
-        for (const menu of document.querySelectorAll('.public-user-menu[open]')) {
+        for (const menu of document.querySelectorAll('.public-user-menu[open], .language-menu[open]')) {
             if (!menu.contains(event.target)) menu.removeAttribute('open');
         }
     });
