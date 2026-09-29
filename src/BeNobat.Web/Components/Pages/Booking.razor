@@ -158,7 +158,8 @@ else
     {
         BranchServices = await Db.BranchServices.Where(x => x.BranchId == SelectedBranchId).ToListAsync();
         var all = await Db.Services.Where(x => x.BusinessId == BusinessId).OrderBy(x => x.Name).ToListAsync();
-        Services = BranchServices.Count == 0 ? all : all.Where(x => BranchServices.Any(y => y.ServiceId == x.Id)).ToList();
+        // A business service is bookable in a branch only after an explicit branch assignment.
+        Services = all.Where(x => BranchServices.Any(y => y.ServiceId == x.Id)).ToList();
         SelectedServiceIds.RemoveWhere(id => Services.All(x => x.Id != id));
         await LoadEligibleResourcesAsync();
     }
@@ -167,9 +168,11 @@ else
     private async Task LoadEligibleResourcesAsync()
     {
         var staff = await Db.Resources.Where(x => x.BranchId == SelectedBranchId && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync();
-        if (SelectedServiceIds.Count == 0) { EligibleResources = staff; return; }
+        if (SelectedServiceIds.Count == 0) { EligibleResources = []; return; }
         var assignments = await Db.ServiceResources.Where(x => SelectedServiceIds.Contains(x.ServiceId)).ToListAsync();
-        EligibleResources = assignments.Count == 0 ? staff : staff.Where(r => SelectedServiceIds.All(s => assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
+        // Branch membership alone doesn't qualify a staff member to provide a service.
+        EligibleResources = staff.Where(r => SelectedServiceIds.All(s =>
+            assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
     }
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; EnsureDateNotPast(); Step = 2; await LoadSlotsAsync(); }
     private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
@@ -257,6 +260,11 @@ else
         if (!Guid.TryParse(userText, out var userId)) { NavigationManager.NavigateTo($"/account/login?ReturnUrl=/book/{BusinessId}", true); return; }
         var start = SelectedSlot.Value; var end = start.AddMinutes(SelectedDuration.Value);
         if (!BookingPolicy.IsBookable(start, DateTimeOffset.UtcNow)) { ErrorMessage = "زمان انتخاب‌شده گذشته است."; await LoadSlotsAsync(); return; }
+        var selectedServiceIds = SelectedServiceIds.ToList();
+        var isEligibleProvider = await Db.Resources.AnyAsync(r => r.Id == SelectedResourceId && r.BranchId == SelectedBranch.Id && r.Kind == "staff") &&
+            await Db.ServiceResources.Where(x => x.ResourceId == SelectedResourceId && selectedServiceIds.Contains(x.ServiceId))
+                .Select(x => x.ServiceId).Distinct().CountAsync() == selectedServiceIds.Count;
+        if (!isEligibleProvider) { ErrorMessage = "این کارمند برای همه خدمات انتخاب‌شده به‌عنوان ارائه‌دهنده تعریف نشده است."; SelectedResourceId = null; SelectedSlot = null; await LoadEligibleResourcesAsync(); return; }
         var conflict = await Db.Appointments.AnyAsync(a => a.ResourceId == SelectedResourceId && a.Status != AppointmentStatus.Cancelled && a.StartsAt < end && a.EndsAt > start);
         if (conflict) { ErrorMessage = "این زمان رزرو شده است؛ زمان دیگری انتخاب کنید."; SelectedSlot = null; await LoadSlotsAsync(); return; }
         var selected = SelectedServices.ToList();

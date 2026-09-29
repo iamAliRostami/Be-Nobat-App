@@ -476,3 +476,5 @@ button.back-link:hover{color:var(--primary)}
 
 /* The page wrapper clips overflow; let the open calendar popup extend past it instead of being cut. */
 .public-main:has(.cal-popup){overflow:visible}
+
+.availability-services{display:flex;flex-wrap:wrap;gap:8px 14px;padding:12px;border:1px solid #e4efed;border-radius:11px}.availability-services legend{padding:0 6px;font-weight:700}.availability-services>small{flex-basis:100%;color:var(--muted)}

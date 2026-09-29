@@ -47,7 +47,15 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal availability-form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
-            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label></div>
+            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId" @bind:after="ResourceChanged"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label></div>
+            @if (Form.ResourceId is not null)
+            {
+                <fieldset class="availability-services"><legend>خدمات قابل ارائه توسط این کارمند</legend>
+                    @if (!AvailableServices.Any()) { <small>ابتدا یک خدمت فعال برای این شعبه تعریف کنید.</small> }
+                    @foreach (var service in AvailableServices) { <label class="check-label"><input type="checkbox" checked="@SelectedServiceIds.Contains(service.Id)" @onchange="() => ToggleService(service.Id)" /><span>@service.Name</span></label> }
+                    <small>کارمند فقط برای خدمات انتخاب‌شده در مرحله رزرو نمایش داده می‌شود.</small>
+                </fieldset>
+            }
             <label class="localized-date-field"><span class="localized-date-heading"><span>تاریخ</span><small>@LocalizedDate.Weekday(Form.EffectiveDate, Language)</small></span><div class="localized-date-inputs"><select aria-label="سال" @bind="LocalYear" @bind:after="LocalizedDateChanged">@foreach(var year in LocalYears){<option value="@year">@LocalizedDate.FormatNumber(year, Language)</option>}</select><select aria-label="ماه" @bind="LocalMonth" @bind:after="LocalizedDateChanged">@foreach(var month in LocalMonths){<option value="@month">@LocalizedDate.MonthName(month, Language)</option>}</select><select aria-label="روز" @bind="LocalDay" @bind:after="LocalizedDateChanged">@foreach(var day in LocalDays){<option value="@day">@LocalizedDate.FormatNumber(day, Language)</option>}</select></div></label>
             <div class="time-range"><label>از<select @bind="StartMinutes" @bind:after="StartTimeChanged">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><label>تا<select @bind="EndMinutes">@foreach(var minutes in TimeOptions(Form.EndsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
@@ -62,6 +70,9 @@
     private List<Branch> Branches = [];
     private List<AvailabilityRule> Rules = [];
     private List<Resource> Resources = [];
+    private List<Service> Services = [];
+    private List<BranchService> BranchServices = [];
+    private HashSet<Guid> SelectedServiceIds = [];
     private HashSet<Guid> BookedRuleIds = [];
     private string BusinessFilter = "";
     private string ActiveTab = "active";
@@ -96,6 +107,7 @@
         .ThenBy(x => x.Business.Name);
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
+    private IEnumerable<Service> AvailableServices => Services.Where(x => BranchServices.Any(bs => bs.BranchId == Form.BranchId && bs.ServiceId == x.Id));
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,6 +118,8 @@
         Businesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
         var branchIds = Branches.Select(x => x.Id).ToList();
         Resources = await Db.Resources.Where(x => branchIds.Contains(x.BranchId)).OrderBy(x => x.Name).ToListAsync();
+        Services = await Db.Services.Where(x => businessIds.Contains(x.BusinessId)).OrderBy(x => x.Name).ToListAsync();
+        BranchServices = await Db.BranchServices.Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
         await LoadRules();
     }
 
@@ -136,23 +150,30 @@
         Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id };
         Form.EffectiveDate = FormToday;
         Form.DayOfWeek = FormToday.DayOfWeek;
+        SelectedServiceIds = [];
         SetLocalizedDateParts();
         EnsureFutureTimes();
         ShowForm = true;
     }
 
-    private void Edit(AvailabilityRule rule)
+    private async Task Edit(AvailabilityRule rule)
     {
         EditingId = rule.Id;
         if (IsPast(rule)) return;
         Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, EffectiveDate = rule.EffectiveDate ?? Today, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        await LoadSelectedServicesAsync(rule.ResourceId);
         SetLocalizedDateParts();
         EnsureFutureTimes();
         ShowForm = true;
     }
 
-    private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; return Task.CompletedTask; }
-    private Task BranchChanged() { Form.ResourceId = null; return Task.CompletedTask; }
+    private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; SelectedServiceIds.Clear(); return Task.CompletedTask; }
+    private Task BranchChanged() { Form.ResourceId = null; SelectedServiceIds.Clear(); return Task.CompletedTask; }
+    private async Task ResourceChanged() => await LoadSelectedServicesAsync(Form.ResourceId);
+    private async Task LoadSelectedServicesAsync(Guid? resourceId) => SelectedServiceIds = resourceId is Guid id
+        ? (await Db.ServiceResources.Where(x => x.ResourceId == id).Select(x => x.ServiceId).ToListAsync()).ToHashSet()
+        : [];
+    private void ToggleService(Guid id) { if (!SelectedServiceIds.Add(id)) SelectedServiceIds.Remove(id); }
     private void SetLocalizedDateParts() => (LocalYear, LocalMonth, LocalDay) = LocalizedDate.GetParts(Form.EffectiveDate, Language);
     private Task LocalizedDateChanged()
     {
@@ -201,6 +222,7 @@
         if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt || (!IsPlatformAdmin && Form.BranchId is null)) { Error = "بازه زمانی و شعبه انتخاب‌شده معتبر نیست."; return; }
         if (Form.EffectiveDate < FormToday) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
         if (Form.ResourceId is Guid resourceId && !AvailableResources.Any(x => x.Id == resourceId)) { Error = "کارمند باید متعلق به شعبه انتخاب‌شده باشد."; return; }
+        if (Form.ResourceId is not null && (SelectedServiceIds.Count == 0 || SelectedServiceIds.Any(id => AvailableServices.All(x => x.Id != id)))) { Error = "حداقل یک خدمت فعال همین شعبه را برای ارائه‌دهنده انتخاب کنید."; return; }
         if (Form.BranchId is Guid branchId && !await Access.CanAccessBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
         var duplicateOrOverlap = await Db.AvailabilityRules.AnyAsync(x =>
             x.Id != EditingId && x.BusinessId == Form.BusinessId && x.BranchId == Form.BranchId &&
@@ -211,6 +233,14 @@
         rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.ResourceId = Form.ResourceId; rule.EffectiveDate = Form.EffectiveDate; rule.DayOfWeek = Form.EffectiveDate.DayOfWeek;
         rule.StartsAt = Form.StartsAt; rule.EndsAt = Form.EndsAt; rule.IsAvailable = Form.IsAvailable;
         if (EditingId is null) Db.AvailabilityRules.Add(rule);
+        if (Form.ResourceId is Guid providerId)
+        {
+            var existing = await Db.ServiceResources.Where(x => x.ResourceId == providerId).ToListAsync();
+            Db.ServiceResources.RemoveRange(existing.Where(x => !SelectedServiceIds.Contains(x.ServiceId)));
+            var existingIds = existing.Select(x => x.ServiceId).ToHashSet();
+            Db.ServiceResources.AddRange(SelectedServiceIds.Where(id => !existingIds.Contains(id))
+                .Select(id => new ServiceResource { ResourceId = providerId, ServiceId = id }));
+        }
         await Db.SaveChangesAsync(); Close(); await LoadRules();
     }
 
