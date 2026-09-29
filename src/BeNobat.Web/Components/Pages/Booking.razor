@@ -18,13 +18,14 @@
 else
 {
     <div class="booking-page">
-        @if (Step == 2) { <button type="button" class="booking-back-button" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> }
+        @if (Step == 3) { <button type="button" class="booking-back-button" @onclick="BackToStep2">→ بازگشت به انتخاب زمان</button> }
+        else if (Step == 2) { <button type="button" class="booking-back-button" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> }
         else if (Step == 1) { <a class="booking-back-button" href="@SafeReturnUrl">→ بازگشت به نتایج</a> }
         <div class="booking-head"><div class="booking-logo">✦</div><div><h1>@Business.Name</h1><p>@(SelectedBranch?.Address ?? Business.City)</p></div></div>
         <div class="booking-progress">
             <div class="@(Step > 1 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۱")</b><span>خدمات</span></div><i></i>
             <div class="@(Step > 2 ? "done" : Step == 2 ? "active" : "")"><b>@(Step > 2 ? "✓" : "۲")</b><span>کارمند و زمان</span></div><i></i>
-            <div class="@(Step == 3 ? "active" : "")"><b>۳</b><span>تأیید نهایی</span></div>
+            <div class="@(Step > 3 ? "done" : Step == 3 ? "active" : "")"><b>@(Step > 3 ? "✓" : "۳")</b><span>تأیید نهایی</span></div>
         </div>
         @if (ErrorMessage is not null) { <div class="auth-error">@ErrorMessage</div> }
 
@@ -80,10 +81,43 @@ else
                 <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" Language="@Language" />
             </div>
         }
+        else if (Step == 3)
+        {
+            <div class="booking-layout">
+                <section class="booking-panel booking-confirmation">
+                    <div class="booking-title"><span>۳</span><div><h2>بررسی و تأیید نهایی</h2><p>پیش از ثبت نوبت، مشخصات و قوانین رزرو را بررسی کنید.</p></div></div>
+                    <dl class="confirmation-details">
+                        <div><dt>کسب‌وکار</dt><dd>@Business.Name</dd></div>
+                        <div><dt>شعبه</dt><dd>@SelectedBranch?.Name</dd></div>
+                        <div><dt>خدمات</dt><dd>@SelectedServicesLabel</dd></div>
+                        <div><dt>ارائه‌دهنده</dt><dd>@SelectedResource?.Name</dd></div>
+                        <div><dt>تاریخ و ساعت</dt><dd>@FormatSelectedTime()</dd></div>
+                        <div><dt>مبلغ</dt><dd>@SelectedPrice?.ToString("N0") تومان</dd></div>
+                    </dl>
+                </section>
+                <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted)" DisabledReason="برای ثبت نوبت، قوانین رزرو را مطالعه و تأیید کنید." />
+            </div>
+        }
         else
         {
             <section class="success-card"><div class="success-icon">✓</div><span>نوبت شما ثبت شد</span><h1>منتظرت هستیم!</h1><p>جزئیات نوبت در «نوبت‌های من» قابل مشاهده است.</p><div class="success-details"><div><small>خدمات</small><b>@SelectedServicesLabel</b></div><div><small>ارائه‌دهنده</small><b>@SelectedResource?.Name</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
         }
+    </div>
+}
+
+@if (ShowTerms)
+{
+    <div class="modal-backdrop" @onclick="CloseTerms">
+        <section class="form-modal booking-rules-modal" @onclick:stopPropagation>
+            <div><h2>قوانین رزرو نوبت</h2><button type="button" @onclick="CloseTerms">×</button></div>
+            <ol>
+                <li>برای حضور به‌موقع، حداقل ۱۰ دقیقه پیش از شروع نوبت در شعبه حاضر باشید.</li>
+                <li>لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است.</li>
+                <li>در صورت تأخیر، مدت خدمت ممکن است کوتاه شود یا نوبت با هماهنگی شعبه جابه‌جا شود.</li>
+                <li>مبلغ نمایش‌داده‌شده بر اساس خدمات انتخابی است و خدمات اضافه با تأیید شما محاسبه می‌شود.</li>
+            </ol>
+            <button type="button" class="primary-button" @onclick="AcceptTerms">قوانین را خواندم و تأیید می‌کنم</button>
+        </section>
     </div>
 }
 
@@ -107,6 +141,8 @@ else
     private List<DateTimeOffset> Slots = [];
     private string? ErrorMessage;
     private bool IsLoadingSlots;
+    private bool ShowTerms;
+    private bool TermsAccepted;
     private sealed record DayOption(DateOnly Date, string Weekday, string DayNumber, string Month);
     private const int WindowDays = 7;
     private string Language = "fa";
@@ -165,7 +201,7 @@ else
         await LoadEligibleResourcesAsync();
     }
     private async Task BranchChanged() { SelectedSlot = null; SelectedResourceId = null; EnsureDateNotPast(); await LoadBranchServicesAsync(); }
-    private void ToggleService(Guid id) { if (!SelectedServiceIds.Add(id)) SelectedServiceIds.Remove(id); SelectedResourceId = null; SelectedSlot = null; }
+    private void ToggleService(Guid id) { if (!SelectedServiceIds.Add(id)) SelectedServiceIds.Remove(id); SelectedResourceId = null; SelectedSlot = null; TermsAccepted = false; }
     private async Task LoadEligibleResourcesAsync()
     {
         var staff = await Db.Resources.Where(x => x.BranchId == SelectedBranchId && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync();
@@ -177,11 +213,11 @@ else
     }
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; EnsureDateNotPast(); Step = 2; await LoadSlotsAsync(); }
     private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
-    private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
+    private async Task ResourceChanged() { SelectedSlot = null; TermsAccepted = false; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date)
     {
         if (date < Today || IsLoadingSlots) return;
-        SelectedDate = date; SelectedSlot = null;
+        SelectedDate = date; SelectedSlot = null; TermsAccepted = false;
         // Only move the strip when the chosen date (from the calendar popup) is outside it.
         if (date < WindowStart || date >= WindowStart.AddDays(WindowDays)) { WindowStart = date; BuildDays(); }
         await LoadSlotsAsync();
@@ -255,9 +291,19 @@ else
         finally { IsLoadingSlots = false; }
     }
 
-    private async Task NextFromStep2() { if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; } if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; } await ConfirmBookingAsync(); }
+    private Task NextFromStep2()
+    {
+        if (SelectedResourceId is null) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return Task.CompletedTask; }
+        if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return Task.CompletedTask; }
+        ErrorMessage = null; TermsAccepted = false; Step = 3; return Task.CompletedTask;
+    }
+    private void BackToStep2() { ErrorMessage = null; TermsAccepted = false; Step = 2; }
+    private void OpenTerms() => ShowTerms = true;
+    private void CloseTerms() => ShowTerms = false;
+    private void AcceptTerms() { TermsAccepted = true; ShowTerms = false; }
     private async Task ConfirmBookingAsync()
     {
+        if (!TermsAccepted) { ErrorMessage = "برای ثبت نوبت ابتدا قوانین رزرو را مطالعه و تأیید کنید."; return; }
         if (SelectedSlot is null || SelectedBranch is null || SelectedResourceId is null || AuthStateTask is null || SelectedDuration is null) return;
         var userText = (await AuthStateTask).User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userText, out var userId)) { NavigationManager.NavigateTo($"/account/login?ReturnUrl=/book/{BusinessId}", true); return; }
@@ -267,7 +313,13 @@ else
         // An advisory transaction lock is stable across application instances and closes the
         // race between the last conflict check and INSERT for this provider.
         var resourceLockKey = BitConverter.ToInt64(SelectedResourceId.Value.ToByteArray(), 0);
-        await Db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({resourceLockKey})");
+        var lockAcquired = await Db.Database.SqlQuery<bool>($"SELECT pg_try_advisory_xact_lock({resourceLockKey}) AS \"Value\"").SingleAsync();
+        if (!lockAcquired)
+        {
+            await transaction.RollbackAsync();
+            ErrorMessage = "در حال حاضر رزرو دیگری برای این ارائه‌دهنده در حال ثبت است؛ چند لحظه بعد دوباره تلاش کنید.";
+            return;
+        }
         await LoadSlotsAsync();
         if (!Slots.Contains(start))
         {
@@ -287,7 +339,7 @@ else
         var first = selected[0];
         var appointment = new Appointment { BranchId = SelectedBranch.Id, ServiceId = first.Id, ResourceId = SelectedResourceId, CustomerId = userId, StartsAt = start, EndsAt = end, FinalPrice = SelectedPrice!.Value };
         foreach (var service in selected) appointment.Services.Add(new AppointmentService { ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = ServicePrice(service) });
-        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync(); ErrorMessage = null; Step = 3;
+        Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); await transaction.CommitAsync(); ErrorMessage = null; Step = 4;
     }
     // Built from the slot itself (not from the visible week) so it stays correct after the strip moves,
     // and always uses the calendar of the active language.
