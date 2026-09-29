@@ -47,9 +47,9 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal availability-form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" @onclick="Close">×</button></div>
-            <div class="form-columns"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label></div>
-            <div class="form-columns"><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label><label class="localized-date-field">تاریخ<span class="localized-date-shell"><input type="date" @bind="Form.EffectiveDate" @bind:after="DateChanged" min="@TodayIso" /><span class="localized-date-value">@LocalizedDate.Format(Form.EffectiveDate, Language)</span></span><small>@DayLabel(Form.DayOfWeek)</small></label></div>
-            <div class="form-columns time-range"><label>از<input type="time" @bind="Form.StartsAt" /></label><label>تا<input type="time" @bind="Form.EndsAt" /></label></div>
+            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label></div>
+            <label class="localized-date-field">تاریخ<div class="localized-date-inputs"><select aria-label="سال" @bind="LocalYear" @bind:after="LocalizedDateChanged">@foreach(var year in LocalYears){<option value="@year">@LocalizedDate.FormatNumber(year, Language)</option>}</select><select aria-label="ماه" @bind="LocalMonth" @bind:after="LocalizedDateChanged">@for(var month = 1; month <= 12; month++){<option value="@month">@LocalizedDate.MonthName(month, Language)</option>}</select><select aria-label="روز" @bind="LocalDay" @bind:after="LocalizedDateChanged">@for(var day = 1; day <= LocalDaysInMonth; day++){<option value="@day">@LocalizedDate.FormatNumber(day, Language)</option>}</select></div><small>@LocalizedDate.Weekday(Form.EffectiveDate, Language)</small></label>
+            <div class="time-range"><label>از<select @bind="StartMinutes">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><span aria-hidden="true">←</span><label>تا<select @bind="EndMinutes">@foreach(var minutes in TimeOptions(Form.EndsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
             <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }
             <button class="primary-button">ذخیره</button>
@@ -72,7 +72,13 @@
     private bool IsPlatformAdmin;
     private string Language = "fa";
     private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
-    private string TodayIso => Today.ToString("yyyy-MM-dd");
+    private int LocalYear;
+    private int LocalMonth;
+    private int LocalDay;
+    private IEnumerable<int> LocalYears => Enumerable.Range(LocalizedDate.GetParts(Today, Language).Year, 11);
+    private int LocalDaysInMonth => LocalizedDate.DaysInMonth(LocalYear, LocalMonth, Language);
+    private int StartMinutes { get => Form.StartsAt.Hour * 60 + Form.StartsAt.Minute; set => Form.StartsAt = new TimeOnly(value / 60, value % 60); }
+    private int EndMinutes { get => Form.EndsAt.Hour * 60 + Form.EndsAt.Minute; set => Form.EndsAt = new TimeOnly(value / 60, value % 60); }
     private IEnumerable<AvailabilityRule> VisibleRules => ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x));
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
@@ -104,6 +110,7 @@
     {
         if (!firstRender) return;
         Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
+        SetLocalizedDateParts();
         StateHasChanged();
     }
 
@@ -113,6 +120,7 @@
         var business = Businesses.FirstOrDefault();
         var businessId = business?.Id ?? Guid.Empty;
         Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id, EffectiveDate = Today, DayOfWeek = Today.DayOfWeek };
+        SetLocalizedDateParts();
         ShowForm = true;
     }
 
@@ -121,17 +129,28 @@
         EditingId = rule.Id;
         if (IsPast(rule)) return;
         Form = new RuleInput { BusinessId = rule.BusinessId, BranchId = rule.BranchId, ResourceId = rule.ResourceId, EffectiveDate = rule.EffectiveDate ?? Today, DayOfWeek = rule.DayOfWeek, StartsAt = rule.StartsAt, EndsAt = rule.EndsAt, IsAvailable = rule.IsAvailable };
+        SetLocalizedDateParts();
         ShowForm = true;
     }
 
     private Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; return Task.CompletedTask; }
     private Task BranchChanged() { Form.ResourceId = null; return Task.CompletedTask; }
-    private Task DateChanged()
+    private void SetLocalizedDateParts() => (LocalYear, LocalMonth, LocalDay) = LocalizedDate.GetParts(Form.EffectiveDate, Language);
+    private Task LocalizedDateChanged()
     {
+        LocalDay = Math.Min(LocalDay, LocalDaysInMonth);
+        Form.EffectiveDate = LocalizedDate.FromParts(LocalYear, LocalMonth, LocalDay, Language);
         if (Form.EffectiveDate < Today) Form.EffectiveDate = Today;
+        SetLocalizedDateParts();
         Form.DayOfWeek = Form.EffectiveDate.DayOfWeek;
         return Task.CompletedTask;
     }
+    private static IEnumerable<int> TimeOptions(TimeOnly selected)
+    {
+        var selectedMinutes = selected.Hour * 60 + selected.Minute;
+        return Enumerable.Range(0, 96).Select(x => x * 15).Append(selectedMinutes).Distinct().Order();
+    }
+    private string FormatTimeOption(int minutes) => LocalizedDate.LocalizeDigits($"{minutes / 60:00}:{minutes % 60:00}", Language);
 
     private async Task Save()
     {

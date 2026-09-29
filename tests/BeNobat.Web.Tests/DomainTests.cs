@@ -94,4 +94,23 @@ public sealed class DomainTests
     [InlineData("0912ABC4567")]
     public void Invalid_mobile_numbers_are_rejected(string input) =>
         Assert.False(UserInputValidation.TryNormalizeIranianMobile(input, out _));
+
+    [Theory]
+    [InlineData("fa")]
+    [InlineData("ar")]
+    [InlineData("en")]
+    public void Localized_calendar_parts_round_trip(string language)
+    {
+        var date = new DateOnly(2026, 9, 29);
+        var parts = LocalizedDate.GetParts(date, language);
+
+        Assert.Equal(date, LocalizedDate.FromParts(parts.Year, parts.Month, parts.Day, language));
+    }
+
+    [Theory]
+    [InlineData("fa", "۱۴۰۵")]
+    [InlineData("ar", "١٤٤٨")]
+    [InlineData("en", "2026")]
+    public void Calendar_year_digits_follow_language(string language, string expected) =>
+        Assert.Equal(expected, LocalizedDate.FormatNumber(LocalizedDate.GetParts(new DateOnly(2026, 9, 29), language).Year, language));
 }
