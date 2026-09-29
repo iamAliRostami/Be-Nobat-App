@@ -89,7 +89,11 @@
     private bool IsCurrentLocalMonth => IsCurrentLocalYear && LocalMonth == TodayParts.Month;
     private int StartMinutes { get => Form.StartsAt.Hour * 60 + Form.StartsAt.Minute; set => Form.StartsAt = new TimeOnly(value / 60, value % 60); }
     private int EndMinutes { get => Form.EndsAt.Hour * 60 + Form.EndsAt.Minute; set => Form.EndsAt = new TimeOnly(value / 60, value % 60); }
-    private IEnumerable<AvailabilityRule> VisibleRules => ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x));
+    private IEnumerable<AvailabilityRule> VisibleRules => (ActiveTab == "past" ? Rules.Where(IsPast) : Rules.Where(x => !IsPast(x)))
+        .OrderBy(RuleSortDate)
+        .ThenBy(x => x.StartsAt)
+        .ThenBy(x => x.EndsAt)
+        .ThenBy(x => x.Business.Name);
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
 
@@ -230,6 +234,7 @@
     }
     private void Close() { ShowForm = false; Error = null; }
     private bool IsPast(AvailabilityRule rule) => rule.EffectiveDate is DateOnly date && date < Today;
+    private DateOnly RuleSortDate(AvailabilityRule rule) => rule.EffectiveDate ?? NextOccurrence(rule.DayOfWeek);
     private string DateLabel(AvailabilityRule rule)
     {
         var date = rule.EffectiveDate ?? NextOccurrence(rule.DayOfWeek);
