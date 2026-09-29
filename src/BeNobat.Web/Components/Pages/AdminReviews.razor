@@ -41,7 +41,7 @@
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="/admin/customers">@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="/businesses">@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="/admin/branches">@review.Branch.Name</a></text> }</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(review.Customer))">@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", review.Business.Name)">@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", review.Branch.Name)">@review.Branch.Name</a></text> }</small></div>
                         <span class="stars">@Stars(review.Rating)</span>
                     </header>
                     <p>@review.Comment</p>
@@ -70,7 +70,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="/admin/customers">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="/businesses">@appointment.Service.Name</a> · <a class="entity-link" href="/admin/branches">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(appointment.Customer))">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", appointment.Service.Name)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt)</small></div>
                     </header>
                     <footer>
                         <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
@@ -95,7 +95,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="/admin/customers">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="/businesses">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="/admin/team">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(item.Customer))">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", item.Business.Name)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", DisplayNameOf(item.Author))">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
                     @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
@@ -258,6 +258,8 @@ else
 
     private static string DisplayNameOf(AppUser user) =>
         string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
+
+    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
 
     private static string Stars(int n) => new string('★', n) + new string('☆', 5 - n);
 

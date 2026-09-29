@@ -105,6 +105,7 @@
 
 @code {
     [Parameter] public string? Mode { get; set; }
+    [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
 
     private string Query = "";
     private bool ShowForm;
@@ -133,6 +134,8 @@
         Navigation.LocationChanged += LocationChanged;
         await Load();
     }
+
+    protected override void OnParametersSet() => Query = FilterQuery?.Trim() ?? "";
 
     private async void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {

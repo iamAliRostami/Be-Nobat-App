@@ -34,7 +34,7 @@
                     <strong>@DateLabel(rule)</strong>
                     <span>@LocalTime(rule.StartsAt) تا @LocalTime(rule.EndsAt)</span>
                 </div>
-                <small class="availability-scope"><a class="entity-link" href="/businesses">@rule.Business.Name</a> · @if (rule.Branch is not null) { <a class="entity-link" href="/admin/branches">@rule.Branch.Name</a> } else { <text>کل مجموعه</text> } · @if (rule.Resource is not null) { <a class="entity-link" href="@(rule.Resource.Kind == "staff" ? "/admin/team" : "/admin/branches")">@rule.Resource.Name</a> } else { <text>همه منابع</text> }</small>
+                <small class="availability-scope"><a class="entity-link" href="@EntityUrl("/businesses", rule.Business.Name)">@rule.Business.Name</a> · @if (rule.Branch is not null) { <a class="entity-link" href="@EntityUrl("/admin/branches", rule.Branch.Name)">@rule.Branch.Name</a> } else { <text>کل مجموعه</text> } · @if (rule.Resource is not null) { <a class="entity-link" href="@EntityUrl(rule.Resource.Kind == "staff" ? "/admin/team" : "/admin/branches", rule.Resource.Name)">@rule.Resource.Name</a> } else { <text>همه منابع</text> }</small>
                 <div class="availability-state"><em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>@if (BookedRuleIds.Contains(rule.Id)) { <em class="status pending">رزرو شده</em> } else { <em class="status done">بدون رزرو</em> }</div>
                 @if (!IsPast(rule)) { <div class="availability-actions"><button type="button" @onclick="() => Edit(rule)">ویرایش</button><button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button></div> }
             </article>
@@ -247,6 +247,7 @@
         return Today.AddDays(offset);
     }
     private string LocalTime(TimeOnly time) => LocalizedDate.LocalizeDigits(time.ToString("HH:mm"), Language);
+    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
     private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = DateOnly.FromDateTime(DateTime.Today); public DayOfWeek DayOfWeek { get; set; } = DateTime.Today.DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

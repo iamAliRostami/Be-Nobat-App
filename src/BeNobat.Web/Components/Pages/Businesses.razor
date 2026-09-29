@@ -39,6 +39,8 @@
 </article>
 
 @code {
+    [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
+
     private List<Business> BusinessOptions = [];
     private List<Branch> Branches = [];
     private List<Service> Services = [];
@@ -49,7 +51,8 @@
     private ServiceInput Form = new();
     private HashSet<Guid> SelectedResourceIds = [];
     private string? Error;
-    private IEnumerable<Service> Filtered => Services.Where(x => x.Name.Contains(Search, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<Service> Filtered => Services.Where(x =>
+        $"{x.Name} {BusinessOptions.FirstOrDefault(b => b.Id == x.BusinessId)?.Name}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<Branch> FormBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> FormResources => Resources.Where(x => x.BranchId == Form.BranchId && x.Kind == "staff");
 
@@ -62,6 +65,7 @@
         Resources = await Db.Resources.Where(x => Branches.Select(b => b.Id).Contains(x.BranchId)).OrderBy(x => x.Name).ToListAsync();
         await Load();
     }
+    protected override void OnParametersSet() => Search = FilterQuery?.Trim() ?? "";
     private async Task Load() { var ids = BusinessOptions.Select(x => x.Id).ToList(); Services = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId)).Include(x => x.BranchServices).ThenInclude(x => x.Branch).Include(x => x.ServiceResources).ThenInclude(x => x.Resource).OrderBy(x => x.Name).ToListAsync(); }
     private void OpenNew() { EditingId = null; var businessId = BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId, BranchId = Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty }; SelectedResourceIds = []; Error = null; ShowForm = true; }
     private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, Name = service.Name, DurationMinutes = service.DurationMinutes, Price = service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty, BranchPrice = assignment?.Price }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).ToHashSet(); Error = null; ShowForm = true; }
