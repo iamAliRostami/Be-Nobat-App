@@ -34,11 +34,6 @@
                 <Authorized>
                     <UserAvatarBadge User="context.User" />
                     <div><b>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b><small>@RoleLabel(context.User)</small></div>
-                    <form method="post" action="/account/logout" class="logout-form">
-                        <AntiforgeryToken />
-                        <input type="hidden" name="returnUrl" value="/" />
-                        <button type="submit" class="logout-icon-button" title="خروج">⋮</button>
-                    </form>
                 </Authorized>
             </AuthorizeView>
         </div>

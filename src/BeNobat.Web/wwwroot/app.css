@@ -66,9 +66,7 @@
 .auth-switch a{color:var(--primary);font-weight:600}
 .validation-message{color:#ba1a1a;font-size:10px;display:block;margin-top:-4px}
 
-.logout-form{display:contents}
 .logout-button{background:none;border:1px solid #e3f0ee;border-radius:9px;padding:8px 13px;font-size:11px;color:var(--primary);cursor:pointer}
-.logout-icon-button{background:none;border:0;color:#a8b5b2;cursor:pointer;font-size:14px}
 .ui-preferences{display:flex;align-items:center;gap:10px;direction:ltr;height:38px}
 .ui-preferences button{display:grid;place-items:center;box-sizing:border-box;padding:0;flex:0 0 auto;cursor:pointer;font:inherit;line-height:1;transition:border-color .2s,background .2s,transform .2s}
 .ui-preferences button:hover{transform:translateY(-1px)}
