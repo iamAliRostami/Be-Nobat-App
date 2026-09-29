@@ -436,3 +436,43 @@ button.back-link:hover{color:var(--primary)}
 /* [fix] در صفحه‌ی خدمات شعب، نام خدمت و «مدت · قیمت» بدون فاصله به هم چسبیده بودند. */
 .service-table b{display:grid;gap:2px}
 .service-table b small{display:block;font-weight:400}
+
+/* ===== Booking calendar: language-aware picker + week strip with prev/next ===== */
+.booking-date-goto{display:grid;gap:5px}
+.booking-date-label{font-size:10px;color:var(--on-surface-variant)}
+
+.cal-picker{position:relative;display:inline-block}
+.cal-field{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:176px;min-height:38px;padding:7px 11px;border:1px solid var(--outline-soft);border-radius:9px;background:var(--surface);color:var(--on-surface);font:inherit;font-size:12px;cursor:pointer}
+.cal-field svg{width:16px;height:16px;flex:none;color:var(--primary)}
+.cal-field:hover,.cal-field[aria-expanded="true"]{border-color:var(--primary)}
+.cal-backdrop{position:fixed;inset:0;z-index:40;background:transparent}
+.cal-popup{position:absolute;z-index:41;top:calc(100% + 6px);inset-inline-start:0;width:292px;max-width:calc(100vw - 32px);padding:12px;border:1px solid var(--outline-soft);border-radius:12px;background:var(--surface);color:var(--on-surface);box-shadow:0 16px 40px rgba(0,0,0,.18)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.cal-head strong{font-size:13px}
+.cal-weekdays,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-weekdays span{text-align:center;font-size:10px;color:var(--on-surface-variant);padding:4px 0}
+.cal-day{aspect-ratio:1;min-width:0;padding:0;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--on-surface);font:inherit;font-size:12px;cursor:pointer}
+.cal-day:hover:not(:disabled){background:var(--primary-container)}
+.cal-day.today{border-color:var(--outline)}
+.cal-day.selected{border-color:var(--primary);background:var(--primary-container);font-weight:700}
+.cal-day:disabled{opacity:.35;cursor:not-allowed}
+.cal-foot{display:flex;justify-content:center;margin-top:8px}
+.cal-foot button{border:0;background:none;color:var(--primary);font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+
+/* Round arrow buttons (month header + week strip). The chevron is drawn pointing right, so it is
+   mirrored below to always point toward "earlier" (prev) or "later" (next) for the active direction. */
+.cal-nav{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border:1px solid var(--outline-soft);border-radius:9px;background:var(--surface);color:var(--on-surface);cursor:pointer}
+.cal-nav svg{width:16px;height:16px}
+.cal-nav:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.cal-nav:disabled{opacity:.35;cursor:not-allowed}
+.cal-nav.prev svg{transform:scaleX(-1)}
+:root[dir="rtl"] .cal-nav.prev svg{transform:none}
+:root[dir="rtl"] .cal-nav.next svg{transform:scaleX(-1)}
+
+/* Week strip: 7 days, arrows on both sides. Beats the older 5-column/14-day rules (also the mobile one). */
+.date-strip-wrap{display:flex;align-items:center;gap:8px;margin-top:12px}
+.date-strip-wrap .date-strip{flex:1;min-width:0;margin-top:0;grid-template-columns:repeat(7,minmax(58px,1fr));overflow-x:auto}
+.date-strip-wrap .cal-nav{height:44px}
+
+/* The page wrapper clips overflow; let the open calendar popup extend past it instead of being cut. */
+.public-main:has(.cal-popup){overflow:visible}

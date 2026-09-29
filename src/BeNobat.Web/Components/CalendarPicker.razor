@@ -1,0 +1,156 @@
+@* Calendar popup that follows the UI language: Persian → Solar Hijri (Jalali),
+   Arabic → Umm al-Qura (Hijri), English → Gregorian. A native <input type="date">
+   always renders the browser's calendar, so it cannot do this. *@
+<div class="cal-picker" @onkeydown="OnKeyDown">
+    <button type="button" class="cal-field" aria-haspopup="dialog" aria-expanded="@(IsOpen ? "true" : "false")" aria-label="@FieldLabel" @onclick="Toggle">
+        <span>@LocalizedDate.Format(Value, Language)</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 10h18" /></svg>
+    </button>
+    @if (IsOpen)
+    {
+        <div class="cal-backdrop" @onclick="Close"></div>
+        <div class="cal-popup" role="dialog" aria-label="@FieldLabel">
+            <div class="cal-head">
+                <button type="button" class="cal-nav prev" disabled="@(!CanGoPrev)" aria-label="@LocalizedDate.Choose(Language, "ماه قبل", "الشهر السابق", "Previous month")" @onclick="() => ShiftMonth(-1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+                <strong>@LocalizedDate.MonthYear(ViewYear, ViewMonth, Language)</strong>
+                <button type="button" class="cal-nav next" disabled="@(!CanGoNext)" aria-label="@LocalizedDate.Choose(Language, "ماه بعد", "الشهر التالي", "Next month")" @onclick="() => ShiftMonth(1)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+            </div>
+            <div class="cal-weekdays" aria-hidden="true">
+                @foreach (var weekday in Weekdays)
+                {
+                    <span>@LocalizedDate.ShortWeekday(weekday, Language)</span>
+                }
+            </div>
+            <div class="cal-grid">
+                @for (var blank = 0; blank < LeadingBlanks; blank++)
+                {
+                    <span></span>
+                }
+                @for (var day = 1; day <= DaysInView; day++)
+                {
+                    var date = LocalizedDate.FromParts(ViewYear, ViewMonth, day, Language);
+                    var number = day;
+                    <button type="button"
+                            class="cal-day @(date == Value ? "selected" : "") @(Today is DateOnly today && date == today ? "today" : "")"
+                            disabled="@(date < Min)"
+                            aria-current="@(date == Value ? "date" : null)"
+                            @onclick="() => PickAsync(date)">@LocalizedDate.FormatNumber(number, Language)</button>
+                }
+            </div>
+            @if (Today is DateOnly todayDate && todayDate >= Min)
+            {
+                <div class="cal-foot">
+                    <button type="button" @onclick="() => PickAsync(todayDate)">@LocalizedDate.Choose(Language, "امروز", "اليوم", "Today")</button>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public DateOnly Value { get; set; }
+    [Parameter] public EventCallback<DateOnly> ValueChanged { get; set; }
+
+    /// <summary>Earliest selectable date; earlier days are disabled and the previous-month button stops at this month.</summary>
+    [Parameter] public DateOnly Min { get; set; }
+
+    /// <summary>Optional "today" used for the highlight and the Today shortcut.</summary>
+    [Parameter] public DateOnly? Today { get; set; }
+
+    [Parameter] public string Language { get; set; } = "fa";
+
+    private bool IsOpen;
+    private int ViewYear;
+    private int ViewMonth;
+
+    private string FieldLabel => LocalizedDate.Choose(Language, "انتخاب تاریخ", "اختيار التاريخ", "Choose a date");
+
+    private IEnumerable<DayOfWeek> Weekdays
+    {
+        get
+        {
+            var first = (int)LocalizedDate.FirstDayOfWeek(Language);
+            return Enumerable.Range(0, 7).Select(offset => (DayOfWeek)((first + offset) % 7));
+        }
+    }
+
+    private int DaysInView => LocalizedDate.DaysInMonth(ViewYear, ViewMonth, Language);
+
+    private int LeadingBlanks
+    {
+        get
+        {
+            var firstOfMonth = LocalizedDate.FromParts(ViewYear, ViewMonth, 1, Language);
+            return ((int)firstOfMonth.DayOfWeek - (int)LocalizedDate.FirstDayOfWeek(Language) + 7) % 7;
+        }
+    }
+
+    private static int MonthKey(int year, int month) => year * 100 + month;
+
+    private bool CanGoPrev
+    {
+        get
+        {
+            var min = LocalizedDate.GetParts(Min, Language);
+            return MonthKey(ViewYear, ViewMonth) > MonthKey(min.Year, min.Month);
+        }
+    }
+
+    private bool CanGoNext
+    {
+        get
+        {
+            var (year, month) = LocalizedDate.AddMonths(ViewYear, ViewMonth, 1);
+            try
+            {
+                LocalizedDate.FromParts(year, month, 1, Language);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // Umm al-Qura only covers a limited range of years.
+                return false;
+            }
+        }
+    }
+
+    private void Toggle()
+    {
+        if (IsOpen)
+        {
+            IsOpen = false;
+            return;
+        }
+
+        // Open on the month of the current value (never before the minimum month).
+        var parts = LocalizedDate.GetParts(Value < Min ? Min : Value, Language);
+        ViewYear = parts.Year;
+        ViewMonth = parts.Month;
+        IsOpen = true;
+    }
+
+    private void Close() => IsOpen = false;
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") IsOpen = false;
+    }
+
+    private void ShiftMonth(int delta)
+    {
+        if (delta < 0 && !CanGoPrev) return;
+        if (delta > 0 && !CanGoNext) return;
+        (ViewYear, ViewMonth) = LocalizedDate.AddMonths(ViewYear, ViewMonth, delta);
+    }
+
+    private async Task PickAsync(DateOnly date)
+    {
+        if (date < Min) return;
+        IsOpen = false;
+        await ValueChanged.InvokeAsync(date);
+    }
+}

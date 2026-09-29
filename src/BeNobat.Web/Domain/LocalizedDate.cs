@@ -76,6 +76,44 @@ public static class LocalizedDate
     public static string FormatNumber(IFormattable value, string language, string? format = null) =>
         LocalizeDigits(value.ToString(format, CultureInfo.InvariantCulture) ?? "", language);
 
+    /// <summary>Picks the text for the active UI language (fa is the default).</summary>
+    public static string Choose(string language, string fa, string ar, string en) =>
+        language switch { "ar" => ar, "en" => en, _ => fa };
+
+    /// <summary>First column of a month grid: Saturday for Persian, Sunday for Arabic (Umm al-Qura) and English.</summary>
+    public static DayOfWeek FirstDayOfWeek(string language) => language == "fa" ? DayOfWeek.Saturday : DayOfWeek.Sunday;
+
+    /// <summary>Short weekday header used in month grids.</summary>
+    public static string ShortWeekday(DayOfWeek day, string language) => language switch
+    {
+        "fa" => day switch
+        {
+            DayOfWeek.Saturday => "ش", DayOfWeek.Sunday => "ی", DayOfWeek.Monday => "د", DayOfWeek.Tuesday => "س",
+            DayOfWeek.Wednesday => "چ", DayOfWeek.Thursday => "پ", _ => "ج",
+        },
+        "ar" => day switch
+        {
+            DayOfWeek.Saturday => "س", DayOfWeek.Sunday => "ح", DayOfWeek.Monday => "ن", DayOfWeek.Tuesday => "ث",
+            DayOfWeek.Wednesday => "ر", DayOfWeek.Thursday => "خ", _ => "ج",
+        },
+        _ => day switch
+        {
+            DayOfWeek.Sunday => "Su", DayOfWeek.Monday => "Mo", DayOfWeek.Tuesday => "Tu", DayOfWeek.Wednesday => "We",
+            DayOfWeek.Thursday => "Th", DayOfWeek.Friday => "Fr", _ => "Sa",
+        },
+    };
+
+    /// <summary>Moves a (year, month) pair by whole months; all three supported calendars have 12 months.</summary>
+    public static (int Year, int Month) AddMonths(int year, int month, int delta)
+    {
+        var index = year * 12 + (month - 1) + delta;
+        return (index / 12, index % 12 + 1);
+    }
+
+    /// <summary>"مهر ۱۴۰۵" / "رمضان ١٤٤٧" / "October 2026" in the calendar of the given language.</summary>
+    public static string MonthYear(int year, int month, string language) =>
+        $"{MonthName(month, language)} {FormatNumber(year, language)}";
+
     public static string LocalizeDigits(string value, string language)
     {
         const string latin = "0123456789";

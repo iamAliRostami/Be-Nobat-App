@@ -45,7 +45,7 @@ else
                         }
                     </div>
                 </section>
-                <BookingSummary OnContinue="NextFromStep1" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" />
+                <BookingSummary OnContinue="NextFromStep1" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Language="@Language" />
             </div>
         }
         else if (Step == 2)
@@ -58,16 +58,25 @@ else
                     </div>
                     @if (EligibleResources.Count == 0) { <p class="empty-state">برای ترکیب خدمات انتخابی، کارمند فعالی در این شعبه تعریف نشده است.</p> }
                     <details class="booking-calendar" open>
-                        <summary>انتخاب تاریخ <b>@LocalizedDate.Format(SelectedDate, "fa")</b><i>⌄</i></summary>
-                        <div class="booking-date-navigation"><label>رفتن به تاریخ<input type="date" min="@TodayIso" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="DateInputChanged" /></label></div>
-                        <div class="date-strip">@foreach (var day in Days) { <button type="button" disabled="@IsLoadingSlots" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.PersianDay</b><span>@day.PersianMonth</span></button> }</div>
+                        <summary>@LocalizedDate.Choose(Language, "انتخاب تاریخ", "اختيار التاريخ", "Choose a date")<i>⌄</i></summary>
+                        <div class="booking-date-navigation">
+                            <div class="booking-date-goto">
+                                <span class="booking-date-label">@LocalizedDate.Choose(Language, "رفتن به تاریخ", "الانتقال إلى تاريخ", "Go to date")</span>
+                                <CalendarPicker Value="SelectedDate" Min="Today" Today="Today" Language="@Language" ValueChanged="SelectDate" />
+                            </div>
+                        </div>
+                        <div class="date-strip-wrap">
+                            <button type="button" class="cal-nav prev" disabled="@(!CanGoPrev)" aria-label="@LocalizedDate.Choose(Language, "هفته قبل", "الأسبوع السابق", "Previous week")" @onclick="() => ShiftWindow(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></button>
+                            <div class="date-strip">@foreach (var day in Days) { <button type="button" disabled="@IsLoadingSlots" class="@(SelectedDate == day.Date ? "selected" : "")" @onclick="() => SelectDate(day.Date)"><small>@day.Weekday</small><b>@day.DayNumber</b><span>@day.Month</span></button> }</div>
+                            <button type="button" class="cal-nav next" aria-label="@LocalizedDate.Choose(Language, "هفته بعد", "الأسبوع التالي", "Next week")" @onclick="() => ShiftWindow(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></button>
+                        </div>
                     </details>
                     <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
-                    else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@slot.ToString("HH:mm")</button> }</div> }
+                    else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@LocalizedDate.FormatTime(slot, Language)</button> }</div> }
                 </section>
-                <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" />
+                <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" Language="@Language" />
             </div>
         }
         else
@@ -97,14 +106,30 @@ else
     private List<DateTimeOffset> Slots = [];
     private string? ErrorMessage;
     private bool IsLoadingSlots;
-    private sealed record DayOption(DateOnly Date, string Weekday, string PersianDay, string PersianMonth);
+    private sealed record DayOption(DateOnly Date, string Weekday, string DayNumber, string Month);
+    private const int WindowDays = 7;
+    private string Language = "fa";
+    // First day shown in the strip. Only the arrow buttons (or jumping to a date outside the
+    // visible week) move it; picking a day inside the strip never re-anchors the strip.
+    private DateOnly WindowStart;
+    private bool CanGoPrev => WindowStart > Today;
     private List<DayOption> Days = [];
     private IEnumerable<Service> SelectedServices => Services.Where(x => SelectedServiceIds.Contains(x.Id));
     private string SelectedServicesLabel => string.Join("، ", SelectedServices.Select(x => x.Name));
     private int? SelectedDuration => SelectedServiceIds.Count == 0 ? null : BookingPolicy.TotalDuration(SelectedServices);
     private decimal? SelectedPrice => SelectedServiceIds.Count == 0 ? null : SelectedServices.Sum(ServicePrice);
-    private DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
-    private string TodayIso => Today.ToString("yyyy-MM-dd");
+    // "Today" is the calendar day in the branch's own time zone (UTC would be a day behind for
+    // Tehran between 00:00 and 03:30, making yesterday selectable).
+    private TimeZoneInfo BranchZone
+    {
+        get
+        {
+            if (SelectedBranch is null) return TimeZoneInfo.Utc;
+            try { return TimeZoneInfo.FindSystemTimeZoneById(SelectedBranch.TimeZoneId); }
+            catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException) { return TimeZoneInfo.Utc; }
+        }
+    }
+    private DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BranchZone).DateTime);
     private string SafeReturnUrl => !string.IsNullOrWhiteSpace(ReturnUrl) && ReturnUrl.StartsWith('/') && !ReturnUrl.StartsWith("//") ? ReturnUrl : "/#businesses";
 
     protected override async Task OnInitializedAsync()
@@ -114,8 +139,18 @@ else
         Branches = Business.Branches.OrderBy(x => x.Name).ToList();
         SelectedBranchId = Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         SelectedDate = Today;
-        BuildDays(SelectedDate);
+        WindowStart = SelectedDate;
+        BuildDays();
         await LoadBranchServicesAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage"); }
+        catch (JSDisconnectedException) { return; }
+        BuildDays();
+        StateHasChanged();
     }
 
     private decimal ServicePrice(Service service) => BranchServices.FirstOrDefault(x => x.ServiceId == service.Id)?.Price ?? service.Price;
@@ -127,7 +162,7 @@ else
         SelectedServiceIds.RemoveWhere(id => Services.All(x => x.Id != id));
         await LoadEligibleResourcesAsync();
     }
-    private async Task BranchChanged() { SelectedSlot = null; SelectedResourceId = null; await LoadBranchServicesAsync(); }
+    private async Task BranchChanged() { SelectedSlot = null; SelectedResourceId = null; EnsureDateNotPast(); await LoadBranchServicesAsync(); }
     private void ToggleService(Guid id) { if (!SelectedServiceIds.Add(id)) SelectedServiceIds.Remove(id); SelectedResourceId = null; SelectedSlot = null; }
     private async Task LoadEligibleResourcesAsync()
     {
@@ -136,22 +171,40 @@ else
         var assignments = await Db.ServiceResources.Where(x => SelectedServiceIds.Contains(x.ServiceId)).ToListAsync();
         EligibleResources = assignments.Count == 0 ? staff : staff.Where(r => SelectedServiceIds.All(s => assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
     }
-    private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; Step = 2; await LoadSlotsAsync(); }
+    private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; EnsureDateNotPast(); Step = 2; await LoadSlotsAsync(); }
     private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
     private async Task ResourceChanged() { SelectedSlot = null; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date)
     {
         if (date < Today || IsLoadingSlots) return;
-        SelectedDate = date; SelectedSlot = null; BuildDays(date); await LoadSlotsAsync();
+        SelectedDate = date; SelectedSlot = null;
+        // Only move the strip when the chosen date (from the calendar popup) is outside it.
+        if (date < WindowStart || date >= WindowStart.AddDays(WindowDays)) { WindowStart = date; BuildDays(); }
+        await LoadSlotsAsync();
     }
-    private async Task DateInputChanged(ChangeEventArgs e)
+    // Arrow buttons: one week per click, never before today.
+    private void ShiftWindow(int direction)
     {
-        if (DateOnly.TryParse(e.Value?.ToString(), out var date)) await SelectDate(date < Today ? Today : date);
+        var next = WindowStart.AddDays(direction * WindowDays);
+        WindowStart = next < Today ? Today : next;
+        BuildDays();
     }
-    private void BuildDays(DateOnly anchor)
+    private void EnsureDateNotPast()
     {
-        var start = anchor < Today ? Today : anchor;
-        Days = Enumerable.Range(0, 14).Select(offset => { var date = start.AddDays(offset); var parts = LocalizedDate.DayAndMonth(date, "fa"); return new DayOption(date, LocalizedDate.Weekday(date, "fa", date == Today), parts.Day, parts.Month); }).ToList();
+        var today = Today;
+        if (SelectedDate < today) SelectedDate = today;
+        if (WindowStart < today) WindowStart = today;
+        BuildDays();
+    }
+    private void BuildDays()
+    {
+        var today = Today;
+        Days = Enumerable.Range(0, WindowDays).Select(offset =>
+        {
+            var date = WindowStart.AddDays(offset);
+            var parts = LocalizedDate.DayAndMonth(date, Language);
+            return new DayOption(date, LocalizedDate.Weekday(date, Language, date == today), parts.Day, parts.Month);
+        }).ToList();
     }
 
     private async Task LoadSlotsAsync()
@@ -212,5 +265,21 @@ else
         foreach (var service in selected) appointment.Services.Add(new AppointmentService { ServiceId = service.Id, DurationMinutes = service.DurationMinutes, Price = ServicePrice(service) });
         Db.Appointments.Add(appointment); await Db.SaveChangesAsync(); ErrorMessage = null; Step = 3;
     }
-    private string FormatSelectedTime() { if (SelectedSlot is null) return ""; var day = Days.FirstOrDefault(x => x.Date == DateOnly.FromDateTime(SelectedSlot.Value.DateTime)); return $"{(day is null ? SelectedSlot.Value.ToString("yyyy/MM/dd") : $"{day.PersianDay} {day.PersianMonth}")}، ساعت {SelectedSlot:HH:mm}"; }
+    // Built from the slot itself (not from the visible week) so it stays correct after the strip moves,
+    // and always uses the calendar of the active language.
+    private string FormatSelectedTime()
+    {
+        if (SelectedSlot is null) return "";
+        var slot = SelectedSlot.Value;
+        var date = DateOnly.FromDateTime(slot.DateTime);
+        var parts = LocalizedDate.DayAndMonth(date, Language);
+        var year = LocalizedDate.FormatNumber(LocalizedDate.GetParts(date, Language).Year, Language);
+        var time = LocalizedDate.FormatTime(slot, Language);
+        return Language switch
+        {
+            "en" => $"{parts.Day} {parts.Month} {year} at {time}",
+            "ar" => $"{parts.Day} {parts.Month} {year} هـ، الساعة {time}",
+            _ => $"{parts.Day} {parts.Month} {year}، ساعت {time}",
+        };
+    }
 }
