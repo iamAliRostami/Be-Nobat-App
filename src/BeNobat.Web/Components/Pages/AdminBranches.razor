@@ -24,7 +24,7 @@
         {
             <article class="management-card">
                 <div class="panel-head">
-                    <div><h2>@branch.Name</h2><p>@branch.Business.Name · @branch.Address</p></div>
+                    <div><h2>@branch.Name</h2><p><a class="entity-link" href="/businesses">@branch.Business.Name</a> · @branch.Address</p></div>
                     <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
                 </div>
                 <dl>
@@ -44,7 +44,7 @@
                     <div class="resource-chips">
                         @foreach (var resource in branch.Resources)
                         {
-                            <span>@resource.Name <small>@KindLabel(resource.Kind)</small><button type="button" title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>
+                            <span><a class="entity-link" href="@(resource.Kind == "staff" ? "/admin/team" : "/admin/branches")">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>
                         }
                     </div>
                 }

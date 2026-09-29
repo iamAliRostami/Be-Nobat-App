@@ -187,6 +187,7 @@ img.customer-avatar{object-fit:cover}
 .header-avatar{width:34px;height:34px;object-fit:cover;border-radius:50%;display:grid;place-items:center;background:#eef6f4;color:var(--primary);font-size:10px;font-weight:700;align-self:center}
 .stars{color:#f2b84b;font-size:12px;letter-spacing:1px;white-space:nowrap}
 .reviews-link{font-size:10px;color:var(--primary);font-weight:700}
+.entity-link{color:inherit;text-decoration:none;border-radius:3px;transition:color .15s ease,background-color .15s ease}.entity-link:hover{color:var(--primary);text-decoration:underline;text-underline-offset:2px}.entity-link:focus-visible{outline:2px solid color-mix(in srgb,var(--primary) 45%,transparent);outline-offset:2px}
 
 /* بازه‌های زمانی */
 .availability-list{display:grid;gap:8px;margin-top:10px}
