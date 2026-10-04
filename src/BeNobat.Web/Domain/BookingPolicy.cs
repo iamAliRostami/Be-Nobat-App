@@ -14,6 +14,10 @@ public static class BookingPolicy
         (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed) &&
         appointment.StartsAt >= now.Add(CustomerCancellationNotice);
 
+    public static bool CanCustomerReview(Appointment appointment, DateTimeOffset now) =>
+        appointment.Status == AppointmentStatus.Completed ||
+        (appointment.Status == AppointmentStatus.Confirmed && appointment.EndsAt < now);
+
     public static (DateTimeOffset Start, DateTimeOffset End) UtcDayWindow(DateOnly date, TimeZoneInfo zone)
     {
         var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
