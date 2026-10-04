@@ -2,33 +2,41 @@
 
 <div class="shell">
     <aside class="sidebar">
-        <a class="brand" href="/admin"><span>ب</span><div><strong>به‌نوبت</strong><small>پنل کسب‌وکار</small></div></a>
-        <div class="branch-switcher"><span class="branch-logo">✦</span><div><small>مجموعه فعال</small><b>استودیو زیبایی آوان</b></div><span>⌄</span></div>
+        <a class="brand sidebar-identity" href="/admin">
+            <span>ب</span>
+            <div><strong>به‌نوبت</strong><b>استودیو زیبایی آوان</b></div>
+        </a>
         <nav>
-            <small>مدیریت</small><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
-            <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink>
+            <details class="sidebar-group" open>
+                <summary>مدیریت</summary>
+                <div><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
+                <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink></div>
+            </details>
             <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
-                    <small>مدیریت کسب‌وکار</small>
-                    <NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
+                    <details class="sidebar-group" open>
+                    <summary>مدیریت کسب‌وکار</summary>
+                    <div><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
                     <NavLink href="/admin/branches"><i>⌖</i> شعب و منابع</NavLink>
                     @* [fix] این دو صفحه وجود داشتند ولی هیچ لینکی به آن‌ها نبود:
                        «زمان‌های خالی» و «امتیازها و نظرات» عملاً فعال نشده بودند. *@
                     <NavLink href="/admin/availability"><i>◷</i> زمان‌های خالی</NavLink>
                     <NavLink href="/admin/reviews"><i>★</i> امتیازها و نظرات</NavLink>
                     <NavLink href="/admin/customers" Match="NavLinkMatch.All"><i>◈</i> مشتریان</NavLink>
-                    <NavLink href="/admin/team" Match="NavLinkMatch.All"><i>◎</i> اعضای تیم</NavLink>
+                    <NavLink href="/admin/team" Match="NavLinkMatch.All"><i>◎</i> اعضای تیم</NavLink></div>
+                    </details>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView Roles="@AppRoles.PlatformAdmin" Context="platformContext">
                 <Authorized>
-                    <small>مدیریت سامانه</small>
-                    <NavLink href="/platform" Match="NavLinkMatch.All"><i>▤</i> کسب‌وکارها</NavLink>
+                    <details class="sidebar-group" open>
+                    <summary>مدیریت سامانه</summary>
+                    <div><NavLink href="/platform" Match="NavLinkMatch.All"><i>▤</i> کسب‌وکارها</NavLink>
                     <NavLink href="/platform/services" Match="NavLinkMatch.All"><i>✦</i> کاتالوگ خدمات</NavLink>
-                    <NavLink href="/platform/access" Match="NavLinkMatch.All"><i>♙</i> کاربران و دسترسی‌ها</NavLink>
+                    <NavLink href="/platform/access" Match="NavLinkMatch.All"><i>♙</i> کاربران و دسترسی‌ها</NavLink></div>
+                    </details>
                 </Authorized>
             </AuthorizeView>
-            <small>حساب</small><a href="/" target="_top"><i>⌖</i> مشاهده صفحه عمومی</a>
         </nav>
         <div class="sidebar-footer">
             <AuthorizeView>
