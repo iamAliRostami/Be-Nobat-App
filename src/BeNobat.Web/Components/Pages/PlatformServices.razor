@@ -6,6 +6,13 @@
 <PageTitle>کاتالوگ خدمات | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>کاتالوگ خدمات</h1><p>تعریف‌های استانداردی که کسب‌وکارها می‌توانند انتخاب و شخصی‌سازی کنند.</p></div><button type="button" @onclick="NewItem">+ خدمت جدید</button></div>
 
+<div class="stat-cards platform-stats">
+    <article><i class="purple">✦</i><div><small>کل خدمات</small><strong>@Items.Count</strong></div></article>
+    <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Items.Count(x => x.IsPublished)</strong></div></article>
+    <article><i class="blue">▦</i><div><small>دسته‌بندی‌ها</small><strong>@Items.Select(x => x.Category).Distinct().Count()</strong></div></article>
+    <article><i class="orange">◇</i><div><small>استفاده کسب‌وکارها</small><strong>@Items.Sum(x => x.BusinessServices.Count)</strong></div></article>
+</div>
+
 @if (ShowForm)
 {
     <div class="modal-backdrop" @onclick="Close">
@@ -13,7 +20,7 @@
             <div><h2>@(EditingId is null ? "خدمت کاتالوگ جدید" : "ویرایش خدمت کاتالوگ")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>نام استاندارد<input required @bind="Form.Name" /></label>
             <label>شناسه URL<input required dir="ltr" pattern="[a-z0-9-]+" @bind="Form.Slug" /></label>
-            <label>دسته‌بندی<input required @bind="Form.Category" /></label>
+            <label>دسته‌بندی<select @bind="Form.Category">@if (!Taxonomy.ServiceCategories.Contains(Form.Category)) { <option value="@Form.Category">@Form.Category (قدیمی)</option> }@foreach (var category in Taxonomy.ServiceCategories) { <option value="@category">@category</option> }</select></label>
             <label>مدت پیشنهادی (دقیقه)<input type="number" min="5" @bind="Form.Duration" /></label>
             <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
             <label class="check-label"><input type="checkbox" @bind="Form.IsPublished" /><span>در دسترس کسب‌وکارها باشد</span></label>
@@ -24,11 +31,12 @@
 }
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
-    <div class="catalog-grid">
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><select aria-label="فیلتر دسته‌بندی" @bind="SelectedCategory"><option value="">همه دسته‌بندی‌ها</option>@foreach (var category in Taxonomy.ServiceCategories) { <option value="@category">@category</option> }</select><span>@Filtered.Count() خدمت</span></div>
+    <div class="service-table platform-table catalog-table">
+        <div class="table-head"><span>خدمت</span><span>دسته‌بندی</span><span>مدت</span><span>وضعیت</span><span></span></div>
         @foreach (var item in Filtered)
         {
-            <article><div class="catalog-icon">✦</div><div><b>@item.Name</b><small>@item.Category · @item.SuggestedDurationMinutes دقیقه · @item.BusinessServices.Count کسب‌وکار</small><code>/@item.Slug</code></div><em class="status @(item.IsPublished ? "confirmed" : "cancelled")">@(item.IsPublished ? "منتشرشده" : "پنهان")</em><div class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.IsPublished ? "پنهان" : "انتشار")</button></div></article>
+            <div><span><i class="purple">✦</i><b>@item.Name<small dir="ltr">/@item.Slug · @item.BusinessServices.Count کسب‌وکار</small></b></span><span>@item.Category</span><span>@item.SuggestedDurationMinutes دقیقه</span><span><em class="status @(item.IsPublished ? "confirmed" : "cancelled")">@(item.IsPublished ? "منتشرشده" : "پنهان")</em></span><span class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.IsPublished ? "پنهان" : "انتشار")</button></span></div>
         }
     </div>
 </article>
@@ -36,11 +44,12 @@
 @code {
     private List<ServiceCatalogItem> Items = [];
     private string Search = "";
+    private string SelectedCategory = "";
     private string? Error;
     private bool ShowForm;
     private Guid? EditingId;
     private CatalogInput Form = new();
-    private IEnumerable<ServiceCatalogItem> Filtered => Items.Where(x => $"{x.Name} {x.Category} {x.Slug}".Contains(Search, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<ServiceCatalogItem> Filtered => Items.Where(x => (string.IsNullOrEmpty(SelectedCategory) || x.Category == SelectedCategory) && $"{x.Name} {x.Category} {x.Slug}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     protected override Task OnInitializedAsync() => Load();
     private async Task Load() { await using var db = await DbFactory.CreateDbContextAsync(); Items = await db.ServiceCatalogItems.IgnoreQueryFilters().Include(x => x.BusinessServices).OrderBy(x => x.Category).ThenBy(x => x.Name).ToListAsync(); }
     private void NewItem() { EditingId = null; Form = new(); Error = null; ShowForm = true; }
@@ -58,5 +67,5 @@
     }
     private async Task Toggle(ServiceCatalogItem item) { await using var db = await DbFactory.CreateDbContextAsync(); var entity = await db.ServiceCatalogItems.FirstAsync(x => x.Id == item.Id); entity.IsPublished = !entity.IsPublished; await db.SaveChangesAsync(); await Load(); }
     private void Close() { ShowForm = false; Error = null; }
-    private sealed class CatalogInput { public string Name { get; set; } = ""; public string Slug { get; set; } = ""; public string Category { get; set; } = "عمومی"; public string Description { get; set; } = ""; public int Duration { get; set; } = 30; public bool IsPublished { get; set; } = true; }
+    private sealed class CatalogInput { public string Name { get; set; } = ""; public string Slug { get; set; } = ""; public string Category { get; set; } = Taxonomy.ServiceCategories[0]; public string Description { get; set; } = ""; public int Duration { get; set; } = 30; public bool IsPublished { get; set; } = true; }
 }
