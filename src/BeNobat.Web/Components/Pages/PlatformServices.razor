@@ -1,0 +1,62 @@
+@page "/platform/services"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = AppRoles.PlatformAdmin)]
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<PageTitle>کاتالوگ خدمات | به‌نوبت</PageTitle>
+<div class="page-title"><div><h1>کاتالوگ خدمات</h1><p>تعریف‌های استانداردی که کسب‌وکارها می‌توانند انتخاب و شخصی‌سازی کنند.</p></div><button type="button" @onclick="NewItem">+ خدمت جدید</button></div>
+
+@if (ShowForm)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="Form" FormName="catalog-service" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
+            <div><h2>@(EditingId is null ? "خدمت کاتالوگ جدید" : "ویرایش خدمت کاتالوگ")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
+            <label>نام استاندارد<input required @bind="Form.Name" /></label>
+            <label>شناسه URL<input required dir="ltr" pattern="[a-z0-9-]+" @bind="Form.Slug" /></label>
+            <label>دسته‌بندی<input required @bind="Form.Category" /></label>
+            <label>مدت پیشنهادی (دقیقه)<input type="number" min="5" @bind="Form.Duration" /></label>
+            <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
+            <label class="check-label"><input type="checkbox" @bind="Form.IsPublished" /><span>در دسترس کسب‌وکارها باشد</span></label>
+            @if (Error is not null) { <div class="auth-error">@Error</div> }
+            <button class="primary-button">ذخیره در کاتالوگ</button>
+        </EditForm>
+    </div>
+}
+
+<article class="admin-panel">
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
+    <div class="catalog-grid">
+        @foreach (var item in Filtered)
+        {
+            <article><div class="catalog-icon">✦</div><div><b>@item.Name</b><small>@item.Category · @item.SuggestedDurationMinutes دقیقه · @item.BusinessServices.Count کسب‌وکار</small><code>/@item.Slug</code></div><em class="status @(item.IsPublished ? "confirmed" : "cancelled")">@(item.IsPublished ? "منتشرشده" : "پنهان")</em><div class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.IsPublished ? "پنهان" : "انتشار")</button></div></article>
+        }
+    </div>
+</article>
+
+@code {
+    private List<ServiceCatalogItem> Items = [];
+    private string Search = "";
+    private string? Error;
+    private bool ShowForm;
+    private Guid? EditingId;
+    private CatalogInput Form = new();
+    private IEnumerable<ServiceCatalogItem> Filtered => Items.Where(x => $"{x.Name} {x.Category} {x.Slug}".Contains(Search, StringComparison.OrdinalIgnoreCase));
+    protected override Task OnInitializedAsync() => Load();
+    private async Task Load() { await using var db = await DbFactory.CreateDbContextAsync(); Items = await db.ServiceCatalogItems.IgnoreQueryFilters().Include(x => x.BusinessServices).OrderBy(x => x.Category).ThenBy(x => x.Name).ToListAsync(); }
+    private void NewItem() { EditingId = null; Form = new(); Error = null; ShowForm = true; }
+    private void Edit(ServiceCatalogItem item) { EditingId = item.Id; Form = new() { Name = item.Name, Slug = item.Slug, Category = item.Category, Description = item.Description, Duration = item.SuggestedDurationMinutes, IsPublished = item.IsPublished }; Error = null; ShowForm = true; }
+    private async Task Save()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var slug = Form.Slug.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(Form.Name) || string.IsNullOrWhiteSpace(slug) || Form.Duration < 5) { Error = "نام، شناسه و مدت معتبر الزامی است."; return; }
+        if (await db.ServiceCatalogItems.IgnoreQueryFilters().AnyAsync(x => x.Slug == slug && x.Id != EditingId)) { Error = "این شناسه قبلاً استفاده شده است."; return; }
+        var item = EditingId is Guid id ? await db.ServiceCatalogItems.IgnoreQueryFilters().FirstAsync(x => x.Id == id) : new ServiceCatalogItem { Name = Form.Name };
+        item.Name = Form.Name.Trim(); item.Slug = slug; item.Category = Form.Category.Trim(); item.Description = Form.Description.Trim(); item.SuggestedDurationMinutes = Form.Duration; item.IsPublished = Form.IsPublished;
+        if (EditingId is null) db.ServiceCatalogItems.Add(item);
+        await db.SaveChangesAsync(); Close(); await Load();
+    }
+    private async Task Toggle(ServiceCatalogItem item) { await using var db = await DbFactory.CreateDbContextAsync(); var entity = await db.ServiceCatalogItems.FirstAsync(x => x.Id == item.Id); entity.IsPublished = !entity.IsPublished; await db.SaveChangesAsync(); await Load(); }
+    private void Close() { ShowForm = false; Error = null; }
+    private sealed class CatalogInput { public string Name { get; set; } = ""; public string Slug { get; set; } = ""; public string Category { get; set; } = "عمومی"; public string Description { get; set; } = ""; public int Duration { get; set; } = 30; public bool IsPublished { get; set; } = true; }
+}

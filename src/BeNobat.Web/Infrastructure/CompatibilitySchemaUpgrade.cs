@@ -35,6 +35,20 @@ public static class CompatibilitySchemaUpgrade
             CREATE INDEX IF NOT EXISTS "IX_Reviews_BusinessId_Status" ON benobat."Reviews" ("BusinessId", "Status");
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_Reviews_AppointmentId" ON benobat."Reviews" ("AppointmentId") WHERE "AppointmentId" IS NOT NULL;
 
+            -- کاتالوگ سراسری خدمات؛ مشخصات تجاری هر ارائه همچنان در Services نگهداری می‌شود.
+            CREATE TABLE IF NOT EXISTS benobat."ServiceCatalogItems" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "Name" text NOT NULL, "Slug" text NOT NULL,
+                "Category" text NOT NULL, "Description" text NOT NULL, "SuggestedDurationMinutes" integer NOT NULL,
+                "IsPublished" boolean NOT NULL);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_ServiceCatalogItems_Slug" ON benobat."ServiceCatalogItems" ("Slug");
+            ALTER TABLE benobat."Services" ADD COLUMN IF NOT EXISTS "CatalogItemId" uuid NULL;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Services" ADD CONSTRAINT "FK_Services_ServiceCatalogItems_CatalogItemId"
+                    FOREIGN KEY ("CatalogItemId") REFERENCES benobat."ServiceCatalogItems" ("Id") ON DELETE SET NULL;
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_Services_BusinessId_CatalogItemId" ON benobat."Services" ("BusinessId", "CatalogItemId") WHERE "CatalogItemId" IS NOT NULL;
+
             -- [fix] عکس پروفایل کاربر (ذخیره در دیتابیس، نه فایل‌سیستم کانتینر).
             ALTER TABLE benobat."AspNetUsers" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
             ALTER TABLE benobat."AspNetUsers" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;

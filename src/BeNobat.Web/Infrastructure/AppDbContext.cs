@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Business> Businesses => Set<Business>();
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<ServiceCatalogItem> ServiceCatalogItems => Set<ServiceCatalogItem>();
     public DbSet<Resource> Resources => Set<Resource>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<BranchMembership> BranchMemberships => Set<BranchMembership>();
@@ -30,6 +31,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Service>().HasOne(x => x.Business).WithMany(x => x.Services)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Service>().HasOne(x => x.CatalogItem).WithMany(x => x.BusinessServices)
+            .HasForeignKey(x => x.CatalogItemId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<Service>().HasIndex(x => new { x.BusinessId, x.CatalogItemId }).IsUnique()
+            .HasFilter("\"CatalogItemId\" IS NOT NULL");
+        builder.Entity<ServiceCatalogItem>().HasIndex(x => x.Slug).IsUnique();
         builder.Entity<Resource>().HasOne(x => x.Branch).WithMany(x => x.Resources)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
         // [feature] پیوند اختیاری منبع «عضو تیم» به حساب کاربری.

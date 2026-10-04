@@ -82,7 +82,7 @@
             <DataAnnotationsValidator />
             <div>
                 <h2>@(Editing is null ? (IsTeam ? "عضو تیم جدید" : "مشتری جدید") : "ویرایش کاربر")</h2>
-                <button type="button" @onclick="Close">×</button>
+                <button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
             </div>
             <label>نام و نام خانوادگی<input required @bind="Form.Name" /></label>
             <label>ایمیل<input type="email" required disabled="@(Editing is not null)" @bind="Form.Email" /></label>

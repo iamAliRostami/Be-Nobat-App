@@ -13,8 +13,8 @@
     <div class="calendar-toolbar">
         <div>
             <button type="button" @onclick="() => ChangeDay(0)">امروز</button>
-            <button type="button" @onclick="() => ChangeDay(-1)">→</button>
-            <button type="button" @onclick="() => ChangeDay(1)">←</button>
+            <button type="button" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
+            <button type="button" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
             <h2>@SelectedDate.ToString("dddd، d MMMM yyyy", PersianCulture)</h2>
         </div>
     </div>
