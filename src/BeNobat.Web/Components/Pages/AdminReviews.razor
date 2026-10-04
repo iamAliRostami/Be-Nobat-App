@@ -110,7 +110,7 @@ else
 {
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="ReplyForm" FormName="review-reply" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
-            <div><h2>پاسخ به نظر</h2><button type="button" @onclick="Close">×</button></div>
+            <div><h2>پاسخ به نظر</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label>
             <button class="primary-button">ثبت پاسخ و انتشار</button>
         </EditForm>

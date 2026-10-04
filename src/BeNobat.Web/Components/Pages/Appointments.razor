@@ -85,20 +85,27 @@
 @if (Reviewing is not null)
 {
     <div class="modal-backdrop" @onclick="CloseReview">
-        <EditForm Model="ReviewForm" FormName="appointment-review" OnValidSubmit="SubmitReview" class="form-modal" @onclick:stopPropagation>
-            <div><h2>نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" @onclick="CloseReview">×</button></div>
+        @* This is an interactive-only action and has no validation pipeline. Keeping it in an
+           EditForm allowed the browser to fall back to a native POST while the server circuit
+           was reconnecting, producing the "POST request does not specify which form" page.
+           An explicit Blazor click keeps the action in the circuit and also lets us prevent
+           duplicate submissions while the database write is in progress. *@
+        <section class="form-modal" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" @onclick:stopPropagation>
+            <div><h2 id="review-dialog-title">نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" disabled="@IsSubmittingReview" @onclick="CloseReview">×</button></div>
             <label>امتیاز
-                <select @bind="ReviewForm.Rating">
+                <select disabled="@IsSubmittingReview" @bind="ReviewForm.Rating">
                     @for (var i = 5; i >= 1; i--)
                     {
                         <option value="@i">@i ستاره</option>
                     }
                 </select>
             </label>
-            <label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label>
+            <label>نظر شما<textarea disabled="@IsSubmittingReview" @bind="ReviewForm.Comment"></textarea></label>
             @if (ReviewError is not null) { <div class="auth-error">@ReviewError</div> }
-            <button class="primary-button">ارسال برای بررسی</button>
-        </EditForm>
+            <button type="button" class="primary-button" disabled="@IsSubmittingReview" @onclick="SubmitReview">
+                @(IsSubmittingReview ? "در حال ارسال…" : "ارسال برای بررسی")
+            </button>
+        </section>
     </div>
 }
 
@@ -118,6 +125,7 @@
     private string? ReviewError;
     private string? ReviewMessage;
     private string? ActionError;
+    private bool IsSubmittingReview;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
@@ -215,53 +223,64 @@
     {
         Reviewing = appointment;
         ReviewForm = new ReviewInput();
+        IsSubmittingReview = false;
         ReviewError = null;
         ReviewMessage = null;
     }
 
     private void CloseReview()
     {
+        if (IsSubmittingReview) return;
         Reviewing = null;
         ReviewError = null;
     }
 
     private async Task SubmitReview()
     {
-        if (Reviewing is null) return;
+        if (Reviewing is null || IsSubmittingReview) return;
+
+        IsSubmittingReview = true;
+        ReviewError = null;
 
         var appointmentId = Reviewing.Id;
-
-        var appointment = await Db.Appointments
-            .Include(a => a.Branch)
-            .FirstOrDefaultAsync(a => a.Id == appointmentId
-                && a.CustomerId == userId
-                && (a.Status == AppointmentStatus.Completed || (a.Status == AppointmentStatus.Confirmed && a.EndsAt < DateTimeOffset.Now)));
-        if (appointment is null)
+        try
         {
-            ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
-            return;
+            var appointment = await Db.Appointments
+                .Include(a => a.Branch)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId
+                    && a.CustomerId == userId
+                    && (a.Status == AppointmentStatus.Completed || (a.Status == AppointmentStatus.Confirmed && a.EndsAt < DateTimeOffset.Now)));
+            if (appointment is null)
+            {
+                ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
+                return;
+            }
+
+            if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
+            {
+                ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
+                return;
+            }
+
+            Db.Reviews.Add(new Review
+            {
+                AppointmentId = appointmentId,
+                BusinessId = appointment.Branch.BusinessId,
+                BranchId = appointment.BranchId,
+                CustomerId = userId,
+                Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
+                Comment = ReviewForm.Comment.Trim(),
+            });
+
+            await Db.SaveChangesAsync();
+            Reviewing = null;
+            await LoadAsync();
+            ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
         }
-
-        if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
+        finally
         {
-            ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
-            return;
+            IsSubmittingReview = false;
         }
-
-        Db.Reviews.Add(new Review
-        {
-            AppointmentId = appointmentId,
-            BusinessId = appointment.Branch.BusinessId,
-            BranchId = appointment.BranchId,
-            CustomerId = userId,
-            Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
-            Comment = ReviewForm.Comment.Trim(),
-        });
-
-        await Db.SaveChangesAsync();
-        CloseReview();
-        await LoadAsync();
-        ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
     }
 
     private sealed class ReviewInput
