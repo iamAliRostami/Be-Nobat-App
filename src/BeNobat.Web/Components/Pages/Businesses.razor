@@ -11,7 +11,7 @@
 {
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="service-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
-            <div><h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2><button type="button" @onclick="Close">×</button></div>
+            <div><h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in BusinessOptions) { <option value="@business.Id">@business.Name</option> }</select></label>
             <label>نام خدمت<input required @bind="Form.Name" /></label>
             <div class="form-columns"><label>مدت (دقیقه)<input type="number" min="5" @bind="Form.DurationMinutes" /></label><label>قیمت پایه (تومان)<input type="number" min="0" @bind="Form.Price" /></label></div>
