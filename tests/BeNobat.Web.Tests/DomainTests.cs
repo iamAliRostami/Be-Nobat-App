@@ -81,6 +81,22 @@ public sealed class DomainTests
         Assert.Equal(expected, BookingPolicy.CanCustomerCancel(appointment, now));
     }
 
+    [Theory]
+    [InlineData(AppointmentStatus.Completed, 60, true)]
+    [InlineData(AppointmentStatus.Confirmed, -1, true)]
+    [InlineData(AppointmentStatus.Confirmed, 1, false)]
+    [InlineData(AppointmentStatus.Pending, -60, false)]
+    [InlineData(AppointmentStatus.Cancelled, -60, false)]
+    [InlineData(AppointmentStatus.NoShow, -60, false)]
+    public void Customer_review_requires_a_completed_or_past_confirmed_appointment(
+        AppointmentStatus status, int endOffsetMinutes, bool expected)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var appointment = new Appointment { Status = status, EndsAt = now.AddMinutes(endOffsetMinutes) };
+
+        Assert.Equal(expected, BookingPolicy.CanCustomerReview(appointment, now));
+    }
+
     [Fact]
     public void Appointment_query_day_window_is_always_utc()
     {

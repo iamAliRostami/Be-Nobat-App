@@ -4,7 +4,8 @@
 @attribute [Authorize(Policy = Policies.ViewOwnAppointments)]
 @using System.Globalization
 @using System.Security.Claims
-@inject AppDbContext Db
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILogger<Appointments> Logger
 
 <PageTitle>نوبت‌های من | به‌نوبت</PageTitle>
 
@@ -68,11 +69,11 @@
                     }
                     @* [feature] ثبت نظر مستقیماً از همین فهرست؛ قبلاً فقط از صفحه‌ی
                        «اطلاعات حساب» و با انتخاب از یک لیست کشویی ممکن بود. *@
-                    @if (CanReview(appointment) && !ReviewedAppointmentIds.Contains(appointment.Id))
+                    @if (BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow) && !ReviewedAppointmentIds.Contains(appointment.Id))
                     {
                         <button type="button" @onclick="() => OpenReview(appointment)">ثبت نظر</button>
                     }
-                    else if (CanReview(appointment))
+                    else if (BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow))
                     {
                         <span class="review-done">نظر ثبت شد</span>
                     }
@@ -85,20 +86,27 @@
 @if (Reviewing is not null)
 {
     <div class="modal-backdrop" @onclick="CloseReview">
-        <EditForm Model="ReviewForm" FormName="appointment-review" OnValidSubmit="SubmitReview" class="form-modal" @onclick:stopPropagation>
-            <div><h2>نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" @onclick="CloseReview">×</button></div>
+        @* This is an interactive-only action and has no validation pipeline. Keeping it in an
+           EditForm allowed the browser to fall back to a native POST while the server circuit
+           was reconnecting, producing the "POST request does not specify which form" page.
+           An explicit Blazor click keeps the action in the circuit and also lets us prevent
+           duplicate submissions while the database write is in progress. *@
+        <div class="form-modal" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" @onclick:stopPropagation>
+            <div><h2 id="review-dialog-title">نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseReview">×</button></div>
             <label>امتیاز
-                <select @bind="ReviewForm.Rating">
+                <select disabled="@IsSubmittingReview" @bind="ReviewForm.Rating">
                     @for (var i = 5; i >= 1; i--)
                     {
                         <option value="@i">@i ستاره</option>
                     }
                 </select>
             </label>
-            <label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label>
+            <label>نظر شما<textarea disabled="@IsSubmittingReview" @bind="ReviewForm.Comment"></textarea></label>
             @if (ReviewError is not null) { <div class="auth-error">@ReviewError</div> }
-            <button class="primary-button">ارسال برای بررسی</button>
-        </EditForm>
+            <button type="button" class="primary-button" disabled="@IsSubmittingReview" @onclick="SubmitReview">
+                @(IsSubmittingReview ? "در حال ارسال…" : "ارسال برای بررسی")
+            </button>
+        </div>
     </div>
 }
 
@@ -118,6 +126,7 @@
     private string? ReviewError;
     private string? ReviewMessage;
     private string? ActionError;
+    private bool IsSubmittingReview;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
@@ -144,14 +153,17 @@
         var parts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         Initials = parts.Length >= 2 ? $"{parts[0][0]}‌{parts[1][0]}" : DisplayName[..Math.Min(2, DisplayName.Length)];
 
-        CurrentUser = await Db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        await using var db = await DbFactory.CreateDbContextAsync();
+        CurrentUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
 
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        var appointments = await Db.Appointments
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var appointments = await db.Appointments
+            .AsNoTracking()
             .Include(a => a.Service)
             .Include(a => a.Services).ThenInclude(x => x.Service)
             .Include(a => a.Resource)
@@ -160,12 +172,13 @@
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
 
-        ReviewedAppointmentIds = (await Db.Reviews
+        ReviewedAppointmentIds = (await db.Reviews
+            .AsNoTracking()
             .Where(r => r.CustomerId == userId && r.AppointmentId != null)
             .Select(r => r.AppointmentId!.Value)
             .ToListAsync()).ToHashSet();
 
-        var now = DateTimeOffset.Now;
+        var now = DateTimeOffset.UtcNow;
         Cancelled = appointments.Where(a => a.Status == AppointmentStatus.Cancelled).ToList();
         Upcoming = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt >= now).ToList();
         Past = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt < now)
@@ -178,7 +191,8 @@
 
     private async Task CancelAsync(Guid appointmentId)
     {
-        var appointment = await Db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
         if (appointment is null) return;
         if (!BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
         {
@@ -188,7 +202,7 @@
 
         appointment.Status = AppointmentStatus.Cancelled;
         appointment.UpdatedAt = DateTimeOffset.UtcNow;
-        await Db.SaveChangesAsync();
+        await db.SaveChangesAsync();
         ActionError = null;
         await LoadAsync();
     }
@@ -215,6 +229,7 @@
     {
         Reviewing = appointment;
         ReviewForm = new ReviewInput();
+        IsSubmittingReview = false;
         ReviewError = null;
         ReviewMessage = null;
     }
@@ -227,41 +242,58 @@
 
     private async Task SubmitReview()
     {
-        if (Reviewing is null) return;
+        if (Reviewing is null || IsSubmittingReview) return;
+
+        IsSubmittingReview = true;
+        ReviewError = null;
 
         var appointmentId = Reviewing.Id;
-
-        var appointment = await Db.Appointments
-            .Include(a => a.Branch)
-            .FirstOrDefaultAsync(a => a.Id == appointmentId
-                && a.CustomerId == userId
-                && (a.Status == AppointmentStatus.Completed || (a.Status == AppointmentStatus.Confirmed && a.EndsAt < DateTimeOffset.Now)));
-        if (appointment is null)
+        try
         {
-            ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
-            return;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appointment = await db.Appointments
+                .Include(a => a.Branch)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
+
+            // Keep the time comparison outside the SQL query. PostgreSQL timestamptz only accepts
+            // UTC DateTimeOffset parameters; DateTimeOffset.Now carries the host's local offset and
+            // caused every review submission to fail on servers configured for Asia/Tehran.
+            if (appointment is null || !BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow))
+            {
+                ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
+                return;
+            }
+
+            if (await db.Reviews.IgnoreQueryFilters().AnyAsync(r => r.AppointmentId == appointmentId))
+            {
+                ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
+                return;
+            }
+
+            db.Reviews.Add(new Review
+            {
+                AppointmentId = appointmentId,
+                BusinessId = appointment.Branch.BusinessId,
+                BranchId = appointment.BranchId,
+                CustomerId = userId,
+                Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
+                Comment = ReviewForm.Comment.Trim(),
+            });
+
+            await db.SaveChangesAsync();
+            Reviewing = null;
+            await LoadAsync();
+            ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
         }
-
-        if (await Db.Reviews.AnyAsync(r => r.AppointmentId == appointmentId))
+        catch (Exception exception)
         {
-            ReviewError = "برای این نوبت قبلاً نظر ثبت شده است.";
-            return;
+            Logger.LogError(exception, "Failed to submit review for appointment {AppointmentId}", appointmentId);
+            ReviewError = "ثبت نظر انجام نشد. لطفاً اتصال خود را بررسی کرده و دوباره تلاش کنید.";
         }
-
-        Db.Reviews.Add(new Review
+        finally
         {
-            AppointmentId = appointmentId,
-            BusinessId = appointment.Branch.BusinessId,
-            BranchId = appointment.BranchId,
-            CustomerId = userId,
-            Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
-            Comment = ReviewForm.Comment.Trim(),
-        });
-
-        await Db.SaveChangesAsync();
-        CloseReview();
-        await LoadAsync();
-        ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
+            IsSubmittingReview = false;
+        }
     }
 
     private sealed class ReviewInput
@@ -269,9 +301,6 @@
         public int Rating { get; set; } = 5;
         public string Comment { get; set; } = "";
     }
-
-    private static bool CanReview(Appointment appointment) => appointment.Status == AppointmentStatus.Completed
-        || (appointment.Status == AppointmentStatus.Confirmed && appointment.EndsAt < DateTimeOffset.Now);
 
     private static string PersianMonthName(DateTimeOffset date)
     {
