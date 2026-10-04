@@ -8,10 +8,10 @@
 <div class="page-title"><div><h1>کاتالوگ خدمات</h1><p>تعریف‌های استانداردی که کسب‌وکارها می‌توانند انتخاب و شخصی‌سازی کنند.</p></div><button type="button" @onclick="NewItem">+ خدمت جدید</button></div>
 
 <div class="stat-cards platform-stats">
-    <article class="filter-card @(ViewFilter == "all" ? "active" : "")" @onclick='() => SetViewFilter("all")'><i class="purple">✦</i><div><small>کل خدمات</small><strong>@Items.Count</strong></div></article>
-    <article class="filter-card @(ViewFilter == "published" ? "active" : "")" @onclick='() => SetViewFilter("published")'><i class="green">✓</i><div><small>منتشرشده</small><strong>@Items.Count(x => x.IsPublished)</strong></div></article>
-    <article class="filter-card" @onclick='() => Navigation.NavigateTo("/platform/categories")'><i class="blue">▦</i><div><small>دسته‌بندی‌ها</small><strong>@Items.Select(x => x.Category).Distinct().Count()</strong></div></article>
-    <article class="filter-card @(ViewFilter == "used" ? "active" : "")" @onclick='() => SetViewFilter("used")'><i class="orange">◇</i><div><small>استفاده کسب‌وکارها</small><strong>@Items.Sum(x => x.BusinessServices.Count)</strong></div></article>
+    <article><i class="purple">✦</i><div><small>کل خدمات</small><strong>@Items.Count</strong></div></article>
+    <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Items.Count(x => x.IsPublished)</strong></div></article>
+    <article><i class="blue">▦</i><div><small>دسته‌بندی‌ها</small><strong>@Items.Select(x => x.Category).Distinct().Count()</strong></div></article>
+    <article><i class="orange">◇</i><div><small>استفاده کسب‌وکارها</small><strong>@Items.Sum(x => x.BusinessServices.Count)</strong></div></article>
 </div>
 
 @if (ShowForm)
@@ -32,7 +32,7 @@
 }
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><select aria-label="فیلتر دسته‌بندی" @bind="SelectedCategory"><option value="">همه دسته‌بندی‌ها</option>@foreach (var category in Categories) { <option value="@category">@category</option> }</select><span>@Filtered.Count() خدمت</span></div>
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
     <div class="service-table platform-table catalog-table">
         <div class="table-head"><span>خدمت</span><span>دسته‌بندی</span><span>مدت</span><span>وضعیت</span><span></span></div>
         @foreach (var item in Filtered)
