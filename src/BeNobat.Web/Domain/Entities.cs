@@ -37,6 +37,24 @@ public sealed class Business : Entity
     public ICollection<Review> Reviews { get; } = [];
 }
 
+public enum CategoryKind { Business, Service }
+
+public sealed class CategoryDefinition : Entity
+{
+    public required string Name { get; set; }
+    public CategoryKind Kind { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class FavoriteBusiness : Entity
+{
+    public Guid UserId { get; set; }
+    public Guid BusinessId { get; set; }
+    public AppUser User { get; set; } = null!;
+    public Business Business { get; set; } = null!;
+}
+
 public sealed class Branch : Entity
 {
     public Guid BusinessId { get; set; }

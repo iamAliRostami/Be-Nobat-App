@@ -1,5 +1,9 @@
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthenticationState
+@inject NavigationManager Navigation
+
 <article class="business-card">
-    <div class="business-cover @Accent"><span>@Icon</span><button aria-label="افزودن به علاقه‌مندی" type="button"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><small>@Category</small></div>
+    <div class="business-cover @Accent"><span>@Icon</span><button class="favorite-button @(IsFavorite ? "active" : "")" aria-label="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" title="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" type="button" @onclick="ToggleFavorite"><svg viewBox="0 0 24 24" width="17" height="17" fill="@(IsFavorite ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><small>@Category</small></div>
     <div class="business-card-body">
         <div class="business-name"><div><h3><a class="entity-link" href="/business/@Id">@Name</a> <span>✓</span></h3><p>⌖ @Location، @City</p></div><div class="score"><b>@Rating</b><span>★</span><small>@Reviews نظر</small></div></div>
         <div class="slot-row"><div><a class="reviews-link" href="/business/@Id/reviews">مشاهده نظرها</a><strong>و رزرو آنلاین</strong></div><a href="@BookingUrl">رزرو نوبت</a></div>
@@ -17,7 +21,26 @@
     [Parameter] public string Accent { get; set; } = "";
     [Parameter] public string Icon { get; set; } = "✦";
     [Parameter] public string? ReturnUrl { get; set; }
+    private bool IsFavorite;
+    private Guid? UserId;
     private string BookingUrl => string.IsNullOrWhiteSpace(ReturnUrl)
         ? $"/book/{Id}"
         : $"/book/{Id}?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+    protected override async Task OnParametersSetAsync()
+    {
+        var user = (await AuthenticationState.GetAuthenticationStateAsync()).User;
+        var value = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        UserId = Guid.TryParse(value, out var id) ? id : null;
+        if (UserId is Guid userId) { await using var db = await DbFactory.CreateDbContextAsync(); IsFavorite = await db.FavoriteBusinesses.AnyAsync(x => x.UserId == userId && x.BusinessId == Id); }
+    }
+    private async Task ToggleFavorite()
+    {
+        if (UserId is not Guid userId) { Navigation.NavigateTo($"/account/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}"); return; }
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var favorite = await db.FavoriteBusinesses.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.UserId == userId && x.BusinessId == Id);
+        if (favorite is null) db.FavoriteBusinesses.Add(new FavoriteBusiness { UserId = userId, BusinessId = Id });
+        else if (favorite.DeletedAt is null) favorite.DeletedAt = DateTimeOffset.UtcNow;
+        else favorite.DeletedAt = null;
+        await db.SaveChangesAsync(); IsFavorite = !IsFavorite;
+    }
 }

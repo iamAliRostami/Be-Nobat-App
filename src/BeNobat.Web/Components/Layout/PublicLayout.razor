@@ -14,6 +14,7 @@
                         <div>
                             <NavLink href="/account/profile" Match="NavLinkMatch.Prefix">حساب من</NavLink>
                             <NavLink href="/appointments" Match="NavLinkMatch.Prefix">نوبت‌های من</NavLink>
+                            <NavLink href="/favorites" Match="NavLinkMatch.Prefix">علاقه‌مندی‌ها</NavLink>
                             <AuthorizeView Policy="@Policies.ManageAppointments" Context="adminContext"><Authorized><NavLink href="/admin">پنل مدیریت</NavLink></Authorized></AuthorizeView>
                             <form method="post" action="/account/logout">
                                 <AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" />

@@ -15,7 +15,7 @@
             else { <span>@UserAvatar.Initials(User?.DisplayName)</span> }
             <div><b>@(User?.DisplayName ?? "کاربر")</b><small>@User?.Email</small></div>
         </div>
-        <nav><NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink><NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink></nav>
+        <nav><NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink><NavLink href="/favorites" Match="NavLinkMatch.All">♡ علاقه‌مندی‌ها</NavLink><NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink></nav>
         <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
     </aside>
     <main class="account-content">

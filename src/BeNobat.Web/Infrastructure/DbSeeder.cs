@@ -51,17 +51,45 @@ public static class DbSeeder
         }
 
         var db = services.GetRequiredService<AppDbContext>();
-        if (!await db.ServiceCatalogItems.AnyAsync(cancellationToken))
+        var existingCategories = await db.CategoryDefinitions.IgnoreQueryFilters().Select(x => new { x.Kind, x.Name }).ToListAsync(cancellationToken);
+        var categories = Taxonomy.BusinessCategories.Select((name, index) => new CategoryDefinition { Name = name, Kind = CategoryKind.Business, SortOrder = index })
+            .Concat(Taxonomy.ServiceCategories.Select((name, index) => new CategoryDefinition { Name = name, Kind = CategoryKind.Service, SortOrder = index }));
+        db.CategoryDefinitions.AddRange(categories.Where(category => !existingCategories.Any(x => x.Kind == category.Kind && x.Name == category.Name)));
+        await db.SaveChangesAsync(cancellationToken);
+        var catalog = new[]
         {
-            db.ServiceCatalogItems.AddRange(
-                Catalog("اصلاح و ابرو", "beauty-eyebrow", "زیبایی و آرایش", 30),
-                Catalog("کوتاهی مو", "haircut", "زیبایی و آرایش", 45),
-                Catalog("رنگ مو", "hair-color", "زیبایی و آرایش", 90),
-                Catalog("پاکسازی پوست", "skin-care", "زیبایی و سلامت", 60),
-                Catalog("ویزیت عمومی", "general-visit", "پزشکی", 20),
-                Catalog("مشاوره", "consultation", "مشاوره", 45));
-            await db.SaveChangesAsync(cancellationToken);
+            Catalog("اصلاح و ابرو", "beauty-eyebrow", "پوست و زیبایی", 30), Catalog("کوتاهی مو", "haircut", "مو و آرایش", 45),
+            Catalog("رنگ و لایت مو", "hair-color", "مو و آرایش", 120), Catalog("براشینگ مو", "hair-styling", "مو و آرایش", 45),
+            Catalog("پاکسازی پوست", "skin-care", "پوست و زیبایی", 60), Catalog("میکاپ", "makeup", "پوست و زیبایی", 90),
+            Catalog("مانیکور", "manicure", "ناخن", 45), Catalog("پدیکور", "pedicure", "ناخن", 60),
+            Catalog("کوتاهی موی آقایان", "mens-haircut", "پیرایش آقایان", 40), Catalog("اصلاح ریش", "beard-trim", "پیرایش آقایان", 30),
+            Catalog("ویزیت عمومی", "general-visit", "پزشکی عمومی", 20), Catalog("معاینه دندان", "dental-exam", "دندانپزشکی", 30),
+            Catalog("جرم‌گیری دندان", "dental-scaling", "دندانپزشکی", 60), Catalog("ترمیم دندان", "dental-filling", "دندانپزشکی", 60),
+            Catalog("ارزیابی فیزیوتراپی", "physio-assessment", "فیزیوتراپی و توان‌بخشی", 45), Catalog("تمرین درمانی", "therapeutic-exercise", "فیزیوتراپی و توان‌بخشی", 60),
+            Catalog("ماساژ سوئدی", "swedish-massage", "ماساژ", 60), Catalog("ماساژ ورزشی", "sports-massage", "ماساژ", 60),
+            Catalog("مشاوره فردی", "individual-counseling", "مشاوره و روان‌شناسی", 50), Catalog("مشاوره خانواده", "family-counseling", "مشاوره و روان‌شناسی", 75),
+            Catalog("ارزیابی تناسب اندام", "fitness-assessment", "ورزش و تناسب اندام", 45), Catalog("تمرین خصوصی", "personal-training", "ورزش و تناسب اندام", 60),
+            Catalog("معاینه حیوانات خانگی", "pet-exam", "دامپزشکی", 30), Catalog("واکسیناسیون حیوانات", "pet-vaccination", "دامپزشکی", 30),
+            Catalog("کلاس خصوصی زبان", "private-language-class", "آموزش", 60), Catalog("مشاوره تحصیلی", "education-consulting", "آموزش", 45),
+            Catalog("سرویس دوره‌ای خودرو", "car-periodic-service", "خدمات خودرو", 90), Catalog("کارواش", "car-wash", "خدمات خودرو", 45),
+            Catalog("نظافت منزل", "home-cleaning", "خدمات منزل", 180), Catalog("تعمیر لوازم خانگی", "appliance-repair", "خدمات منزل", 90)
+        };
+        var existingItems = await db.ServiceCatalogItems.IgnoreQueryFilters().ToDictionaryAsync(x => x.Slug, cancellationToken);
+        foreach (var item in catalog)
+        {
+            if (!existingItems.TryGetValue(item.Slug, out var existing))
+            {
+                db.ServiceCatalogItems.Add(item);
+                continue;
+            }
+
+            // These slugs belong to the built-in taxonomy, so keep their classification canonical
+            // when upgrading a database that was seeded by an older application version.
+            existing.Name = item.Name;
+            existing.Category = item.Category;
+            existing.SuggestedDurationMinutes = item.SuggestedDurationMinutes;
         }
+        await db.SaveChangesAsync(cancellationToken);
 
     }
 

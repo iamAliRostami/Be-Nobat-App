@@ -1,0 +1,27 @@
+@page "/platform/categories"
+@rendermode InteractiveServer
+@attribute [Authorize(Policy = Policies.ManagePlatform)]
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<PageTitle>مدیریت دسته‌بندی‌ها | به‌نوبت</PageTitle>
+<div class="page-title"><div><h1>مدیریت دسته‌بندی‌ها</h1><p>دسته‌های قابل انتخاب برای کسب‌وکارها و کاتالوگ خدمات را مدیریت کنید.</p></div><button type="button" @onclick="NewCategory">+ دسته‌بندی جدید</button></div>
+<article class="admin-panel">
+    <div class="toolbar"><input placeholder="جست‌وجوی دسته‌بندی..." @bind="Search" @bind:event="oninput"/><select @bind="KindFilter"><option value="">همه انواع</option><option value="Business">کسب‌وکار</option><option value="Service">خدمت</option></select><span>@Filtered.Count() دسته‌بندی</span></div>
+    <div class="service-table category-table"><div class="table-head"><span>عنوان</span><span>نوع</span><span>ترتیب</span><span>وضعیت</span><span></span></div>
+    @foreach(var item in Filtered){<div><span><i class="purple">▦</i><b>@item.Name</b></span><span>@KindLabel(item.Kind)</span><span>@item.SortOrder</span><span><em class="status @(item.IsActive?"confirmed":"cancelled")">@(item.IsActive?"فعال":"غیرفعال")</em></span><span class="inline-actions"><button @onclick="()=>Edit(item)">ویرایش</button><button @onclick="()=>Toggle(item)">@(item.IsActive?"غیرفعال":"فعال")</button></span></div>}
+    </div>
+</article>
+@if(ShowForm){<div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="category-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null?"دسته‌بندی جدید":"ویرایش دسته‌بندی")</h2><button type="button" @onclick="Close">×</button></div><label>عنوان<input @bind="Form.Name"/></label><label>نوع<select @bind="Form.Kind" disabled="@(EditingId is not null)"><option value="@CategoryKind.Business">کسب‌وکار</option><option value="@CategoryKind.Service">خدمت</option></select></label><label>ترتیب نمایش<input type="number" @bind="Form.SortOrder"/></label>@if(Error is not null){<div class="auth-error" role="alert">@Error</div>}<button class="primary-button">ذخیره دسته‌بندی</button></EditForm></div>}
+
+@code {
+    private List<CategoryDefinition> Items=[]; private string Search=""; private string KindFilter=""; private bool ShowForm; private Guid? EditingId; private Input Form=new(); private string? Error;
+    private IEnumerable<CategoryDefinition> Filtered=>Items.Where(x=>(string.IsNullOrEmpty(KindFilter)||x.Kind.ToString()==KindFilter)&&x.Name.Contains(Search,StringComparison.OrdinalIgnoreCase));
+    protected override Task OnInitializedAsync()=>Load();
+    private async Task Load(){await using var db=await DbFactory.CreateDbContextAsync();Items=await db.CategoryDefinitions.IgnoreQueryFilters().OrderBy(x=>x.Kind).ThenBy(x=>x.SortOrder).ThenBy(x=>x.Name).ToListAsync();}
+    private void NewCategory(){EditingId=null;Form=new(){SortOrder=Items.Count};Error=null;ShowForm=true;}
+    private void Edit(CategoryDefinition x){EditingId=x.Id;Form=new(){Name=x.Name,Kind=x.Kind,SortOrder=x.SortOrder};Error=null;ShowForm=true;}
+    private async Task Save(){Form.Name=Form.Name.Trim();if(string.IsNullOrWhiteSpace(Form.Name)){Error="عنوان دسته‌بندی را وارد کنید.";return;}await using var db=await DbFactory.CreateDbContextAsync();if(await db.CategoryDefinitions.IgnoreQueryFilters().AnyAsync(x=>x.Kind==Form.Kind&&x.Name==Form.Name&&x.Id!=EditingId)){Error="این دسته‌بندی قبلاً برای همین نوع ثبت شده است.";return;}var x=EditingId is Guid id?await db.CategoryDefinitions.IgnoreQueryFilters().FirstAsync(x=>x.Id==id):new CategoryDefinition{Name=Form.Name};var oldName=x.Name;var oldKind=x.Kind;x.Name=Form.Name;x.Kind=Form.Kind;x.SortOrder=Form.SortOrder;x.IsActive=true;if(EditingId is null)db.CategoryDefinitions.Add(x);else if(oldName!=Form.Name||oldKind!=Form.Kind){if(oldKind==CategoryKind.Business)await db.Businesses.IgnoreQueryFilters().Where(b=>b.Category==oldName).ExecuteUpdateAsync(setters=>setters.SetProperty(b=>b.Category,Form.Name));else await db.ServiceCatalogItems.IgnoreQueryFilters().Where(service=>service.Category==oldName).ExecuteUpdateAsync(setters=>setters.SetProperty(service=>service.Category,Form.Name));}await db.SaveChangesAsync();Close();await Load();}
+    private async Task Toggle(CategoryDefinition item){await using var db=await DbFactory.CreateDbContextAsync();var x=await db.CategoryDefinitions.IgnoreQueryFilters().FirstAsync(x=>x.Id==item.Id);x.IsActive=!x.IsActive;await db.SaveChangesAsync();await Load();}
+    private void Close(){ShowForm=false;Error=null;} private static string KindLabel(CategoryKind kind)=>kind==CategoryKind.Business?"کسب‌وکار":"خدمت";
+    private sealed class Input{public string Name{get;set;}="";public CategoryKind Kind{get;set;}public int SortOrder{get;set;}}
+}

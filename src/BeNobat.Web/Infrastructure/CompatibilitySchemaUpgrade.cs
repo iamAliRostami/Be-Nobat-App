@@ -42,6 +42,18 @@ public static class CompatibilitySchemaUpgrade
                 "Category" text NOT NULL, "Description" text NOT NULL, "SuggestedDurationMinutes" integer NOT NULL,
                 "IsPublished" boolean NOT NULL);
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_ServiceCatalogItems_Slug" ON benobat."ServiceCatalogItems" ("Slug");
+            CREATE TABLE IF NOT EXISTS benobat."CategoryDefinitions" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "Name" text NOT NULL, "Kind" text NOT NULL,
+                "SortOrder" integer NOT NULL, "IsActive" boolean NOT NULL);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_CategoryDefinitions_Kind_Name" ON benobat."CategoryDefinitions" ("Kind", "Name");
+            CREATE TABLE IF NOT EXISTS benobat."FavoriteBusinesses" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "UserId" uuid NOT NULL, "BusinessId" uuid NOT NULL,
+                CONSTRAINT "FK_FavoriteBusinesses_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_FavoriteBusinesses_Businesses_BusinessId" FOREIGN KEY ("BusinessId") REFERENCES benobat."Businesses" ("Id") ON DELETE CASCADE);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_FavoriteBusinesses_UserId_BusinessId" ON benobat."FavoriteBusinesses" ("UserId", "BusinessId");
+            CREATE INDEX IF NOT EXISTS "IX_FavoriteBusinesses_BusinessId" ON benobat."FavoriteBusinesses" ("BusinessId");
             ALTER TABLE benobat."Services" ADD COLUMN IF NOT EXISTS "CatalogItemId" uuid NULL;
             DO $$ BEGIN
                 ALTER TABLE benobat."Services" ADD CONSTRAINT "FK_Services_ServiceCatalogItems_CatalogItemId"

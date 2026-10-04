@@ -1,0 +1,13 @@
+@page "/favorites"
+@layout Layout.PublicLayout
+@rendermode InteractiveServer
+@attribute [Authorize]
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthenticationState
+
+<PageTitle>علاقه‌مندی‌ها | به‌نوبت</PageTitle>
+<section class="section favorites-page"><div class="section-heading"><div><span>انتخاب‌های شما</span><h1>کسب‌وکارهای مورد علاقه</h1></div></div>
+@if(Items.Count==0){<p class="empty-state">هنوز کسب‌وکاری را به علاقه‌مندی‌ها اضافه نکرده‌اید. از صفحه اصلی روی دکمه قلب بزنید.</p>}
+else{<div class="business-grid">@foreach(var business in Items){<BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City" Location="@(business.Branches.FirstOrDefault()?.Address??business.City)" Reviews="@business.Reviews.Count.ToString()" ReturnUrl="/favorites"/>}</div>}
+</section>
+@code{private List<Business> Items=[];protected override async Task OnInitializedAsync(){var user=(await AuthenticationState.GetAuthenticationStateAsync()).User;var value=user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;if(!Guid.TryParse(value,out var userId))return;await using var db=await DbFactory.CreateDbContextAsync();var favorites=await db.FavoriteBusinesses.Where(x=>x.UserId==userId).Include(x=>x.Business).ThenInclude(x=>x.Branches).Include(x=>x.Business).ThenInclude(x=>x.Reviews.Where(r=>r.Status==ReviewStatus.Published)).ToListAsync();Items=favorites.Select(x=>x.Business).ToList();}}

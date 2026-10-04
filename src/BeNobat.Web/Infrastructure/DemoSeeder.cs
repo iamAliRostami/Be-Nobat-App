@@ -8,7 +8,8 @@ public static class DemoSeeder
     private static readonly string[] DemoSlugs =
     [
         "avan-beauty-studio", "sepid-dental-clinic", "rahaei-massage-wellness", "omid-family-consulting",
-        "demo-niloufar", "demo-labkhand", "demo-tavan", "demo-aramesh", "demo-aryana", "demo-roshana"
+        "demo-niloufar", "demo-labkhand", "demo-tavan", "demo-aramesh", "demo-aryana", "demo-roshana",
+        "demo-homa", "demo-pet", "demo-fitness", "demo-language", "demo-auto", "demo-home"
     ];
 
     public static async Task SeedAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default, bool reset = false)
@@ -176,7 +177,7 @@ public static class DemoSeeder
             {
                 Name = "مرکز مشاوره خانواده امید",
                 Slug = "omid-family-consulting",
-                Category = "مشاوره",
+                Category = "مشاوره و روان‌شناسی",
                 City = "تهران",
                 Description = "مشاوره خانواده، فردی و تحصیلی.",
             };

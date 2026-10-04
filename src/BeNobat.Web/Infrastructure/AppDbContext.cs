@@ -21,12 +21,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BranchService> BranchServices => Set<BranchService>();
     public DbSet<ServiceResource> ServiceResources => Set<ServiceResource>();
     public DbSet<AppointmentService> AppointmentServices => Set<AppointmentService>();
+    public DbSet<CategoryDefinition> CategoryDefinitions => Set<CategoryDefinition>();
+    public DbSet<FavoriteBusiness> FavoriteBusinesses => Set<FavoriteBusiness>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.HasDefaultSchema("benobat");
         builder.Entity<Business>().HasIndex(x => x.Slug).IsUnique();
+        builder.Entity<CategoryDefinition>().Property(x => x.Kind).HasConversion<string>();
+        builder.Entity<CategoryDefinition>().HasIndex(x => new { x.Kind, x.Name }).IsUnique();
+        builder.Entity<FavoriteBusiness>().HasIndex(x => new { x.UserId, x.BusinessId }).IsUnique();
+        builder.Entity<FavoriteBusiness>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<FavoriteBusiness>().HasOne(x => x.Business).WithMany().HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Branch>().HasOne(x => x.Business).WithMany(x => x.Branches)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Service>().HasOne(x => x.Business).WithMany(x => x.Services)
