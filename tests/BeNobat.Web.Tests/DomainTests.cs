@@ -61,6 +61,17 @@ public sealed class DomainTests
     }
 
     [Fact]
+    public void Business_service_can_reference_a_catalog_definition_and_keep_custom_terms()
+    {
+        var catalog = new ServiceCatalogItem { Name = "کوتاهی مو", Slug = "haircut", SuggestedDurationMinutes = 30 };
+        var service = new Service { Name = "کوتاهی ویژه", CatalogItemId = catalog.Id, DurationMinutes = 45, Price = 500_000 };
+
+        Assert.Equal(catalog.Id, service.CatalogItemId);
+        Assert.NotEqual(catalog.Name, service.Name);
+        Assert.NotEqual(catalog.SuggestedDurationMinutes, service.DurationMinutes);
+    }
+
+    [Fact]
     public void Past_slots_are_never_bookable()
     {
         var now = DateTimeOffset.UtcNow;

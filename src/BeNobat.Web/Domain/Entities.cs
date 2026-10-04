@@ -59,14 +59,28 @@ public sealed class Branch : Entity
 public sealed class Service : Entity
 {
     public Guid BusinessId { get; set; }
+    public Guid? CatalogItemId { get; set; }
     public required string Name { get; set; }
     public string Description { get; set; } = string.Empty;
     public int DurationMinutes { get; set; } = 30;
     public decimal Price { get; set; }
     public string Currency { get; set; } = "IRR";
     public Business Business { get; set; } = null!;
+    public ServiceCatalogItem? CatalogItem { get; set; }
     public ICollection<BranchService> BranchServices { get; } = [];
     public ICollection<ServiceResource> ServiceResources { get; } = [];
+}
+
+/// <summary>تعریف استاندارد و سراسری یک نوع خدمت؛ قیمت و مدت نهایی همچنان متعلق به کسب‌وکار است.</summary>
+public sealed class ServiceCatalogItem : Entity
+{
+    public required string Name { get; set; }
+    public string Slug { get; set; } = string.Empty;
+    public string Category { get; set; } = "عمومی";
+    public string Description { get; set; } = string.Empty;
+    public int SuggestedDurationMinutes { get; set; } = 30;
+    public bool IsPublished { get; set; } = true;
+    public ICollection<Service> BusinessServices { get; } = [];
 }
 
 /// <summary>فعال‌بودن و قیمت یک خدمت در یک شعبه.</summary>

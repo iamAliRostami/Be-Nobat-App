@@ -58,9 +58,29 @@
                 <div class="appointment-date"><b>@appointment.StartsAt.Day</b><span>@PersianMonthName(appointment.StartsAt)</span><small>@appointment.StartsAt.ToString("dddd", PersianCulture)</small></div>
                 <div class="appointment-info">
                     <span class="@StatusCssClass(appointment.Status)">● @StatusLabel(appointment.Status)</span>
-                    <h3>@ServiceLabel(appointment)</h3>
-                    <p>@appointment.Branch.Business.Name · @appointment.Branch.Name · @(appointment.Resource?.Name ?? "بدون کارمند")</p>
-                    <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ @appointment.Branch.Address</span></div>
+                    <h3 class="appointment-service-links">
+                        @if (appointment.Services.Count == 0)
+                        {
+                            <a class="entity-link" href="/service/@appointment.ServiceId">@appointment.Service.Name</a>
+                        }
+                        else
+                        {
+                            @foreach (var item in appointment.Services)
+                            {
+                                <a class="entity-link" href="/service/@item.ServiceId">@item.Service.Name</a>
+                            }
+                        }
+                    </h3>
+                    <p class="appointment-entity-links">
+                        <a class="entity-link" href="/business/@appointment.Branch.BusinessId">@appointment.Branch.Business.Name</a>
+                        <span aria-hidden="true">·</span>
+                        <a class="entity-link" href="/branch/@appointment.BranchId">@appointment.Branch.Name</a>
+                        @if (appointment.Resource is not null)
+                        {
+                            <span aria-hidden="true">·</span><a class="entity-link" href="/provider/@appointment.ResourceId">@appointment.Resource.Name</a>
+                        }
+                    </p>
+                    <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ <a class="entity-link" href="/branch/@appointment.BranchId">@appointment.Branch.Address</a></span></div>
                 </div>
                 <div class="appointment-actions">
                     @if (BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
