@@ -61,6 +61,17 @@ public sealed class DomainTests
     }
 
     [Fact]
+    public void Business_service_can_reference_a_catalog_definition_and_keep_custom_terms()
+    {
+        var catalog = new ServiceCatalogItem { Name = "کوتاهی مو", Slug = "haircut", SuggestedDurationMinutes = 30 };
+        var service = new Service { Name = "کوتاهی ویژه", CatalogItemId = catalog.Id, DurationMinutes = 45, Price = 500_000 };
+
+        Assert.Equal(catalog.Id, service.CatalogItemId);
+        Assert.NotEqual(catalog.Name, service.Name);
+        Assert.NotEqual(catalog.SuggestedDurationMinutes, service.DurationMinutes);
+    }
+
+    [Fact]
     public void Past_slots_are_never_bookable()
     {
         var now = DateTimeOffset.UtcNow;
@@ -79,6 +90,22 @@ public sealed class DomainTests
         var now = DateTimeOffset.UtcNow;
         var appointment = new Appointment { Status = status, StartsAt = now.AddMinutes(minutes) };
         Assert.Equal(expected, BookingPolicy.CanCustomerCancel(appointment, now));
+    }
+
+    [Theory]
+    [InlineData(AppointmentStatus.Completed, 60, true)]
+    [InlineData(AppointmentStatus.Confirmed, -1, true)]
+    [InlineData(AppointmentStatus.Confirmed, 1, false)]
+    [InlineData(AppointmentStatus.Pending, -60, false)]
+    [InlineData(AppointmentStatus.Cancelled, -60, false)]
+    [InlineData(AppointmentStatus.NoShow, -60, false)]
+    public void Customer_review_requires_a_completed_or_past_confirmed_appointment(
+        AppointmentStatus status, int endOffsetMinutes, bool expected)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var appointment = new Appointment { Status = status, EndsAt = now.AddMinutes(endOffsetMinutes) };
+
+        Assert.Equal(expected, BookingPolicy.CanCustomerReview(appointment, now));
     }
 
     [Fact]

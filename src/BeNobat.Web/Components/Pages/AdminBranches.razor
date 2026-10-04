@@ -58,7 +58,7 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="BranchForm" FormName="admin-branch" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
             <DataAnnotationsValidator />
-            <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" @onclick="Close">×</button></div>
+            <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id">@b.Name</option> }</select></label>
             <label>نام شعبه<input required @bind="BranchForm.Name" /></label>
             <label>نشانی<input @bind="BranchForm.Address" /></label>
@@ -80,7 +80,7 @@
 {
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="ResourceForm" FormName="admin-resource" OnValidSubmit="SaveResource" class="form-modal" @onclick:stopPropagation>
-            <div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
+            <div><h2>منبع جدید برای @ResourceBranch.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>نوع
                 <select @bind="ResourceForm.Kind" @bind:after="KindChanged">
                     <option value="staff">عضو تیم</option>
@@ -118,7 +118,7 @@
 {
     <div class="modal-backdrop" @onclick="Close">
         <div class="form-modal membership-modal" @onclick:stopPropagation>
-            <div><h2>اعضای @MemberBranch.Name</h2><button type="button" @onclick="Close">×</button></div>
+            <div><h2>اعضای @MemberBranch.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
 
             @if (Memberships.Count == 0)
             {
