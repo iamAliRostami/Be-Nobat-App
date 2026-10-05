@@ -64,7 +64,7 @@
         <div class="table-head"><span>خدمت</span><span>نام کسب‌وکار</span><span>شعب</span><span>ارائه‌دهندگان</span><span>وضعیت</span><span></span></div>
         @foreach (var service in Filtered)
         {
-            <div><span><i class="rose">✂</i><b>@service.Name<small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان · @(service.CatalogItem is null ? "اختصاصی" : "کاتالوگ")</small></b></span><span>@BusinessName(service.BusinessId)</span><span>@string.Join("، ", service.BranchServices.Select(x => x.Branch.Name))</span><span>@string.Join("، ", service.ServiceResources.Select(x => x.Resource.Name))</span><span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span><span class="inline-actions"><button @onclick="() => Edit(service)">تنظیم</button><button @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span></div>
+            <div><span><i class="rose">✂</i><b>@service.Name<small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان · @(service.CatalogItem is null ? "اختصاصی" : "کاتالوگ")</small></b></span><span><a class="entity-link" href="@EntityUrl("/platform", BusinessName(service.BusinessId))">@BusinessName(service.BusinessId)</a></span><span>@foreach (var branch in service.BranchServices.Select(x => x.Branch)) { <a class="entity-link entity-list-link" href="@EntityUrl("/admin/branches", branch.Name)">@branch.Name</a> }</span><span>@foreach (var resource in service.ServiceResources.Select(x => x.Resource)) { <a class="entity-link entity-list-link" href="@EntityUrl("/admin/team", resource.Name)">@resource.Name</a> }</span><span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span><span class="inline-actions"><button @onclick="() => Edit(service)">تنظیم</button><button class="@(service.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span></div>
         }
     </div>
 </article>
@@ -93,6 +93,7 @@
     private IEnumerable<Branch> FormBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> FormResources => Resources.Where(x => SelectedBranchIds.Contains(x.BranchId) && x.Kind == "staff");
     private string BusinessName(Guid businessId) => BusinessOptions.FirstOrDefault(x => x.Id == businessId)?.Name ?? "—";
+    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
 
     protected override async Task OnInitializedAsync()
     {
