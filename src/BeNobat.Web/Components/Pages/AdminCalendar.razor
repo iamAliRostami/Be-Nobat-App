@@ -43,21 +43,25 @@
 
 @code {
     private static readonly CultureInfo PersianCulture = new("fa-IR");
-    private DateTimeOffset SelectedDate = DateTimeOffset.Now;
+    private static readonly TimeZoneInfo BusinessTimeZone =
+        TimeZoneInfo.GetSystemTimeZones().FirstOrDefault(x => x.Id == "Asia/Tehran" || x.Id == "Iran Standard Time") ?? TimeZoneInfo.Local;
+    private DateTimeOffset SelectedDate = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BusinessTimeZone);
     private List<Appointment> DayAppointments = [];
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task ChangeDay(int offsetDays)
     {
-        SelectedDate = offsetDays == 0 ? DateTimeOffset.Now : SelectedDate.AddDays(offsetDays);
+        SelectedDate = offsetDays == 0
+            ? TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BusinessTimeZone)
+            : SelectedDate.AddDays(offsetDays);
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        var dayStart = new DateTimeOffset(SelectedDate.Date, SelectedDate.Offset);
-        var dayEnd = dayStart.AddDays(1);
+        var (dayStart, dayEnd) = BookingPolicy.UtcDayWindow(
+            DateOnly.FromDateTime(SelectedDate.DateTime), BusinessTimeZone);
 
         var appointments = await Access.AppointmentsAsync();
         DayAppointments = await appointments
