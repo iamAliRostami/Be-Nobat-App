@@ -46,10 +46,10 @@
                     </header>
                     <p>@review.Comment</p>
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
-                    <footer>
+                    <footer class="review-actions">
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" class="action-success" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" class="action-danger" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
                         <button type="button" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>
