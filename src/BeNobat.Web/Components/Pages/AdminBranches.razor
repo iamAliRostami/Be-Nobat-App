@@ -35,9 +35,9 @@
                 </dl>
                 <div class="card-actions">
                     <button type="button" @onclick="() => EditBranch(branch)">ویرایش</button>
-                    <button type="button" @onclick="() => AddResource(branch)">+ منبع</button>
+                    <button type="button" class="action-primary" @onclick="() => AddResource(branch)">+ منبع</button>
                     <button type="button" @onclick="() => OpenMembers(branch)">اعضا</button>
-                    <button type="button" class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
+                    <button type="button" class="@(branch.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
                 </div>
                 @if (branch.Resources.Count > 0)
                 {

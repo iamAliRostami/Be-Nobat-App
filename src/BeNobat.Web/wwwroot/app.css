@@ -625,6 +625,79 @@ input[type="checkbox"],input[type="radio"]{width:20px;height:20px;accent-color:v
 .status{font-size:11px;padding:5px 9px;font-weight:650}
 .schedule-row div b,.availability-main b{font-size:13px}
 
+/* Statuses are read-only information, not actions. A small semantic dot keeps them
+   easy to scan without giving them the filled, rounded appearance of a button. */
+.status{
+  --status-color:var(--on-surface-variant);
+  display:inline-flex;align-items:center;gap:7px;width:max-content;padding:0;border:0;border-radius:0;
+  background:transparent!important;color:var(--status-color)!important;font-size:var(--font-caption);font-weight:650;line-height:1.7;
+}
+.status::before{content:"";width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:currentColor}
+.status.confirmed,.status.active{--status-color:#247a54}
+.status.pending{--status-color:#a86319}
+.status.done{--status-color:#66736f}
+.status.cancelled{--status-color:var(--error)}
+
+/* Compact action groups share one geometry; color communicates the action rather
+   than accidental differences in label length or selector specificity. */
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions){
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) button{
+  box-sizing:border-box;min-width:72px;min-height:var(--control-height-sm);margin:0;padding:7px 12px;
+  border:1px solid var(--outline)!important;border-radius:10px;background:var(--surface)!important;color:var(--primary)!important;
+  box-shadow:none;font-size:var(--font-caption);font-weight:650;line-height:1.5;white-space:nowrap;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) button:hover:not(:disabled){
+  border-color:var(--primary)!important;background:var(--primary-container)!important;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-primary{
+  border-color:var(--primary)!important;background:var(--primary)!important;color:var(--on-primary)!important;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-primary:hover:not(:disabled){background:#0f5a4e!important}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-success{
+  border-color:#b9dfcc!important;background:#e8f6ef!important;color:#247a54!important;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-success:hover:not(:disabled){
+  border-color:#79bc99!important;background:#d9f0e4!important;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-danger,
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .danger-link{
+  border-color:#e8c5c5!important;background:var(--surface)!important;color:var(--error)!important;
+}
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-danger:hover:not(:disabled),
+:where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .danger-link:hover:not(:disabled){
+  border-color:var(--error)!important;background:#ba1a1a0f!important;
+}
+.schedule-row>.row-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(72px,1fr);width:auto;padding:0;background:transparent}
+.schedule-row>.row-actions button{width:100%;min-width:72px}
+html[data-theme="dark"] :where(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-actions) .action-success{
+  border-color:#3e6a59!important;background:#193d32!important;color:#86d8b0!important;
+}
+
+/* Annotated admin refinements: filterable summaries, discoverable entity links,
+   roomier availability rows, and an actually collapsible navigation rail. */
+.stat-cards .filter-card{position:relative;cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease}
+.stat-cards .filter-card::after{content:"";position:absolute;inset-inline:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:transparent}
+.stat-cards .filter-card:hover{border-color:color-mix(in srgb,var(--primary) 55%,var(--outline-soft));transform:translateY(-2px)}
+.stat-cards .filter-card.active{border-color:var(--primary);background:color-mix(in srgb,var(--primary-container) 42%,var(--surface))}
+.stat-cards .filter-card.active::after{background:var(--primary)}
+.stat-card-link{display:flex;align-items:center;gap:12px;width:100%}
+.toolbar select{min-width:170px;max-width:230px}
+.service-table button.text-filter{min-width:0;padding:2px 4px;border:0!important;background:transparent!important;color:var(--primary)!important;font:inherit;text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px}
+.service-table button.text-filter:hover{text-decoration-color:currentColor}
+.entity-list-link{display:inline}.entity-list-link:not(:last-child)::after{content:"، ";color:var(--on-surface-variant);text-decoration:none}
+.availability-list{display:grid;gap:0}
+.availability-list article{min-height:84px;padding-block:20px!important}
+.availability-scope{line-height:2!important}
+.sidebar-toggle{width:36px;height:36px;display:grid;place-items:center;flex:0 0 36px;border:1px solid var(--outline-soft);border-radius:10px;background:var(--surface);color:var(--primary);font-size:18px;line-height:1}
+.shell header{justify-content:space-between}
+.shell,.sidebar{transition:grid-template-columns .22s ease,width .22s ease,opacity .18s ease,transform .22s ease}
+.shell.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)}
+.shell.sidebar-collapsed>.sidebar{width:0;padding-inline:0;opacity:0;overflow:hidden;pointer-events:none;transform:translateX(20px)}
+html[dir="ltr"] .shell.sidebar-collapsed>.sidebar{transform:translateX(-20px)}
+@media(max-width:900px){.sidebar-toggle{display:none}}
+
 html[data-theme="dark"] .businesses{background:color-mix(in srgb,var(--background) 92%,var(--primary) 8%)}
 html[data-theme="dark"] :where(.form-modal,.profile-form,.auth-card) textarea{background:#1D2725;color:var(--on-surface);border-color:var(--outline)}
 
