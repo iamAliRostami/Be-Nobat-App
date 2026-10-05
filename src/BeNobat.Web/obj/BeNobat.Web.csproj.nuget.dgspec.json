@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj": {}
+    "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj": {}
   },
   "projects": {
-    "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
+    "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj",
+        "projectUniqueName": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj",
         "projectName": "BeNobat.Web",
-        "projectPath": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj",
-        "packagesPath": "C:\\Users\\administrator\\.nuget\\packages\\",
-        "outputPath": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\obj\\",
+        "projectPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj",
+        "packagesPath": "C:\\Users\\a.rostami.MAKAN.001\\.nuget\\packages\\",
+        "outputPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
-          "D:\\rostami\\projects\\be-nobat-app\\NuGet.Config",
-          "C:\\Users\\administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "D:\\Rostami\\Projects\\Be-Nobat-App\\NuGet.Config",
+          "C:\\Users\\a.rostami.MAKAN.001\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,7 +26,6 @@
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {

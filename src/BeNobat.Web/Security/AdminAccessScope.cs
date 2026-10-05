@@ -37,13 +37,14 @@ public sealed class AdminAccessScope(
         var query = db.Appointments.AsQueryable();
         if (await IsPlatformAdminAsync()) return query;
         var id = await UserIdAsync();
-        var principal = await PrincipalAsync();
-        if (principal.IsInRole(AppRoles.Staff) &&
-            !principal.IsInRole(AppRoles.Owner) && !principal.IsInRole(AppRoles.Manager))
-        {
-            return query.Where(a => a.Resource != null && a.Resource.UserId == id);
-        }
-        return query.Where(a => db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == a.BranchId));
+        return query.Where(a => db.BranchMemberships.Any(m => 
+            m.UserId == id && 
+            m.BranchId == a.BranchId &&
+            (
+                m.Role == AppRoles.Owner || 
+                m.Role == AppRoles.Manager || 
+                (m.Role == AppRoles.Staff && a.Resource != null && a.Resource.UserId == id)
+            )));
     }
 
     public async Task<IQueryable<Branch>> BranchesAsync()
@@ -60,7 +61,8 @@ public sealed class AdminAccessScope(
         if (await IsPlatformAdminAsync()) return query;
         var id = await UserIdAsync();
         return query.Where(r => r.BranchId != null &&
-            db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == r.BranchId));
+            db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == r.BranchId && 
+            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)));
     }
 
     public async Task<IQueryable<CustomerReview>> CustomerReviewsAsync()
@@ -68,13 +70,15 @@ public sealed class AdminAccessScope(
         var query = db.CustomerReviews.AsQueryable();
         if (await IsPlatformAdminAsync()) return query;
         var id = await UserIdAsync();
-        return query.Where(r => db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == r.Appointment.BranchId));
+        return query.Where(r => db.BranchMemberships.Any(m => m.UserId == id && m.BranchId == r.Appointment.BranchId && 
+            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)));
     }
 
     public async Task<bool> CanAccessBranchAsync(Guid branchId)
     {
         if (await IsPlatformAdminAsync()) return true;
         var id = await UserIdAsync();
-        return await db.BranchMemberships.AnyAsync(m => m.UserId == id && m.BranchId == branchId);
+        return await db.BranchMemberships.AnyAsync(m => m.UserId == id && m.BranchId == branchId && 
+            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager));
     }
 }

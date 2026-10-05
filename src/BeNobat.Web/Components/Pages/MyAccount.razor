@@ -110,6 +110,21 @@
         <article class="admin-panel">
             <h2>امتیاز شما به‌عنوان مراجعه‌کننده</h2>
             <p class="empty-state">میانگین @ReceivedRating.Value.ToString("0.0") از ۵ بر اساس @ReceivedCount ارزیابی مجموعه‌ها.</p>
+            <div class="review-list">
+                @foreach (var review in ReceivedReviews)
+                {
+                    <div class="review-item" style="padding-top:1rem; border-top: 1px solid var(--border)">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>@review.Business.Name</b>
+                            <span class="stars" style="color:var(--orange)">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(review.Comment))
+                        {
+                            <p style="margin-top:0.5rem; color:var(--text-light)">@review.Comment</p>
+                        }
+                    </div>
+                }
+            </div>
         </article>
     }
 </section>
@@ -124,6 +139,7 @@
     private ProfileInput Profile = new();
     private ReviewInput ReviewForm = new();
     private List<AppointmentChoice> CompletedAppointments = [];
+    private List<CustomerReview> ReceivedReviews = [];
     private double? ReceivedRating;
     private int ReceivedCount;
     private string? Message;
@@ -166,9 +182,9 @@
             .Select(x => new AppointmentChoice(x.Id, x.Branch.Business.Name, x.Branch.Name, x.Service.Name))
             .ToListAsync();
 
-        var received = await Db.CustomerReviews.Where(x => x.CustomerId == userId).ToListAsync();
-        ReceivedCount = received.Count;
-        ReceivedRating = received.Count == 0 ? null : received.Average(x => (double)x.Rating);
+        ReceivedReviews = await Db.CustomerReviews.Include(x => x.Business).Where(x => x.CustomerId == userId).OrderByDescending(x => x.CreatedAt).ToListAsync();
+        ReceivedCount = ReceivedReviews.Count;
+        ReceivedRating = ReceivedCount == 0 ? null : ReceivedReviews.Average(x => (double)x.Rating);
     }
 
     private async Task SaveProfile()

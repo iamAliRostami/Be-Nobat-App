@@ -15,7 +15,12 @@
             <div><h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <div class="service-form-row">
                 <label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in BusinessOptions) { <option value="@business.Id">@business.Name</option> }</select></label>
-                <label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@foreach (var branch in FormBranches) { <option value="@branch.Id">@branch.Name</option> }</select></label>
+                <fieldset class="service-source">
+                    <legend>شعب ارائه‌دهنده</legend>
+                    <div class="service-provider-list">
+                        @foreach (var branch in FormBranches) { <label class="check-label"><input type="checkbox" checked="@SelectedBranchIds.Contains(branch.Id)" @onchange="() => ToggleBranch(branch.Id)" /><span>@branch.Name</span></label> }
+                    </div>
+                </fieldset>
             </div>
             @if (EditingId is null)
             {
@@ -79,13 +84,14 @@
     private bool ShowForm;
     private Guid? EditingId;
     private ServiceInput Form = new();
+    private HashSet<Guid> SelectedBranchIds = [];
     private HashSet<Guid> SelectedResourceIds = [];
     private string? Error;
     private string Language = "fa";
     private IEnumerable<Service> Filtered => Services.Where(x =>
         $"{x.Name} {BusinessOptions.FirstOrDefault(b => b.Id == x.BusinessId)?.Name}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<Branch> FormBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
-    private IEnumerable<Resource> FormResources => Resources.Where(x => x.BranchId == Form.BranchId && x.Kind == "staff");
+    private IEnumerable<Resource> FormResources => Resources.Where(x => SelectedBranchIds.Contains(x.BranchId) && x.Kind == "staff");
     private string BusinessName(Guid businessId) => BusinessOptions.FirstOrDefault(x => x.Id == businessId)?.Name ?? "—";
 
     protected override async Task OnInitializedAsync()
@@ -106,31 +112,30 @@
     }
     protected override void OnParametersSet() => Search = FilterQuery?.Trim() ?? "";
     private async Task Load() { var ids = BusinessOptions.Select(x => x.Id).ToList(); Services = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId)).Include(x => x.CatalogItem).Include(x => x.BranchServices).ThenInclude(x => x.Branch).Include(x => x.ServiceResources).ThenInclude(x => x.Resource).OrderBy(x => x.Name).ToListAsync(); }
-    private void OpenNew() { EditingId = null; var businessId = BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId, BranchId = Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty }; SelectedResourceIds = []; Error = null; ShowForm = true; }
-    private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, CatalogItemId = service.CatalogItemId, Source = service.CatalogItemId is null ? "custom" : "catalog", Name = service.Name, Description = service.Description, DurationMinutes = service.DurationMinutes, Price = assignment?.Price ?? service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).ToHashSet(); Error = null; ShowForm = true; }
-    private Task BusinessChanged() { Form.BranchId = FormBranches.FirstOrDefault()?.Id ?? Guid.Empty; SelectedResourceIds.Clear(); return Task.CompletedTask; }
-    private Task BranchChanged() { SelectedResourceIds.RemoveWhere(x => FormResources.All(r => r.Id != x)); return Task.CompletedTask; }
+    private void OpenNew() { EditingId = null; var businessId = BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId }; SelectedBranchIds = [Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty]; SelectedResourceIds = []; Error = null; ShowForm = true; }
+    private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, CatalogItemId = service.CatalogItemId, Source = service.CatalogItemId is null ? "custom" : "catalog", Name = service.Name, Description = service.Description, DurationMinutes = service.DurationMinutes, Price = assignment?.Price ?? service.Price }; SelectedBranchIds = service.BranchServices.Select(x => x.BranchId).ToHashSet(); SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).ToHashSet(); Error = null; ShowForm = true; }
+    private Task BusinessChanged() { SelectedBranchIds = [FormBranches.FirstOrDefault()?.Id ?? Guid.Empty]; SelectedResourceIds.Clear(); return Task.CompletedTask; }
+    private void ToggleBranch(Guid id) { if (!SelectedBranchIds.Add(id)) SelectedBranchIds.Remove(id); SelectedResourceIds.RemoveWhere(x => FormResources.All(r => r.Id != x)); }
     private Task CatalogChanged() { var item = CatalogItems.FirstOrDefault(x => x.Id == Form.CatalogItemId); if (item is not null) { Form.Name = item.Name; Form.Description = item.Description; Form.DurationMinutes = item.SuggestedDurationMinutes; } return Task.CompletedTask; }
     private void ToggleResource(Guid id) { if (!SelectedResourceIds.Add(id)) SelectedResourceIds.Remove(id); }
     private async Task Save()
     {
-        var branch = Branches.FirstOrDefault(x => x.Id == Form.BranchId && x.BusinessId == Form.BusinessId);
         Error = null;
         if (Form.BusinessId == Guid.Empty) { Error = T("ابتدا یک کسب‌وکار انتخاب کنید.", "اختر نشاطًا تجاريًا أولًا.", "Select a business first."); return; }
         if (EditingId is null && Form.Source == CatalogSource && Form.CatalogItemId is null) { Error = T("یک خدمت را از فهرست کاتالوگ انتخاب کنید.", "اختر خدمة من قائمة الكتالوج.", "Select a service from the catalog list."); return; }
         if (string.IsNullOrWhiteSpace(Form.Name)) { Error = T("نام خدمت را وارد کنید.", "أدخل اسم الخدمة.", "Enter a service name."); return; }
-        if (branch is null) { Error = T("یک شعبه معتبر برای این کسب‌وکار انتخاب کنید.", "اختر فرعًا صالحًا لهذا النشاط.", "Select a valid branch for this business."); return; }
+        if (SelectedBranchIds.Count == 0 || SelectedBranchIds.Any(id => Branches.All(x => x.Id != id || x.BusinessId != Form.BusinessId))) { Error = T("حداقل یک شعبه معتبر برای این کسب‌وکار انتخاب کنید.", "اختر فرعًا صالحًا لهذا النشاط على الأقل.", "Select at least one valid branch for this business."); return; }
         if (Form.DurationMinutes < 5) { Error = T("مدت خدمت باید حداقل ۵ دقیقه باشد.", "يجب ألا تقل مدة الخدمة عن ٥ دقائق.", "Service duration must be at least 5 minutes."); return; }
         if (Form.Price < 0) { Error = T("قیمت خدمت نمی‌تواند منفی باشد.", "لا يمكن أن يكون سعر الخدمة سالبًا.", "Service price cannot be negative."); return; }
         if (SelectedResourceIds.Count == 0) { Error = T("حداقل یک کارمند ارائه‌دهنده را انتخاب کنید.", "اختر موظفًا واحدًا على الأقل لتقديم الخدمة.", "Select at least one service provider."); return; }
         if (Form.CatalogItemId is Guid catalogId && await Db.Services.IgnoreQueryFilters().AnyAsync(x => x.BusinessId == Form.BusinessId && x.CatalogItemId == catalogId && x.Id != EditingId)) { Error = T("این خدمت کاتالوگ قبلاً برای این کسب‌وکار ثبت شده است؛ خدمت موجود را ویرایش کنید.", "تمت إضافة خدمة الكتالوج هذه مسبقًا لهذا النشاط؛ عدّل الخدمة الحالية.", "This catalog service already exists for this business; edit the existing service instead."); return; }
-        if (SelectedResourceIds.Any(id => Resources.All(x => x.Id != id || x.BranchId != branch.Id))) { Error = T("یک یا چند کارمند انتخاب‌شده متعلق به این شعبه نیستند؛ کارکنان را دوباره انتخاب کنید.", "موظف واحد أو أكثر لا ينتمي إلى هذا الفرع؛ أعد اختيار الموظفين.", "One or more selected providers do not belong to this branch; select the providers again."); return; }
+        if (SelectedResourceIds.Any(id => Resources.All(x => x.Id != id || !SelectedBranchIds.Contains(x.BranchId)))) { Error = T("یک یا چند کارمند انتخاب‌شده متعلق به شعب انتخاب‌شده نیستند؛ کارکنان را دوباره انتخاب کنید.", "موظف واحد أو أكثر لا ينتمي إلى الفروع المحددة؛ أعد اختيار الموظفين.", "One or more selected providers do not belong to the selected branches; select the providers again."); return; }
         var service = EditingId is null ? new Service { Name = Form.Name } : await Db.Services.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingId);
         service.BusinessId = Form.BusinessId; service.CatalogItemId = Form.Source == "catalog" ? Form.CatalogItemId : null; service.Name = Form.Name.Trim(); service.Description = Form.Description.Trim(); service.DurationMinutes = Form.DurationMinutes; service.Price = Form.Price;
         if (EditingId is null) Db.Services.Add(service);
         await Db.SaveChangesAsync();
         var oldBranch = await Db.BranchServices.Where(x => x.ServiceId == service.Id).ToListAsync(); Db.BranchServices.RemoveRange(oldBranch);
-        Db.BranchServices.Add(new BranchService { BranchId = branch.Id, ServiceId = service.Id, Price = null });
+        Db.BranchServices.AddRange(SelectedBranchIds.Select(id => new BranchService { BranchId = id, ServiceId = service.Id, Price = null }));
         var oldResources = await Db.ServiceResources.Where(x => x.ServiceId == service.Id).ToListAsync(); Db.ServiceResources.RemoveRange(oldResources);
         Db.ServiceResources.AddRange(SelectedResourceIds.Select(id => new ServiceResource { ServiceId = service.Id, ResourceId = id }));
         await Db.SaveChangesAsync(); Close(); await Load();
@@ -138,5 +143,5 @@
     private async Task ToggleActive(Service service) { var item = await Db.Services.IgnoreQueryFilters().FirstAsync(x => x.Id == service.Id); item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null; await Db.SaveChangesAsync(); await Load(); }
     private void Close() { ShowForm = false; Error = null; }
     private string T(string fa, string ar, string en) => LocalizedDate.Choose(Language, fa, ar, en);
-    private sealed class ServiceInput { public Guid BusinessId { get; set; } public Guid BranchId { get; set; } public Guid? CatalogItemId { get; set; } public string Source { get; set; } = "catalog"; public string Name { get; set; } = ""; public string Description { get; set; } = ""; public int DurationMinutes { get; set; } = 30; public decimal Price { get; set; } }
+    private sealed class ServiceInput { public Guid BusinessId { get; set; } public Guid? CatalogItemId { get; set; } public string Source { get; set; } = "catalog"; public string Name { get; set; } = ""; public string Description { get; set; } = ""; public int DurationMinutes { get; set; } = 30; public decimal Price { get; set; } }
 }

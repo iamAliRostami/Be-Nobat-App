@@ -75,6 +75,7 @@ else
                     </details>
                     <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
                     @if (SelectedResourceId is null) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
+                    else if (IsLoadingSlots) { <div class="loading-state">در حال جست‌وجوی زمان‌های خالی...</div> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد.</p> }
                     else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" disabled="@(!BookingPolicy.IsBookable(slot, DateTimeOffset.UtcNow))" class="@(SelectedSlot == slot ? "selected" : "")" @onclick="() => SelectedSlot = slot">@LocalizedDate.FormatTime(slot, Language)</button> }</div> }
                 </section>
@@ -213,7 +214,7 @@ else
             assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
     }
     private async Task NextFromStep1() { if (SelectedServiceIds.Count == 0) { ErrorMessage = "حداقل یک خدمت را انتخاب کنید."; return; } await LoadEligibleResourcesAsync(); ErrorMessage = null; EnsureDateNotPast(); Step = 2; await LoadSlotsAsync(); }
-    private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
+    private void BackToStep1() { ErrorMessage = null; Step = 1; }
     private async Task ResourceChanged() { SelectedSlot = null; TermsAccepted = false; await LoadSlotsAsync(); }
     private async Task SelectDate(DateOnly date)
     {

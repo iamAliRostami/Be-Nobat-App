@@ -82,7 +82,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Today = DateTimeOffset.Now;
+        var tz = TimeZoneInfo.GetSystemTimeZones().FirstOrDefault(x => x.Id == "Asia/Tehran" || x.Id == "Iran Standard Time") ?? TimeZoneInfo.Local;
+        Today = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, tz);
         var dayStart = new DateTimeOffset(Today.Date, Today.Offset);
         var dayEnd = dayStart.AddDays(1);
 
