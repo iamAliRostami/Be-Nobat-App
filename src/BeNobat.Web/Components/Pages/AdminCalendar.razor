@@ -31,8 +31,8 @@
                 <article class="event-row @StatusCssClass(appointment.Status)">
                     <time>@appointment.StartsAt.ToString("HH:mm") - @appointment.EndsAt.ToString("HH:mm")</time>
                     <div>
-                        <b>@(string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email : appointment.Customer.DisplayName)</b>
-                        <small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Business.Name · @appointment.Branch.Name</small>
+                        <b><a class="entity-link" href="@EntityUrl("/admin/customers", CustomerName(appointment))">@CustomerName(appointment)</a></b>
+                        <small><a class="entity-link" href="@EntityUrl("/businesses", ServiceLabel(appointment))">@ServiceLabel(appointment)</a> · @if (appointment.Resource is not null) { <a class="entity-link" href="@EntityUrl("/admin/team", appointment.Resource.Name)">@appointment.Resource.Name</a> } else { <text>بدون کارمند</text> } · <a class="entity-link" href="@EntityUrl("/platform", appointment.Branch.Business.Name)">@appointment.Branch.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a></small>
                     </div>
                     <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                 </article>
@@ -78,6 +78,11 @@
     private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
         ? appointment.Service.Name
         : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
+
+    private static string CustomerName(Appointment appointment) =>
+        string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
+
+    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {
