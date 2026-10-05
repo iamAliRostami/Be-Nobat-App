@@ -21,10 +21,10 @@
 @if (Tab == "incoming")
 {
     <div class="stat-cards">
-        <article><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
-        <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
-        <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
-        <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
+        <article class="filter-card" @onclick='() => Filter = "all"'><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
+        <article class="filter-card @(Filter == "all" ? "active" : "")" @onclick='() => Filter = "all"'><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
+        <article class="filter-card @(Filter == "Pending" ? "active" : "")" @onclick='() => Filter = "Pending"'><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
+        <article class="filter-card @(Filter == "Published" ? "active" : "")" @onclick='() => Filter = "Published"'><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
     </div>
     <article class="admin-panel">
         <div class="toolbar">
@@ -46,10 +46,10 @@
                     </header>
                     <p>@review.Comment</p>
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
-                    <footer>
+                    <footer class="review-actions">
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" class="action-success" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" class="action-danger" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
                         <button type="button" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>

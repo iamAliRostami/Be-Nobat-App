@@ -8,10 +8,10 @@
 <div class="page-title"><div><h1>کاتالوگ خدمات</h1><p>تعریف‌های استانداردی که کسب‌وکارها می‌توانند انتخاب و شخصی‌سازی کنند.</p></div><button type="button" @onclick="NewItem">+ خدمت جدید</button></div>
 
 <div class="stat-cards platform-stats">
-    <article><i class="purple">✦</i><div><small>کل خدمات</small><strong>@Items.Count</strong></div></article>
-    <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Items.Count(x => x.IsPublished)</strong></div></article>
-    <article><i class="blue">▦</i><div><small>دسته‌بندی‌ها</small><strong>@Items.Select(x => x.Category).Distinct().Count()</strong></div></article>
-    <article><i class="orange">◇</i><div><small>استفاده کسب‌وکارها</small><strong>@Items.Sum(x => x.BusinessServices.Count)</strong></div></article>
+    <article class="filter-card @(ViewFilter == "all" ? "active" : "")" @onclick='() => SetViewFilter("all")'><i class="purple">✦</i><div><small>کل خدمات</small><strong>@Items.Count</strong></div></article>
+    <article class="filter-card @(ViewFilter == "published" ? "active" : "")" @onclick='() => SetViewFilter("published")'><i class="green">✓</i><div><small>منتشرشده</small><strong>@Items.Count(x => x.IsPublished)</strong></div></article>
+    <article class="filter-card"><a class="stat-card-link" href="/platform/categories"><i class="blue">▦</i><div><small>دسته‌بندی‌ها</small><strong>@Items.Select(x => x.Category).Distinct().Count()</strong></div></a></article>
+    <article class="filter-card @(ViewFilter == "used" ? "active" : "")" @onclick='() => SetViewFilter("used")'><i class="orange">◇</i><div><small>استفاده کسب‌وکارها</small><strong>@Items.Sum(x => x.BusinessServices.Count)</strong></div></article>
 </div>
 
 @if (ShowForm)
@@ -32,12 +32,12 @@
 }
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته یا شناسه..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
+    <div class="toolbar"><input placeholder="جست‌وجوی نام یا شناسه..." @bind="Search" @bind:event="oninput" /><select id="catalog-category-filter" aria-label="فیلتر دسته‌بندی" @bind="SelectedCategory"><option value="">همه دسته‌بندی‌ها</option>@foreach (var category in Items.Select(x => x.Category).Distinct().Order()) { <option value="@category">@category</option> }</select><select aria-label="فیلتر وضعیت انتشار" @bind="ViewFilter"><option value="all">همه وضعیت‌ها</option><option value="published">منتشرشده</option><option value="hidden">پنهان</option><option value="used">استفاده‌شده</option></select><span>@Filtered.Count() خدمت</span></div>
     <div class="service-table platform-table catalog-table">
         <div class="table-head"><span>خدمت</span><span>دسته‌بندی</span><span>مدت</span><span>وضعیت</span><span></span></div>
         @foreach (var item in Filtered)
         {
-            <div><span><i class="purple">✦</i><b>@item.Name<small dir="ltr">/@item.Slug · @item.BusinessServices.Count کسب‌وکار</small></b></span><span>@item.Category</span><span>@item.SuggestedDurationMinutes دقیقه</span><span><em class="status @(item.IsPublished ? "confirmed" : "cancelled")">@(item.IsPublished ? "منتشرشده" : "پنهان")</em></span><span class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.IsPublished ? "پنهان" : "انتشار")</button></span></div>
+            <div><span><i class="purple">✦</i><b>@item.Name<small dir="ltr">/@item.Slug · @item.BusinessServices.Count کسب‌وکار</small></b></span><span><button type="button" class="text-filter" @onclick="() => SelectedCategory = item.Category">@item.Category</button></span><span>@item.SuggestedDurationMinutes دقیقه</span><span><em class="status @(item.IsPublished ? "confirmed" : "cancelled")">@(item.IsPublished ? "منتشرشده" : "پنهان")</em></span><span class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" class="@(item.IsPublished ? "action-danger" : "action-success")" @onclick="() => Toggle(item)">@(item.IsPublished ? "پنهان" : "انتشار")</button></span></div>
         }
     </div>
 </article>
@@ -52,7 +52,7 @@
     private bool ShowForm;
     private Guid? EditingId;
     private CatalogInput Form = new();
-    private IEnumerable<ServiceCatalogItem> Filtered => Items.Where(x => (ViewFilter != "published" || x.IsPublished) && (ViewFilter != "used" || x.BusinessServices.Count > 0) && (string.IsNullOrEmpty(SelectedCategory) || x.Category == SelectedCategory) && $"{x.Name} {x.Category} {x.Slug}".Contains(Search, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<ServiceCatalogItem> Filtered => Items.Where(x => (ViewFilter != "published" || x.IsPublished) && (ViewFilter != "hidden" || !x.IsPublished) && (ViewFilter != "used" || x.BusinessServices.Count > 0) && (string.IsNullOrEmpty(SelectedCategory) || x.Category == SelectedCategory) && $"{x.Name} {x.Category} {x.Slug}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     private void SetViewFilter(string value) { ViewFilter = value; if (value == "all") SelectedCategory = ""; }
     protected override Task OnInitializedAsync() => Load();
     private async Task Load() { await using var db = await DbFactory.CreateDbContextAsync(); Items = await db.ServiceCatalogItems.IgnoreQueryFilters().Include(x => x.BusinessServices).OrderBy(x => x.Category).ThenBy(x => x.Name).ToListAsync(); Categories = await db.CategoryDefinitions.Where(x => x.Kind == CategoryKind.Service && x.IsActive).OrderBy(x => x.SortOrder).Select(x => x.Name).ToListAsync(); }

@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-<div class="shell">
+<div class="shell @(SidebarCollapsed ? "sidebar-collapsed" : "")">
     <aside class="sidebar">
         <div class="brand sidebar-identity">
             <a class="sidebar-home" href="/admin" aria-label="داشبورد به‌نوبت">ب</a>
@@ -52,6 +52,7 @@
     </aside>
     <main>
         <header>
+            <button type="button" class="sidebar-toggle" aria-label="@(SidebarCollapsed ? "باز کردن نوار کناری" : "بستن نوار کناری")" title="@(SidebarCollapsed ? "باز کردن منو" : "بستن منو")" @onclick="() => SidebarCollapsed = !SidebarCollapsed">@(SidebarCollapsed ? "☰" : "→")</button>
             <div class="mobile-brand">به‌نوبت</div>
             <div class="admin-header-actions">
                 <UiPreferences />
@@ -78,6 +79,7 @@
 </div>
 
 @code {
+    private bool SidebarCollapsed;
     private static string Initials(string? name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "؟";
