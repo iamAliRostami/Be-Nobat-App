@@ -17,38 +17,38 @@
 </div>
 
 <div class="stat-cards">
-    <article><i class="purple">▦</i><div><small>نوبت‌های امروز</small><strong>@TodayAppointments.Count</strong></div></article>
-    <article><i class="green">✓</i><div><small>تکمیل‌شده امروز</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Completed)</strong></div></article>
-    <article><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)</strong></div></article>
-    <article><i class="blue">♧</i><div><small>کل نوبت‌ها</small><strong>@TotalAppointments</strong></div></article>
+    <article class="filter-card @(DashboardFilter == "all" ? "active" : "")" @onclick='() => DashboardFilter = "all"'><i class="purple">▦</i><div><small>نوبت‌های امروز</small><strong>@TodayAppointments.Count</strong></div></article>
+    <article class="filter-card @(DashboardFilter == "completed" ? "active" : "")" @onclick='() => DashboardFilter = "completed"'><i class="green">✓</i><div><small>تکمیل‌شده امروز</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Completed)</strong></div></article>
+    <article class="filter-card @(DashboardFilter == "pending" ? "active" : "")" @onclick='() => DashboardFilter = "pending"'><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)</strong></div></article>
+    <article class="filter-card"><a class="stat-card-link" href="/admin/calendar"><i class="blue">♧</i><div><small>کل نوبت‌ها</small><strong>@TotalAppointments</strong></div></a></article>
 </div>
 
 <div class="dashboard-grid">
     <section class="admin-panel today-list">
-        <div class="panel-head"><div><h2>نوبت‌های امروز</h2><p>@Today.ToString("dddd، d MMMM", PersianCulture)</p></div><a href="/admin/calendar">مشاهده تقویم ←</a></div>
+        <div class="panel-head"><div><h2>@DashboardFilterTitle</h2><p>@Today.ToString("dddd، d MMMM", PersianCulture)</p></div><a href="/admin/calendar">مشاهده تقویم ←</a></div>
 
-        @if (TodayAppointments.Count == 0)
+        @if (!DisplayedAppointments.Any())
         {
             <p class="empty-state">امروز نوبتی ثبت نشده است.</p>
         }
 
-        @foreach (var appointment in TodayAppointments)
+        @foreach (var appointment in DisplayedAppointments)
         {
             <div class="schedule-row">
                 <time>@appointment.StartsAt.ToString("HH:mm")<small>@((appointment.EndsAt - appointment.StartsAt).TotalMinutes.ToString("0")) دقیقه</small></time>
                 <i class="line @(appointment.Status == AppointmentStatus.Completed ? "done" : "")"></i>
                 <span class="customer-avatar rose">@CustomerInitials(appointment)</span>
-                <div><b>@CustomerName(appointment)</b><small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Name</small></div>
+                <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", CustomerName(appointment))">@CustomerName(appointment)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", ServiceLabel(appointment))">@ServiceLabel(appointment)</a> · @if (appointment.Resource is not null) { <a class="entity-link" href="@EntityUrl("/admin/team", appointment.Resource.Name)">@appointment.Resource.Name</a> } else { <text>بدون کارمند</text> } · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a></small></div>
                 <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                 @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
                 {
                     <div class="row-actions">
                         @if (appointment.Status == AppointmentStatus.Pending)
                         {
-                            <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
+                            <button type="button" class="action-primary" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
                         }
-                        <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
-                        <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
+                        <button type="button" class="action-success" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                        <button type="button" class="action-danger" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
                     </div>
                 }
             </div>
@@ -78,14 +78,26 @@
     private DateTimeOffset Today;
     private List<Appointment> TodayAppointments = [];
     private int TotalAppointments;
+    private string DashboardFilter = "all";
     private HashSet<Guid> AllowedAppointmentIds = [];
+    private IEnumerable<Appointment> DisplayedAppointments => DashboardFilter switch
+    {
+        "completed" => TodayAppointments.Where(x => x.Status == AppointmentStatus.Completed),
+        "pending" => TodayAppointments.Where(x => x.Status == AppointmentStatus.Pending),
+        _ => TodayAppointments,
+    };
+    private string DashboardFilterTitle => DashboardFilter switch
+    {
+        "completed" => "نوبت‌های تکمیل‌شده امروز",
+        "pending" => "نوبت‌های در انتظار تأیید",
+        _ => "نوبت‌های امروز",
+    };
 
     protected override async Task OnInitializedAsync()
     {
         var tz = TimeZoneInfo.GetSystemTimeZones().FirstOrDefault(x => x.Id == "Asia/Tehran" || x.Id == "Iran Standard Time") ?? TimeZoneInfo.Local;
         Today = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, tz);
-        var dayStart = new DateTimeOffset(Today.Date, Today.Offset);
-        var dayEnd = dayStart.AddDays(1);
+        var (dayStart, dayEnd) = BookingPolicy.UtcDayWindow(DateOnly.FromDateTime(Today.DateTime), tz);
 
         var appointments = await Access.AppointmentsAsync();
 
@@ -121,6 +133,8 @@
     private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
         ? appointment.Service.Name
         : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
+
+    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
 
     private static string CustomerInitials(Appointment appointment)
     {
