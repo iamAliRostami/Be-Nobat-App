@@ -45,10 +45,10 @@
                     <div class="row-actions">
                         @if (appointment.Status == AppointmentStatus.Pending)
                         {
-                            <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
+                            <button type="button" class="action-primary" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
                         }
-                        <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
-                        <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
+                        <button type="button" class="action-success" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                        <button type="button" class="action-danger" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
                     </div>
                 }
             </div>
