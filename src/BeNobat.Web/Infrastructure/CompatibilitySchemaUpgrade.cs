@@ -132,5 +132,24 @@ public static class CompatibilitySchemaUpgrade
             DO $$ BEGIN
                 ALTER TABLE benobat."Appointments" ADD CONSTRAINT "CK_Appointments_FinalPrice" CHECK ("FinalPrice" >= 0) NOT VALID;
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+            -- یادداشت مشتری روی نوبت و تنظیم «نیاز به تأیید» برای هر کسب‌وکار.
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "CustomerNote" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "RequiresApproval" boolean NOT NULL DEFAULT TRUE;
+            CREATE INDEX IF NOT EXISTS "IX_Appointments_ResourceId_StartsAt" ON benobat."Appointments" ("ResourceId", "StartsAt");
+            CREATE INDEX IF NOT EXISTS "IX_Appointments_CustomerId_StartsAt" ON benobat."Appointments" ("CustomerId", "StartsAt");
+
+            -- لایه‌ی دفاعی دوم در برابر double-booking: حتی اگر قفل برنامه دور زده شود، دیتابیس دو نوبت
+            -- هم‌پوشان فعال را برای یک ارائه‌دهنده نمی‌پذیرد. اگر داده‌ی موجود تداخل داشته باشد یا
+            -- اکستنشن در دسترس نباشد فقط یک NOTICE ثبت می‌شود و برنامه بالا می‌آید.
+            DO $$ BEGIN
+                CREATE EXTENSION IF NOT EXISTS btree_gist;
+                ALTER TABLE benobat."Appointments" ADD CONSTRAINT "EX_Appointments_NoResourceOverlap"
+                    EXCLUDE USING gist ("ResourceId" WITH =, tstzrange("StartsAt", "EndsAt", '[)') WITH &&)
+                    WHERE ("ResourceId" IS NOT NULL AND "DeletedAt" IS NULL AND "Status" <> 'Cancelled');
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
+                WHEN OTHERS THEN RAISE NOTICE 'EX_Appointments_NoResourceOverlap skipped: %', SQLERRM;
+            END $$;
             """, cancellationToken);
 }

@@ -15,16 +15,17 @@
     else if (NotFound)
     {
         <p class="empty-state">صفحه موردنظر پیدا نشد یا دیگر فعال نیست.</p>
+        <p class="auth-switch"><a href="/">بازگشت به صفحه‌ی اصلی</a></p>
     }
     else
     {
-        <a class="back-link" href="/appointments">→ بازگشت به نوبت‌های من</a>
+        <a class="back-link" href="/#businesses">→ بازگشت به فهرست کسب‌وکارها</a>
         <header class="directory-hero">
             <div class="directory-mark" aria-hidden="true">@Icon</div>
             <div><span class="directory-kicker">@KindLabel</span><h1>@Title</h1><p>@Subtitle</p></div>
             @if (BusinessIdForBooking is Guid businessId)
             {
-                <a class="primary-button" href="/book/@businessId?returnUrl=@Uri.EscapeDataString(CurrentPath)">رزرو نوبت</a>
+                <a class="primary-button" href="@BookingHref(businessId)">رزرو نوبت</a>
             }
         </header>
 
@@ -49,14 +50,21 @@
                 {
                     <section class="directory-panel"><div class="panel-head"><div><h2>شعب</h2><p>@Branches.Count شعبه فعال</p></div></div><div class="directory-links">@foreach (var item in Branches) { <a href="@item.Url"><span>⌖</span><b>@item.Label</b><small>@item.Description</small><i>←</i></a> }</div></section>
                 }
+                @if (Services.Count == 0 && Providers.Count == 0 && Branches.Count == 0)
+                {
+                    <p class="empty-state">هنوز خدمت قابل رزروی برای این بخش تعریف نشده است.</p>
+                }
             </main>
             <aside class="directory-panel directory-reviews">
-                <div class="review-summary"><div><strong>@Average.ToString("0.0")</strong><span class="stars">★★★★★</span></div><p>بر پایه @Reviews.Count نظر منتشرشده</p></div>
+                <div class="review-summary">
+                    <div><strong>@(Reviews.Count == 0 ? "—" : Average.ToString("0.0"))</strong><span class="stars">★★★★★</span></div>
+                    <p>@(Reviews.Count == 0 ? "هنوز نظری منتشر نشده است" : $"بر پایه {Reviews.Count} نظر منتشرشده")</p>
+                </div>
                 <h2>امتیازها و نظرات</h2>
                 @if (Reviews.Count == 0) { <p class="empty-state">هنوز نظری برای این مورد منتشر نشده است.</p> }
                 @foreach (var review in Reviews)
                 {
-                    <article><header><b>@review.Customer.DisplayName</b><span class="stars">@(new string('★', review.Rating))@(new string('☆', 5-review.Rating))</span></header><small>@review.CreatedAt.ToString("yyyy/MM/dd")</small><p>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }</article>
+                    <article><header><b>@review.Author</b><span class="stars">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span></header><small>@LocalizedDate.Format(DateOnly.FromDateTime(review.CreatedAt.UtcDateTime), "fa")</small><p>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: @review.Reply</blockquote> }</article>
                 }
             </aside>
         </div>
@@ -70,15 +78,22 @@
     [Parameter] public Guid? ServiceId { get; set; }
 
     private bool IsLoading = true, NotFound;
-    private string Title = "", Subtitle = "", KindLabel = "", Icon = "✦", CurrentPath = "/";
+    private string Title = "", Subtitle = "", KindLabel = "", Icon = "✦";
     private Guid? BusinessIdForBooking;
+    private string CurrentPath = "/";
+    private string BookingQuery = "";
     private List<LinkItem> ParentLinks = [], Services = [], Providers = [], Branches = [];
-    private List<Review> Reviews = [];
+    private List<ReviewView> Reviews = [];
     private double Average => Reviews.Count == 0 ? 0 : Reviews.Average(x => x.Rating);
+
+    // دکمه‌ی رزرو، شعبه/خدمت/ارائه‌دهنده‌ی همین صفحه را از پیش انتخاب می‌کند.
+    private string BookingHref(Guid businessId) =>
+        $"/book/{businessId}?returnUrl={Uri.EscapeDataString(CurrentPath)}{BookingQuery}";
 
     protected override async Task OnParametersSetAsync()
     {
         IsLoading = true; NotFound = false; ParentLinks = []; Services = []; Providers = []; Branches = []; Reviews = [];
+        BookingQuery = "";
         await using var db = await DbFactory.CreateDbContextAsync();
         if (BusinessId is Guid businessId) await LoadBusiness(db, businessId);
         else if (BranchId is Guid branchId) await LoadBranch(db, branchId);
@@ -92,22 +107,28 @@
     {
         var item = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
-        Title = item.Name; Subtitle = $"{item.Category} · {item.City} — {item.Description}"; KindLabel = "کسب‌وکار"; Icon = "ب"; BusinessIdForBooking = id; CurrentPath = $"/business/{id}";
+        Title = item.Name; Subtitle = $"{item.Category} · {item.City}{(string.IsNullOrWhiteSpace(item.Description) ? "" : " — " + item.Description)}"; KindLabel = "کسب‌وکار"; Icon = "ب"; BusinessIdForBooking = id; CurrentPath = $"/business/{id}";
         Branches = (await db.Branches.AsNoTracking().Where(x => x.BusinessId == id).OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Address, $"/branch/{x.Id}")).ToList();
-        Services = (await db.Services.AsNoTracking().Where(x => x.BusinessId == id).OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, $"{x.DurationMinutes} دقیقه · {x.Price:N0} تومان", $"/service/{x.Id}")).ToList();
+        // فقط خدماتی که حداقل به یک شعبه متصل‌اند قابل رزروند.
+        var services = await db.BranchServices.AsNoTracking().Include(x => x.Service)
+            .Where(x => x.Service.BusinessId == id && x.Branch.DeletedAt == null)
+            .Select(x => x.Service).Distinct().OrderBy(x => x.Name).ToListAsync();
+        Services = services.Select(x => new LinkItem(x.Name, $"{x.DurationMinutes} دقیقه · {x.Price:N0} تومان", $"/service/{x.Id}")).ToList();
         Providers = (await db.Resources.AsNoTracking().Include(x => x.Branch).Where(x => x.Branch.BusinessId == id && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Branch.Name, $"/provider/{x.Id}")).ToList();
-        Reviews = await ReviewQuery(db).Where(x => x.BusinessId == id).Take(20).ToListAsync();
+        Reviews = await LoadReviews(db, q => q.Where(x => x.BusinessId == id));
     }
 
     private async Task LoadBranch(AppDbContext db, Guid id)
     {
         var item = await db.Branches.AsNoTracking().Include(x => x.Business).FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
-        Title = item.Name; Subtitle = $"{item.Address} · ساعت کاری {item.OpenHour}:۰۰ تا {item.CloseHour}:۰۰"; KindLabel = "شعبه"; Icon = "⌖"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/branch/{id}";
+        var hours = $"ساعت کاری {LocalizedDate.FormatNumber(item.OpenHour, "fa")}:۰۰ تا {LocalizedDate.FormatNumber(item.CloseHour, "fa")}:۰۰";
+        Title = item.Name; Subtitle = string.IsNullOrWhiteSpace(item.Address) ? hours : $"{item.Address} · {hours}"; KindLabel = "شعبه"; Icon = "⌖"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/branch/{id}";
+        BookingQuery = $"&branch={id}";
         ParentLinks.Add(new(item.Business.Name, "مشاهده کسب‌وکار", $"/business/{item.BusinessId}"));
         Services = (await db.BranchServices.AsNoTracking().Include(x => x.Service).Where(x => x.BranchId == id).OrderBy(x => x.Service.Name).ToListAsync()).Select(x => new LinkItem(x.Service.Name, $"{x.Service.DurationMinutes} دقیقه · {(x.Price ?? x.Service.Price):N0} تومان", $"/service/{x.ServiceId}")).ToList();
         Providers = (await db.Resources.AsNoTracking().Where(x => x.BranchId == id && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, item.Name, $"/provider/{x.Id}")).ToList();
-        Reviews = await ReviewQuery(db).Where(x => x.BranchId == id).Take(20).ToListAsync();
+        Reviews = await LoadReviews(db, q => q.Where(x => x.BranchId == id));
     }
 
     private async Task LoadProvider(AppDbContext db, Guid id)
@@ -115,22 +136,32 @@
         var item = await db.Resources.AsNoTracking().Include(x => x.Branch).ThenInclude(x => x.Business).FirstOrDefaultAsync(x => x.Id == id && x.Kind == "staff");
         if (item is null) { NotFound = true; return; }
         Title = item.Name; Subtitle = $"ارائه‌دهنده در {item.Branch.Name} · {item.Branch.Business.Name}"; KindLabel = "ارائه‌دهنده"; Icon = "◎"; BusinessIdForBooking = item.Branch.BusinessId; CurrentPath = $"/provider/{id}";
+        BookingQuery = $"&branch={item.BranchId}&provider={id}";
         ParentLinks = [new(item.Branch.Business.Name, "کسب‌وکار", $"/business/{item.Branch.BusinessId}"), new(item.Branch.Name, "شعبه", $"/branch/{item.BranchId}")];
         Services = (await db.ServiceResources.AsNoTracking().Include(x => x.Service).Where(x => x.ResourceId == id).OrderBy(x => x.Service.Name).ToListAsync()).Select(x => new LinkItem(x.Service.Name, $"{x.Service.DurationMinutes} دقیقه · {x.Service.Price:N0} تومان", $"/service/{x.ServiceId}")).ToList();
-        Reviews = await ReviewQuery(db).Where(x => x.Appointment != null && x.Appointment.ResourceId == id).Take(20).ToListAsync();
+        Reviews = await LoadReviews(db, q => q.Where(x => x.Appointment != null && x.Appointment.ResourceId == id));
     }
 
     private async Task LoadService(AppDbContext db, Guid id)
     {
         var item = await db.Services.AsNoTracking().Include(x => x.Business).FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
-        Title = item.Name; Subtitle = $"{item.DurationMinutes} دقیقه · {item.Price:N0} تومان — {item.Description}"; KindLabel = "خدمت"; Icon = "✦"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/service/{id}";
+        Title = item.Name; Subtitle = $"{item.DurationMinutes} دقیقه · {item.Price:N0} تومان{(string.IsNullOrWhiteSpace(item.Description) ? "" : " — " + item.Description)}"; KindLabel = "خدمت"; Icon = "✦"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/service/{id}";
+        BookingQuery = $"&service={id}";
         ParentLinks.Add(new(item.Business.Name, "کسب‌وکار", $"/business/{item.BusinessId}"));
         Branches = (await db.BranchServices.AsNoTracking().Include(x => x.Branch).Where(x => x.ServiceId == id).OrderBy(x => x.Branch.Name).ToListAsync()).Select(x => new LinkItem(x.Branch.Name, x.Branch.Address, $"/branch/{x.BranchId}")).ToList();
         Providers = (await db.ServiceResources.AsNoTracking().Include(x => x.Resource).ThenInclude(x => x.Branch).Where(x => x.ServiceId == id && x.Resource.Kind == "staff").OrderBy(x => x.Resource.Name).ToListAsync()).Select(x => new LinkItem(x.Resource.Name, x.Resource.Branch.Name, $"/provider/{x.ResourceId}")).ToList();
-        Reviews = await ReviewQuery(db).Where(x => x.Appointment != null && (x.Appointment.ServiceId == id || x.Appointment.Services.Any(s => s.ServiceId == id))).Take(20).ToListAsync();
+        Reviews = await LoadReviews(db, q => q.Where(x => x.Appointment != null && (x.Appointment.ServiceId == id || x.Appointment.Services.Any(s => s.ServiceId == id))));
     }
 
-    private static IQueryable<Review> ReviewQuery(AppDbContext db) => db.Reviews.AsNoTracking().Where(x => x.Status == ReviewStatus.Published).Include(x => x.Customer).OrderByDescending(x => x.CreatedAt);
+    // فقط نام نویسنده خوانده می‌شود؛ Include(Customer) قبلاً کل ردیف کاربر شامل بایت‌های عکس را می‌آورد.
+    private static async Task<List<ReviewView>> LoadReviews(AppDbContext db, Func<IQueryable<Review>, IQueryable<Review>> scope) =>
+        await scope(db.Reviews.AsNoTracking().Where(x => x.Status == ReviewStatus.Published))
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(20)
+            .Select(x => new ReviewView(x.Customer.DisplayName, x.Rating, x.CreatedAt, x.Comment, x.ManagerReply))
+            .ToListAsync();
+
     private sealed record LinkItem(string Label, string Description, string Url);
+    private sealed record ReviewView(string Author, int Rating, DateTimeOffset CreatedAt, string Comment, string? Reply);
 }

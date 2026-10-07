@@ -2,9 +2,8 @@
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ViewOwnAppointments)]
-@using System.Globalization
-@using System.Security.Claims
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject IJSRuntime JS
 @inject ILogger<Appointments> Logger
 
 <PageTitle>نوبت‌های من | به‌نوبت</PageTitle>
@@ -12,30 +11,31 @@
 <div class="account-page">
     <aside class="account-menu">
         <div class="account-user">
-            @if (UserAvatar.Has(CurrentUser))
+            @if (UserAvatar.Has(AvatarContentType) && userId != Guid.Empty)
             {
-                <img class="customer-avatar" src="@UserAvatar.Url(CurrentUser!)" alt="" />
+                <img class="customer-avatar" src="@UserAvatar.Url(userId, ConcurrencyStamp)" alt="" />
             }
             else
             {
-                <span>@Initials</span>
+                <span>@UserAvatar.Initials(DisplayName)</span>
             }
             <div><b>@DisplayName</b><small>@Email</small></div>
         </div>
         <nav>
             <NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink>
+            <NavLink href="/favorites" Match="NavLinkMatch.All">♡ علاقه‌مندی‌ها</NavLink>
             <NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink>
         </nav>
         <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
     </aside>
     <main class="account-content">
         <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
-        @if (ReviewMessage is not null) { <div class="success-notice">@ReviewMessage</div> }
-        @if (ActionError is not null) { <div class="auth-error">@ActionError</div> }
+        @if (ReviewMessage is not null) { <div class="success-notice" role="status">@ReviewMessage</div> }
+        @if (ActionError is not null) { <div class="auth-error" role="alert">@ActionError</div> }
         <div class="tabs">
             <button type="button" class="@(ActiveTab == "upcoming" ? "active" : "")" @onclick='() => ActiveTab = "upcoming"'>پیش رو <b>@Upcoming.Count</b></button>
-            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
-            <button type="button" class="@(ActiveTab == "cancelled" ? "active" : "")" @onclick='() => ActiveTab = "cancelled"'>لغو شده</button>
+            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته <b>@Past.Count</b></button>
+            <button type="button" class="@(ActiveTab == "cancelled" ? "active" : "")" @onclick='() => ActiveTab = "cancelled"'>لغو شده <b>@Cancelled.Count</b></button>
         </div>
 
         @{
@@ -47,15 +47,22 @@
             };
         }
 
-        @if (visible.Count == 0)
+        @if (!Loaded)
         {
-            <p class="empty-state">موردی برای نمایش وجود ندارد.</p>
+            <p class="empty-state">در حال دریافت نوبت‌ها…</p>
+        }
+        else if (visible.Count == 0)
+        {
+            <p class="empty-state">@(ActiveTab == "upcoming" ? "نوبت پیش‌رویی ندارید. " : "موردی برای نمایش وجود ندارد. ")<a class="entity-link" href="/#businesses">رزرو نوبت جدید ←</a></p>
         }
 
         @foreach (var appointment in visible)
         {
-            <article class="appointment-card">
-                <div class="appointment-date"><b>@appointment.StartsAt.Day</b><span>@PersianMonthName(appointment.StartsAt)</span><small>@appointment.StartsAt.ToString("dddd", PersianCulture)</small></div>
+            var zone = appointment.Branch.TimeZoneId;
+            var localDate = BranchClock.LocalDate(appointment.StartsAt, zone);
+            var dateParts = LocalizedDate.DayAndMonth(localDate, Language);
+            <article class="appointment-card" @key="appointment.Id">
+                <div class="appointment-date"><b>@dateParts.Day</b><span>@dateParts.Month</span><small>@LocalizedDate.Weekday(localDate, Language)</small></div>
                 <div class="appointment-info">
                     <span class="@StatusCssClass(appointment.Status)">● @StatusLabel(appointment.Status)</span>
                     <h3 class="appointment-service-links">
@@ -80,15 +87,25 @@
                             <span aria-hidden="true">·</span><a class="entity-link" href="/provider/@appointment.ResourceId">@appointment.Resource.Name</a>
                         }
                     </p>
-                    <div><span>◷ ساعت @appointment.StartsAt.ToString("HH:mm") تا @appointment.EndsAt.ToString("HH:mm")</span><span>⌖ <a class="entity-link" href="/branch/@appointment.BranchId">@appointment.Branch.Address</a></span></div>
+                    <div><span>◷ ساعت @BranchClock.FormatTime(appointment.StartsAt, zone, Language) تا @BranchClock.FormatTime(appointment.EndsAt, zone, Language)</span><span>⌖ <a class="entity-link" href="/branch/@appointment.BranchId">@(string.IsNullOrWhiteSpace(appointment.Branch.Address) ? appointment.Branch.Name : appointment.Branch.Address)</a></span><span>💳 @LocalizedDate.FormatNumber(appointment.FinalPrice, Language, "N0") تومان</span><span>کد پیگیری: <bdi>@appointment.TrackingCode</bdi></span></div>
+                    @if (appointment.Status == AppointmentStatus.Pending)
+                    {
+                        <small class="appointment-hint">منتظر تأیید مجموعه است؛ پس از تأیید وضعیت اینجا تغییر می‌کند.</small>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote))
+                    {
+                        <small class="appointment-hint">توضیح شما: @appointment.CustomerNote</small>
+                    }
                 </div>
                 <div class="appointment-actions">
                     @if (BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
                     {
-                        <button type="button" class="outline" @onclick="() => CancelAsync(appointment.Id)">لغو نوبت</button>
+                        <button type="button" class="outline" @onclick="() => AskCancel(appointment)">لغو نوبت</button>
                     }
-                    @* [feature] ثبت نظر مستقیماً از همین فهرست؛ قبلاً فقط از صفحه‌ی
-                       «اطلاعات حساب» و با انتخاب از یک لیست کشویی ممکن بود. *@
+                    else if (BookingPolicy.IsActiveFuture(appointment, DateTimeOffset.UtcNow) && appointment.StartsAt > DateTimeOffset.UtcNow)
+                    {
+                        <small class="appointment-hint">لغو اینترنتی بسته شده؛ با شعبه تماس بگیرید.</small>
+                    }
                     @if (BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow) && !ReviewedAppointmentIds.Contains(appointment.Id))
                     {
                         <button type="button" @onclick="() => OpenReview(appointment)">ثبت نظر</button>
@@ -97,32 +114,44 @@
                     {
                         <span class="review-done">نظر ثبت شد</span>
                     }
+                    @if (appointment.EndsAt < DateTimeOffset.UtcNow || appointment.Status == AppointmentStatus.Cancelled)
+                    {
+                        <a class="outline-link" href="@RebookUrl(appointment)">رزرو مجدد</a>
+                    }
                 </div>
             </article>
         }
     </main>
 </div>
 
+@if (Cancelling is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseCancel">
+        <div class="form-modal" role="dialog" aria-modal="true" @onclick:stopPropagation>
+            <div><h2>لغو نوبت</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseCancel">×</button></div>
+            <p>نوبت «@ServiceLabel(Cancelling)» در @BranchClock.FormatDateTime(Cancelling.StartsAt, Cancelling.Branch.TimeZoneId, Language) لغو شود؟ این کار قابل بازگشت نیست.</p>
+            <button type="button" class="primary-button" disabled="@IsCancelling" @onclick="ConfirmCancel">@(IsCancelling ? "در حال لغو…" : "بله، لغو شود")</button>
+            <button type="button" class="outline-link" disabled="@IsCancelling" @onclick="CloseCancel">انصراف</button>
+        </div>
+    </div>
+}
+
 @if (Reviewing is not null)
 {
     <div class="modal-backdrop" @onclick="CloseReview">
-        @* This is an interactive-only action and has no validation pipeline. Keeping it in an
-           EditForm allowed the browser to fall back to a native POST while the server circuit
-           was reconnecting, producing the "POST request does not specify which form" page.
-           An explicit Blazor click keeps the action in the circuit and also lets us prevent
-           duplicate submissions while the database write is in progress. *@
+        @* یک کلیک صریح Blazor به‌جای EditForm: فرم می‌توانست هنگام قطع موقت مدار به POST بومی مرورگر برگردد
+           و صفحه‌ی «POST request does not specify which form» بدهد؛ همچنین ارسال تکراری را مهار می‌کند. *@
         <div class="form-modal" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" @onclick:stopPropagation>
-            <div><h2 id="review-dialog-title">نظر درباره‌ی @Reviewing.Service.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseReview">×</button></div>
-            <label>امتیاز
-                <select disabled="@IsSubmittingReview" @bind="ReviewForm.Rating">
-                    @for (var i = 5; i >= 1; i--)
-                    {
-                        <option value="@i">@i ستاره</option>
-                    }
-                </select>
-            </label>
-            <label>نظر شما<textarea disabled="@IsSubmittingReview" @bind="ReviewForm.Comment"></textarea></label>
-            @if (ReviewError is not null) { <div class="auth-error">@ReviewError</div> }
+            <div><h2 id="review-dialog-title">نظر درباره‌ی @ServiceLabel(Reviewing)</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseReview">×</button></div>
+            <div class="star-picker" role="radiogroup" aria-label="امتیاز">
+                @for (var i = 1; i <= 5; i++)
+                {
+                    var value = i;
+                    <button type="button" role="radio" aria-checked="@(ReviewForm.Rating == value ? "true" : "false")" aria-label="@value ستاره" class="@(value <= ReviewForm.Rating ? "on" : "")" disabled="@IsSubmittingReview" @onclick="() => ReviewForm.Rating = value">★</button>
+                }
+            </div>
+            <label>نظر شما (اختیاری)<textarea maxlength="1000" disabled="@IsSubmittingReview" @bind="ReviewForm.Comment" @bind:event="oninput"></textarea></label>
+            @if (ReviewError is not null) { <div class="auth-error" role="alert">@ReviewError</div> }
             <button type="button" class="primary-button" disabled="@IsSubmittingReview" @onclick="SubmitReview">
                 @(IsSubmittingReview ? "در حال ارسال…" : "ارسال برای بررسی")
             </button>
@@ -136,47 +165,51 @@
     private Guid userId;
     private string DisplayName = "";
     private string Email = "";
-    private string Initials = "؟";
+    private string? AvatarContentType;
+    private string? ConcurrencyStamp;
     private string ActiveTab = "upcoming";
+    private string Language = "fa";
+    private bool Loaded;
 
-    private AppUser? CurrentUser;
     private HashSet<Guid> ReviewedAppointmentIds = [];
     private Appointment? Reviewing;
+    private Appointment? Cancelling;
     private ReviewInput ReviewForm = new();
     private string? ReviewError;
     private string? ReviewMessage;
     private string? ActionError;
     private bool IsSubmittingReview;
+    private bool IsCancelling;
 
     private List<Appointment> Upcoming = [];
     private List<Appointment> Past = [];
     private List<Appointment> Cancelled = [];
 
-    private static readonly CultureInfo PersianCulture = new("fa-IR");
-    private static readonly string[] PersianMonths =
-    [
-        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
-    ];
-
     protected override async Task OnInitializedAsync()
     {
         if (AuthStateTask is null) return;
-        var authState = await AuthStateTask!;
-        var idText = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (idText is null || !Guid.TryParse(idText, out userId)) return;
-
-        DisplayName = authState.User.FindFirst("DisplayName")?.Value
-            ?? authState.User.Identity?.Name
-            ?? "کاربر";
-        Email = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? authState.User.Identity?.Name ?? "";
-        var parts = DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        Initials = parts.Length >= 2 ? $"{parts[0][0]}‌{parts[1][0]}" : DisplayName[..Math.Min(2, DisplayName.Length)];
+        var authState = await AuthStateTask;
+        if (UserContext.IdOf(authState.User) is not Guid id) return;
+        userId = id;
 
         await using var db = await DbFactory.CreateDbContextAsync();
-        CurrentUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+        // فقط ستون‌های سبک؛ بایت‌های عکس پروفایل خوانده نمی‌شود.
+        var row = await db.Users.AsNoTracking().Where(u => u.Id == userId)
+            .Select(u => new { u.DisplayName, u.Email, u.AvatarContentType, u.ConcurrencyStamp }).FirstOrDefaultAsync();
+        DisplayName = string.IsNullOrWhiteSpace(row?.DisplayName) ? (authState.User.Identity?.Name ?? "کاربر") : row!.DisplayName;
+        Email = row?.Email ?? "";
+        AvatarContentType = row?.AvatarContentType;
+        ConcurrencyStamp = row?.ConcurrencyStamp;
 
         await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage"); }
+        catch (JSDisconnectedException) { return; }
+        StateHasChanged();
     }
 
     private async Task LoadAsync()
@@ -194,42 +227,75 @@
 
         ReviewedAppointmentIds = (await db.Reviews
             .AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(r => r.CustomerId == userId && r.AppointmentId != null)
             .Select(r => r.AppointmentId!.Value)
             .ToListAsync()).ToHashSet();
 
         var now = DateTimeOffset.UtcNow;
-        Cancelled = appointments.Where(a => a.Status == AppointmentStatus.Cancelled).ToList();
+        Cancelled = appointments.Where(a => a.Status == AppointmentStatus.Cancelled).OrderByDescending(a => a.StartsAt).ToList();
         Upcoming = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt >= now).ToList();
         Past = appointments.Where(a => a.Status != AppointmentStatus.Cancelled && a.EndsAt < now)
             .OrderByDescending(a => a.StartsAt).ToList();
+        Loaded = true;
     }
 
     private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
         ? appointment.Service.Name
         : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
 
-    private async Task CancelAsync(Guid appointmentId)
+    private static string RebookUrl(Appointment appointment)
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
-        var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
-        if (appointment is null) return;
-        if (!BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
-        {
-            ActionError = "لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است؛ برای موارد فوری با شعبه تماس بگیرید.";
-            return;
-        }
+        var services = appointment.Services.Count == 0
+            ? appointment.ServiceId.ToString()
+            : string.Join(',', appointment.Services.Select(x => x.ServiceId));
+        return $"/book/{appointment.Branch.BusinessId}?branch={appointment.BranchId}&services={services}&returnUrl=%2Fappointments";
+    }
 
-        appointment.Status = AppointmentStatus.Cancelled;
-        appointment.UpdatedAt = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync();
-        ActionError = null;
-        await LoadAsync();
+    private void AskCancel(Appointment appointment) { Cancelling = appointment; ActionError = null; ReviewMessage = null; }
+    private void CloseCancel() { if (!IsCancelling) Cancelling = null; }
+
+    private async Task ConfirmCancel()
+    {
+        if (Cancelling is null || IsCancelling) return;
+        IsCancelling = true;
+        var appointmentId = Cancelling.Id;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
+            if (appointment is null) { Cancelling = null; return; }
+            if (!BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
+            {
+                ActionError = "لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است؛ برای موارد فوری با شعبه تماس بگیرید.";
+                Cancelling = null;
+                await LoadAsync();
+                return;
+            }
+
+            appointment.Status = AppointmentStatus.Cancelled;
+            appointment.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            ActionError = null;
+            ReviewMessage = "نوبت لغو شد.";
+            Cancelling = null;
+            await LoadAsync();
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to cancel appointment {AppointmentId}", appointmentId);
+            ActionError = "لغو نوبت انجام نشد؛ دوباره تلاش کنید.";
+            Cancelling = null;
+        }
+        finally
+        {
+            IsCancelling = false;
+        }
     }
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {
-        AppointmentStatus.Pending => "در انتظار",
+        AppointmentStatus.Pending => "در انتظار تأیید",
         AppointmentStatus.Confirmed => "تأیید شده",
         AppointmentStatus.Completed => "تکمیل شد",
         AppointmentStatus.Cancelled => "لغو شده",
@@ -256,6 +322,7 @@
 
     private void CloseReview()
     {
+        if (IsSubmittingReview) return;
         Reviewing = null;
         ReviewError = null;
     }
@@ -275,9 +342,7 @@
                 .Include(a => a.Branch)
                 .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
 
-            // Keep the time comparison outside the SQL query. PostgreSQL timestamptz only accepts
-            // UTC DateTimeOffset parameters; DateTimeOffset.Now carries the host's local offset and
-            // caused every review submission to fail on servers configured for Asia/Tehran.
+            // مقایسه‌ی زمان بیرون از SQL انجام می‌شود (timestamptz فقط UTC می‌پذیرد).
             if (appointment is null || !BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow))
             {
                 ReviewError = "فقط مراجعه‌کننده‌ی این نوبت می‌تواند پس از تکمیل خدمت امتیاز ثبت کند.";
@@ -303,7 +368,7 @@
             await db.SaveChangesAsync();
             Reviewing = null;
             await LoadAsync();
-            ReviewMessage = "امتیاز و نظر شما برای این خدمت ثبت شد و پس از بررسی نمایش داده می‌شود.";
+            ReviewMessage = "امتیاز و نظر شما ثبت شد و پس از بررسی مجموعه نمایش داده می‌شود.";
         }
         catch (Exception exception)
         {
@@ -320,11 +385,5 @@
     {
         public int Rating { get; set; } = 5;
         public string Comment { get; set; } = "";
-    }
-
-    private static string PersianMonthName(DateTimeOffset date)
-    {
-        var calendar = new PersianCalendar();
-        return PersianMonths[calendar.GetMonth(date.LocalDateTime) - 1];
     }
 }

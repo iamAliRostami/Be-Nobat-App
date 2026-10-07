@@ -12,6 +12,7 @@
 </div>
 
 @if (Message is not null) { <div class="success-notice">@Message</div> }
+@if (Error is not null && !ShowBranchForm && ResourceBranch is null && MemberBranch is null) { <div class="auth-error" role="alert">@Error</div> }
 
 <article class="admin-panel">
     <div class="toolbar">
@@ -35,9 +36,9 @@
                 </dl>
                 <div class="card-actions">
                     <button type="button" @onclick="() => EditBranch(branch)">ویرایش</button>
-                    <button type="button" class="action-primary" @onclick="() => AddResource(branch)">+ منبع</button>
+                    <button type="button" @onclick="() => AddResource(branch)">+ منبع</button>
                     <button type="button" @onclick="() => OpenMembers(branch)">اعضا</button>
-                    <button type="button" class="@(branch.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
+                    <button type="button" class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
                 </div>
                 @if (branch.Resources.Count > 0)
                 {
@@ -62,6 +63,7 @@
             <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id">@b.Name</option> }</select></label>
             <label>نام شعبه<input required @bind="BranchForm.Name" /></label>
             <label>نشانی<input @bind="BranchForm.Address" /></label>
+            <label>منطقه زمانی<select @bind="BranchForm.TimeZoneId">@foreach (var zone in TimeZones) { <option value="@zone.Id">@zone.Label</option> }</select></label>
             <div class="form-columns">
                 <label>شروع کار<input type="number" min="0" max="23" @bind="BranchForm.OpenHour" /></label>
                 <label>پایان کار<input type="number" min="1" max="24" @bind="BranchForm.CloseHour" /></label>
@@ -185,6 +187,16 @@
     private string? Error;
     private string? Message;
 
+    private static readonly (string Id, string Label)[] TimeZones =
+    [
+        ("Asia/Tehran", "تهران (UTC+03:30)"),
+        ("Asia/Dubai", "دبی (UTC+04:00)"),
+        ("Asia/Baghdad", "بغداد (UTC+03:00)"),
+        ("Europe/Istanbul", "استانبول (UTC+03:00)"),
+        ("Europe/London", "لندن"),
+        ("UTC", "UTC"),
+    ];
+
     private static readonly string[] TeamRoles = [AppRoles.Owner, AppRoles.Manager, AppRoles.Staff];
 
     private IEnumerable<Branch> Filtered =>
@@ -203,9 +215,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var accessibleBranches = await Access.BranchesAsync();
-        var businessIds = accessibleBranches.Select(x => x.BusinessId).Distinct();
-        Businesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
+        Businesses = await Access.ManagedBusinessesAsync();
         await LoadTeamMembers();
         await Load();
     }
@@ -244,8 +254,8 @@
         var query = await Access.BranchesAsync();
         Branches = await query.IgnoreQueryFilters()
             .Include(x => x.Business)
-            .Include(x => x.Resources)
-            .Include(x => x.Memberships)
+            .Include(x => x.Resources.Where(r => r.DeletedAt == null))
+            .Include(x => x.Memberships.Where(m => m.DeletedAt == null))
             .OrderBy(x => x.Name)
             .ToListAsync();
     }
@@ -268,6 +278,7 @@
             Address = branch.Address,
             OpenHour = branch.OpenHour,
             CloseHour = branch.CloseHour,
+            TimeZoneId = branch.TimeZoneId,
         };
         Error = Message = null;
         ShowBranchForm = true;
@@ -281,9 +292,19 @@
             return;
         }
 
+        if (!Businesses.Any(x => x.Id == BranchForm.BusinessId)) { Error = "به این کسب‌وکار دسترسی ندارید."; return; }
+        if (EditingBranchId is Guid editId && !await Access.CanManageBranchAsync(editId)) { Error = "اجازه‌ی ویرایش این شعبه را ندارید."; return; }
+        if (EditingBranchId is null && !await Access.IsBusinessOwnerAsync(BranchForm.BusinessId))
+        {
+            Error = "افزودن شعبه‌ی جدید فقط برای مالک کسب‌وکار یا مدیر سامانه مجاز است.";
+            return;
+        }
+        if (BranchForm.OpenHour < 0 || BranchForm.CloseHour > 24) { Error = "ساعت کاری باید بین ۰ تا ۲۴ باشد."; return; }
+
         var branch = EditingBranchId is null
             ? new Branch { Name = BranchForm.Name }
             : await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingBranchId);
+        branch.TimeZoneId = TimeZones.Any(z => z.Id == BranchForm.TimeZoneId) ? BranchForm.TimeZoneId : "Asia/Tehran";
 
         branch.BusinessId = BranchForm.BusinessId;
         branch.Name = BranchForm.Name.Trim();
@@ -292,7 +313,16 @@
         branch.CloseHour = BranchForm.CloseHour;
         branch.UpdatedAt = DateTimeOffset.UtcNow;
 
-        if (EditingBranchId is null) Db.Branches.Add(branch);
+        if (EditingBranchId is null)
+        {
+            Db.Branches.Add(branch);
+            // سازنده‌ی شعبه (اگر مدیر سامانه نیست) باید خودش به آن دسترسی داشته باشد.
+            if (!await Access.IsPlatformAdminAsync())
+            {
+                var me = await Access.UserIdAsync();
+                Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = me, Role = AppRoles.Owner });
+            }
+        }
         await Db.SaveChangesAsync();
         Close();
         await Load();
@@ -300,6 +330,13 @@
 
     private async Task ToggleBranch(Branch branch)
     {
+        if (!await Access.CanManageBranchAsync(branch.Id)) { Error = "اجازه‌ی این کار را ندارید."; return; }
+        if (branch.DeletedAt is null && await Db.Appointments.AnyAsync(a => a.BranchId == branch.Id &&
+                (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
+        {
+            Message = null; Error = "این شعبه نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌ها را لغو یا تکمیل کنید.";
+            return;
+        }
         var item = await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == branch.Id);
         item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null;
         await Db.SaveChangesAsync();
@@ -336,6 +373,7 @@
     {
         var branch = ResourceBranch;
         if (branch is null) return;
+        if (!await Access.CanManageBranchAsync(branch.Id)) { Error = "اجازه‌ی مدیریت منابع این شعبه را ندارید."; return; }
 
         if (ResourceForm.Kind == "staff" && ResourceForm.UserId is null)
         {
@@ -380,6 +418,14 @@
     {
         var item = await Db.Resources.FindAsync(resource.Id);
         if (item is null) return;
+        if (!await Access.CanManageBranchAsync(item.BranchId)) { Error = "اجازه‌ی حذف این منبع را ندارید."; return; }
+        if (await Db.Appointments.AnyAsync(a => a.ResourceId == item.Id &&
+                (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
+        {
+            Error = "این منبع نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌هایش را لغو یا تکمیل کنید.";
+            return;
+        }
+        Error = null;
 
         item.DeletedAt = DateTimeOffset.UtcNow;
         await Db.SaveChangesAsync();
@@ -423,6 +469,11 @@
             Error = "این کاربر از قبل عضو این شعبه است.";
             return;
         }
+        if (!await Access.CanAssignRoleAsync(MemberForm.Role, branch.Id))
+        {
+            Error = MemberForm.Role == AppRoles.Owner ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
+            return;
+        }
 
         Db.BranchMemberships.Add(new BranchMembership
         {
@@ -431,14 +482,9 @@
             Role = MemberForm.Role,
         });
 
-        var user = await UserManager.FindByIdAsync(userId.ToString());
-        if (user is not null && !await UserManager.IsInRoleAsync(user, MemberForm.Role))
-        {
-            // عضویت در شعبه بدون نقش متناظر عملاً بی‌اثر است؛ نقش را هم می‌دهیم.
-            await UserManager.AddToRoleAsync(user, MemberForm.Role);
-        }
-
         await Db.SaveChangesAsync();
+        var user = await UserManager.FindByIdAsync(userId.ToString());
+        if (user is not null) await TeamRoleSync.SyncAsync(UserManager, Db, user);
         Error = null;
         Message = "عضو جدید به شعبه اضافه شد.";
         MemberForm = new MemberInput();
@@ -449,8 +495,23 @@
 
     private async Task RemoveMember(BranchMembership membership)
     {
+        if (!await Access.CanManageBranchAsync(membership.BranchId) ||
+            (membership.Role == AppRoles.Owner && !await Access.CanAssignRoleAsync(AppRoles.Owner, membership.BranchId)))
+        {
+            Error = "اجازه‌ی حذف این عضو را ندارید.";
+            return;
+        }
+        if (membership.Role == AppRoles.Owner &&
+            !await Db.BranchMemberships.AnyAsync(m => m.BranchId == membership.BranchId && m.Role == AppRoles.Owner && m.Id != membership.Id))
+        {
+            Error = "آخرین مالک شعبه را نمی‌توان حذف کرد.";
+            return;
+        }
         Db.BranchMemberships.Remove(membership);
         await Db.SaveChangesAsync();
+        var removedUser = await UserManager.FindByIdAsync(membership.UserId.ToString());
+        if (removedUser is not null) await TeamRoleSync.SyncAsync(UserManager, Db, removedUser);
+        Error = null;
         await LoadMemberships();
         await Load();
     }
@@ -489,6 +550,7 @@
         public string Address { get; set; } = "";
         public int OpenHour { get; set; } = 9;
         public int CloseHour { get; set; } = 18;
+        public string TimeZoneId { get; set; } = "Asia/Tehran";
     }
 
     private sealed class ResourceInput

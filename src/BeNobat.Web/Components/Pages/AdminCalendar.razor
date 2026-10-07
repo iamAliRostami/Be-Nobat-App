@@ -1,8 +1,6 @@
 @page "/admin/calendar"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
-@using System.Globalization
-@inject AppDbContext Db
 @inject AdminAccessScope Access
 
 <PageTitle>تقویم نوبت‌ها | به‌نوبت</PageTitle>
@@ -15,9 +13,10 @@
             <button type="button" @onclick="() => ChangeDay(0)">امروز</button>
             <button type="button" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
             <button type="button" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
-            <h2>@SelectedDate.ToString("dddd، d MMMM yyyy", PersianCulture)</h2>
+            <h2>@LocalizedDate.Weekday(SelectedDate, "fa")، @LocalizedDate.Format(SelectedDate, "fa")</h2>
         </div>
     </div>
+    @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
 
     @if (DayAppointments.Count == 0)
     {
@@ -28,13 +27,27 @@
         <div class="agenda-list">
             @foreach (var appointment in DayAppointments)
             {
-                <article class="event-row @StatusCssClass(appointment.Status)">
-                    <time>@appointment.StartsAt.ToString("HH:mm") - @appointment.EndsAt.ToString("HH:mm")</time>
+                <article class="event-row @StatusCssClass(appointment.Status)" @key="appointment.Id">
+                    <time>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa") - @BranchClock.FormatTime(appointment.EndsAt, appointment.Branch.TimeZoneId, "fa")</time>
                     <div>
-                        <b><a class="entity-link" href="@EntityUrl("/admin/customers", CustomerName(appointment))">@CustomerName(appointment)</a></b>
-                        <small><a class="entity-link" href="@EntityUrl("/businesses", ServiceLabel(appointment))">@ServiceLabel(appointment)</a> · @if (appointment.Resource is not null) { <a class="entity-link" href="@EntityUrl("/admin/team", appointment.Resource.Name)">@appointment.Resource.Name</a> } else { <text>بدون کارمند</text> } · <a class="entity-link" href="@EntityUrl("/platform", appointment.Branch.Business.Name)">@appointment.Branch.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a></small>
+                        <b>@(string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email : appointment.Customer.DisplayName)</b>
+                        <small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Business.Name · @appointment.Branch.Name</small>
+                        <small>کد پیگیری: <bdi>@appointment.TrackingCode</bdi>@(string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber) ? "" : $" · ☎ {appointment.Customer.PhoneNumber}")</small>
+                        @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small>توضیح مشتری: @appointment.CustomerNote</small> }
                     </div>
                     <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
+                    @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
+                    {
+                        <div class="row-actions">
+                            @if (appointment.Status == AppointmentStatus.Pending) { <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button> }
+                            @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
+                            {
+                                <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                                <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
+                            }
+                            else { <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button> }
+                        </div>
+                    }
                 </article>
             }
         </div>
@@ -42,29 +55,38 @@
 </section>
 
 @code {
-    private static readonly CultureInfo PersianCulture = new("fa-IR");
-    private static readonly TimeZoneInfo BusinessTimeZone =
-        TimeZoneInfo.GetSystemTimeZones().FirstOrDefault(x => x.Id == "Asia/Tehran" || x.Id == "Iran Standard Time") ?? TimeZoneInfo.Local;
-    private DateTimeOffset SelectedDate = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BusinessTimeZone);
+    private DateOnly SelectedDate;
+    private string? Zone;
+    private string? Error;
     private List<Appointment> DayAppointments = [];
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Zone = await Access.DisplayZoneAsync();
+        SelectedDate = BranchClock.Today(Zone);
+        await LoadAsync();
+    }
 
     private async Task ChangeDay(int offsetDays)
     {
-        SelectedDate = offsetDays == 0
-            ? TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, BusinessTimeZone)
-            : SelectedDate.AddDays(offsetDays);
+        SelectedDate = offsetDays == 0 ? BranchClock.Today(Zone) : SelectedDate.AddDays(offsetDays);
+        Error = null;
+        await LoadAsync();
+    }
+
+    private async Task UpdateStatus(Guid id, AppointmentStatus status)
+    {
+        Error = await Access.ChangeStatusAsync(id, status);
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        var (dayStart, dayEnd) = BookingPolicy.UtcDayWindow(
-            DateOnly.FromDateTime(SelectedDate.DateTime), BusinessTimeZone);
+        var (dayStart, dayEnd) = BranchClock.DayWindow(SelectedDate, Zone);
 
         var appointments = await Access.AppointmentsAsync();
         DayAppointments = await appointments
+            .AsNoTracking()
             .Include(a => a.Service)
             .Include(a => a.Services).ThenInclude(x => x.Service)
             .Include(a => a.Resource)
@@ -78,11 +100,6 @@
     private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
         ? appointment.Service.Name
         : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
-
-    private static string CustomerName(Appointment appointment) =>
-        string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
-
-    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {

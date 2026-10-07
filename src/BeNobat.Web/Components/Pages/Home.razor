@@ -3,19 +3,21 @@
 @rendermode InteractiveServer
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationState
 
 <PageTitle>به‌نوبت | رزرو آنلاین خدمات</PageTitle>
 
 <section class="hero">
     <div class="hero-copy">
-        <span class="eyebrow"><span class="pulse"></span> بیش از ۲,۵۰۰ ارائه‌دهنده آماده‌اند</span>
+        <span class="eyebrow"><span class="pulse"></span> @(TotalBusinesses > 0 ? $"{TotalBusinesses} مرکز آماده‌ی رزرو آنلاین" : "رزرو آنلاین خدمات")</span>
         <h1>وقتت ارزشمنده؛<br/><em>به‌نوبت</em> رزرو کن.</h1>
         <p>بهترین متخصص‌های اطرافت را پیدا کن، زمان‌های خالی را ببین و در چند ثانیه نوبت بگیر.</p>
         <div class="search-box">
             <label><span>⌕</span><input aria-label="جست‌وجوی خدمت" placeholder="چه خدمتی نیاز داری؟" @bind="SearchTerm" @bind:event="oninput" @onkeyup="OnKeyUp" /></label>
             <i></i>
             <label><span>⌖</span><input aria-label="انتخاب شهر" @bind="City" @bind:event="oninput" /></label>
-            <a href="javascript:void(0)" @onclick="Search" @onclick:preventDefault>جست‌وجو</a>
+            <button type="button" class="search-submit" @onclick="Search">جست‌وجو</button>
         </div>
         <div class="quick-tags">
             <span>جست‌وجوهای محبوب:</span>
@@ -29,10 +31,10 @@
         <div class="hero-blob"></div>
         <div class="salon-card">
             <div class="salon-photo"><span>✦</span><b>استودیو زیبایی</b></div>
-            <div class="salon-info"><div><strong>سالن زیبایی آوان</strong><small>☆ ۴.۹ · ونک، تهران</small></div><span class="verified">✓</span></div>
+            <div class="salon-info"><div><strong>نمونه‌ی کارت مرکز</strong><small>نشانی، امتیاز و رزرو در یک نگاه</small></div><span class="verified">✓</span></div>
         </div>
-        <div class="floating-card next-slot"><span>◷</span><div><small>نزدیک‌ترین نوبت</small><b>امروز، ساعت ۱۶:۳۰</b></div></div>
-        <div class="floating-card rating"><b>۴.۹</b><span>★★★★★</span><small>از ۲۳۸ نظر</small></div>
+        <div class="floating-card next-slot"><span>◷</span><div><small>رزرو آنلاین</small><b>زمان‌های خالی را لحظه‌ای ببینید</b></div></div>
+        <div class="floating-card rating"><span>★★★★★</span><small>نظر واقعی مراجعه‌کنندگان</small></div>
     </div>
 </section>
 
@@ -80,8 +82,9 @@
                 var icon = business.Category.Contains("دندان") ? "✚" : business.Category.Contains("ماساژ") ? "♧" : "✦";
                 <BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
                               Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
-                              Rating="@Rating(business)" Reviews="@business.Reviews.Count.ToString()"
-                              Accent="@accent" Icon="@icon" ReturnUrl="@SearchReturnUrl" />
+                              Rating="@Rating(business)" ReviewCount="@business.Reviews.Count"
+                              Accent="@accent" Icon="@icon" ReturnUrl="@SearchReturnUrl"
+                              UserId="@CurrentUserId" IsFavorite="@FavoriteIds.Contains(business.Id)" />
             }
         </div>
     }
@@ -104,6 +107,11 @@
     private string SearchTerm { get; set; } = "";
     private string City { get; set; } = "تهران";
     private bool HasSearched { get; set; }
+    private bool CityFilterRelaxed;
+    private bool ScrollToResultsPending;
+    private int TotalBusinesses;
+    private Guid? CurrentUserId;
+    private HashSet<Guid> FavoriteIds = [];
     private List<Business> Results { get; set; } = [];
 
     private static readonly string[] QuickTags = ["کوتاهی مو", "دندانپزشکی", "ماساژ"];
@@ -118,18 +126,39 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var user = (await AuthenticationState.GetAuthenticationStateAsync()).User;
+        CurrentUserId = UserContext.IdOf(user);
+
+        await using (var db = await DbFactory.CreateDbContextAsync())
+        {
+            TotalBusinesses = await db.Businesses.CountAsync(b => b.Branches.Any());
+            if (CurrentUserId is Guid userId)
+            {
+                FavoriteIds = (await db.FavoriteBusinesses.AsNoTracking()
+                    .Where(x => x.UserId == userId).Select(x => x.BusinessId).ToListAsync()).ToHashSet();
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(QueryTerm))
         {
             SearchTerm = QueryTerm;
             City = QueryCity ?? "";
-            await Search();
+            await Search(scroll: false);
             return;
         }
+
+        await LoadFeaturedAsync();
+    }
+
+    private async Task LoadFeaturedAsync()
+    {
         await using var db = await DbFactory.CreateDbContextAsync();
-        Results = await db.Businesses
+        Results = await db.Businesses.AsNoTracking()
+            .Where(b => b.Branches.Any())
             .Include(b => b.Branches)
             .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published))
-            .OrderByDescending(b => b.CreatedAt)
+            .OrderByDescending(b => b.Reviews.Count(r => r.Status == ReviewStatus.Published))
+            .ThenByDescending(b => b.CreatedAt)
             .Take(12)
             .ToListAsync();
     }
@@ -152,42 +181,52 @@
         await Search();
     }
 
-    private bool CityFilterRelaxed;
+    private Task Search() => Search(scroll: true);
 
-    private async Task Search()
+    private async Task Search(bool scroll)
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        var term = SearchTerm.Trim();
-        var city = City.Trim();
-        HasSearched = !string.IsNullOrWhiteSpace(term);
+        var term = TextSearch.Normalize(SearchTerm);
+        var city = TextSearch.Normalize(City);
+        HasSearched = term.Length > 0;
         CityFilterRelaxed = false;
 
-        IQueryable<Business> BaseQuery() => db.Businesses.Include(b => b.Branches)
-            .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published)).AsQueryable();
+        // هر دو املای فارسی/عربی («ی/ي»، «ک/ك») جست‌وجو می‌شوند و %/_ ورودی کاربر escape می‌شود.
+        var termPatterns = TextSearch.LikePatterns(term);
+        var termA = termPatterns.Length > 0 ? termPatterns[0] : "%";
+        var termB = termPatterns.Length > 1 ? termPatterns[1] : termA;
+        var cityPatterns = TextSearch.LikePatterns(city);
+        var cityA = cityPatterns.Length > 0 ? cityPatterns[0] : "%";
+        var cityB = cityPatterns.Length > 1 ? cityPatterns[1] : cityA;
+
+        IQueryable<Business> BaseQuery() => db.Businesses.AsNoTracking()
+            .Where(b => b.Branches.Any())
+            .Include(b => b.Branches)
+            .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published));
 
         IQueryable<Business> ApplyTerm(IQueryable<Business> query) =>
-            string.IsNullOrWhiteSpace(term)
+            term.Length == 0
                 ? query
                 : query.Where(b =>
-                    EF.Functions.ILike(b.Name, $"%{term}%") ||
-                    EF.Functions.ILike(b.Category, $"%{term}%") ||
-                    db.Services.Any(s => s.BusinessId == b.Id && EF.Functions.ILike(s.Name, $"%{term}%")));
+                    EF.Functions.ILike(b.Name, termA) || EF.Functions.ILike(b.Name, termB) ||
+                    EF.Functions.ILike(b.Category, termA) || EF.Functions.ILike(b.Category, termB) ||
+                    EF.Functions.ILike(b.Description, termA) || EF.Functions.ILike(b.Description, termB) ||
+                    db.Services.Any(s => s.BusinessId == b.Id &&
+                        (EF.Functions.ILike(s.Name, termA) || EF.Functions.ILike(s.Name, termB))));
 
         var withTerm = ApplyTerm(BaseQuery());
 
-        var withCity = string.IsNullOrWhiteSpace(city)
+        var withCity = city.Length == 0
             ? withTerm
-            : withTerm.Where(b => EF.Functions.ILike(b.City, $"%{city}%"));
+            : withTerm.Where(b => EF.Functions.ILike(b.City, cityA) || EF.Functions.ILike(b.City, cityB));
 
         Results = await withCity.OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
 
-        // شهر را فیلتر «سخت‌گیرانه» در نظر نمی‌گیریم: اگر با محدود کردن به شهر
-        // هیچ نتیجه‌ای نبود ولی بدون آن نتیجه هست، همان‌ها را نشان می‌دهیم و
-        // به کاربر می‌گوییم که این نتایج محدود به شهر انتخابی نیستند - به‌جای
-        // نمایش یک صفحه‌ی کاملاً خالی که به نظر می‌رسد جست‌وجو خراب است.
-        if (Results.Count == 0 && !string.IsNullOrWhiteSpace(city))
+        // شهر را فیلتر «سخت‌گیرانه» در نظر نمی‌گیریم: اگر با محدود کردن به شهر نتیجه‌ای نبود ولی بدون آن
+        // هست، همان‌ها را نشان می‌دهیم و به کاربر می‌گوییم به‌جای یک صفحه‌ی خالی.
+        if (Results.Count == 0 && city.Length > 0)
         {
-            var withoutCity = await ApplyTerm(BaseQuery()).OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
+            var withoutCity = await withTerm.OrderByDescending(b => b.CreatedAt).Take(24).ToListAsync();
             if (withoutCity.Count > 0)
             {
                 Results = withoutCity;
@@ -195,12 +234,9 @@
             }
         }
 
-        // [fix] اسکرول را به بعد از رندر شدن نتایج موکول می‌کنیم؛ قبلاً همین‌جا
-        // صدا زده می‌شد، یعنی وقتی DOM هنوز نتایج قبلی را نشان می‌داد.
-        ScrollToResultsPending = true;
+        // اسکرول را به بعد از رندر شدن نتایج موکول می‌کنیم.
+        ScrollToResultsPending = scroll;
     }
-
-    private bool ScrollToResultsPending;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -222,10 +258,17 @@
         SearchTerm = "";
         HasSearched = false;
         CityFilterRelaxed = false;
-        await OnInitializedAsync();
+        // اگر آدرس شامل ?q= باشد، بدون ناوبری دوباره جست‌وجو می‌شد؛ پس آدرس هم پاک می‌شود.
+        if (!string.IsNullOrWhiteSpace(QueryTerm))
+        {
+            Navigation.NavigateTo("/#businesses");
+            return;
+        }
+
+        await LoadFeaturedAsync();
     }
 
     private static string Rating(Business business) => business.Reviews.Count == 0
         ? "—"
-        : business.Reviews.Average(x => x.Rating).ToString("0.0");
+        : LocalizedDate.FormatNumber(Math.Round(business.Reviews.Average(x => x.Rating), 1), "fa", "0.0");
 }

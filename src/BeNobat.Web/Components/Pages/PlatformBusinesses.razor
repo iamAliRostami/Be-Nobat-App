@@ -1,55 +1,207 @@
 @page "/platform"
 @attribute [Authorize(Policy = Policies.ManagePlatform)]
 @rendermode InteractiveServer
+@using System.Text
 @inject AppDbContext Db
+@inject UserManager<AppUser> UserManager
 
 <PageTitle>مدیریت کل سامانه | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>مدیریت کسب‌وکارها</h1><p>نمای کلی تمام مستأجرها، شعب و وضعیت انتشار در سامانه.</p></div><button @onclick="NewBusiness">+ کسب‌وکار جدید</button></div>
+<div class="page-title"><div><h1>مدیریت کسب‌وکارها</h1><p>نمای کلی تمام مستأجرها، شعب و وضعیت انتشار در سامانه.</p></div><button type="button" @onclick="NewBusiness">+ کسب‌وکار جدید</button></div>
+
+@if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
+
 <div class="stat-cards">
-    <article class="filter-card @(StatusFilter == "all" ? "active" : "")" @onclick='() => StatusFilter = "all"'><i class="purple">▤</i><div><small>کسب‌وکارها</small><strong>@Items.Count</strong></div></article>
-    <article class="filter-card"><a class="stat-card-link" href="/admin/branches"><i class="blue">⌖</i><div><small>شعب</small><strong>@Items.Sum(x => x.Branches.Count)</strong></div></a></article>
-    <article class="filter-card @(StatusFilter == "active" ? "active" : "")" @onclick='() => StatusFilter = "active"'><i class="green">◇</i><div><small>کسب‌وکارهای فعال</small><strong>@Items.Count(x => x.DeletedAt is null)</strong></div></article>
-    <article class="filter-card @(StatusFilter == "disabled" ? "active" : "")" @onclick='() => StatusFilter = "disabled"'><i class="orange">⊘</i><div><small>غیرفعال</small><strong>@Items.Count(x => x.DeletedAt is not null)</strong></div></article>
+    <article><i class="purple">▤</i><div><small>کسب‌وکارها</small><strong>@Items.Count</strong></div></article>
+    <article><i class="blue">⌖</i><div><small>شعب</small><strong>@Items.Sum(x => x.Branches.Count)</strong></div></article>
+    <article><i class="green">◇</i><div><small>خدمات فعال</small><strong>@Items.Sum(x => x.Services.Count)</strong></div></article>
+    <article><i class="orange">⊘</i><div><small>غیرفعال</small><strong>@Items.Count(x => x.DeletedAt is not null)</strong></div></article>
 </div>
+
 <article class="admin-panel">
-    <div class="toolbar">
-        <input placeholder="جست‌وجوی نام یا دسته‌بندی..." @bind="Query" @bind:event="oninput" />
-        <select aria-label="فیلتر شهر" @bind="CityFilter"><option value="">همه شهرها</option>@foreach (var city in Items.Select(x => x.City).Distinct().Order()) { <option value="@city">@city</option> }</select>
-        <select aria-label="فیلتر وضعیت" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">تعلیق</option></select>
-        <span>@Filtered.Count() کسب‌وکار</span>
-    </div>
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته‌بندی یا شهر..." @bind="Query" @bind:event="oninput" /><span>@Filtered.Count() کسب‌وکار</span></div>
+    @if (!Filtered.Any()) { <p class="empty-state">کسب‌وکاری پیدا نشد.</p> }
     <div class="service-table platform-table">
         <div class="table-head"><span>کسب‌وکار</span><span>شهر</span><span>شعب</span><span>وضعیت</span><span></span></div>
         @foreach (var item in Filtered)
         {
-            <div><span><i class="purple">▤</i><b>@item.Name<small>@item.Category · /@item.Slug</small></b></span><span><button type="button" class="text-filter" @onclick="() => CityFilter = item.City">@item.City</button></span><span>@item.Branches.Count</span><span><em class="status @(item.DeletedAt is null ? "confirmed" : "cancelled")">@(item.DeletedAt is null ? "فعال" : "تعلیق")</em></span><span class="inline-actions"><button @onclick="() => Edit(item)">ویرایش</button><button class="@(item.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => Toggle(item)">@(item.DeletedAt is null ? "تعلیق" : "فعال")</button></span></div>
+            <div @key="item.Id">
+                <span><i class="purple">▤</i><b>@item.Name<small>@item.Category · /@item.Slug · @(item.RequiresApproval ? "نیازمند تأیید نوبت" : "تأیید خودکار")</small></b></span>
+                <span>@item.City</span>
+                <span>@item.Branches.Count@(item.Branches.Count == 0 ? " (بدون شعبه؛ در سایت نمایش داده نمی‌شود)" : "")</span>
+                <span><em class="status @(item.DeletedAt is null ? "confirmed" : "cancelled")">@(item.DeletedAt is null ? "فعال" : "تعلیق")</em></span>
+                <span class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.DeletedAt is null ? "تعلیق" : "فعال")</button></span>
+            </div>
         }
     </div>
 </article>
+
 @if (ShowForm)
 {
-    <div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="platform-business" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null ? "کسب‌وکار جدید" : "ویرایش کسب‌وکار")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div><label>نام<input required @bind="Form.Name" /></label><label>شناسه URL<input required dir="ltr" @bind="Form.Slug" /></label><div class="form-columns"><label>دسته‌بندی<input @bind="Form.Category" /></label><label>شهر<input @bind="Form.City" /></label></div><label>توضیحات<textarea @bind="Form.Description"></textarea></label>@if (Error is not null) { <div class="auth-error">@Error</div> }<button class="primary-button">ذخیره</button></EditForm></div>
+    <div class="modal-backdrop" @onclick="Close">
+        <EditForm Model="Form" FormName="platform-business" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
+            <div><h2>@(EditingId is null ? "کسب‌وکار جدید" : "ویرایش کسب‌وکار")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
+            <label>نام<input required @bind="Form.Name" /></label>
+            <label>شناسه URL (اختیاری؛ خالی بماند خودکار ساخته می‌شود)<input dir="ltr" @bind="Form.Slug" /></label>
+            <div class="form-columns">
+                <label>دسته‌بندی
+                    <select @bind="Form.Category">
+                        @foreach (var category in CategoryNames) { <option value="@category">@category</option> }
+                    </select>
+                </label>
+                <label>شهر<input @bind="Form.City" /></label>
+            </div>
+            <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
+            <label class="check-label"><input type="checkbox" @bind="Form.RequiresApproval" /><span>نوبت‌های جدید باید توسط مجموعه تأیید شوند</span></label>
+            @if (EditingId is null)
+            {
+                <label>نام شعبه‌ی اول<input @bind="Form.FirstBranchName" /></label>
+                <label>ایمیل مالک (اختیاری؛ باید قبلاً ثبت‌نام کرده باشد)<input type="email" dir="ltr" @bind="Form.OwnerEmail" /></label>
+            }
+            @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
+            <button class="primary-button">ذخیره</button>
+        </EditForm>
+    </div>
 }
 
 @code {
     private List<Business> Items = [];
-    [SupplyParameterFromQuery(Name = "q")] public string Query { get; set; } = "";
-    private string CityFilter = "";
-    private string StatusFilter = "all";
+    private List<string> CategoryNames = [];
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
+    private string Query = "";
     private bool ShowForm;
     private Guid? EditingId;
     private BusinessInput Form = new();
     private string? Error;
-    private IEnumerable<Business> Filtered => Items
-        .Where(x => $"{x.Name} {x.Category} {x.City}".Contains(Query ?? "", StringComparison.OrdinalIgnoreCase))
-        .Where(x => string.IsNullOrEmpty(CityFilter) || x.City == CityFilter)
-        .Where(x => StatusFilter == "all" || (StatusFilter == "disabled") == (x.DeletedAt is not null));
+    private string? Message;
+
+    private IEnumerable<Business> Filtered => Items.Where(x => $"{x.Name} {x.Category} {x.City}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+
     protected override async Task OnInitializedAsync() => await Load();
-    private async Task Load() => Items = await Db.Businesses.IgnoreQueryFilters().Include(x => x.Branches).Include(x => x.Services).OrderBy(x => x.Name).ToListAsync();
-    private void NewBusiness() { EditingId = null; Form = new(); ShowForm = true; }
-    private void Edit(Business x) { EditingId = x.Id; Form = new() { Name = x.Name, Slug = x.Slug, Category = x.Category, City = x.City, Description = x.Description }; ShowForm = true; }
-    private async Task Save() { Form.Slug = Form.Slug.Trim().ToLowerInvariant(); if (string.IsNullOrWhiteSpace(Form.Name) || string.IsNullOrWhiteSpace(Form.Slug) || await Db.Businesses.IgnoreQueryFilters().AnyAsync(x => x.Slug == Form.Slug && x.Id != EditingId)) { Error = "نام و شناسه یکتا الزامی است."; return; } var x = EditingId is null ? new Business { Name = Form.Name } : await Db.Businesses.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingId); x.Name = Form.Name.Trim(); x.Slug = Form.Slug; x.Category = Form.Category.Trim(); x.City = Form.City.Trim(); x.Description = Form.Description.Trim(); if (EditingId is null) Db.Businesses.Add(x); await Db.SaveChangesAsync(); Close(); await Load(); }
-    private async Task Toggle(Business x) { var item = await Db.Businesses.IgnoreQueryFilters().FirstAsync(y => y.Id == x.Id); item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null; await Db.SaveChangesAsync(); await Load(); }
+    protected override void OnParametersSet() { if (!string.IsNullOrWhiteSpace(QueryParam)) Query = QueryParam.Trim(); }
+
+    private async Task Load()
+    {
+        Items = await Db.Businesses.IgnoreQueryFilters().AsNoTracking().Include(x => x.Branches).Include(x => x.Services).OrderBy(x => x.Name).ToListAsync();
+        CategoryNames = await Db.CategoryDefinitions.AsNoTracking()
+            .Where(x => x.Kind == CategoryKind.Business && x.IsActive)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).Select(x => x.Name).ToListAsync();
+    }
+
+    private void EnsureCategory(string current)
+    {
+        if (!string.IsNullOrWhiteSpace(current) && !CategoryNames.Contains(current)) CategoryNames.Add(current);
+        if (CategoryNames.Count == 0) CategoryNames.Add("عمومی");
+    }
+
+    private void NewBusiness()
+    {
+        EditingId = null;
+        Error = Message = null;
+        EnsureCategory("عمومی");
+        Form = new() { Category = CategoryNames.First() };
+        ShowForm = true;
+    }
+
+    private void Edit(Business x)
+    {
+        EditingId = x.Id;
+        Error = Message = null;
+        EnsureCategory(x.Category);
+        Form = new()
+        {
+            Name = x.Name, Slug = x.Slug, Category = x.Category, City = x.City,
+            Description = x.Description, RequiresApproval = x.RequiresApproval,
+        };
+        ShowForm = true;
+    }
+
+    private static string MakeSlug(string name)
+    {
+        var builder = new StringBuilder();
+        foreach (var ch in name.Trim().ToLowerInvariant())
+        {
+            if (ch is >= 'a' and <= 'z' or >= '0' and <= '9') builder.Append(ch);
+            else if (builder.Length > 0 && builder[^1] != '-' && (char.IsWhiteSpace(ch) || ch is '-' or '_')) builder.Append('-');
+        }
+
+        var slug = builder.ToString().Trim('-');
+        return slug.Length >= 2 ? slug : "biz-" + Guid.NewGuid().ToString("N")[..6];
+    }
+
+    private async Task Save()
+    {
+        Error = null;
+        Form.Name = Form.Name.Trim();
+        if (string.IsNullOrWhiteSpace(Form.Name)) { Error = "نام کسب‌وکار الزامی است."; return; }
+
+        var slug = string.IsNullOrWhiteSpace(Form.Slug) ? MakeSlug(Form.Name) : Form.Slug.Trim().ToLowerInvariant();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(slug, "^[a-z0-9]+(-[a-z0-9]+)*$"))
+        {
+            Error = "شناسه URL فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد.";
+            return;
+        }
+
+        if (await Db.Businesses.IgnoreQueryFilters().AnyAsync(x => x.Slug == slug && x.Id != EditingId))
+        {
+            Error = "این شناسه URL قبلاً استفاده شده است.";
+            return;
+        }
+
+        AppUser? owner = null;
+        if (EditingId is null && !string.IsNullOrWhiteSpace(Form.OwnerEmail))
+        {
+            owner = await UserManager.FindByEmailAsync(Form.OwnerEmail.Trim());
+            if (owner is null) { Error = "کاربری با این ایمیل پیدا نشد؛ ابتدا باید ثبت‌نام کند یا از «اعضای تیم» ساخته شود."; return; }
+        }
+
+        var business = EditingId is null ? new Business { Name = Form.Name } : await Db.Businesses.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingId);
+        business.Name = Form.Name;
+        business.Slug = slug;
+        business.Category = Form.Category.Trim();
+        business.City = Form.City.Trim();
+        business.Description = Form.Description.Trim();
+        business.RequiresApproval = Form.RequiresApproval;
+        business.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (EditingId is null)
+        {
+            Db.Businesses.Add(business);
+            // کسب‌وکار بدون شعبه در سایت دیده نمی‌شود و رزرو ندارد؛ شعبه‌ی اول همین‌جا ساخته می‌شود.
+            var branch = new Branch
+            {
+                Business = business,
+                Name = string.IsNullOrWhiteSpace(Form.FirstBranchName) ? "شعبه مرکزی" : Form.FirstBranchName.Trim(),
+            };
+            Db.Branches.Add(branch);
+            if (owner is not null) Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
+        }
+
+        await Db.SaveChangesAsync();
+        if (owner is not null) await TeamRoleSync.SyncAsync(UserManager, Db, owner);
+        Message = EditingId is null ? "کسب‌وکار و شعبه‌ی اول ساخته شد. خدمات و کارکنان را از بخش «شعب و منابع» و «خدمات» تکمیل کنید." : "تغییرات ذخیره شد.";
+        Close();
+        await Load();
+    }
+
+    private async Task Toggle(Business x)
+    {
+        var item = await Db.Businesses.IgnoreQueryFilters().FirstAsync(y => y.Id == x.Id);
+        item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null;
+        await Db.SaveChangesAsync();
+        await Load();
+    }
+
     private void Close() { ShowForm = false; Error = null; }
-    private sealed class BusinessInput { public string Name { get; set; } = ""; public string Slug { get; set; } = ""; public string Category { get; set; } = "عمومی"; public string City { get; set; } = "تهران"; public string Description { get; set; } = ""; }
+
+    private sealed class BusinessInput
+    {
+        public string Name { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string Category { get; set; } = "عمومی";
+        public string City { get; set; } = "تهران";
+        public string Description { get; set; } = "";
+        public bool RequiresApproval { get; set; } = true;
+        public string FirstBranchName { get; set; } = "شعبه مرکزی";
+        public string OwnerEmail { get; set; } = "";
+    }
 }

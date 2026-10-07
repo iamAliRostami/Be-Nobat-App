@@ -28,10 +28,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     {
         base.OnModelCreating(builder);
         builder.HasDefaultSchema("benobat");
-        builder.Entity<Business>().HasIndex(x => x.Slug).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<Business>().HasIndex(x => x.Slug).IsUnique();
         builder.Entity<CategoryDefinition>().Property(x => x.Kind).HasConversion<string>();
-        builder.Entity<CategoryDefinition>().HasIndex(x => new { x.Kind, x.Name }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
-        builder.Entity<FavoriteBusiness>().HasIndex(x => new { x.UserId, x.BusinessId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<CategoryDefinition>().HasIndex(x => new { x.Kind, x.Name }).IsUnique();
+        builder.Entity<FavoriteBusiness>().HasIndex(x => new { x.UserId, x.BusinessId }).IsUnique();
         builder.Entity<FavoriteBusiness>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<FavoriteBusiness>().HasOne(x => x.Business).WithMany().HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Branch>().HasOne(x => x.Business).WithMany(x => x.Branches)
@@ -41,8 +41,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Service>().HasOne(x => x.CatalogItem).WithMany(x => x.BusinessServices)
             .HasForeignKey(x => x.CatalogItemId).OnDelete(DeleteBehavior.SetNull);
         builder.Entity<Service>().HasIndex(x => new { x.BusinessId, x.CatalogItemId }).IsUnique()
-            .HasFilter("\"CatalogItemId\" IS NOT NULL AND \"DeletedAt\" IS NULL");
-        builder.Entity<ServiceCatalogItem>().HasIndex(x => x.Slug).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+            .HasFilter("\"CatalogItemId\" IS NOT NULL");
+        builder.Entity<ServiceCatalogItem>().HasIndex(x => x.Slug).IsUnique();
         builder.Entity<Resource>().HasOne(x => x.Branch).WithMany(x => x.Resources)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
         // [feature] پیوند اختیاری منبع «عضو تیم» به حساب کاربری.
@@ -55,10 +55,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             t.HasCheckConstraint("CK_Services_Price", "\"Price\" >= 0");
         });
         builder.Entity<BranchService>().Property(x => x.Price).HasPrecision(18, 2);
-        builder.Entity<BranchService>().HasIndex(x => new { x.BranchId, x.ServiceId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<BranchService>().HasIndex(x => new { x.BranchId, x.ServiceId }).IsUnique();
         builder.Entity<BranchService>().HasOne(x => x.Branch).WithMany(x => x.BranchServices).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<BranchService>().HasOne(x => x.Service).WithMany(x => x.BranchServices).HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Cascade);
-        builder.Entity<ServiceResource>().HasIndex(x => new { x.ServiceId, x.ResourceId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<ServiceResource>().HasIndex(x => new { x.ServiceId, x.ResourceId }).IsUnique();
         builder.Entity<ServiceResource>().HasOne(x => x.Service).WithMany(x => x.ServiceResources).HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<ServiceResource>().HasOne(x => x.Resource).WithMany(x => x.ServiceResources).HasForeignKey(x => x.ResourceId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Appointment>().Property(x => x.FinalPrice).HasPrecision(18, 2);
@@ -72,16 +72,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Appointment>().HasOne(x => x.Customer).WithMany()
             .HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Appointment>().HasIndex(x => new { x.BranchId, x.StartsAt });
+        // جست‌وجوی تداخل زمانی ارائه‌دهنده و فهرست نوبت‌های مشتری هر دو روی این ستون‌ها هستند.
+        builder.Entity<Appointment>().HasIndex(x => new { x.ResourceId, x.StartsAt });
+        builder.Entity<Appointment>().HasIndex(x => new { x.CustomerId, x.StartsAt });
         builder.Entity<Appointment>().ToTable(t =>
         {
             t.HasCheckConstraint("CK_Appointments_TimeRange", "\"EndsAt\" > \"StartsAt\"");
             t.HasCheckConstraint("CK_Appointments_FinalPrice", "\"FinalPrice\" >= 0");
         });
         builder.Entity<AppointmentService>().Property(x => x.Price).HasPrecision(18, 2);
-        builder.Entity<AppointmentService>().HasIndex(x => new { x.AppointmentId, x.ServiceId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<AppointmentService>().HasIndex(x => new { x.AppointmentId, x.ServiceId }).IsUnique();
         builder.Entity<AppointmentService>().HasOne(x => x.Appointment).WithMany(x => x.Services).HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<AppointmentService>().HasOne(x => x.Service).WithMany().HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Restrict);
-        builder.Entity<BranchMembership>().HasIndex(x => new { x.BranchId, x.UserId }).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<BranchMembership>().HasIndex(x => new { x.BranchId, x.UserId }).IsUnique();
         builder.Entity<BranchMembership>().HasOne(x => x.Branch).WithMany(x => x.Memberships)
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<BranchMembership>().HasOne(x => x.User).WithMany(x => x.BranchMemberships)
@@ -95,7 +98,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<AvailabilityRule>().HasIndex(x => new { x.BusinessId, x.BranchId, x.ResourceId, x.EffectiveDate, x.DayOfWeek, x.StartsAt });
         builder.Entity<Review>().Property(x => x.Status).HasConversion<string>();
         builder.Entity<Review>().HasIndex(x => new { x.BusinessId, x.Status });
-        builder.Entity<Review>().HasIndex(x => x.AppointmentId).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<Review>().HasIndex(x => x.AppointmentId).IsUnique();
         builder.Entity<Review>().HasOne(x => x.Business).WithMany(x => x.Reviews)
             .HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<Review>().HasOne(x => x.Branch).WithMany(x => x.Reviews)
@@ -107,7 +110,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Review>().ToTable(t => t.HasCheckConstraint("CK_Reviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
 
         // [feature] امتیازدهی مجموعه به سرویس‌گیرنده.
-        builder.Entity<CustomerReview>().HasIndex(x => x.AppointmentId).IsUnique().HasFilter("\"DeletedAt\" IS NULL");
+        builder.Entity<CustomerReview>().HasIndex(x => x.AppointmentId).IsUnique();
         builder.Entity<CustomerReview>().HasIndex(x => new { x.BusinessId, x.CustomerId });
         builder.Entity<CustomerReview>().HasOne(x => x.Appointment).WithMany()
             .HasForeignKey(x => x.AppointmentId).OnDelete(DeleteBehavior.Cascade);

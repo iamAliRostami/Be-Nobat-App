@@ -21,10 +21,10 @@
 @if (Tab == "incoming")
 {
     <div class="stat-cards">
-        <article class="filter-card" @onclick='() => Filter = "all"'><i class="orange">★</i><div><small>میانگین امتیاز</small><strong>@Average.ToString("0.0")</strong></div></article>
-        <article class="filter-card @(Filter == "all" ? "active" : "")" @onclick='() => Filter = "all"'><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
-        <article class="filter-card @(Filter == "Pending" ? "active" : "")" @onclick='() => Filter = "Pending"'><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
-        <article class="filter-card @(Filter == "Published" ? "active" : "")" @onclick='() => Filter = "Published"'><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
+        <article><i class="orange">★</i><div><small>میانگین امتیاز (منتشرشده)</small><strong>@Average.ToString("0.0")</strong></div></article>
+        <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
+        <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
+        <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
     </div>
     <article class="admin-panel">
         <div class="toolbar">
@@ -46,10 +46,10 @@
                     </header>
                     <p>@review.Comment</p>
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
-                    <footer class="review-actions">
+                    <footer>
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" class="action-success" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" class="action-danger" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
                         <button type="button" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>
@@ -70,7 +70,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(appointment.Customer))">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", appointment.Service.Name)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(appointment.Customer))">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", appointment.Service.Name)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
                     </header>
                     <footer>
                         <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
@@ -95,7 +95,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(item.Customer))">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", item.Business.Name)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", DisplayNameOf(item.Author))">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(item.Customer))">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", item.Business.Name)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", DisplayNameOf(item.Author))">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, null)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
                     @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
@@ -134,7 +134,7 @@ else
     private string Language = "fa";
 
     private IEnumerable<Review> Filtered => Filter == "all" ? Reviews : Reviews.Where(x => x.Status.ToString() == Filter);
-    private double Average => Reviews.Count == 0 ? 0 : Reviews.Average(x => x.Rating);
+    private double Average => Reviews.Any(x => x.Status == ReviewStatus.Published) ? Reviews.Where(x => x.Status == ReviewStatus.Published).Average(x => x.Rating) : 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -155,7 +155,7 @@ else
         StateHasChanged();
     }
 
-    private string FormatDate(DateTimeOffset value) => LocalizedDate.Format(DateOnly.FromDateTime(value.DateTime), Language);
+    private string FormatDate(DateTimeOffset value, string? zone) => BranchClock.FormatDate(value, zone, Language);
 
     private async Task Load()
     {

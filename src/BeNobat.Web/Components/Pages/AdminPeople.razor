@@ -27,11 +27,11 @@
 </div>
 
 @if (Message is not null) { <div class="success-notice">@Message</div> }
+@if (Error is not null && !ShowForm) { <div class="auth-error" role="alert">@Error</div> }
 
 <article class="admin-panel">
     <div class="toolbar">
         <input placeholder="جست‌وجوی نام، ایمیل یا شماره تماس..." @bind="Query" @bind:event="oninput" />
-        <select aria-label="فیلتر وضعیت" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
         <span>@Filtered.Count() نتیجه</span>
     </div>
 
@@ -69,7 +69,7 @@
                 </em>
                 <div class="inline-actions">
                     <button type="button" @onclick="() => Edit(person)">ویرایش</button>
-                    <button type="button" class="@(person.IsDisabled ? "action-success" : "action-danger")" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
+                    <button type="button" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
                 </div>
             </article>
         }
@@ -88,15 +88,26 @@
             <label>نام و نام خانوادگی<input required @bind="Form.Name" /></label>
             <label>ایمیل<input type="email" required disabled="@(Editing is not null)" @bind="Form.Email" /></label>
             <label>شماره تماس<input inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Form.Phone" /></label>
-            @if (IsTeam)
+            @if (IsTeam && Editing is null)
             {
-                <label>نقش
+                <label>شعبه
+                    <select required @bind="Form.BranchId">
+                        <option value="">— انتخاب شعبه —</option>
+                        @foreach (var branch in ManagedBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }
+                    </select>
+                </label>
+                <label>نقش در شعبه
                     <select @bind="Form.Role">
                         <option value="@AppRoles.Staff">پرسنل</option>
                         <option value="@AppRoles.Manager">مدیر</option>
                         <option value="@AppRoles.Owner">مالک</option>
                     </select>
                 </label>
+                @if (ManagedBranches.Count == 0) { <small>ابتدا یک شعبه تعریف کنید تا بتوانید عضو اضافه کنید.</small> }
+            }
+            else if (IsTeam)
+            {
+                <small>نقش و شعبه‌ی عضو را از صفحه‌ی «شعب و منابع ← اعضا» تغییر دهید.</small>
             }
             @if (Error is not null) { <div class="auth-error">@Error</div> }
             <button class="primary-button">ذخیره</button>
@@ -109,13 +120,13 @@
     [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
 
     private string Query = "";
-    private string StatusFilter = "all";
     private bool ShowForm;
     private string? Error;
     private string? Message;
     private Person? Editing;
     private PersonInput Form = new();
     private List<Person> People = [];
+    private List<Branch> ManagedBranches = [];
 
     // [fix] قبلاً IsTeam از روی کل URL و با EndsWith("/team") حساب می‌شد؛ با
     // query string یا اسلش انتهایی اشتباه می‌شد. حالا فقط مسیر نسبی را می‌بینیم.
@@ -127,7 +138,6 @@
 
     private IEnumerable<Person> Filtered => People
         .Where(x => IsTeam ? TeamRoles.Contains(x.Role) : x.Role == AppRoles.Customer)
-        .Where(x => StatusFilter == "all" || (StatusFilter == "disabled") == x.IsDisabled)
         .Where(x => $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber}"
             .Contains(Query, StringComparison.OrdinalIgnoreCase));
 
@@ -159,6 +169,7 @@
 
     private async Task Load()
     {
+        ManagedBranches = await (await Access.ManagedBranchesAsync()).Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
         var appointments = await Access.AppointmentsAsync();
         var allowedUserIds = IsTeam
             ? await (await Access.BranchesAsync()).SelectMany(x => x.Memberships).Select(x => x.UserId).Distinct().ToListAsync()
@@ -211,6 +222,7 @@
             Phone = person.User.PhoneNumber ?? "",
             Role = TeamRoles.Contains(person.Role) ? person.Role : AppRoles.Staff,
         };
+
         Error = Message = null;
         ShowForm = true;
     }
@@ -228,6 +240,20 @@
         {
             var email = Form.Email.Trim();
 
+            if (IsTeam)
+            {
+                if (Form.BranchId is not Guid selectedBranch || ManagedBranches.All(b => b.Id != selectedBranch))
+                {
+                    Error = "یک شعبه‌ی معتبر انتخاب کنید.";
+                    return;
+                }
+                if (!await Access.CanAssignRoleAsync(Form.Role, selectedBranch))
+                {
+                    Error = Form.Role == AppRoles.Owner ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
+                    return;
+                }
+            }
+
             // [fix] پیش از ساخت حساب، تکراری بودن ایمیل را با پیام فارسی اعلام می‌کنیم.
             if (await UserManager.FindByEmailAsync(email) is not null)
             {
@@ -244,7 +270,7 @@
                 PhoneNumber = phone,
             };
 
-            var password = $"Bn!{Guid.NewGuid():N}"[..12];
+            var password = $"Bn1!{Guid.NewGuid():N}"[..12];
             var result = await UserManager.CreateAsync(user, password);
             if (!result.Succeeded)
             {
@@ -252,13 +278,23 @@
                 return;
             }
 
-            await UserManager.AddToRoleAsync(user, IsTeam ? Form.Role : AppRoles.Customer);
-            Message = $"حساب ساخته شد. رمز موقت: {password}";
+            if (IsTeam)
+            {
+                Db.BranchMemberships.Add(new BranchMembership { BranchId = Form.BranchId!.Value, UserId = user.Id, Role = Form.Role });
+                await Db.SaveChangesAsync();
+                await TeamRoleSync.SyncAsync(UserManager, Db, user);
+            }
+            else
+            {
+                await UserManager.AddToRoleAsync(user, AppRoles.Customer);
+            }
+            Message = $"حساب ساخته شد. رمز موقت: «{password}» — فقط همین یک‌بار نمایش داده می‌شود؛ آن را امن به کاربر بدهید.";
         }
         else
         {
             var user = await UserManager.FindByIdAsync(Editing.User.Id.ToString());
             if (user is null) return;
+            if (await IsProtectedAsync(user)) { Error = "اجازه‌ی ویرایش این کاربر را ندارید."; return; }
 
             user.DisplayName = Form.Name.Trim();
             user.PhoneNumber = phone;
@@ -272,17 +308,7 @@
 
             if (IsTeam)
             {
-                var current = await UserManager.GetRolesAsync(user);
-                var toRemove = current.Where(x => TeamRoles.Contains(x)).ToList();
-                if (toRemove.Count > 0)
-                {
-                    await UserManager.RemoveFromRolesAsync(user, toRemove);
-                }
-                if (!await UserManager.IsInRoleAsync(user, Form.Role))
-                {
-                    await UserManager.AddToRoleAsync(user, Form.Role);
-                }
-                Message = "تغییرات عضو تیم ذخیره شد.";
+                Message = "اطلاعات عضو تیم ذخیره شد.";
             }
             else
             {
@@ -298,11 +324,23 @@
     {
         var user = await UserManager.FindByIdAsync(person.User.Id.ToString());
         if (user is null) return;
+        if (user.Id == await Access.UserIdAsync()) { Message = null; Error = "حساب خودتان را نمی‌توانید غیرفعال کنید."; return; }
+        if (await IsProtectedAsync(user)) { Message = null; Error = "اجازه‌ی تغییر وضعیت این کاربر را ندارید."; return; }
+        Error = null;
 
         user.LockoutEnabled = true;
         user.LockoutEnd = person.IsDisabled ? null : DateTimeOffset.MaxValue;
         await UserManager.UpdateAsync(user);
         await Load();
+    }
+
+    /// <summary>مدیر سامانه و مالکانی که کاربر جاری مالکشان نیست، توسط مدیران شعبه قابل دستکاری نیستند.</summary>
+    private async Task<bool> IsProtectedAsync(AppUser target)
+    {
+        if (await Access.IsPlatformAdminAsync()) return false;
+        if (await UserManager.IsInRoleAsync(target, AppRoles.PlatformAdmin)) return true;
+        var branchIds = ManagedBranches.Select(b => b.Id).ToList();
+        return await Access.TargetOutranksMeAsync(target.Id, branchIds);
     }
 
     private void Close()
@@ -332,5 +370,6 @@
         public string Email { get; set; } = "";
         public string Phone { get; set; } = "";
         public string Role { get; set; } = AppRoles.Staff;
+        public Guid? BranchId { get; set; }
     }
 }

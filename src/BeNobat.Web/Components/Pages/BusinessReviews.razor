@@ -1,30 +1,82 @@
 @page "/business/{BusinessId:guid}/reviews"
 @layout Layout.PublicLayout
-@inject AppDbContext Db
+@inject IDbContextFactory<AppDbContext> DbFactory
 
 <PageTitle>نظرات مشتریان | به‌نوبت</PageTitle>
 <section class="profile-page">
-    @if (Business is null)
+    @if (!Loaded)
+    {
+        <p class="empty-state">در حال دریافت نظرها…</p>
+    }
+    else if (BusinessName is null)
     {
         <p class="empty-state">کسب‌وکار موردنظر پیدا نشد.</p>
     }
     else
     {
-        <a class="back-link" href="/">→ بازگشت</a>
-        <div class="page-title"><div><h1>نظرهای @Business.Name</h1><p>@Reviews.Count نظر منتشرشده · میانگین @Average.ToString("0.0") از ۵</p></div><a class="primary-button" href="/account/profile">ثبت نظر</a></div>
+        <a class="back-link" href="/business/@BusinessId">→ بازگشت به @BusinessName</a>
+        <div class="page-title">
+            <div>
+                <h1>نظرهای @BusinessName</h1>
+                <p>@(Reviews.Count == 0 ? "هنوز نظری منتشر نشده است" : $"{Reviews.Count} نظر منتشرشده · میانگین {Average:0.0} از ۵")</p>
+            </div>
+            <a class="primary-button" href="/appointments">ثبت نظر برای نوبت‌های من</a>
+        </div>
         <div class="review-list">
             @foreach (var review in Reviews)
             {
-                <article><header><div><b>@review.Customer.DisplayName</b><small>@review.CreatedAt.ToString("yyyy/MM/dd") @if(review.Branch is not null){<text>· @review.Branch.Name</text>}</small></div><span class="stars">@(new string('★', review.Rating))@(new string('☆', 5-review.Rating))</span></header><p>@review.Comment</p>@if(!string.IsNullOrWhiteSpace(review.ManagerReply)){<blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote>}</article>
+                <article @key="review.Id">
+                    <header>
+                        <div><b>@review.Author</b><small>@review.Date@(review.BranchName is null ? "" : $" · {review.BranchName}")</small></div>
+                        <span class="stars" aria-label="@review.Rating از ۵">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
+                    </header>
+                    @if (!string.IsNullOrWhiteSpace(review.Comment)) { <p>@review.Comment</p> }
+                    @if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: @review.Reply</blockquote> }
+                </article>
             }
         </div>
-        @if(Reviews.Count==0){<p class="empty-state">هنوز نظری منتشر نشده است.</p>}
+        @if (Reviews.Count == 0) { <p class="empty-state">پس از اولین مراجعه می‌توانید اولین نظر را ثبت کنید.</p> }
     }
 </section>
 
 @code {
     [Parameter] public Guid BusinessId { get; set; }
-    private Business? Business; private List<Review> Reviews=[];
-    private double Average=>Reviews.Count==0?0:Reviews.Average(x=>x.Rating);
-    protected override async Task OnParametersSetAsync(){Business=await Db.Businesses.FirstOrDefaultAsync(x=>x.Id==BusinessId);Reviews=await Db.Reviews.Include(x=>x.Customer).Include(x=>x.Branch).Where(x=>x.BusinessId==BusinessId&&x.Status==ReviewStatus.Published).OrderByDescending(x=>x.CreatedAt).ToListAsync();}
+
+    private bool Loaded;
+    private string? BusinessName;
+    private List<ReviewView> Reviews = [];
+    private double Average => Reviews.Count == 0 ? 0 : Reviews.Average(x => x.Rating);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Loaded = false;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        BusinessName = await db.Businesses.AsNoTracking().Where(x => x.Id == BusinessId).Select(x => x.Name).FirstOrDefaultAsync();
+        if (BusinessName is not null)
+        {
+            // فقط ستون‌های لازم؛ بایت‌های عکس پروفایل خوانده نمی‌شود.
+            var rows = await db.Reviews.AsNoTracking()
+                .Where(x => x.BusinessId == BusinessId && x.Status == ReviewStatus.Published)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => new
+                {
+                    x.Id, x.Rating, x.Comment, x.ManagerReply, x.CreatedAt,
+                    Author = x.Customer.DisplayName,
+                    BranchName = x.Branch != null ? x.Branch.Name : null,
+                    Zone = x.Branch != null ? x.Branch.TimeZoneId : null,
+                })
+                .ToListAsync();
+            Reviews = rows.Select(x => new ReviewView(
+                x.Id,
+                x.Rating,
+                x.Comment,
+                x.ManagerReply,
+                string.IsNullOrWhiteSpace(x.Author) ? "کاربر" : x.Author,
+                x.BranchName,
+                BranchClock.FormatDate(x.CreatedAt, x.Zone, "fa"))).ToList();
+        }
+        Loaded = true;
+    }
+
+    private sealed record ReviewView(Guid Id, int Rating, string? Comment, string? Reply, string Author, string? BranchName, string Date);
 }

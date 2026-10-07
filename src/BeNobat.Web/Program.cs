@@ -2,6 +2,8 @@ using BeNobat.Web.Components;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using BeNobat.Web.Security;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +23,19 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 // a page and the avatar in its layout). A scoped DbContext would then be shared by
 // both components even though DbContext does not support parallel operations.
 builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseNpgsql(connectionString));
+
+// بدون ذخیره‌ی کلیدها، با هر ری‌استارت/دیپلوی کانتینر همه‌ی کوکی‌های ورود و توکن‌های
+// antiforgery باطل می‌شدند و کاربران بی‌دلیل از حساب بیرون می‌افتادند.
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("BeNobat")
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+}
+
+// پاک‌سازی دوره‌ای نوبت‌های «در انتظار»ی که زمانشان گذشته است.
+builder.Services.AddHostedService<AppointmentMaintenanceService>();
 
 // [fix] AddIdentityApiEndpoints<T>() configures bearer-token authentication and is meant
 // for SPA/mobile clients calling the JSON /api/auth/* endpoints directly. It does not
@@ -45,6 +60,7 @@ builder.Services
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
         options.Password.RequiredLength = 6;
+        options.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
@@ -114,7 +130,59 @@ app.MapPost("/account/logout", async (SignInManager<AppUser> signInManager, Http
 {
     await signInManager.SignOutAsync();
     var returnUrl = request.Form.TryGetValue("returnUrl", out var value) ? value.ToString() : "/";
-    return Results.LocalRedirect(string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl);
+    // LocalRedirect روی آدرس غیرمحلی exception می‌اندازد؛ ورودی را پیش از آن پاک‌سازی می‌کنیم.
+    return Results.LocalRedirect(SafeRedirect.Local(returnUrl));
+}).RequireAuthorization();
+
+// تغییر رمز عبور توسط خود کاربر. مثل تغییر ایمیل یک endpoint معمولی است، چون تغییر رمز
+// SecurityStamp را عوض می‌کند و باید همان‌جا با RefreshSignInAsync کوکی تازه شود.
+app.MapPost("/account/change-password", async (
+    HttpContext http,
+    IAntiforgery antiforgery,
+    UserManager<AppUser> userManager,
+    SignInManager<AppUser> signInManager) =>
+{
+    try
+    {
+        await antiforgery.ValidateRequestAsync(http);
+    }
+    catch (AntiforgeryValidationException)
+    {
+        return Results.LocalRedirect("/account/profile?passwordError=invalid");
+    }
+
+    var user = await userManager.GetUserAsync(http.User);
+    if (user is null)
+    {
+        return Results.LocalRedirect("/account/login");
+    }
+
+    var form = await http.Request.ReadFormAsync();
+    var currentPassword = form["currentPassword"].ToString();
+    var newPassword = form["newPassword"].ToString();
+    var confirmPassword = form["confirmPassword"].ToString();
+
+    if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword))
+    {
+        return Results.LocalRedirect("/account/profile?passwordError=invalid");
+    }
+
+    if (newPassword != confirmPassword)
+    {
+        return Results.LocalRedirect("/account/profile?passwordError=mismatch");
+    }
+
+    var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+    if (!result.Succeeded)
+    {
+        var wrongCurrent = result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.PasswordMismatch));
+        return Results.LocalRedirect(wrongCurrent
+            ? "/account/profile?passwordError=wrong"
+            : "/account/profile?passwordError=weak");
+    }
+
+    await signInManager.RefreshSignInAsync(user);
+    return Results.LocalRedirect("/account/profile?passwordChanged=1");
 }).RequireAuthorization();
 
 // [feature] تغییر ایمیل حساب. عمداً یک endpoint جداست و نه کد داخل کامپوننت
@@ -176,16 +244,20 @@ app.MapPost("/account/change-email", async (
 
 // [feature] سرو کردن عکس پروفایل کاربر. تصویر داخل دیتابیس نگهداری می‌شود،
 // چون مسیر wwwroot در image داکر فقط-خواندنی است و با هر build پاک می‌شود.
-app.MapGet("/media/avatar/{id:guid}", async (Guid id, AppDbContext db, CancellationToken cancellationToken) =>
+app.MapGet("/media/avatar/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken cancellationToken) =>
 {
     var avatar = await db.Users
+        .AsNoTracking()
         .Where(u => u.Id == id && u.AvatarData != null)
         .Select(u => new { u.AvatarData, u.AvatarContentType })
         .FirstOrDefaultAsync(cancellationToken);
 
-    return avatar is null
-        ? Results.NotFound()
-        : Results.File(avatar.AvatarData!, avatar.AvatarContentType ?? "image/png");
+    if (avatar is null) return Results.NotFound();
+
+    // آدرس تصویر شامل نسخه (ConcurrencyStamp) است، پس کش طولانی امن است و بار دیتابیس را کم می‌کند.
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(avatar.AvatarData!, avatar.AvatarContentType ?? "image/png");
 }).AllowAnonymous();
 
 app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellationToken) =>
@@ -194,7 +266,8 @@ app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellat
         await db.Branches.CountAsync(cancellationToken),
         await db.Services.CountAsync(cancellationToken),
         await db.Appointments.CountAsync(cancellationToken)))
-    .RequireAuthorization(Policies.ManageAppointments);
+    // این شمارنده‌ها سراسری‌اند؛ برای پرسنل و مدیران یک کسب‌وکار نباید قابل مشاهده باشند.
+    .RequireAuthorization(Policies.ManagePlatform);
 app.MapHealthChecks("/health");
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 

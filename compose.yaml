@@ -18,6 +18,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      DataProtection__KeysPath: /keys
+    volumes:
+      - dataprotection_keys:/keys
     ports:
       - "8080:8080"
     depends_on:
@@ -50,3 +53,4 @@ services:
 
 volumes:
   postgres_data:
+  dataprotection_keys:

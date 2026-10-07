@@ -1,8 +1,8 @@
 @inject IDbContextFactory<AppDbContext> DbFactory
 
-@if (UserAvatar.Has(Account))
+@if (UserAvatar.Has(AvatarContentType) && AccountId is Guid accountId)
 {
-    <img class="@CssClass" src="@UserAvatar.Url(Account!)" alt="عکس پروفایل @DisplayName" />
+    <img class="@CssClass" src="@UserAvatar.Url(accountId, ConcurrencyStamp)" alt="عکس پروفایل @DisplayName" />
 }
 else
 {
@@ -13,18 +13,35 @@ else
     [Parameter, EditorRequired] public System.Security.Claims.ClaimsPrincipal User { get; set; } = null!;
     [Parameter] public string CssClass { get; set; } = "customer-avatar";
 
-    private AppUser? Account;
-    private string DisplayName => Account?.DisplayName
+    private Guid? AccountId;
+    private string? AccountName;
+    private string? AvatarContentType;
+    private string? ConcurrencyStamp;
+
+    private string DisplayName => AccountName
         ?? User.FindFirst("DisplayName")?.Value
         ?? User.Identity?.Name
         ?? "کاربر";
 
     protected override async Task OnParametersSetAsync()
     {
-        var value = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        AccountId = UserContext.IdOf(User);
+        AccountName = null;
+        AvatarContentType = null;
+        ConcurrencyStamp = null;
+        if (AccountId is not Guid id) return;
+
+        // فقط ستون‌های سبک خوانده می‌شود؛ قبلاً کل ردیف کاربر شامل بایت‌های عکس (تا ۲ مگابایت)
+        // در هر رندر هدر چند بار از دیتابیس خوانده می‌شد.
         await using var db = await DbFactory.CreateDbContextAsync();
-        Account = Guid.TryParse(value, out var id)
-            ? await db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id)
-            : null;
+        var row = await db.Users
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new { x.DisplayName, x.AvatarContentType, x.ConcurrencyStamp })
+            .FirstOrDefaultAsync();
+        if (row is null) return;
+        AccountName = row.DisplayName;
+        AvatarContentType = row.AvatarContentType;
+        ConcurrencyStamp = row.ConcurrencyStamp;
     }
 }

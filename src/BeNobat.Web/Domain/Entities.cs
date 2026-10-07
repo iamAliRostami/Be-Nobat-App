@@ -31,6 +31,13 @@ public sealed class Business : Entity
     public string Category { get; set; } = "عمومی";
     public string City { get; set; } = "تهران";
     public string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// اگر درست باشد نوبت‌های تازه «در انتظار تأیید» ثبت می‌شوند و مجموعه باید آن‌ها را
+    /// تأیید کند؛ در غیر این صورت نوبت بلافاصله «تأیید شده» است.
+    /// </summary>
+    public bool RequiresApproval { get; set; } = true;
+
     public ICollection<Branch> Branches { get; } = [];
     public ICollection<Service> Services { get; } = [];
     public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
@@ -147,6 +154,15 @@ public sealed class Appointment : Entity
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
     public decimal FinalPrice { get; set; }
     public string Currency { get; set; } = "IRR";
+
+    /// <summary>توضیح اختیاری مشتری هنگام رزرو (مثلاً حساسیت‌ها یا درخواست خاص).</summary>
+    public string CustomerNote { get; set; } = string.Empty;
+
+    /// <summary>
+    /// کد پیگیری قابل‌نمایش؛ از بخش تصادفی انتهای شناسه ساخته می‌شود (ابتدای UUID نسخه ۷
+    /// فقط زمان است و کدهای هم‌زمان را شبیه هم می‌کرد). فقط برای نمایش است.
+    /// </summary>
+    public string TrackingCode => Id.ToString("N")[^8..].ToUpperInvariant();
 
     public Branch Branch { get; set; } = null!;
     public Service Service { get; set; } = null!;

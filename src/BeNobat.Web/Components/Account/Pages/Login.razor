@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Identity
 @using BeNobat.Web.Domain
 @inject SignInManager<AppUser> SignInManager
+@inject UserManager<AppUser> UserManager
 @inject NavigationManager NavigationManager
 @inject ILogger<Login> Logger
 
@@ -14,32 +15,31 @@
         <DataAnnotationsValidator />
         <h1>ورود به حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو و مشاهده نوبت‌هایتان وارد شوید.</p>
-        @* [fix] تب فعال بین «ورود» و «ثبت‌نام» باید با سوییچ کردن تغییر کند. *@
+        @* تب‌ها لینک ساده‌اند (نه NavLink) تا returnUrl حفظ شود. *@
         <div class="auth-tabs">
-            <NavLink href="/account/login" Match="NavLinkMatch.All">ورود</NavLink>
-            <NavLink href="/account/register" Match="NavLinkMatch.All">ثبت‌نام</NavLink>
+            <a class="active" aria-current="page" href="@LoginHref">ورود</a>
+            <a href="@RegisterHref">ثبت‌نام</a>
         </div>
-
 
         @if (!string.IsNullOrEmpty(ErrorMessage))
         {
-            <div class="auth-error">@ErrorMessage</div>
+            <div class="auth-error" role="alert">@ErrorMessage</div>
         }
 
         <label>ایمیل
-            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" />
+            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" dir="ltr" />
         </label>
         <ValidationMessage For="() => Input.Email" />
 
         <label>رمز عبور
-            <InputText @bind-Value="Input.Password" type="password" autocomplete="current-password" />
+            <InputText @bind-Value="Input.Password" type="password" autocomplete="current-password" dir="ltr" />
         </label>
         <ValidationMessage For="() => Input.Password" />
 
         <label class="auth-remember"><InputCheckbox @bind-Value="Input.RememberMe" /> مرا به خاطر بسپار</label>
 
         <button type="submit" class="primary-button auth-submit">ورود</button>
-        <p class="auth-switch">حساب کاربری ندارید؟ <a href="/account/register">ثبت‌نام کنید</a></p>
+        <p class="auth-switch">حساب کاربری ندارید؟ <a href="@RegisterHref">ثبت‌نام کنید</a></p>
     </EditForm>
 </div>
 
@@ -47,31 +47,58 @@
     private string? ErrorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
-
-    protected override void OnInitialized() => Input ??= new();
+    private InputModel Input { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
+    private string SafeReturnUrl => SafeRedirect.Local(ReturnUrl, "");
+
+    private string LoginHref => SafeReturnUrl.Length == 0
+        ? "/account/login"
+        : $"/account/login?returnUrl={Uri.EscapeDataString(SafeReturnUrl)}";
+
+    private string RegisterHref => SafeReturnUrl.Length == 0
+        ? "/account/register"
+        : $"/account/register?returnUrl={Uri.EscapeDataString(SafeReturnUrl)}";
+
     private async Task LoginUser()
     {
+        ErrorMessage = null;
+        var email = Input.Email.Trim();
         var result = await SignInManager.PasswordSignInAsync(
-            Input.Email,
+            email,
             Input.Password,
             Input.RememberMe,
             lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
-            Logger.LogInformation("کاربر {Email} با موفقیت وارد شد.", Input.Email);
-            NavigationManager.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl, forceLoad: true);
+            Logger.LogInformation("کاربر {Email} با موفقیت وارد شد.", email);
+            var target = SafeReturnUrl;
+            if (target.Length == 0)
+            {
+                // مدیران و پرسنل مستقیم به پنل می‌روند، مشتری‌ها به صفحه‌ی اصلی.
+                var user = await UserManager.FindByEmailAsync(email);
+                var roles = user is null ? new List<string>() : (await UserManager.GetRolesAsync(user)).ToList();
+                target = roles.Any(role => AppRoles.AppointmentManagers.Contains(role)) ? "/admin" : "/";
+            }
+
+            NavigationManager.NavigateTo(target, forceLoad: true);
             return;
         }
 
-        ErrorMessage = result.IsLockedOut
-            ? "حساب شما موقتاً به دلیل تلاش‌های ناموفق متعدد قفل شده است."
-            : "ایمیل یا رمز عبور اشتباه است.";
+        if (result.IsLockedOut)
+        {
+            // حساب غیرفعال‌شده توسط مدیر تا ابد قفل است؛ قفل ناشی از تلاش ناموفق چند دقیقه‌ای است.
+            var user = await UserManager.FindByEmailAsync(email);
+            ErrorMessage = user?.LockoutEnd > DateTimeOffset.UtcNow.AddYears(1)
+                ? "این حساب توسط مدیر غیرفعال شده است. برای فعال‌سازی با پشتیبانی تماس بگیرید."
+                : "حساب شما موقتاً به دلیل تلاش‌های ناموفق متعدد قفل شده است؛ چند دقیقه بعد دوباره تلاش کنید.";
+            return;
+        }
+
+        ErrorMessage = "ایمیل یا رمز عبور اشتباه است.";
     }
 
     private sealed class InputModel

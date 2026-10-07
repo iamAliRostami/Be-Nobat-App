@@ -4,7 +4,7 @@
 @rendermode InteractiveServer
 @inject UserManager<AppUser> UserManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject AppDbContext Db
+@inject IDbContextFactory<AppDbContext> DbFactory
 
 <PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
 
@@ -73,35 +73,20 @@
             <button type="submit" class="primary-button">تغییر ایمیل</button>
         </form>
 
-        <EditForm Model="ReviewForm" FormName="account-review" OnValidSubmit="SaveReview" class="admin-panel profile-form">
-            <h2>ثبت امتیاز و نظر برای خدمت</h2>
-            @if (CompletedAppointments.Count == 0)
-            {
-                <p class="empty-state">نوبت تکمیل‌شده‌ای بدون نظر ندارید.</p>
-            }
-            else
-            {
-                <label>نوبت تکمیل‌شده
-                    <select @bind="ReviewForm.AppointmentId">
-                        <option value="">انتخاب کنید</option>
-                        @foreach (var appointment in CompletedAppointments)
-                        {
-                            <option value="@appointment.Id">@appointment.BusinessName · @appointment.BranchName · @appointment.ServiceName</option>
-                        }
-                    </select>
-                </label>
-                <label>امتیاز
-                    <select @bind="ReviewForm.Rating">
-                        @for (var i = 5; i >= 1; i--)
-                        {
-                            <option value="@i">@i ستاره</option>
-                        }
-                    </select>
-                </label>
-                <label>نظر شما<textarea @bind="ReviewForm.Comment"></textarea></label>
-            }
-            <button class="primary-button" disabled="@(CompletedAppointments.Count == 0)">ارسال برای بررسی</button>
-        </EditForm>
+        <form method="post" action="/account/change-password" class="admin-panel profile-form">
+            <AntiforgeryToken />
+            <h2>تغییر گذرواژه</h2>
+            <label>گذرواژه‌ی فعلی<input name="currentPassword" type="password" required autocomplete="current-password" dir="ltr" /></label>
+            <label>گذرواژه‌ی جدید<input name="newPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
+            <label>تکرار گذرواژه‌ی جدید<input name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
+            <button type="submit" class="primary-button">تغییر گذرواژه</button>
+        </form>
+
+        <article class="admin-panel profile-form">
+            <h2>امتیاز و نظر</h2>
+            <p>پس از پایان هر نوبت، از صفحه‌ی «نوبت‌های من» می‌توانید امتیاز و نظر خود را ثبت کنید.</p>
+            <a class="primary-button" href="/appointments">رفتن به نوبت‌های من</a>
+        </article>
     </div>
 
     @* [feature] امتیازی که مجموعه‌ها به شما داده‌اند هم نمایش داده می‌شود. *@
@@ -110,21 +95,6 @@
         <article class="admin-panel">
             <h2>امتیاز شما به‌عنوان مراجعه‌کننده</h2>
             <p class="empty-state">میانگین @ReceivedRating.Value.ToString("0.0") از ۵ بر اساس @ReceivedCount ارزیابی مجموعه‌ها.</p>
-            <div class="review-list">
-                @foreach (var review in ReceivedReviews)
-                {
-                    <div class="review-item" style="padding-top:1rem; border-top: 1px solid var(--border)">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <b>@review.Business.Name</b>
-                            <span class="stars" style="color:var(--orange)">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(review.Comment))
-                        {
-                            <p style="margin-top:0.5rem; color:var(--text-light)">@review.Comment</p>
-                        }
-                    </div>
-                }
-            </div>
         </article>
     }
 </section>
@@ -134,12 +104,11 @@
 @code {
     [SupplyParameterFromQuery(Name = "emailChanged")] private string? EmailChanged { get; set; }
     [SupplyParameterFromQuery(Name = "emailError")] private string? EmailError { get; set; }
+    [SupplyParameterFromQuery(Name = "passwordChanged")] private string? PasswordChanged { get; set; }
+    [SupplyParameterFromQuery(Name = "passwordError")] private string? PasswordError { get; set; }
 
     private AppUser? User;
     private ProfileInput Profile = new();
-    private ReviewInput ReviewForm = new();
-    private List<AppointmentChoice> CompletedAppointments = [];
-    private List<CustomerReview> ReceivedReviews = [];
     private double? ReceivedRating;
     private int ReceivedCount;
     private string? Message;
@@ -148,8 +117,16 @@
     protected override async Task OnInitializedAsync()
     {
         // پیام‌های برگشتی از endpoint تغییر ایمیل.
-        Message = EmailChanged == "1" ? "ایمیل حساب با موفقیت تغییر کرد." : null;
-        ErrorMessage = EmailError switch
+        Message = EmailChanged == "1" ? "ایمیل حساب با موفقیت تغییر کرد."
+            : PasswordChanged == "1" ? "گذرواژه با موفقیت تغییر کرد." : null;
+        ErrorMessage = PasswordError switch
+        {
+            "mismatch" => "گذرواژه‌ی جدید و تکرار آن یکسان نیست.",
+            "wrong" => "گذرواژه‌ی فعلی درست نیست.",
+            "weak" => "گذرواژه‌ی جدید ضعیف است؛ حداقل ۸ حرف با ترکیب حروف و عدد انتخاب کنید.",
+            "invalid" => "اطلاعات واردشده معتبر نیست.",
+            _ => null,
+        } ?? EmailError switch
         {
             "duplicate" => "این ایمیل قبلاً برای حساب دیگری ثبت شده است.",
             "invalid" => "ایمیل واردشده معتبر نیست.",
@@ -174,17 +151,11 @@
 
         var userId = User.Id;
 
-        CompletedAppointments = await Db.Appointments
-            .Where(x => x.CustomerId == userId
-                && x.Status == AppointmentStatus.Completed
-                && !Db.Reviews.Any(r => r.AppointmentId == x.Id))
-            .OrderByDescending(x => x.StartsAt)
-            .Select(x => new AppointmentChoice(x.Id, x.Branch.Business.Name, x.Branch.Name, x.Service.Name))
-            .ToListAsync();
-
-        ReceivedReviews = await Db.CustomerReviews.Include(x => x.Business).Where(x => x.CustomerId == userId).OrderByDescending(x => x.CreatedAt).ToListAsync();
-        ReceivedCount = ReceivedReviews.Count;
-        ReceivedRating = ReceivedCount == 0 ? null : ReceivedReviews.Average(x => (double)x.Rating);
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var ratings = await db.CustomerReviews.AsNoTracking().Where(x => x.CustomerId == userId)
+            .Select(x => x.Rating).ToListAsync();
+        ReceivedCount = ratings.Count;
+        ReceivedRating = ratings.Count == 0 ? null : ratings.Average(x => (double)x);
     }
 
     private async Task SaveProfile()
@@ -265,55 +236,10 @@
         ErrorMessage = null;
     }
 
-    private async Task SaveReview()
-    {
-        var user = User;
-        if (user is null || ReviewForm.AppointmentId is not Guid id) return;
-
-        var userId = user.Id;
-        var appointment = await Db.Appointments
-            .Include(x => x.Branch)
-            .FirstOrDefaultAsync(x => x.Id == id && x.CustomerId == userId && x.Status == AppointmentStatus.Completed);
-
-        if (appointment is null) return;
-
-        // جلوگیری از ثبت نظر تکراری اگر بین بارگذاری صفحه و ارسال، چیزی ثبت شده باشد.
-        if (await Db.Reviews.AnyAsync(x => x.AppointmentId == id))
-        {
-            ErrorMessage = "برای این نوبت قبلاً نظر ثبت شده است.";
-            return;
-        }
-
-        Db.Reviews.Add(new Review
-        {
-            AppointmentId = id,
-            BusinessId = appointment.Branch.BusinessId,
-            BranchId = appointment.BranchId,
-            CustomerId = userId,
-            Rating = Math.Clamp(ReviewForm.Rating, 1, 5),
-            Comment = ReviewForm.Comment.Trim(),
-        });
-
-        await Db.SaveChangesAsync();
-        Message = "نظر شما ثبت شد و پس از بررسی نمایش داده می‌شود.";
-        ErrorMessage = null;
-        ReviewForm = new ReviewInput();
-        await LoadAsync();
-    }
-
     private sealed class ProfileInput
     {
         public string DisplayName { get; set; } = "";
         public string Email { get; set; } = "";
         public string Phone { get; set; } = "";
     }
-
-    private sealed class ReviewInput
-    {
-        public Guid? AppointmentId { get; set; }
-        public int Rating { get; set; } = 5;
-        public string Comment { get; set; } = "";
-    }
-
-    private sealed record AppointmentChoice(Guid Id, string BusinessName, string BranchName, string ServiceName);
 }

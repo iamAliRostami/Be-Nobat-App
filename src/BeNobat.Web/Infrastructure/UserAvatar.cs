@@ -15,8 +15,13 @@ public static class UserAvatar
 
     public static bool Has(AppUser? user) => !string.IsNullOrEmpty(user?.AvatarContentType);
 
-    public static string Url(AppUser user) =>
-        $"/media/avatar/{user.Id}?v={Uri.EscapeDataString(user.ConcurrencyStamp ?? "0")}";
+    public static bool Has(string? contentType) => !string.IsNullOrEmpty(contentType);
+
+    public static string Url(AppUser user) => Url(user.Id, user.ConcurrencyStamp);
+
+    /// <summary>برای جاهایی که فقط ستون‌های سبک کاربر خوانده شده (بدون بارگذاری بایت‌های عکس).</summary>
+    public static string Url(Guid userId, string? concurrencyStamp) =>
+        $"/media/avatar/{userId}?v={Uri.EscapeDataString(concurrencyStamp ?? "0")}";
 
     public static string Initials(string? name)
     {

@@ -9,6 +9,7 @@ public static class DbSeeder
 {
     // [fix] Kept for backward compatibility with anything still referencing the old
     // simple role names; the real seeded/authoritative role set is BeNobat.Web.Security.AppRoles.
+    private const string DefaultAdminPassword = "Admin123!";
     public const string AdminRole = AppRoles.PlatformAdmin;
     public const string CustomerRole = AppRoles.Customer;
 
@@ -26,10 +27,19 @@ public static class DbSeeder
         }
 
         var adminEmail = configuration["Seed:AdminEmail"] ?? "admin@benobat.local";
-        var adminPassword = configuration["Seed:AdminPassword"] ?? "Admin123!";
+        var adminPassword = configuration["Seed:AdminPassword"] ?? DefaultAdminPassword;
+
+        // رمز پیش‌فرض ادمین در مخزن کد عمومی است؛ در محیط غیر توسعه نباید با آن حساب مدیر ساخته شود.
+        var isDevelopment = services.GetRequiredService<IHostEnvironment>().IsDevelopment();
+        var allowCreateAdmin = isDevelopment || adminPassword != DefaultAdminPassword;
 
         var admin = await userManager.FindByEmailAsync(adminEmail);
-        if (admin is null)
+        if (admin is null && !allowCreateAdmin)
+        {
+            services.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder").LogWarning(
+                "حساب مدیر سامانه ساخته نشد: در محیط غیر توسعه باید Seed__AdminPassword را روی مقداری غیر از پیش‌فرض تنظیم کنید.");
+        }
+        else if (admin is null)
         {
             admin = new AppUser
             {
