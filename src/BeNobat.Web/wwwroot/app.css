@@ -794,6 +794,82 @@ html[data-theme="dark"] .review-list blockquote{background:var(--primary-contain
   .content .event-row>.row-actions{flex-wrap:wrap;width:auto;grid-column:auto;justify-self:start}
 }
 
+/* Public business, branch, provider and service details share this layout. */
+.directory-page{width:min(100%,1184px);margin-inline:auto;padding:32px 20px 64px;color:var(--on-surface)}
+.directory-page>.back-link{display:inline-flex;align-items:center;min-height:36px;color:var(--on-surface-variant);font-size:12px}
+.directory-hero{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:22px;margin-block:16px 20px;padding:28px;border:1px solid var(--outline-soft);border-radius:20px;background:var(--surface)}
+.directory-mark{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;background:var(--primary-container);color:var(--primary);font-size:36px;font-weight:700}
+.directory-heading{min-width:0;overflow-wrap:anywhere}
+.directory-kicker{font-size:12px;font-weight:600;color:var(--primary)}
+.directory-hero h1{margin:4px 0 8px;font-size:clamp(23px,2.4vw,32px);line-height:1.6}
+.directory-hero h1:focus{outline:none}
+.directory-hero p{margin:0;max-width:740px;font-size:14px;line-height:1.9;color:var(--on-surface-variant)}
+.directory-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.directory-meta>span{padding:5px 10px;border-radius:8px;background:var(--background);color:var(--on-surface-variant);font-size:12px;line-height:1.8}
+.directory-hero .directory-description{margin-top:12px}
+.directory-hero>.primary-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;white-space:nowrap;font-size:13px;text-align:center}
+.directory-breadcrumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-bottom:20px;font-size:13px;line-height:1.8}
+.directory-breadcrumbs a{color:var(--primary);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.directory-crumb{display:inline-flex;align-items:baseline;gap:12px;min-width:0;max-width:100%}
+.directory-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:0 0 22px}
+.directory-stats>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border:1px solid var(--outline-soft);border-radius:var(--radius-card);background:var(--surface)}
+.directory-stats dt{font-size:13px;color:var(--on-surface-variant)}
+.directory-stats dd{margin:0;font-size:21px;font-weight:700;color:var(--primary)}
+.directory-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.directory-content{display:grid;gap:20px;min-width:0}
+.directory-panel{min-width:0;padding:22px;border:1px solid var(--outline-soft);border-radius:var(--radius-card);background:var(--surface)}
+.directory-panel h2{margin:0;font-size:17px;line-height:1.7}
+.directory-panel .panel-head{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--outline-soft)}
+.directory-panel .panel-head p{margin:4px 0 0;font-size:12px;color:var(--on-surface-variant)}
+.directory-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.directory-links>a{display:grid;grid-template-columns:40px minmax(0,1fr) 18px;gap:12px;align-items:center;padding:14px;border:1px solid var(--outline-soft);border-radius:12px;color:var(--on-surface);text-decoration:none;transition:background-color .15s ease,border-color .15s ease}
+.directory-links>a:hover{border-color:var(--primary);background:var(--primary-container)}
+.directory-item-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--primary-container);color:var(--primary);font-size:20px}
+.directory-item-copy{display:grid;min-width:0;gap:5px;overflow-wrap:anywhere}
+.directory-item-copy b{font-size:14px;line-height:1.7}
+.directory-item-copy small{font-size:12px;line-height:1.8;color:var(--on-surface-variant)}
+.directory-item-arrow{font-style:normal;font-size:18px;color:var(--primary)}
+.directory-reviews .review-summary{padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--outline-soft)}
+.directory-reviews .review-summary>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.directory-reviews .review-summary strong{font-size:30px;line-height:1.5}
+.directory-reviews .stars{color:var(--accent);white-space:nowrap;letter-spacing:1px}
+.directory-reviews .review-summary p{margin:6px 0 0;color:var(--on-surface-variant);font-size:12px;line-height:1.9}
+.directory-reviews>article{padding-block:18px;border-top:1px solid var(--outline-soft);margin-top:16px}
+.directory-reviews>article header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;font-size:13px}
+.directory-reviews>article small{font-size:11px;color:var(--on-surface-variant)}
+.directory-reviews>article p{margin:10px 0 0;font-size:13px;line-height:1.9;overflow-wrap:anywhere;color:var(--on-surface-variant)}
+.directory-reviews blockquote{margin:12px 0 0;padding:12px;border-inline-start:3px solid var(--primary);border-radius:8px;background:var(--primary-container);color:var(--on-surface);font-size:12px;line-height:1.9;overflow-wrap:anywhere}
+.directory-reviews .empty-state{margin-bottom:0;padding:20px 12px;font-size:12px;line-height:1.9}
+.directory-review-limit{font-size:12px;color:var(--on-surface-variant);margin:6px 0 0}
+.directory-state{max-width:620px;margin:24px auto;text-align:center;line-height:1.9}
+.directory-state h1{font-size:24px;margin:0 0 12px}
+.directory-state h1:focus{outline:none}
+.directory-state p{color:var(--on-surface-variant);font-size:14px;margin-bottom:22px}
+.directory-state .primary-button{display:inline-flex;font-size:13px}
+.business-cover{background:linear-gradient(135deg,#235347,#8EB69B)}
+.business-category-link{display:inline-flex;align-items:center;min-height:28px;color:inherit;text-decoration:none}
+.business-cover small:has(.business-category-link){padding:2px 9px}
+.business-category-link:hover{text-decoration:underline;text-underline-offset:3px}
+.business-category-link:focus-visible,.directory-page a:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:4px}
+.businesses.search-results .business-card{display:block}
+@media(max-width:900px){
+  .directory-grid{grid-template-columns:minmax(0,1fr)}
+  .directory-hero{padding:22px;gap:16px}
+}
+@media(max-width:640px){
+  .directory-page{padding:24px 16px 48px}
+  .directory-hero{grid-template-columns:52px minmax(0,1fr);padding:20px;gap:14px}
+  .directory-mark{width:52px;height:52px;font-size:28px;border-radius:14px}
+  .directory-hero>.primary-button{grid-column:1/-1;width:100%}
+  .directory-hero p{font-size:13px}
+  .directory-stats{gap:8px}
+  .directory-stats>div{display:grid;justify-content:start;gap:6px;padding:12px}
+  .directory-stats dt{font-size:11px}
+  .directory-stats dd{font-size:18px}
+  .directory-panel{padding:18px}
+  .directory-links{grid-template-columns:minmax(0,1fr)}
+}
+
 /* Persistent desktop rail and an off-canvas menu on smaller screens. */
 .shell{transition:grid-template-columns .2s ease}.shell>main{min-width:0}
 .shell>main>header{gap:12px;justify-content:space-between}.admin-header-actions{margin-inline-start:auto}

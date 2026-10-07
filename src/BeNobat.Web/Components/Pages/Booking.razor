@@ -171,6 +171,7 @@ else
 
     // "" = انتخاب نشده، "any" = اولین کارمند آزاد، در غیر این صورت شناسه‌ی کارمند.
     private string ProviderChoice = "";
+    private bool HasPendingProviderQuery = true;
     private Guid? SelectedResourceId => Guid.TryParse(ProviderChoice, out var id) ? id : null;
     private bool AnyProvider => ProviderChoice == "any";
 
@@ -277,13 +278,27 @@ else
     {
         await using var owned = existing is null ? await DbFactory.CreateDbContextAsync() : null;
         var db = existing ?? owned!;
-        if (SelectedServiceIds.Count == 0) { EligibleResources = []; return; }
+        if (SelectedServiceIds.Count == 0) { EligibleResources = []; ProviderChoice = ""; return; }
         var staff = await db.Resources.AsNoTracking().Where(x => x.BranchId == SelectedBranchId && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync();
         var ids = SelectedServiceIds.ToList();
         var assignments = await db.ServiceResources.AsNoTracking().Where(x => ids.Contains(x.ServiceId)).ToListAsync();
         // عضویت در شعبه به‌تنهایی کارمند را صلاحیت‌دار نمی‌کند؛ باید برای همه‌ی خدمات انتخابی تخصیص داشته باشد.
         EligibleResources = staff.Where(r => ids.All(s => assignments.Any(a => a.ServiceId == s && a.ResourceId == r.Id))).ToList();
+        ApplyEligibleProviderSelection();
+    }
+
+    private void ApplyEligibleProviderSelection()
+    {
         if (SelectedResourceId is Guid chosen && EligibleResources.All(r => r.Id != chosen)) ProviderChoice = "";
+        if (AnyProvider && EligibleResources.Count < 2) ProviderChoice = "";
+        // لینک صفحه‌ی کارمند ممکن است هنوز خدمتی نداشته باشد؛ پیش‌انتخاب را تا مشخص شدن
+        // صلاحیت کارکنان نگه می‌داریم و سپس فقط یک‌بار اعمال می‌کنیم.
+        if (HasPendingProviderQuery)
+        {
+            HasPendingProviderQuery = false;
+            if (QueryProvider == "any" && EligibleResources.Count > 1) ProviderChoice = "any";
+            else if (Guid.TryParse(QueryProvider, out var provider) && EligibleResources.Any(r => r.Id == provider)) ProviderChoice = provider.ToString();
+        }
         if (EligibleResources.Count == 1 && ProviderChoice.Length == 0) ProviderChoice = EligibleResources[0].Id.ToString();
     }
 
@@ -302,9 +317,6 @@ else
         SelectedServiceIds = ids;
         await LoadEligibleResourcesAsync();
 
-        if (QueryProvider == "any" && EligibleResources.Count > 1) ProviderChoice = "any";
-        else if (Guid.TryParse(QueryProvider, out var provider) && EligibleResources.Any(r => r.Id == provider)) ProviderChoice = provider.ToString();
-
         if (QuerySlot is not long unix || ProviderChoice.Length == 0) return;
         DateTimeOffset slot;
         try { slot = DateTimeOffset.FromUnixTimeSeconds(unix); }
@@ -322,14 +334,14 @@ else
 
     private async Task BranchChanged()
     {
-        SelectedSlot = null; ProviderChoice = ""; TermsAccepted = false; EnsureDateNotPast();
+        SelectedSlot = null; ProviderChoice = ""; HasPendingProviderQuery = false; TermsAccepted = false; EnsureDateNotPast();
         await LoadBranchServicesAsync();
     }
 
     private void ToggleService(Guid id)
     {
         if (!SelectedServiceIds.Add(id)) SelectedServiceIds.Remove(id);
-        ProviderChoice = ""; SelectedSlot = null; TermsAccepted = false; ErrorMessage = null;
+        SelectedSlot = null; TermsAccepted = false; ErrorMessage = null;
     }
 
     private async Task NextFromStep1()
@@ -342,7 +354,7 @@ else
 
     private void BackToStep1() { ErrorMessage = null; SelectedSlot = null; Step = 1; }
 
-    private async Task ResourceChanged() { SelectedSlot = null; TermsAccepted = false; ErrorMessage = null; await LoadSlotsAsync(); }
+    private async Task ResourceChanged() { HasPendingProviderQuery = false; SelectedSlot = null; TermsAccepted = false; ErrorMessage = null; await LoadSlotsAsync(); }
 
     private void PickSlot(DateTimeOffset slot) { SelectedSlot = slot; ErrorMessage = null; TermsAccepted = false; }
 

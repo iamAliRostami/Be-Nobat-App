@@ -43,18 +43,18 @@
     <div class="categories">
         @foreach (var category in Categories)
         {
-            <a href="javascript:void(0)" @onclick="() => SearchFor(category.Name)" @onclick:preventDefault>
+            <a href="@CategoryUrl(category.Name)" aria-label="@($"مشاهده کسب‌وکارهای دسته‌بندی {category.Name}")">
                 <i class="cat @category.CssClass">@category.Icon</i><strong>@category.Name</strong>
             </a>
         }
     </div>
 </section>
 
-<section class="section businesses" id="businesses">
+<section class="section businesses @(HasSearched ? "search-results" : "")" id="businesses">
     <div class="section-heading">
         <div>
             <span>@(HasSearched ? "نتایج جست‌وجو" : "پیشنهاد به‌نوبت")</span>
-            <h2>@(HasSearched ? $"نتایج برای «{SearchTerm}»" : "محبوب‌ترین‌های نزدیک شما")</h2>
+            <h2>@(SelectedCategory.Length > 0 ? $"کسب‌وکارهای «{SelectedCategory}»" : HasSearched ? $"نتایج برای «{SearchTerm}»" : "محبوب‌ترین‌های نزدیک شما")</h2>
         </div>
         @if (HasSearched)
         {
@@ -80,11 +80,12 @@
                     : business.Category.Contains("ماساژ") || business.Category.Contains("تندرست") ? "green"
                     : "rose";
                 var icon = business.Category.Contains("دندان") ? "✚" : business.Category.Contains("ماساژ") ? "♧" : "✦";
-                <BusinessCard Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
+                <BusinessCard @key="business.Id" Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
                               Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
                               Rating="@Rating(business)" ReviewCount="@business.Reviews.Count"
                               Accent="@accent" Icon="@icon" ReturnUrl="@SearchReturnUrl"
-                              UserId="@CurrentUserId" IsFavorite="@FavoriteIds.Contains(business.Id)" />
+                              UserId="@CurrentUserId" IsFavorite="@FavoriteIds.Contains(business.Id)"
+                              OnToggled="@(isFavorite => FavoriteChanged(business.Id, isFavorite))" />
             }
         </div>
     }
@@ -104,8 +105,11 @@
 @code {
     [SupplyParameterFromQuery(Name = "q")] private string? QueryTerm { get; set; }
     [SupplyParameterFromQuery(Name = "city")] private string? QueryCity { get; set; }
+    [SupplyParameterFromQuery(Name = "category")] private string? QueryCategory { get; set; }
     private string SearchTerm { get; set; } = "";
     private string City { get; set; } = "تهران";
+    private string SelectedCategory = "";
+    private (string? Query, string? City, string? Category)? AppliedQuery;
     private bool HasSearched { get; set; }
     private bool CityFilterRelaxed;
     private bool ScrollToResultsPending;
@@ -121,7 +125,7 @@
         ("زیبایی و آرایش", "✦", "beauty"),
         ("دندانپزشکی", "♡", "health"),
         ("ماساژ و تندرستی", "♙", "sport"),
-        ("مشاوره", "⌁", "consult"),
+        ("مشاوره و روان‌شناسی", "⌁", "consult"),
     ];
 
     protected override async Task OnInitializedAsync()
@@ -138,16 +142,28 @@
                     .Where(x => x.UserId == userId).Select(x => x.BusinessId).ToListAsync()).ToHashSet();
             }
         }
+    }
 
-        if (!string.IsNullOrWhiteSpace(QueryTerm))
+    protected override async Task OnParametersSetAsync()
+    {
+        var incoming = (QueryTerm, QueryCity, QueryCategory);
+        if (AppliedQuery is { } previous && previous == incoming) return;
+        var scroll = AppliedQuery is not null;
+        AppliedQuery = incoming;
+        SearchTerm = QueryTerm?.Trim() ?? "";
+        SelectedCategory = QueryCategory?.Trim() ?? "";
+        City = QueryCity ?? (SearchTerm.Length > 0 || SelectedCategory.Length > 0 ? "" : "تهران");
+        if (QueryTerm is not null || SelectedCategory.Length > 0)
         {
-            SearchTerm = QueryTerm;
-            City = QueryCity ?? "";
-            await Search(scroll: false);
-            return;
+            await Search(scroll);
         }
-
-        await LoadFeaturedAsync();
+        else
+        {
+            HasSearched = false;
+            CityFilterRelaxed = false;
+            await LoadFeaturedAsync();
+            ScrollToResultsPending = scroll;
+        }
     }
 
     private async Task LoadFeaturedAsync()
@@ -164,8 +180,16 @@
     }
 
     private string SearchReturnUrl => HasSearched
-        ? $"/?q={Uri.EscapeDataString(SearchTerm.Trim())}&city={Uri.EscapeDataString(City.Trim())}#businesses"
+        ? $"/?q={Uri.EscapeDataString(SearchTerm.Trim())}&city={Uri.EscapeDataString(City.Trim())}{(SelectedCategory.Length > 0 ? $"&category={Uri.EscapeDataString(SelectedCategory)}" : "")}#businesses"
         : "/#businesses";
+
+    private static string CategoryUrl(string category) => $"/?category={Uri.EscapeDataString(category)}&city=#businesses";
+
+    private void FavoriteChanged(Guid businessId, bool isFavorite)
+    {
+        if (isFavorite) FavoriteIds.Add(businessId);
+        else FavoriteIds.Remove(businessId);
+    }
 
     private async Task OnKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
     {
@@ -178,17 +202,29 @@
     private async Task SearchFor(string term)
     {
         SearchTerm = term;
+        SelectedCategory = "";
         await Search();
     }
 
-    private Task Search() => Search(scroll: true);
+    private Task Search()
+    {
+        SelectedCategory = "";
+        var target = $"/?q={Uri.EscapeDataString(SearchTerm.Trim())}&city={Uri.EscapeDataString(City.Trim())}#businesses";
+        if (Navigation.ToAbsoluteUri(target).AbsoluteUri != Navigation.Uri)
+        {
+            Navigation.NavigateTo(target);
+            return Task.CompletedTask;
+        }
+        return Search(scroll: true);
+    }
 
     private async Task Search(bool scroll)
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var term = TextSearch.Normalize(SearchTerm);
         var city = TextSearch.Normalize(City);
-        HasSearched = term.Length > 0;
+        var category = SelectedCategory;
+        HasSearched = term.Length > 0 || category.Length > 0;
         CityFilterRelaxed = false;
 
         // هر دو املای فارسی/عربی («ی/ي»، «ک/ك») جست‌وجو می‌شوند و %/_ ورودی کاربر escape می‌شود.
@@ -201,6 +237,7 @@
 
         IQueryable<Business> BaseQuery() => db.Businesses.AsNoTracking()
             .Where(b => b.Branches.Any())
+            .Where(b => category == "" || b.Category == category)
             .Include(b => b.Branches)
             .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published));
 
@@ -256,10 +293,11 @@
     private async Task ClearSearch()
     {
         SearchTerm = "";
+        SelectedCategory = "";
         HasSearched = false;
         CityFilterRelaxed = false;
-        // اگر آدرس شامل ?q= باشد، بدون ناوبری دوباره جست‌وجو می‌شد؛ پس آدرس هم پاک می‌شود.
-        if (!string.IsNullOrWhiteSpace(QueryTerm))
+        // فیلتر جست‌وجو یا دسته‌بندی را از آدرس هم پاک می‌کنیم تا با برگشت و تازه‌سازی بازنگردد.
+        if (!string.IsNullOrWhiteSpace(QueryTerm) || !string.IsNullOrWhiteSpace(QueryCategory))
         {
             Navigation.NavigateTo("/#businesses");
             return;
