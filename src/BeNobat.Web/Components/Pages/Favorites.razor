@@ -39,15 +39,19 @@
         if (UserId is not Guid userId) { Loaded = true; return; }
 
         await using var db = await DbFactory.CreateDbContextAsync();
-        Items = await db.FavoriteBusinesses.AsNoTracking()
-            .Where(x => x.UserId == userId && x.Business.DeletedAt == null)
-            .OrderByDescending(x => x.CreatedAt)
-            .Select(x => x.Business)
-            .Include(x => x.Branches)
-            .Include(x => x.Reviews.Where(r => r.Status == ReviewStatus.Published))
-            .ToListAsync();
+        var favorites = await FavoritesQuery(db, userId).ToListAsync();
+        Items = favorites.Select(x => x.Business).ToList();
         Loaded = true;
     }
+
+    // Load the favorite's navigation graph before projecting to businesses.
+    // EF cannot apply collection Includes after selecting a navigation entity.
+    private static IQueryable<FavoriteBusiness> FavoritesQuery(AppDbContext db, Guid userId) =>
+        db.FavoriteBusinesses.AsNoTracking()
+            .Where(x => x.UserId == userId && x.Business.DeletedAt == null)
+            .Include(x => x.Business).ThenInclude(x => x.Branches)
+            .Include(x => x.Business).ThenInclude(x => x.Reviews.Where(r => r.Status == ReviewStatus.Published))
+            .OrderByDescending(x => x.CreatedAt);
 
     // کارتی که از علاقه‌مندی‌ها برداشته شد، بلافاصله از همین صفحه حذف می‌شود.
     private void OnToggled(Guid businessId, bool isFavorite)
