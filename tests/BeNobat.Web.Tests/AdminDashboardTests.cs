@@ -11,6 +11,19 @@ namespace BeNobat.Web.Tests;
 
 public sealed class AdminDashboardTests
 {
+    [Fact]
+    public void Availability_initial_form_date_can_be_localized_before_loading_finishes()
+    {
+        var component = new AdminAvailability();
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        // First interactive render localizes the form, even before the Add button is pressed.
+        typeof(AdminAvailability).GetMethod("SetLocalizedDateParts", flags)!.Invoke(component, null);
+        var form = typeof(AdminAvailability).GetField("Form", flags)!.GetValue(component)!;
+        var date = (DateOnly)form.GetType().GetProperty("EffectiveDate")!.GetValue(form)!;
+        Assert.NotEqual(DateOnly.MinValue, date);
+        Assert.NotEmpty(LocalizedDate.Format(date, "fa"));
+    }
+
     [Theory]
     [InlineData(typeof(AdminDashboard), "TodayDate")]
     [InlineData(typeof(AdminCalendar), "SelectedDate")]

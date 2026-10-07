@@ -306,5 +306,5 @@
     private string LocalTime(TimeOnly time) => LocalizedDate.LocalizeDigits(time >= new TimeOnly(23, 59) ? "24:00" : time.ToString("HH:mm"), Language);
     private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
-    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } public DayOfWeek DayOfWeek { get; set; } public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
+    private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = BranchClock.Today(null); public DayOfWeek DayOfWeek { get; set; } = BranchClock.Today(null).DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

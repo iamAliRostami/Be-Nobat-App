@@ -110,7 +110,25 @@
 .form-modal>div h2{font-size:15px;margin:0}
 .form-modal>div button{border:0;background:none;font-size:16px;color:#97a3a0;cursor:pointer}
 .form-modal label{display:grid;gap:6px;font-size:11px;color:#555}
-.form-modal input,.form-modal select{font:inherit;padding:10px 12px;border:1px solid #ddeae8;border-radius:9px}
+.form-modal input,.form-modal select{font:inherit;padding:10px 12px;border:1px solid #ddeae8;border-radius:var(--radius-input)}
+/* Service assignment: aligned fields, separated source choices and provider group. */
+.form-modal.service-form-modal{max-width:520px;max-height:calc(100dvh - 32px);overflow-y:auto;gap:18px;border-radius:12px}
+.service-form-modal>.service-form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.service-form-modal>.source-row{grid-template-columns:minmax(0,1fr)}
+.service-form-modal label{min-width:0;gap:8px}
+.service-form-modal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){width:100%;box-sizing:border-box;border-radius:10px}
+.service-form-modal :is(select,input:not([type="checkbox"]):not([type="radio"])){min-height:44px}
+.service-form-modal select{padding-inline:12px 32px}
+.service-form-modal label small{font-size:11px;line-height:1.8;color:var(--muted);font-weight:400}
+.service-form-modal :is(.service-source,.service-providers){min-width:0;margin:0;padding:12px 16px 16px;border:1px solid var(--outline);border-radius:10px}
+.service-form-modal legend{padding:0 6px;font-size:12px;font-weight:600}
+.service-source{display:flex;flex-wrap:wrap;gap:12px 24px}
+.service-form-modal label.check-label{display:flex;align-items:center;gap:8px;font-weight:400;cursor:pointer}
+.service-form-modal :is(input[type="checkbox"],input[type="radio"]){flex:0 0 20px;width:20px;height:20px;margin:0;padding:0}
+.service-provider-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.service-form-modal>button.primary-button{width:100%;min-height:44px}
+@media(max-width:480px){.service-form-modal .service-provider-list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:360px){.service-form-modal>.service-form-row{grid-template-columns:minmax(0,1fr)}}
 .person-contact{display:flex!important;gap:5px 12px!important;flex-wrap:wrap}
 .membership-modal{max-width:620px;max-height:min(86vh,720px);overflow:auto}
 .membership-modal .people-list{max-height:260px;overflow:auto;padding-left:4px}
