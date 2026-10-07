@@ -6,30 +6,42 @@
 @inject AuthenticationStateProvider AuthenticationState
 
 <PageTitle>علاقه‌مندی‌ها | به‌نوبت</PageTitle>
-<section class="section favorites-page">
-    <div class="section-heading"><div><span>انتخاب‌های شما</span><h1>کسب‌وکارهای مورد علاقه</h1></div></div>
-    @if (Loaded && Items.Count == 0)
-    {
-        <p class="empty-state">هنوز کسب‌وکاری را به علاقه‌مندی‌ها اضافه نکرده‌اید. از صفحه‌ی اصلی روی دکمه‌ی قلب بزنید. <a class="entity-link" href="/#businesses">دیدن کسب‌وکارها ←</a></p>
-    }
-    else
-    {
-        <div class="business-grid">
-            @foreach (var business in Items)
-            {
-                <BusinessCard @key="business.Id" Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
-                              Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
-                              Rating="@Rating(business)" ReviewCount="@business.Reviews.Count"
-                              ReturnUrl="/favorites" UserId="@UserId" IsFavorite="true"
-                              OnToggled="@(isFavorite => OnToggled(business.Id, isFavorite))" />
-            }
-        </div>
-    }
-</section>
+<div class="account-page">
+    <AccountMenu UserId="@UserId" DisplayName="@DisplayName" Email="@Email"
+                 AvatarContentType="@AvatarContentType" ConcurrencyStamp="@ConcurrencyStamp" />
+    <main class="account-content favorites-page">
+        <div class="page-title"><div><h1>کسب‌وکارهای مورد علاقه</h1><p>انتخاب‌های شما برای رزروهای بعدی</p></div></div>
+        @if (!Loaded)
+        {
+            <p class="empty-state">در حال دریافت علاقه‌مندی‌ها…</p>
+        }
+        else if (Items.Count == 0)
+        {
+            <p class="empty-state">هنوز کسب‌وکاری را به علاقه‌مندی‌ها اضافه نکرده‌اید. از صفحه‌ی اصلی روی دکمه‌ی قلب بزنید. <a class="entity-link" href="/#businesses">دیدن کسب‌وکارها ←</a></p>
+        }
+        else
+        {
+            <div class="business-grid">
+                @foreach (var business in Items)
+                {
+                    <BusinessCard @key="business.Id" Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
+                                  Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
+                                  Rating="@Rating(business)" ReviewCount="@business.Reviews.Count"
+                                  ReturnUrl="/favorites" UserId="@UserId" IsFavorite="true"
+                                  OnToggled="@(isFavorite => OnToggled(business.Id, isFavorite))" />
+                }
+            </div>
+        }
+    </main>
+</div>
 
 @code {
     private List<Business> Items = [];
     private Guid? UserId;
+    private string DisplayName = "";
+    private string Email = "";
+    private string? AvatarContentType;
+    private string? ConcurrencyStamp;
     private bool Loaded;
 
     protected override async Task OnInitializedAsync()
@@ -39,6 +51,12 @@
         if (UserId is not Guid userId) { Loaded = true; return; }
 
         await using var db = await DbFactory.CreateDbContextAsync();
+        var profile = await db.Users.AsNoTracking().Where(x => x.Id == userId)
+            .Select(x => new { x.DisplayName, x.Email, x.AvatarContentType, x.ConcurrencyStamp }).FirstOrDefaultAsync();
+        DisplayName = string.IsNullOrWhiteSpace(profile?.DisplayName) ? (user.Identity?.Name ?? "کاربر") : profile!.DisplayName;
+        Email = profile?.Email ?? "";
+        AvatarContentType = profile?.AvatarContentType;
+        ConcurrencyStamp = profile?.ConcurrencyStamp;
         var favorites = await FavoritesQuery(db, userId).ToListAsync();
         Items = favorites.Select(x => x.Business).ToList();
         Loaded = true;

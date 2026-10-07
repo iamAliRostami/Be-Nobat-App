@@ -1,11 +1,12 @@
 @page "/admin/reviews"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
-@using System.Security.Claims
-@inject AppDbContext Db
-@inject AdminAccessScope Access
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider Authentication
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی و پاسخ دهید، و به مراجعه‌کنندگان امتیاز بدهید.</p></div></div>
@@ -13,11 +14,12 @@
 @* [feature] امتیازدهی دوطرفه: تا پیش از این فقط مشتری می‌توانست به خدمت امتیاز
    بدهد و هیچ راهی برای ارزیابی «سرویس‌گیرنده» وجود نداشت. *@
 <div class="tabs">
-    <button type="button" class="@(Tab == "incoming" ? "active" : "")" @onclick='() => Tab = "incoming"'>نظر مشتریان <b>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</b></button>
-    <button type="button" class="@(Tab == "outgoing" ? "active" : "")" @onclick='() => Tab = "outgoing"'>ارزیابی مراجعه‌کنندگان <b>@Pending.Count</b></button>
+    <button type="button" class="@(Tab == "incoming" ? "active" : "")" @onclick='() => ChangeTab("incoming")'>نظر مشتریان <b>@Reviews.Count</b></button>
+    <button type="button" class="@(Tab == "outgoing" ? "active" : "")" @onclick='() => ChangeTab("outgoing")'>ارزیابی مراجعه‌کنندگان <b>@(Pending.Count + CustomerReviews.Count)</b></button>
 </div>
 
 @if (Message is not null) { <div class="success-notice">@Message</div> }
+@if (PageError is not null) { <div class="auth-error" role="alert">@PageError</div> }
 
 @if (Tab == "incoming")
 {
@@ -64,8 +66,8 @@
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
                     <footer>
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published)" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" class="action-danger" disabled="@(review.Status == ReviewStatus.Rejected)" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" class="action-danger" disabled="@(review.Status == ReviewStatus.Rejected || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
                         <button type="button" class="action-secondary" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>
@@ -75,19 +77,33 @@
 }
 else
 {
+    <article class="admin-panel evaluation-filters">
+        <div class="toolbar filter-toolbar">
+            <input aria-label="جست‌وجوی ارزیابی مراجعه‌کنندگان" placeholder="جست‌وجوی نام، شماره تماس، کد پیگیری یا یادداشت..." @bind="Search" @bind:event="oninput" />
+            <select aria-label="وضعیت ارزیابی" @bind="EvaluationFilter" @bind:after="UpdateFilterUrl"><option value="all">همه نوبت‌ها</option><option value="unreviewed">بدون ارزیابی</option><option value="reviewed">ارزیابی‌شده</option></select>
+            <select aria-label="کسب‌وکار ارزیابی" @bind="BusinessFilter" @bind:after="BusinessFilterChanged"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }</select>
+            <select aria-label="شعبه ارزیابی" @bind="BranchFilter" @bind:after="UpdateFilterUrl"><option value="">همه شعبه‌ها</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }</select>
+            <span>@(FilteredPending.Count() + FilteredCustomerReviews.Count()) مورد</span>
+            @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
+        </div>
+        @if (CustomerFilter is not null) { <p class="filter-summary">ارزیابی‌های مشتری انتخاب‌شده</p> }
+    </article>
+    @if (EvaluationFilter != "reviewed")
+    {
     <article class="admin-panel outgoing-reviews">
         <div class="panel-head"><div><h2>نوبت‌های تکمیل‌شده بدون ارزیابی</h2><p>به حضور و همکاری مراجعه‌کننده امتیاز بدهید. این امتیاز عمومی نیست.</p></div></div>
-        @if (Pending.Count == 0)
+        @if (!FilteredPending.Any())
         {
-            <p class="empty-state">همه نوبت‌های تکمیل‌شده ارزیابی شده‌اند.</p>
+            <p class="empty-state">نوبت تکمیل‌شده‌ای بدون ارزیابی با این فیلترها پیدا نشد.</p>
         }
         <div class="review-list">
-            @foreach (var appointment in Pending)
+            @foreach (var appointment in FilteredPending)
             {
-                <article>
+                <article @key="appointment.Id">
                     <header>
                         <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", appointment.CustomerId)">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", "serviceId", appointment.ServiceId)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
                     </header>
+                    <small class="evaluation-tracking">کد پیگیری: <bdi>@appointment.TrackingCode</bdi> · @(appointment.Customer.PhoneNumber ?? "بدون شماره تماس")</small>
                     <footer>
                         <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
                             @for (var i = 5; i >= 1; i--)
@@ -95,31 +111,35 @@ else
                                 <option value="@i" selected="@(DraftRating(appointment.Id) == i)">@i ستاره</option>
                             }
                         </select>
-                        <input placeholder="یادداشت اختیاری..." value="@DraftComment(appointment.Id)" @onchange="e => SetDraftComment(appointment.Id, e.Value?.ToString())" />
-                        <button type="button" class="action-primary" @onclick="() => RateCustomer(appointment)">ثبت امتیاز</button>
+                        <input aria-label="یادداشت ارزیابی @DisplayNameOf(appointment.Customer)" maxlength="2000" placeholder="یادداشت اختیاری..." value="@DraftComment(appointment.Id)" @onchange="e => SetDraftComment(appointment.Id, e.Value?.ToString())" />
+                        <button type="button" class="action-primary" disabled="@BusyIds.Contains(appointment.Id)" @onclick="() => RateCustomer(appointment)">ثبت امتیاز</button>
                     </footer>
                 </article>
             }
         </div>
     </article>
-
+    }
+    @if (EvaluationFilter != "unreviewed")
+    {
     <article class="admin-panel">
-        <div class="panel-head"><div><h2>ارزیابی‌های ثبت‌شده</h2><p>@CustomerReviews.Count مورد</p></div></div>
-        @if (CustomerReviews.Count == 0) { <p class="empty-state">هنوز ارزیابی‌ای ثبت نشده است.</p> }
+        <div class="panel-head"><div><h2>ارزیابی‌های ثبت‌شده</h2><p>@FilteredCustomerReviews.Count() مورد</p></div></div>
+        @if (!FilteredCustomerReviews.Any()) { <p class="empty-state">ارزیابی‌ای با این فیلترها پیدا نشد.</p> }
         <div class="review-list">
-            @foreach (var item in CustomerReviews)
+            @foreach (var item in FilteredCustomerReviews)
             {
-                <article>
+                <article @key="item.Id">
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, null)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)">@item.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", item.Appointment.BranchId)">@item.Appointment.Branch.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, item.Appointment.Branch.TimeZoneId)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
+                    <small class="evaluation-tracking">کد پیگیری: <bdi>@item.Appointment.TrackingCode</bdi> · @(item.Customer.PhoneNumber ?? "بدون شماره تماس")</small>
                     @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
-                    <footer><button type="button" class="action-danger" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
+                    <footer><button type="button" class="action-secondary" disabled="@BusyIds.Contains(item.Id)" @onclick="() => EditCustomerReview(item)">ویرایش ارزیابی</button><button type="button" class="action-danger" disabled="@BusyIds.Contains(item.Id)" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
                 </article>
             }
         </div>
     </article>
+    }
 }
 
 @if (Replying is not null)
@@ -128,14 +148,31 @@ else
         <EditForm Model="ReplyForm" FormName="review-reply" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
             <div><h2>پاسخ به نظر</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label>
-            <button class="primary-button action-primary">ثبت پاسخ و انتشار</button>
+            @if (PageError is not null) { <div class="auth-error" role="alert">@PageError</div> }
+            <button class="primary-button action-primary" disabled="@BusyIds.Contains(Replying.Id)">ثبت پاسخ و انتشار</button>
+        </EditForm>
+    </div>
+}
+
+@if (EditingEvaluation is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseEvaluation">
+        <EditForm Model="EvaluationForm" FormName="customer-evaluation-edit" OnValidSubmit="SaveEvaluation" class="form-modal" @onclick:stopPropagation>
+            <DataAnnotationsValidator />
+            <div><h2>ویرایش ارزیابی @DisplayNameOf(EditingEvaluation.Customer)</h2><button type="button" aria-label="بستن پنجره" @onclick="CloseEvaluation">×</button></div>
+            <label>امتیاز<select aria-label="امتیاز ارزیابی" @bind="EvaluationForm.Rating">@for (var i = 5; i >= 1; i--) { <option value="@i">@i ستاره</option> }</select></label>
+            <label>یادداشت<textarea maxlength="2000" @bind="EvaluationForm.Comment"></textarea></label>
+            <ValidationSummary />
+            @if (PageError is not null) { <div class="auth-error" role="alert">@PageError</div> }
+            <button class="primary-button action-primary" disabled="@BusyIds.Contains(EditingEvaluation.Id)">ذخیره ارزیابی</button>
         </EditForm>
     </div>
 }
 
 @code {
-    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
     [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
+    [SupplyParameterFromQuery(Name = "tab")] public string? TabParam { get; set; }
+    [SupplyParameterFromQuery(Name = "evaluationStatus")] public string? EvaluationStatusParam { get; set; }
     [SupplyParameterFromQuery(Name = "status")] public string? StatusParam { get; set; }
     [SupplyParameterFromQuery(Name = "rating")] public int? RatingParam { get; set; }
     [SupplyParameterFromQuery(Name = "businessId")] public Guid? BusinessParam { get; set; }
@@ -148,8 +185,14 @@ else
     private List<Business> Businesses = [];
     private List<Branch> Branches = [];
     private readonly Dictionary<Guid, (int Rating, string Comment)> Drafts = new();
+    private readonly HashSet<Guid> BusyIds = [];
+    private readonly CancellationTokenSource Lifetime = new();
+    private CancellationTokenSource? LoadCancellation;
+    private int LoadVersion;
+    private bool Disposed;
 
     private string Tab = "incoming";
+    private string EvaluationFilter = "all";
     private string Filter = "all";
     private string Search = "";
     private int? RatingFilter;
@@ -158,9 +201,11 @@ else
     private Guid? CustomerFilter;
     private bool IsPlatformAdmin;
     private string? Message;
+    private string? PageError;
     private Review? Replying;
     private ReplyInput ReplyForm = new();
-    private Guid CurrentUserId;
+    private CustomerReview? EditingEvaluation;
+    private EvaluationInput EvaluationForm = new();
     private string Language = "fa";
 
     private IEnumerable<Review> Filtered => Reviews.Where(x =>
@@ -169,15 +214,36 @@ else
         && (BusinessFilter is null || x.BusinessId == BusinessFilter)
         && (BranchFilter is null || x.BranchId == BranchFilter)
         && (CustomerFilter is null || x.CustomerId == CustomerFilter)
-        && TextSearch.Matches($"{DisplayNameOf(x.Customer)} {x.Customer.Email} {x.Business.Name} {x.Branch?.Name} {x.Comment} {x.ManagerReply}", Search));
+        && TextSearch.Matches($"{DisplayNameOf(x.Customer)} {x.Customer.Email} {x.Customer.PhoneNumber} {x.Business.Name} {x.Branch?.Name} {x.Comment} {x.ManagerReply}", Search));
+    private IEnumerable<Appointment> FilteredPending => FilterUnreviewed(Pending);
+    private IEnumerable<CustomerReview> FilteredCustomerReviews => FilterReviewed(CustomerReviews);
     private IEnumerable<Branch> FilterBranches => Branches.Where(x => BusinessFilter is null || x.BusinessId == BusinessFilter);
-    private bool HasFilters => !string.IsNullOrWhiteSpace(Search) || Filter != "all" || RatingFilter is not null
-        || BusinessFilter is not null || BranchFilter is not null || CustomerFilter is not null;
+    private bool HasFilters => !string.IsNullOrWhiteSpace(Search) || BusinessFilter is not null || BranchFilter is not null || CustomerFilter is not null
+        || (Tab == "incoming" ? Filter != "all" || RatingFilter is not null : EvaluationFilter != "all");
     private double Average => Reviews.Any(x => x.Status == ReviewStatus.Published) ? Reviews.Where(x => x.Status == ReviewStatus.Published).Average(x => x.Rating) : 0;
+
+    private IEnumerable<Appointment> FilterUnreviewed(IEnumerable<Appointment> source) => source.Where(x =>
+        EvaluationFilter != "reviewed"
+        && (BusinessFilter is null || x.Branch.BusinessId == BusinessFilter)
+        && (BranchFilter is null || x.BranchId == BranchFilter)
+        && (CustomerFilter is null || x.CustomerId == CustomerFilter)
+        && TextSearch.Matches($"{DisplayNameOf(x.Customer)} {x.Customer.Email} {x.Customer.PhoneNumber} {x.TrackingCode} {x.Branch.Business.Name} {x.Branch.Name} {x.Service.Name}", Search));
+
+    private IEnumerable<CustomerReview> FilterReviewed(IEnumerable<CustomerReview> source) => source.Where(x =>
+        EvaluationFilter != "unreviewed"
+        && (BusinessFilter is null || x.BusinessId == BusinessFilter)
+        && (BranchFilter is null || x.Appointment.BranchId == BranchFilter)
+        && (CustomerFilter is null || x.CustomerId == CustomerFilter)
+        && (RatingFilter is null || x.Rating == RatingFilter)
+        && TextSearch.Matches($"{DisplayNameOf(x.Customer)} {x.Customer.Email} {x.Customer.PhoneNumber} {x.Appointment.TrackingCode} {x.Business.Name} {x.Appointment.Branch.Name} {x.Appointment.Service.Name} {x.Comment} {DisplayNameOf(x.Author)}", Search));
 
     protected override void OnParametersSet()
     {
+        var nextTab = TabParam == "outgoing" ? "outgoing" : "incoming";
+        if (Tab != nextTab) { Close(); CloseEvaluation(); }
+        Tab = nextTab;
         Search = QueryParam ?? "";
+        EvaluationFilter = EvaluationStatusParam is "reviewed" or "unreviewed" ? EvaluationStatusParam : "all";
         Filter = Enum.TryParse<ReviewStatus>(StatusParam, true, out var status) && Enum.IsDefined(status) ? status.ToString() : "all";
         RatingFilter = RatingParam is >= 1 and <= 5 ? RatingParam : null;
         BusinessFilter = BusinessParam;
@@ -185,27 +251,13 @@ else
         CustomerFilter = CustomerParam;
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        if (AuthStateTask is not null)
-        {
-            var state = await AuthStateTask;
-            var idText = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (idText is not null && Guid.TryParse(idText, out var id)) CurrentUserId = id;
-        }
-
-        IsPlatformAdmin = await Access.IsPlatformAdminAsync();
-        Businesses = await Access.ManagedBusinessesAsync();
-        var branchQuery = await Access.ManagedBranchesAsync();
-        Branches = await branchQuery.Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
-        await Load();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!firstRender || Disposed) return;
         Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
-        StateHasChanged();
+        if (!Disposed) StateHasChanged();
     }
 
     private string FormatDate(DateTimeOffset value, string? zone) => BranchClock.FormatDate(value, zone, Language);
@@ -213,12 +265,25 @@ else
     private void BusinessFilterChanged()
     {
         if (BranchFilter is not null && !FilterBranches.Any(x => x.Id == BranchFilter)) BranchFilter = null;
+        UpdateFilterUrl();
+    }
+
+    private void ChangeTab(string tab)
+    {
+        Tab = tab;
+        Filter = "all";
+        RatingFilter = null;
+        EvaluationFilter = "all";
+        Close();
+        CloseEvaluation();
+        UpdateFilterUrl();
     }
 
     private void ClearFilters()
     {
         Search = "";
         Filter = "all";
+        EvaluationFilter = "all";
         RatingFilter = null;
         BusinessFilter = null;
         BranchFilter = null;
@@ -236,9 +301,11 @@ else
     {
         var uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
         {
+            ["tab"] = Tab == "outgoing" ? "outgoing" : null,
+            ["evaluationStatus"] = Tab == "outgoing" && EvaluationFilter != "all" ? EvaluationFilter : null,
             ["q"] = string.IsNullOrWhiteSpace(Search) ? null : Search,
-            ["status"] = Filter == "all" ? null : Filter,
-            ["rating"] = RatingFilter,
+            ["status"] = Tab == "incoming" && Filter != "all" ? Filter : null,
+            ["rating"] = Tab == "incoming" ? RatingFilter : null,
             ["businessId"] = BusinessFilter,
             ["branchId"] = BranchFilter,
             ["customerId"] = CustomerFilter,
@@ -248,25 +315,47 @@ else
 
     private async Task Load()
     {
-        var reviewQuery = await Access.ReviewsAsync();
-        Reviews = await reviewQuery
-            .Include(x => x.Customer).Include(x => x.Business).Include(x => x.Branch)
-            .OrderByDescending(x => x.CreatedAt).ToListAsync();
-
-        var appointmentQuery = await Access.AppointmentsAsync();
-        Pending = await appointmentQuery
-            .Include(x => x.Customer).Include(x => x.Service)
-            .Include(x => x.Branch).ThenInclude(x => x.Business)
-            .Where(x => x.Status == AppointmentStatus.Completed
-                && !Db.CustomerReviews.Any(r => r.AppointmentId == x.Id))
-            .OrderByDescending(x => x.StartsAt)
-            .Take(50)
-            .ToListAsync();
-
-        var customerReviewQuery = await Access.CustomerReviewsAsync();
-        CustomerReviews = await customerReviewQuery
-            .Include(x => x.Customer).Include(x => x.Author).Include(x => x.Business)
-            .OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync();
+        if (Disposed) return;
+        var version = ++LoadVersion;
+        var previous = LoadCancellation;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Lifetime.Token);
+        LoadCancellation = cancellation;
+        previous?.Cancel();
+        var token = cancellation.Token;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var isPlatformAdmin = await access.IsPlatformAdminAsync();
+            var businesses = await access.ManagedBusinessesAsync();
+            var branches = await (await access.ManagedBranchesAsync()).AsNoTracking()
+                .Include(x => x.Business).OrderBy(x => x.Name).ToListAsync(token);
+            var managedBranchIds = branches.Select(x => x.Id).ToList();
+            var reviews = await (await access.ReviewsAsync()).AsNoTracking()
+                .Include(x => x.Customer).Include(x => x.Business).Include(x => x.Branch)
+                .OrderByDescending(x => x.CreatedAt).ToListAsync(token);
+            var pending = await (await access.AppointmentsAsync()).AsNoTracking()
+                .Include(x => x.Customer).Include(x => x.Service)
+                .Include(x => x.Branch).ThenInclude(x => x.Business)
+                .Where(x => managedBranchIds.Contains(x.BranchId) && x.Status == AppointmentStatus.Completed
+                    && !db.CustomerReviews.IgnoreQueryFilters().Any(r => r.AppointmentId == x.Id))
+                .OrderByDescending(x => x.StartsAt).ToListAsync(token);
+            var authorizedReviewIds = await (await access.CustomerReviewsAsync()).AsNoTracking()
+                .Select(x => x.Id).ToListAsync(token);
+            var customerReviews = await HistoricalEvaluations(db, authorizedReviewIds).ToListAsync(token);
+            if (Disposed || version != LoadVersion) return;
+            IsPlatformAdmin = isPlatformAdmin;
+            Businesses = businesses.Concat(customerReviews.Select(x => x.Business)).DistinctBy(x => x.Id).OrderBy(x => x.Name).ToList();
+            Branches = branches.Concat(customerReviews.Select(x => x.Appointment.Branch)).DistinctBy(x => x.Id).OrderBy(x => x.Name).ToList();
+            Reviews = reviews;
+            Pending = pending;
+            CustomerReviews = customerReviews;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally
+        {
+            if (ReferenceEquals(LoadCancellation, cancellation)) LoadCancellation = null;
+        }
     }
 
     private int DraftRating(Guid id) => Drafts.TryGetValue(id, out var draft) ? draft.Rating : 5;
@@ -280,77 +369,174 @@ else
 
     private void SetDraftComment(Guid id, string? value) => Drafts[id] = (DraftRating(id), value ?? "");
 
-    private async Task RateCustomer(Appointment appointment)
+    private static IQueryable<CustomerReview> HistoricalEvaluations(AppDbContext db, List<Guid> authorizedIds) =>
+        // Authorization above uses every current query filter. Only this bounded lookup
+        // restores archived names, so deactivating a service cannot erase an evaluation.
+        db.CustomerReviews.IgnoreQueryFilters().AsNoTracking()
+            .Where(x => authorizedIds.Contains(x.Id) && x.DeletedAt == null)
+            .Include(x => x.Customer).Include(x => x.Author).Include(x => x.Business)
+            .Include(x => x.Appointment).ThenInclude(x => x.Branch).ThenInclude(x => x.Business)
+            .Include(x => x.Appointment).ThenInclude(x => x.Service)
+            .OrderByDescending(x => x.CreatedAt);
+
+    private Task RateCustomer(Appointment appointment)
     {
-        if (CurrentUserId == Guid.Empty) return;
-        if (!await Access.CanAccessBranchAsync(appointment.BranchId)) return;
-
-        // ارزیابی تکراری مجاز نیست (ایندکس یکتا روی AppointmentId هم همین را تضمین می‌کند).
-        if (await Db.CustomerReviews.AnyAsync(x => x.AppointmentId == appointment.Id))
+        var rating = DraftRating(appointment.Id);
+        var comment = DraftComment(appointment.Id).Trim();
+        return RunOperation(appointment.Id, async (db, access, token) =>
         {
-            Message = $"برای {DisplayNameOf(appointment.Customer)} قبلاً امتیاز ثبت شده است.";
-            await Load();
-            return;
-        }
-
-        Db.CustomerReviews.Add(new CustomerReview
-        {
-            AppointmentId = appointment.Id,
-            BusinessId = appointment.Branch.BusinessId,
-            CustomerId = appointment.CustomerId,
-            AuthorId = CurrentUserId,
-            Rating = DraftRating(appointment.Id),
-            Comment = DraftComment(appointment.Id).Trim(),
+            var currentUserId = await access.UserIdAsync();
+            if (currentUserId == Guid.Empty)
+            {
+                PageError = "اجازه‌ی ارزیابی این نوبت را ندارید.";
+                return false;
+            }
+            var current = await (await access.AppointmentsAsync()).AsNoTracking()
+                .Include(x => x.Branch).Include(x => x.Customer)
+                .SingleOrDefaultAsync(x => x.Id == appointment.Id && x.Status == AppointmentStatus.Completed, token);
+            if (current is null) { PageError = "نوبت تکمیل‌شده پیدا نشد."; return false; }
+            if (!await access.CanManageBranchAsync(current.BranchId)) { PageError = "اجازه‌ی ارزیابی این نوبت را ندارید."; return false; }
+            if (await db.CustomerReviews.IgnoreQueryFilters().AnyAsync(x => x.AppointmentId == current.Id, token))
+            {
+                Message = $"برای {DisplayNameOf(current.Customer)} قبلاً امتیاز ثبت شده است.";
+                return true;
+            }
+            var item = new CustomerReview
+            {
+                AppointmentId = current.Id,
+                BusinessId = current.Branch.BusinessId,
+                CustomerId = current.CustomerId,
+                AuthorId = currentUserId,
+            };
+            if (!ApplyEvaluationEdit(item, rating, comment)) { PageError = "امتیاز باید بین ۱ و ۵ و یادداشت حداکثر ۲۰۰۰ نویسه باشد."; return false; }
+            db.CustomerReviews.Add(item);
+            await db.SaveChangesAsync(token);
+            Drafts.Remove(appointment.Id);
+            Message = $"امتیاز {rating} از ۵ برای {DisplayNameOf(current.Customer)} ثبت شد.";
+            return true;
         });
-
-        var savedRating = DraftRating(appointment.Id);
-        await Db.SaveChangesAsync();
-        Drafts.Remove(appointment.Id);
-        Message = $"امتیاز {savedRating} از ۵ برای {DisplayNameOf(appointment.Customer)} ثبت شد.";
-        await Load();
     }
 
-    private async Task DeleteCustomerReview(CustomerReview item)
+    private void EditCustomerReview(CustomerReview item)
     {
-        Db.CustomerReviews.Remove(item);
-        await Db.SaveChangesAsync();
+        PageError = null;
+        EditingEvaluation = item;
+        EvaluationForm = new EvaluationInput { Rating = item.Rating, Comment = item.Comment };
+    }
+
+    private Task SaveEvaluation()
+    {
+        if (EditingEvaluation is null) return Task.CompletedTask;
+        var id = EditingEvaluation.Id;
+        var rating = EvaluationForm.Rating;
+        var comment = EvaluationForm.Comment;
+        return RunOperation(id, async (db, access, token) =>
+        {
+            // Recheck the managed branch scope at write time; never attach an untrusted UI entity.
+            var item = await EvaluationById(await access.CustomerReviewsAsync(), id).SingleOrDefaultAsync(token);
+            if (item is null) { PageError = "ارزیابی پیدا نشد یا اجازه‌ی ویرایش آن را ندارید."; return false; }
+            if (!ApplyEvaluationEdit(item, rating, comment)) { PageError = "امتیاز باید بین ۱ و ۵ و یادداشت حداکثر ۲۰۰۰ نویسه باشد."; return false; }
+            await db.SaveChangesAsync(token);
+            if (EditingEvaluation?.Id == id) CloseEvaluation();
+            Message = "ارزیابی ذخیره شد.";
+            return true;
+        });
+    }
+
+    private static IQueryable<CustomerReview> EvaluationById(IQueryable<CustomerReview> authorized, Guid id) =>
+        authorized.Where(x => x.Id == id);
+
+    private static bool ApplyEvaluationEdit(CustomerReview item, int rating, string? comment)
+    {
+        var text = (comment ?? "").Trim();
+        if (rating is < 1 or > 5 || text.Length > 2000) return false;
+        item.Rating = rating;
+        item.Comment = text;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        return true;
+    }
+
+    private Task DeleteCustomerReview(CustomerReview review) => RunOperation(review.Id, async (db, access, token) =>
+    {
+        var item = await EvaluationById(await access.CustomerReviewsAsync(), review.Id).SingleOrDefaultAsync(token);
+        if (item is null) { PageError = "ارزیابی پیدا نشد یا اجازه‌ی حذف آن را ندارید."; return false; }
+        db.CustomerReviews.Remove(item);
+        await db.SaveChangesAsync(token);
         Message = "ارزیابی حذف شد.";
-        await Load();
-    }
+        return true;
+    });
 
-    private async Task SetStatus(Review review, ReviewStatus status)
+    private Task SetStatus(Review review, ReviewStatus status) => RunOperation(review.Id, async (db, access, token) =>
     {
-        review.Status = status;
-        review.UpdatedAt = DateTimeOffset.UtcNow;
-        await Db.SaveChangesAsync();
-        await Load();
-    }
+        var item = await (await access.ReviewsAsync()).SingleOrDefaultAsync(x => x.Id == review.Id, token);
+        if (item is null) { PageError = "نظر پیدا نشد یا اجازه‌ی تغییر آن را ندارید."; return false; }
+        item.Status = status;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(token);
+        return true;
+    });
 
     private void Reply(Review review)
     {
+        PageError = null;
         Replying = review;
         ReplyForm = new ReplyInput { Text = review.ManagerReply ?? "" };
     }
 
-    private async Task SaveReply()
+    private Task SaveReply()
     {
-        if (Replying is null) return;
-        Replying.ManagerReply = ReplyForm.Text.Trim();
-        Replying.Status = ReviewStatus.Published;
-        Replying.UpdatedAt = DateTimeOffset.UtcNow;
-        await Db.SaveChangesAsync();
-        Close();
-        await Load();
+        if (Replying is null) return Task.CompletedTask;
+        var id = Replying.Id;
+        var text = ReplyForm.Text.Trim();
+        return RunOperation(id, async (db, access, token) =>
+        {
+            var item = await (await access.ReviewsAsync()).SingleOrDefaultAsync(x => x.Id == id, token);
+            if (item is null) { PageError = "نظر پیدا نشد یا اجازه‌ی پاسخ به آن را ندارید."; return false; }
+            item.ManagerReply = text;
+            item.Status = ReviewStatus.Published;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(token);
+            if (Replying?.Id == id) Close();
+            return true;
+        });
+    }
+
+    private async Task RunOperation(Guid id, Func<AppDbContext, AdminAccessScope, CancellationToken, Task<bool>> operation)
+    {
+        if (Disposed || !BusyIds.Add(id)) return;
+        var token = Lifetime.Token;
+        Message = PageError = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            if (await operation(db, new AdminAccessScope(db, Authentication), token) && !Disposed) await Load();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (DbUpdateException)
+        {
+            if (Disposed) return;
+            PageError = "ذخیره انجام نشد؛ ممکن است این ارزیابی هم‌زمان تغییر کرده باشد. دوباره بررسی کنید.";
+            await Load();
+        }
+        finally { BusyIds.Remove(id); }
     }
 
     private void Close() => Replying = null;
+    private void CloseEvaluation() => EditingEvaluation = null;
+
+    public void Dispose()
+    {
+        if (Disposed) return;
+        Disposed = true;
+        Lifetime.Cancel();
+        Lifetime.Dispose();
+    }
 
     private static string DisplayNameOf(AppUser user) =>
         string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
 
     private string BusinessUrl(Guid id) => EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", id);
     private static string EntityUrl(string path, string key, Guid id) => $"{path}?{key}={id}";
-
     private static string Stars(int n) => new string('★', n) + new string('☆', 5 - n);
 
     private static string StatusLabel(ReviewStatus s) => s switch
@@ -368,4 +554,11 @@ else
     };
 
     private sealed class ReplyInput { public string Text { get; set; } = ""; }
+    private sealed class EvaluationInput
+    {
+        [Range(1, 5, ErrorMessage = "امتیاز باید بین ۱ و ۵ باشد.")]
+        public int Rating { get; set; } = 5;
+        [StringLength(2000, ErrorMessage = "یادداشت باید حداکثر ۲۰۰۰ نویسه باشد.")]
+        public string Comment { get; set; } = "";
+    }
 }

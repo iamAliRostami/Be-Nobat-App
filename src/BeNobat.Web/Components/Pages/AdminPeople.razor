@@ -59,17 +59,24 @@
                     <b>@DisplayNameOf(person.User)</b>
                     <small class="person-contact"><span>✉ @person.User.Email</span><span>☎ @(string.IsNullOrWhiteSpace(person.User.PhoneNumber) ? "ثبت نشده" : person.User.PhoneNumber)</span><em class="status @(person.IsDisabled ? "cancelled" : "confirmed")">@(person.IsDisabled ? "غیرفعال" : "فعال")</em></small>
                 </div>
-                <em>
+                <em class="person-metrics">
                     @if (IsTeam)
                     {
                         @RoleLabel(person.Role)
                     }
                     else
                     {
-                        <text>@person.Visits نوبت</text>
+                        @if (person.Visits > 0)
+                        {
+                            <a class="entity-link person-metric-link" href="@($"/admin/calendar?range=all&customerId={person.User.Id}")" title="مشاهده همه نوبت‌های مشتری" aria-label="@($"مشاهده {person.Visits} نوبت {DisplayNameOf(person.User)}")">@person.Visits نوبت</a>
+                        }
+                        else
+                        {
+                            <span>۰ نوبت</span>
+                        }
                         @if (person.Rating is not null)
                         {
-                            <text> · ★ @person.Rating.Value.ToString("0.0")</text>
+                            <span aria-hidden="true"> · </span><a class="entity-link person-metric-link" href="@($"/admin/reviews?tab=outgoing&customerId={person.User.Id}&evaluationStatus=reviewed")" title="مشاهده ارزیابی‌های مشتری" aria-label="@($"مشاهده ارزیابی‌های {DisplayNameOf(person.User)} با میانگین امتیاز {person.Rating.Value:0.0}")">★ @person.Rating.Value.ToString("0.0")</a>
                         }
                     }
                 </em>

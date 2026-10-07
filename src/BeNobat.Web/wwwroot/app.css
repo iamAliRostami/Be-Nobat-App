@@ -762,6 +762,38 @@ html[data-theme="dark"] .action-info{--action-bg:#20383b;--action-fg:#b6e4e8;--a
 .content .review-list footer{flex-wrap:wrap;gap:8px}.content .review-list footer .status{margin-inline-end:auto}
 .content .toolbar>select{width:auto;min-width:150px;max-width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--outline);border-radius:var(--radius-input);background:var(--surface);color:var(--on-surface);font:inherit;font-size:13px}
 
+/* Align filter counts with their controls and keep calendar actions together. */
+.content .filter-toolbar>span{display:inline-flex;align-items:center;min-height:42px;align-self:end;white-space:nowrap}
+.content .filter-toolbar>button{min-height:42px;align-self:end}
+.content .event-row>.row-actions{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;align-self:center;grid-column:auto;width:max-content;max-width:100%;gap:8px;margin:0;padding:0;background:transparent}
+.search-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-bottom:18px}
+.search-toolbar .search-field{display:grid;flex:1 1 280px;gap:6px;min-width:0;font-size:12px;color:var(--on-surface-variant)}
+.search-toolbar input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--outline);border-radius:var(--radius-input);background:var(--surface);color:var(--on-surface);font:inherit;font-size:13px}
+.search-toolbar>button{min-height:42px}
+.content button.action-remove-plain{min-width:28px;width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--action-danger);box-shadow:none}
+.person-metrics{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;max-width:100%;font-style:normal}
+.person-metric-link{font-weight:600;white-space:nowrap}
+.content .tabs b{background:var(--primary-container);color:var(--on-surface)}
+.content .review-list p{color:var(--on-surface-variant)}
+html[data-theme="dark"] .review-list blockquote{background:var(--primary-container);color:var(--on-surface);border-color:var(--outline)}
+.booking-note{display:grid;gap:8px;margin-block:16px;font-size:13px}
+.booking-panel .booking-field{width:100%;min-height:44px;padding:11px 13px;border:1px solid var(--outline);border-radius:var(--radius-input);background:var(--surface);color:var(--on-surface);font:inherit;font-size:13px;line-height:1.7}
+.booking-panel textarea.booking-field{resize:vertical;min-height:100px}
+.account-content{min-width:0}
+.favorites-page .business-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.account-user>div{min-width:0}.account-user small{overflow-wrap:anywhere}
+@media(max-width:900px){
+  .account-page>.account-menu{display:block}
+  .account-menu nav{display:flex;flex-wrap:wrap;gap:6px}
+  .account-menu nav a{flex:1 1 120px;min-height:42px;display:flex;align-items:center;justify-content:center;text-align:center}
+  .account-menu form{display:flex;justify-content:flex-end}
+}
+@media(max-width:640px){
+  .favorites-page .business-grid{grid-template-columns:minmax(0,1fr)}
+  .search-toolbar .search-field{flex-basis:100%}
+  .content .event-row>.row-actions{flex-wrap:wrap;width:auto;grid-column:auto;justify-self:start}
+}
+
 /* Persistent desktop rail and an off-canvas menu on smaller screens. */
 .shell{transition:grid-template-columns .2s ease}.shell>main{min-width:0}
 .shell>main>header{gap:12px;justify-content:space-between}.admin-header-actions{margin-inline-start:auto}

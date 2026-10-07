@@ -1,0 +1,31 @@
+<aside class="account-menu">
+    <div class="account-user">
+        @if (UserId is Guid id && id != Guid.Empty && UserAvatar.Has(AvatarContentType))
+        {
+            <img class="customer-avatar" src="@UserAvatar.Url(id, ConcurrencyStamp)" alt="" />
+        }
+        else
+        {
+            <span>@UserAvatar.Initials(DisplayName)</span>
+        }
+        <div><b>@(string.IsNullOrWhiteSpace(DisplayName) ? "کاربر" : DisplayName)</b><small>@Email</small></div>
+    </div>
+    <nav aria-label="حساب کاربری">
+        <NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink>
+        <NavLink href="/favorites" Match="NavLinkMatch.All">♡ علاقه‌مندی‌ها</NavLink>
+        <NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink>
+    </nav>
+    <form method="post" action="/account/logout">
+        <AntiforgeryToken />
+        <input type="hidden" name="returnUrl" value="/" />
+        <button type="submit" class="logout">خروج از حساب</button>
+    </form>
+</aside>
+
+@code {
+    [Parameter] public Guid? UserId { get; set; }
+    [Parameter] public string? DisplayName { get; set; }
+    [Parameter] public string? Email { get; set; }
+    [Parameter] public string? AvatarContentType { get; set; }
+    [Parameter] public string? ConcurrencyStamp { get; set; }
+}

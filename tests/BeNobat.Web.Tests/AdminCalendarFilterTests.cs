@@ -78,6 +78,90 @@ public sealed class AdminCalendarFilterTests
     }
 
     [Theory]
+    [InlineData("  علي  كريمي  ")]
+    [InlineData("کریمی")]
+    [InlineData("۰۹۱۲۳۴۵۶۷۸۹")]
+    [InlineData("٠٩١٢٣٤٥٦٧٨٩")]
+    [InlineData("+98 912-345-6789")]
+    [InlineData("3456789")]
+    public void Search_matches_customer_name_and_normalized_mobile_without_widening_entity_filters(string search)
+    {
+        var matching = AppointmentAt(DateTimeOffset.UtcNow);
+        matching.Customer.DisplayName = "علی کریمی";
+        matching.Customer.PhoneNumber = "09123456789";
+        var other = AppointmentAt(DateTimeOffset.UtcNow);
+        other.Customer.DisplayName = matching.Customer.DisplayName;
+        other.Customer.PhoneNumber = matching.Customer.PhoneNumber;
+        var component = new AdminCalendar { CustomerQuery = matching.CustomerId.ToString() };
+        Set(component, "RangeFilter", "all");
+        Set(component, "SearchFilter", search);
+
+        Assert.Equal(matching.Id, Assert.Single(Filter(component, new[] { matching, other }.AsQueryable())).Id);
+    }
+
+    [Fact]
+    public void Tracking_search_matches_the_displayed_tail_and_ignores_other_uuid_segments()
+    {
+        var matching = new Appointment
+        {
+            Id = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeee1234abcd"),
+            Customer = new AppUser { DisplayName = "مشتری" },
+        };
+        var prefixOnly = new Appointment
+        {
+            Id = Guid.Parse("1234abcd-bbbb-cccc-dddd-eeee00000000"),
+            Customer = new AppUser { DisplayName = "مشتری" },
+        };
+        var component = new AdminCalendar();
+        Set(component, "RangeFilter", "all");
+        Set(component, "SearchFilter", matching.TrackingCode);
+
+        Assert.Equal(matching.Id, Assert.Single(Filter(component, new[] { matching, prefixOnly }.AsQueryable())).Id);
+        Set(component, "SearchFilter", "34AB");
+        Assert.Equal(matching.Id, Assert.Single(Filter(component, new[] { matching, prefixOnly }.AsQueryable())).Id);
+    }
+
+    [Fact]
+    public void Search_matches_a_provider_name_and_treats_wildcard_characters_as_literal_text()
+    {
+        var matching = AppointmentAt(DateTimeOffset.UtcNow);
+        matching.Resource = new Resource { Name = "كيان 100%" };
+        var other = AppointmentAt(DateTimeOffset.UtcNow);
+        other.Resource = new Resource { Name = "کیان 1000" };
+        var component = new AdminCalendar();
+        Set(component, "RangeFilter", "all");
+        Set(component, "SearchFilter", "کیان 100%");
+
+        Assert.Equal(matching.Id, Assert.Single(Filter(component, new[] { matching, other }.AsQueryable())).Id);
+    }
+
+    [Theory]
+    [InlineData("1234ABCD")]
+    [InlineData("علي كريمي")]
+    [InlineData("۰۹۱۲۳۴۵۶۷۸۹")]
+    [InlineData("100%_")]
+    public void Search_predicate_translates_to_postgresql_and_retains_the_authorized_where_clause(string search)
+    {
+        using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql("Host=localhost;Database=unused").Options);
+        var customerId = Guid.NewGuid();
+        var component = new AdminCalendar();
+        Set(component, "RangeFilter", "all");
+        Set(component, "SearchFilter", search);
+        var query = Filter(component, db.Appointments.Where(a => a.CustomerId == customerId));
+
+        var sql = query.ToQueryString();
+
+        Assert.Contains("WHERE", sql);
+        Assert.Contains("\"CustomerId\"", sql);
+        Assert.Contains("replace", sql, StringComparison.OrdinalIgnoreCase);
+        if (search == "1234ABCD")
+        {
+            Assert.Contains("substr", sql, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Theory]
     [InlineData("0001-01-01")]
     [InlineData("0622-03-21")]
     [InlineData("9999-12-31")]

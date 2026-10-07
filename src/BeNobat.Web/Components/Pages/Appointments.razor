@@ -9,25 +9,8 @@
 <PageTitle>نوبت‌های من | به‌نوبت</PageTitle>
 
 <div class="account-page">
-    <aside class="account-menu">
-        <div class="account-user">
-            @if (UserAvatar.Has(AvatarContentType) && userId != Guid.Empty)
-            {
-                <img class="customer-avatar" src="@UserAvatar.Url(userId, ConcurrencyStamp)" alt="" />
-            }
-            else
-            {
-                <span>@UserAvatar.Initials(DisplayName)</span>
-            }
-            <div><b>@DisplayName</b><small>@Email</small></div>
-        </div>
-        <nav>
-            <NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink>
-            <NavLink href="/favorites" Match="NavLinkMatch.All">♡ علاقه‌مندی‌ها</NavLink>
-            <NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink>
-        </nav>
-        <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
-    </aside>
+    <AccountMenu UserId="@userId" DisplayName="@DisplayName" Email="@Email"
+                 AvatarContentType="@AvatarContentType" ConcurrencyStamp="@ConcurrencyStamp" />
     <main class="account-content">
         <div class="page-title"><div><h1>نوبت‌های من</h1><p>نوبت‌های پیش رو و سوابق مراجعه</p></div><a class="primary-button" href="/">+ رزرو نوبت جدید</a></div>
         @if (ReviewMessage is not null) { <div class="success-notice" role="status">@ReviewMessage</div> }

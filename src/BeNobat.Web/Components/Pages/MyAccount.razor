@@ -9,15 +9,8 @@
 <PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
 
 <div class="account-page">
-    <aside class="account-menu">
-        <div class="account-user">
-            @if (User is not null && UserAvatar.Has(User)) { <img class="customer-avatar" src="@UserAvatar.Url(User)" alt="" /> }
-            else { <span>@UserAvatar.Initials(User?.DisplayName)</span> }
-            <div><b>@(User?.DisplayName ?? "کاربر")</b><small>@User?.Email</small></div>
-        </div>
-        <nav><NavLink href="/appointments" Match="NavLinkMatch.All">▦ نوبت‌های من</NavLink><NavLink href="/favorites" Match="NavLinkMatch.All">♡ علاقه‌مندی‌ها</NavLink><NavLink href="/account/profile" Match="NavLinkMatch.All">◈ اطلاعات حساب</NavLink></nav>
-        <form method="post" action="/account/logout"><AntiforgeryToken /><input type="hidden" name="returnUrl" value="/" /><button type="submit" class="logout">خروج از حساب</button></form>
-    </aside>
+    <AccountMenu UserId="@User?.Id" DisplayName="@User?.DisplayName" Email="@User?.Email"
+                 AvatarContentType="@User?.AvatarContentType" ConcurrencyStamp="@User?.ConcurrencyStamp" />
     <main class="account-content">
 <section class="profile-page">
     <div class="page-title">

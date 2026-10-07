@@ -49,7 +49,7 @@
                     <div class="resource-chips">
                         @foreach (var resource in branch.Resources)
                         {
-                            <span><a class="entity-link" href="@ResourceUrl(resource)">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" class="action-danger action-icon" title="حذف منبع" aria-label="@($"حذف منبع {resource.Name}")" @onclick="() => DeleteResource(resource)">×</button></span>
+                            <span><a class="entity-link" href="@ResourceUrl(resource)">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" class="action-icon action-remove-plain" title="حذف منبع" aria-label="@($"حذف منبع {resource.Name}")" @onclick="() => DeleteResource(resource)">×</button></span>
                         }
                     </div>
                 }

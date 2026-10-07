@@ -21,6 +21,11 @@
             <h2>@(AllDates ? "همه تاریخ‌ها" : $"{LocalizedDate.Weekday(SelectedDate, "fa")}، {LocalizedDate.Format(SelectedDate, "fa")}")</h2>
         </div>
     </div>
+    <form class="calendar-search search-toolbar" @onsubmit="UpdateFilters" @onsubmit:preventDefault>
+        <label class="search-field">جست‌وجوی نوبت<input type="search" aria-label="جست‌وجوی نوبت" placeholder="کد پیگیری، شماره موبایل، نام مشتری یا ارائه‌دهنده…" @bind="SearchFilter" @bind:event="oninput" /></label>
+        <button type="submit" class="action-secondary">جست‌وجو</button>
+        @if (!string.IsNullOrWhiteSpace(SearchQuery)) { <button type="button" class="action-secondary" @onclick="ClearSearch">پاک کردن جست‌وجو</button> }
+    </form>
     <div class="calendar-filters filter-toolbar">
         <label>بازه نمایش<select @bind="RangeFilter" @bind:after="UpdateFilters"><option value="day">روز انتخاب‌شده</option><option value="all">همه تاریخ‌ها</option></select></label>
         <label>وضعیت<select @bind="StatusFilter" @bind:after="UpdateFilters"><option value="">همه وضعیت‌ها</option>@foreach (var status in Enum.GetValues<AppointmentStatus>()) { <option value="@status">@StatusLabel(status)</option> }</select></label>
@@ -91,6 +96,7 @@
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = "q")] public string? SearchQuery { get; set; }
     [SupplyParameterFromQuery(Name = "date")] public string? DateQuery { get; set; }
     [SupplyParameterFromQuery(Name = "range")] public string? RangeQuery { get; set; }
     [SupplyParameterFromQuery(Name = "status")] public string? StatusQuery { get; set; }
@@ -109,6 +115,7 @@
     private string RangeFilter = "day";
     private string StatusFilter = "";
     private string BusinessFilter = "";
+    private string SearchFilter = "";
     private bool CanManageBusiness;
     private bool IsPlatformAdmin;
     private readonly CancellationTokenSource Lifetime = new();
@@ -149,6 +156,7 @@
         RangeFilter = RangeQuery == "all" ? "all" : "day";
         StatusFilter = Enum.TryParse<AppointmentStatus>(StatusQuery, true, out var status) && Enum.IsDefined(status) ? status.ToString() : "";
         BusinessFilter = Guid.TryParse(BusinessQuery, out var businessId) ? businessId.ToString() : "";
+        SearchFilter = SearchQuery ?? "";
         await LoadAsync();
     }
 
@@ -172,7 +180,10 @@
         ["range"] = AllDates ? "all" : null,
         ["status"] = string.IsNullOrEmpty(StatusFilter) ? null : StatusFilter,
         ["businessId"] = string.IsNullOrEmpty(BusinessFilter) ? null : BusinessFilter,
+        ["q"] = string.IsNullOrWhiteSpace(SearchFilter) ? null : SearchFilter.Trim(),
     }));
+
+    private void ClearSearch() { SearchFilter = ""; UpdateFilters(); }
 
     private string WithoutFilter(string parameter) => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> { [parameter] = null });
 
@@ -253,6 +264,22 @@
         if (Guid.TryParse(ResourceQuery, out var resourceId)) query = query.Where(a => a.ResourceId == resourceId);
         if (Guid.TryParse(CustomerQuery, out var customerId)) query = query.Where(a => a.CustomerId == customerId);
         if (Guid.TryParse(ServiceQuery, out var serviceId)) query = query.Where(a => a.ServiceId == serviceId || a.Services.Any(x => x.ServiceId == serviceId));
+        var search = TextSearch.Normalize(SearchFilter);
+        if (search.Length > 0)
+        {
+            var nameQuery = search.ToLowerInvariant();
+            UserInputValidation.TryNormalizeIranianMobile(search, out var phoneQuery);
+            var isPhoneQuery = phoneQuery.Length > 0 && phoneQuery.All(char.IsAsciiDigit);
+            var trackingQuery = phoneQuery.ToLowerInvariant();
+            var isTrackingQuery = trackingQuery.Length is > 0 and <= 8 && trackingQuery.All(char.IsAsciiHexDigit);
+            // Guid.ToString() is canonical UUID text in .NET and PostgreSQL; its final eight
+            // characters are the displayed tracking code. These operations translate to SQL.
+            query = query.Where(a =>
+                a.Customer.DisplayName.Replace("ي", "ی").Replace("ى", "ی").Replace("ك", "ک").Replace("ۀ", "ه").ToLower().Contains(nameQuery) ||
+                (a.Resource != null && a.Resource.Name.Replace("ي", "ی").Replace("ى", "ی").Replace("ك", "ک").Replace("ۀ", "ه").ToLower().Contains(nameQuery)) ||
+                (isPhoneQuery && a.Customer.PhoneNumber != null && a.Customer.PhoneNumber.Contains(phoneQuery)) ||
+                (isTrackingQuery && a.Id.ToString().Substring(28, 8).Contains(trackingQuery)));
+        }
         return query;
     }
 

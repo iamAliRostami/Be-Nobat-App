@@ -101,14 +101,14 @@ else
                         <article><small>زمان مراجعه</small><strong>@FormatSelectedTime()</strong></article>
                         <article class="confirmation-price"><small>مبلغ قابل پرداخت</small><strong>@SelectedPrice?.ToString("N0") <span>تومان</span></strong></article>
                     </div>
-                    @if (NeedsPhone)
+                    @if (IsAuthenticated)
                     {
                         <label class="booking-note">شماره موبایل شما (برای هماهنگی مجموعه)
-                            <input type="tel" inputmode="tel" dir="ltr" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="PhoneInput" @bind:event="oninput" />
+                            <input class="booking-field" type="tel" inputmode="tel" autocomplete="tel-national" dir="ltr" maxlength="14" required placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="PhoneInput" @bind:event="oninput" />
                         </label>
                     }
                     <label class="booking-note">توضیح برای مجموعه (اختیاری)
-                        <textarea maxlength="500" placeholder="هر نکته‌ای که مجموعه باید بداند…" @bind="CustomerNote" @bind:event="oninput"></textarea>
+                        <textarea class="booking-field" rows="3" maxlength="500" placeholder="هر نکته‌ای که مجموعه باید بداند…" @bind="CustomerNote" @bind:event="oninput"></textarea>
                     </label>
                     <p class="booking-login-hint">@(Business.RequiresApproval ? "نوبت شما پس از تأیید مجموعه قطعی می‌شود و نتیجه در «نوبت‌های من» نمایش داده می‌شود." : "نوبت شما بلافاصله پس از ثبت قطعی می‌شود.")</p>
                     @if (!IsAuthenticated)
@@ -159,7 +159,6 @@ else
     private string? ExistingPhone;
     private string PhoneInput = "";
     private string CustomerNote = "";
-    private bool NeedsPhone => IsAuthenticated && string.IsNullOrWhiteSpace(ExistingPhone);
 
     private Business? Business;
     private List<Branch> Branches = [];
@@ -233,6 +232,7 @@ else
             if (Business is not null && CurrentUserId is Guid uid)
             {
                 ExistingPhone = await db.Users.AsNoTracking().Where(u => u.Id == uid).Select(u => u.PhoneNumber).FirstOrDefaultAsync();
+                PhoneInput = ExistingPhone ?? "";
             }
         }
 
@@ -539,16 +539,12 @@ else
         }
 
         string? newPhone = null;
-        if (NeedsPhone)
+        if (!UserInputValidation.TryNormalizeIranianMobile(PhoneInput, out var normalized))
         {
-            if (!UserInputValidation.TryNormalizeIranianMobile(PhoneInput, out var normalized))
-            {
-                ErrorMessage = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
-                return;
-            }
-
-            newPhone = normalized;
+            ErrorMessage = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
+            return;
         }
+        if (normalized != ExistingPhone) newPhone = normalized;
 
         var note = CustomerNote.Trim();
         if (note.Length > 500) note = note[..500];
@@ -638,6 +634,7 @@ else
         {
             await db.Users.Where(u => u.Id == userId).ExecuteUpdateAsync(s => s.SetProperty(u => u.PhoneNumber, newPhone));
             ExistingPhone = newPhone;
+            PhoneInput = newPhone;
         }
 
         await db.SaveChangesAsync();
