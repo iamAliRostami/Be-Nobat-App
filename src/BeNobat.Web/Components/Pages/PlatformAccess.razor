@@ -8,7 +8,7 @@
 @if (Message is not null) { <div class="success-notice">@Message</div> }
 @if (Error is not null) { <div class="auth-error">@Error</div> }
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی نام، ایمیل، موبایل یا نقش..." @bind="Query" @bind:event="oninput" /><span>@Filtered.Count() کاربر</span></div>
+    <div class="toolbar"><input placeholder="جست‌وجوی نام، ایمیل، موبایل یا نقش..." @bind="Query" @bind:event="oninput" /><select aria-label="فیلتر وضعیت" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select><span>@Filtered.Count() کاربر</span></div>
     @if (!Filtered.Any()) { <p class="empty-state">کاربری با این مشخصات پیدا نشد.</p> }
     <div class="access-list">
         @foreach (var item in Filtered)
@@ -17,7 +17,7 @@
                 <span class="customer-avatar purple">@UserAvatar.Initials(item.User.DisplayName)</span>
                 <div class="access-user-details"><b>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small></div>
                 <label>دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
-                <div class="access-actions"><button type="button" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="outline" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="warning" @onclick="() => ResetPassword(item)" disabled="@item.Saving">ریست رمز</button></div>
+                <div class="access-actions"><button type="button" class="action-primary" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="@(item.Disabled ? "action-success" : "action-danger")" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="warning" @onclick="() => ResetPassword(item)" disabled="@item.Saving">ریست رمز</button></div>
                 <em class="status @(item.Disabled ? "cancelled" : "confirmed")">@(item.Disabled ? "غیرفعال" : "فعال")</em>
             </article>
         }
@@ -27,9 +27,10 @@
 @code {
     private List<UserAccess> Items = [];
     private string Query = "";
+    private string StatusFilter = "all";
     private string? Message;
     private string? Error;
-    private IEnumerable<UserAccess> Filtered => Items.Where(x => $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {x.Role} {RoleLabel(x.Role)}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<UserAccess> Filtered => Items.Where(x => $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {x.Role} {RoleLabel(x.Role)}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase)).Where(x => StatusFilter == "all" || (StatusFilter == "disabled") == x.Disabled);
 
     protected override async Task OnInitializedAsync() => await Load();
     private async Task Load()
