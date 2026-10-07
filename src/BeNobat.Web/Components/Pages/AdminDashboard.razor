@@ -80,7 +80,8 @@
 </div>
 
 @code {
-    private DateOnly TodayDate;
+    // Blazor renders while DisplayZoneAsync is pending; never format DateOnly.MinValue.
+    private DateOnly TodayDate = BranchClock.Today(null);
     private List<Appointment> TodayAppointments = [];
     private int TotalAppointments;
     private string? Error;
