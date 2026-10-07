@@ -94,7 +94,7 @@
 .status.cancelled{background:#fdecec;color:#ba1a1a}
 .row-actions{display:flex;gap:6px;grid-column:4/-1;margin-top:3px;justify-self:start;width:max-content;background:#f5faf9;border-radius:9px;padding:3px}
 .row-actions button{border:1px solid #deebe9;background:#fff;border-radius:7px;padding:6px 11px;font-size:9px;cursor:pointer}
-.row-actions button:not(.outline){background:var(--primary);color:#fff;border-color:transparent}
+
 
 /* fix: styling for AdminPeople (team/customers) page */
 .people-list{display:grid;gap:8px;margin-top:10px}
@@ -269,7 +269,7 @@ html[data-theme="dark"] .toolbar input,html[data-theme="dark"] .toolbar select,h
 html[data-theme="dark"] .search-box input{background:transparent!important;border:0!important;color:var(--on-surface)!important}
 html[data-theme="dark"] .ui-preferences .language-menu>summary,html[data-theme="dark"] .ui-preferences .theme-toggle{background:var(--primary-container);color:var(--primary)}
 html[data-theme="dark"] .empty-state,html[data-theme="dark"] .membership-list>article,html[data-theme="dark"] .success-details,html[data-theme="dark"] .auth-tabs,html[data-theme="dark"] .tip-box{background:#1B2422;color:var(--on-surface-variant);border-color:var(--outline-soft)!important}
-html[data-theme="dark"] .primary-button,html[data-theme="dark"] .page-title button,html[data-theme="dark"] .booking-summary>button,html[data-theme="dark"] .auth-submit,html[data-theme="dark"] .access-actions button:not(.outline),html[data-theme="dark"] .row-actions button:not(.outline),html[data-theme="dark"] .search-box>a,html[data-theme="dark"] .public-actions .user-login{background:var(--primary);color:var(--on-primary)}
+html[data-theme="dark"] .primary-button,html[data-theme="dark"] .page-title button,html[data-theme="dark"] .booking-summary>button,html[data-theme="dark"] .auth-submit,html[data-theme="dark"] .search-box>a,html[data-theme="dark"] .public-actions .user-login{background:var(--primary);color:var(--on-primary)}
 html[data-theme="dark"] small,html[data-theme="dark"] .empty-state,html[data-theme="dark"] .auth-subtitle{color:var(--on-surface-variant)}
 html[dir="ltr"] body{text-align:left}html[dir="ltr"] .sidebar nav a i{margin-right:0}html[dir="ltr"] .appointment-date{border-left:0;border-right:1px solid #e7f3f0}
 .review-done{font-size:10px;color:#3d9566;background:#e9f7ef;border-radius:8px;padding:6px 10px;display:inline-block}
@@ -286,7 +286,7 @@ html[dir="ltr"] body{text-align:left}html[dir="ltr"] .sidebar nav a i{margin-rig
    Widget.BeNobat.TextInputLayout و TextAppearance.BeNobat.* */
 
 /* Widget.BeNobat.Button : گوشه‌ی ۱۲، پدینگ عمودی ۱۲، بدون سایه‌ی رنگی */
-.primary-button,.page-title button,.auth-submit,.booking-summary>button,.success-card>a:not(.secondary-link),.toolbar button:not(.secondary),.access-actions button:not(.outline):not(.warning),.row-actions button:not(.outline),.appointment-actions button:not(.outline),.search-box>a,.public-actions .user-login{
+.primary-button,.page-title button,.auth-submit,.booking-summary>button,.success-card>a:not(.secondary-link),.search-box>a,.public-actions .user-login{
   background:var(--primary);color:var(--on-primary);border:0;
   border-radius:var(--radius-button);box-shadow:none;cursor:pointer;font-weight:600;text-transform:none}
 .primary-button,.page-title button,.auth-submit,.search-box>a{padding:12px 20px}
@@ -392,7 +392,7 @@ html[data-theme="dark"] .availability-form-modal .availability-fields{background
 /* Final interaction polish from the annotated UX review. */
 .booking-back-button{padding:6px 10px;margin-bottom:10px;font-size:10px}.booking-date-navigation button:disabled,.date-strip button:disabled{opacity:.4;cursor:not-allowed;background:#f1f3f2;color:#8e9996;border-color:#e2e8e6}.booking-terms-consent+button{margin-top:12px}
 .toolbar .availability-tabs button{background:#fff!important;color:#58706a!important;border:1px solid #cbded9!important;box-shadow:none!important}.toolbar .availability-tabs button.active{background:var(--primary)!important;color:#fff!important;border-color:var(--primary)!important}
-.availability-list article{display:grid!important;grid-template-columns:minmax(180px,.75fr) minmax(260px,1fr) auto auto;gap:18px!important;align-items:center;padding:15px 4px!important}.availability-main{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center}.availability-main b{font-size:12px}.availability-main strong{font-size:11px;color:var(--primary)}.availability-main span{grid-column:1/-1;color:var(--muted);font-size:10px;direction:ltr;text-align:right}.availability-scope{font-size:10px!important;color:var(--muted)!important}.availability-state,.availability-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}.availability-actions button{width:64px;min-height:30px;margin:0!important}.availability-actions .danger-link{color:var(--error)}
+.availability-list article{display:grid;grid-template-columns:minmax(180px,.75fr) minmax(260px,1fr) auto auto;gap:18px;align-items:center;padding:15px 4px}.availability-main{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center}.availability-main b{font-size:12px}.availability-main strong{font-size:11px;color:var(--primary)}.availability-main span{grid-column:1/-1;color:var(--muted);font-size:10px;direction:ltr;text-align:right}.availability-scope{font-size:12px;color:var(--muted)}.availability-state,.availability-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}.availability-actions button{width:64px;min-height:30px;margin:0!important}.availability-actions .danger-link{color:var(--error)}
 @media(max-width:800px){.availability-list article{grid-template-columns:1fr auto}.availability-scope{grid-column:1/-1}.availability-actions{grid-column:2}.public-user-menu>summary span{display:none}}
 
 /* Follow-up spacing/alignment fixes for native controls and empty states. */
@@ -447,11 +447,6 @@ button.back-link:hover{color:var(--primary)}
 /* [fix] ردیف‌های «زمان‌های خالی»: هفت آیتم داخل یک grid چهارستونه می‌رفت، آیتم‌ها به
    ردیف دوم می‌ریختند و دکمه‌های ویرایش/حذف و برچسب «بدون نوبت» تا آخر کشیده می‌شدند.
    با flex-wrap هر آیتم به اندازه‌ی محتوای خودش می‌ماند. */
-.availability-list>article,.availability-list article{display:flex!important;flex-wrap:wrap;align-items:center;gap:10px 16px!important;padding:14px 4px!important}
-.availability-list>article>b{flex:1 1 230px}
-.availability-list>article>span{flex:0 1 auto;white-space:nowrap}
-.availability-list>article>small{flex:1 1 260px}
-.availability-list>article>em,.availability-list>article>button{flex:0 0 auto;width:auto}
 
 /* [fix] در صفحه‌ی خدمات شعب، نام خدمت و «مدت · قیمت» بدون فاصله به هم چسبیده بودند. */
 .service-table b{display:grid;gap:2px}
@@ -702,3 +697,104 @@ html[data-theme="dark"] .search-box>button.search-submit{background:var(--primar
 @media(max-width:560px){.search-box>button.search-submit{text-align:center}}
 .appointment-hint{display:block;color:#6b7a78;font-size:12px;margin-top:6px}
 html[data-theme="dark"] .appointment-hint{color:var(--on-surface)}
+
+/* Action hierarchy: the same size for peers, distinct intent and visible labels. */
+:root{--action-neutral:#32566a;--action-neutral-bg:#edf4f8;--action-neutral-border:#b8cdd8;--action-success:#226647;--action-success-bg:#e8f5ed;--action-success-border:#a4cbb4;--action-warning:#87500c;--action-warning-bg:#fff3df;--action-warning-border:#dec293;--action-danger:#a52b35;--action-danger-bg:#fff0f1;--action-danger-border:#ddb0b5;--action-confirm:#1e588c;--action-confirm-bg:#eaf3ff;--action-confirm-border:#aec7e2;--action-complete:#64469a;--action-complete-bg:#f3ecff;--action-complete-border:#c8b6e3}
+html[data-theme="dark"]{--action-neutral:#c1dce9;--action-neutral-bg:#213541;--action-neutral-border:#4d6d7e;--action-success:#a4dfba;--action-success-bg:#203b2b;--action-success-border:#4c795b;--action-warning:#efce96;--action-warning-bg:#40331f;--action-warning-border:#846639;--action-danger:#ffb4bb;--action-danger-bg:#432a2e;--action-danger-border:#9a545d;--action-confirm:#b4d5ff;--action-confirm-bg:#23384f;--action-confirm-border:#557aa4;--action-complete:#d9c6ff;--action-complete-bg:#382e4d;--action-complete-border:#80679e}
+:is(.content,.appointments-main,.account-content) :is(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-list footer)>button,
+:is(button,a)[class*="action-"]{min-height:38px;width:auto;min-width:76px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;margin:0;border:1px solid var(--action-neutral-border);border-radius:8px;background:var(--action-bg,var(--action-neutral-bg));color:var(--action-fg,var(--action-neutral));border-color:var(--action-border,var(--action-neutral-border));font:600 12px/1.5 Vazirmatn,system-ui,sans-serif;white-space:nowrap;cursor:pointer;box-shadow:none}
+:is(.content,.appointments-main,.account-content) :is(button,a)[class*="action-"]{background:var(--action-bg,var(--action-neutral-bg));color:var(--action-fg,var(--action-neutral));border-color:var(--action-border,var(--action-neutral-border))}
+.action-secondary{--action-bg:var(--action-neutral-bg);--action-fg:var(--action-neutral);--action-border:var(--action-neutral-border)}
+.action-info{--action-bg:#e4f4f4;--action-fg:#185d63;--action-border:#a6cdd0}
+html[data-theme="dark"] .action-info{--action-bg:#20383b;--action-fg:#b6e4e8;--action-border:#4c7b81}
+.action-primary{--action-bg:var(--primary);--action-fg:var(--on-primary);--action-border:var(--primary)}
+.action-success{--action-bg:var(--action-success-bg);--action-fg:var(--action-success);--action-border:var(--action-success-border)}
+.action-warning{--action-bg:var(--action-warning-bg);--action-fg:var(--action-warning);--action-border:var(--action-warning-border)}
+.action-danger{--action-bg:var(--action-danger-bg);--action-fg:var(--action-danger);--action-border:var(--action-danger-border)}
+.action-confirm{--action-bg:var(--action-confirm-bg);--action-fg:var(--action-confirm);--action-border:var(--action-confirm-border)}
+.action-complete{--action-bg:var(--action-complete-bg);--action-fg:var(--action-complete);--action-border:var(--action-complete-border)}
+:is(button,a)[class*="action-"]:hover:not(:disabled){filter:brightness(.96);transform:none}
+:is(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions){flex-wrap:wrap;gap:8px;align-items:center}
+.content .schedule-row>.row-actions{flex-wrap:wrap;width:auto;max-width:100%;background:transparent;padding:0}
+.content .status,.appointment-card .status{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0;border:0;border-radius:0;background:transparent;font:600 12px/1.7 Vazirmatn,system-ui,sans-serif;white-space:nowrap;box-shadow:none;cursor:default}
+.status::before{content:"";display:inline-block;width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:currentColor}
+.content .status:is(.confirmed,.active),.appointment-card .status:is(.confirmed,.active){color:var(--action-success)}
+.content .status.pending,.appointment-card .status.pending{color:var(--action-warning)}
+.content .status.cancelled,.appointment-card .status.cancelled{color:var(--action-danger)}
+.content .status.done,.appointment-card .status.done{color:var(--action-complete)}
+.entity-link{color:var(--primary);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--primary) 30%,transparent);text-underline-offset:3px;line-height:1.8}
+.entity-link:hover{text-decoration-color:currentColor}.entity-meta,.entity-links{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;line-height:1.8}
+.content :is(.entity-meta,.availability-scope,.person-contact){font-size:12px;color:var(--on-surface-variant)}
+.content .schedule-details{gap:4px}.content .schedule-details> b,.content .event-details>b{font-size:14px}.content .event-details{min-width:0;display:grid;gap:5px}
+
+/* Filter controls and statistics share predictable spacing and keyboard access. */
+.content :is(.filter-toolbar,.calendar-filters){display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.content :is(.filter-toolbar,.calendar-filters)>input{flex:2 1 240px;min-width:0}
+.content :is(.filter-toolbar,.calendar-filters)>select{flex:1 1 150px;min-width:0;width:auto}
+.content :is(.filter-toolbar,.calendar-filters)>label{flex:1 1 150px;min-width:0;display:grid;gap:6px;font-size:12px;color:var(--on-surface-variant)}
+.content :is(.filter-toolbar,.calendar-filters)>label>select{width:100%}
+.content :is(.filter-toolbar,.calendar-filters) :is(input,select){min-height:42px;font-size:13px}
+.content :is(.filter-toolbar,.calendar-filters) select{padding:8px 12px;border:1px solid var(--outline);border-radius:10px;background:var(--surface);color:var(--on-surface);font:inherit;font-size:13px}
+.content .calendar-toolbar button[aria-label]{min-width:38px;width:38px;height:38px;padding:0}
+.filter-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px;color:var(--on-surface-variant);font-size:12px}
+.filter-chip{padding:4px 9px;background:var(--primary-container);border-radius:6px;color:var(--on-surface)}
+.stat-cards .stat-card-link{display:flex;align-items:center;gap:14px;min-width:0;min-height:100px;padding:18px;border:1px solid var(--outline-soft);border-radius:var(--radius-card);background:var(--surface);color:var(--on-surface);text-align:start;font:inherit;cursor:pointer}
+.stat-cards .stat-card-link:hover,.stat-cards .stat-card-link[aria-pressed="true"]{border-color:var(--primary);background:color-mix(in srgb,var(--surface) 95%,var(--primary) 5%)}
+.stat-card-link>i{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;font-style:normal;border-radius:10px}
+.stat-card-link>div{display:grid;gap:5px}.stat-card-link strong{font-size:22px;line-height:1.3}.stat-card-link small{font-size:12px;color:var(--on-surface-variant)}
+.stat-cards .stat-card-link>article{display:flex;align-items:center;gap:14px;width:100%;padding:0;min-height:0;border:0;border-radius:0;background:transparent;box-shadow:none}
+.stat-cards .stat-card-link>article>div{display:grid;gap:5px}
+.content button.action-icon{min-width:28px;width:28px;min-height:28px;height:28px;padding:0;font-size:16px}
+.content .page-title>button.action-primary{min-height:44px;padding:10px 18px;font-size:13px}
+.content .page-title>button,.primary-button:not([class*="action-"]){min-height:44px;padding:10px 18px;font-size:13px;line-height:1.5;border-radius:8px}
+.form-modal>div>h2+button{display:grid;place-items:center;width:32px;height:32px;min-height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--on-surface-variant);font-size:22px}
+.content .availability-list article.availability-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:18px;padding:18px 0;align-items:center;border-bottom:1px solid var(--outline-soft)}
+.availability-details{display:grid;gap:8px;min-width:0}.availability-main{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}.availability-main strong{font-size:12px;font-weight:500;color:var(--on-surface-variant)}
+.availability-summary{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-block:16px;font-size:12px}.availability-summary>span{margin-inline-start:auto}
+.availability-main .availability-time{display:inline-flex;gap:6px;font-size:13px;color:var(--on-surface)}
+.availability-state{flex-direction:column;align-items:start;gap:4px}.content .availability-scope{white-space:normal}.content .availability-actions button{min-height:38px;width:auto;min-width:76px}
+.content .event-row{grid-template-columns:110px minmax(0,1fr) auto auto;gap:18px;padding:18px}.content .schedule-row{gap:12px;padding-block:16px}
+.content .event-row>time{direction:ltr;unicode-bidi:isolate}
+.content .service-table .table-head,.content .service-table>div{font-size:12px;gap:14px}.content .service-table>div>span{min-width:0;overflow-wrap:anywhere}.content .service-table small{font-size:11px;line-height:1.8}
+.content .access-list article{grid-template-columns:40px minmax(180px,1fr) minmax(140px,190px) auto auto;gap:16px}.content .access-list small{font-size:12px;line-height:1.8}
+.content .people-list>article>em{background:transparent;padding:0;border-radius:0;font-size:12px;white-space:nowrap}
+.content .people-list>article>div{min-width:0;overflow-wrap:anywhere}.content .people-list>article div small{font-size:12px;line-height:1.8}
+.content .review-list footer{flex-wrap:wrap;gap:8px}.content .review-list footer .status{margin-inline-end:auto}
+.content .toolbar>select{width:auto;min-width:150px;max-width:100%;min-height:42px;padding:8px 12px;border:1px solid var(--outline);border-radius:var(--radius-input);background:var(--surface);color:var(--on-surface);font:inherit;font-size:13px}
+
+/* Persistent desktop rail and an off-canvas menu on smaller screens. */
+.shell{transition:grid-template-columns .2s ease}.shell>main{min-width:0}
+.shell>main>header{gap:12px;justify-content:space-between}.admin-header-actions{margin-inline-start:auto}
+.sidebar-toggle{flex:0 0 40px;display:grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid var(--outline);border-radius:8px;background:var(--surface);color:var(--primary);font-size:20px;cursor:pointer}
+.sidebar-overlay{display:none}
+@media(min-width:901px){
+  html[data-sidebar-collapsed="true"] .shell{grid-template-columns:76px minmax(0,1fr)}
+  html[data-sidebar-collapsed="true"] .sidebar{padding:20px 10px}
+  html[data-sidebar-collapsed="true"] .sidebar :is(.sidebar-label,.sidebar-identity>div,.sidebar-footer>div,.sidebar-group>summary){display:none}
+  html[data-sidebar-collapsed="true"] .sidebar-identity{padding-inline:0;justify-content:center}
+  html[data-sidebar-collapsed="true"] .sidebar nav a{justify-content:center;padding-inline:8px}
+  html[data-sidebar-collapsed="true"] .sidebar nav a i{font-size:20px}
+  html[data-sidebar-collapsed="true"] .sidebar-footer{justify-content:center;padding-inline:0}
+}
+@media(max-width:1100px){.content .schedule-row{grid-template-columns:70px 3px 34px minmax(0,1fr) auto}.content .schedule-row>.row-actions{grid-column:4/-1;justify-self:end}.content .access-list article{grid-template-columns:40px minmax(0,1fr) auto}.content .access-list article>label,.content .access-list article>.access-actions{grid-column:2/-1;justify-self:start}.content .event-row{grid-template-columns:100px minmax(0,1fr) auto}.content .event-row>.row-actions{grid-column:2/-1;justify-self:end}}
+@media(max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .shell .sidebar{display:flex;position:fixed;inset-block:0;inset-inline-start:0;width:min(280px,85vw);height:100dvh;z-index:80;transition:transform .2s ease;transform:translateX(100%);box-shadow:0 0 30px #0004}
+  html[dir="ltr"] .shell .sidebar{transform:translateX(-100%)}
+  html[data-sidebar-collapsed="false"] .shell .sidebar{transform:translateX(0)}
+  html[data-sidebar-collapsed="false"] .sidebar-overlay{display:block;position:fixed;inset:0;z-index:79;padding:0;border:0;background:#0007;cursor:pointer}
+}
+@media(max-width:640px){
+  .content :is(.filter-toolbar,.calendar-filters){flex-direction:row;align-items:stretch}
+  .content :is(.filter-toolbar,.calendar-filters)>:is(input,select,label){flex:1 1 100%;width:100%}
+  .content .availability-list article.availability-row{grid-template-columns:minmax(0,1fr);gap:12px;padding:18px 0}.availability-state{flex-direction:row;flex-wrap:wrap}.availability-actions{justify-content:flex-start}
+  .content .event-row{grid-template-columns:minmax(0,1fr);gap:12px}.content .event-row>.row-actions{grid-column:auto;justify-self:start}.content .event-row>time{display:flex;gap:8px;align-items:center}
+  .content .schedule-row{grid-template-columns:60px 3px 32px minmax(0,1fr);gap:8px}.content .schedule-row>.status{grid-column:4}.content .schedule-row>.row-actions{grid-column:1/-1;justify-self:start}
+  .content .service-table .table-head{display:none}
+  .content .service-table>div:not(.table-head){grid-template-columns:minmax(0,1fr);gap:10px;padding:18px 4px}
+  .content .service-table>div:not(.table-head)>span{display:flex;flex-wrap:wrap;gap:6px;align-items:center;white-space:normal}
+  .content .service-table button{display:inline-flex}.content .inline-actions{flex-wrap:wrap}
+  .content .people-list>article,.content .access-list article{grid-template-columns:36px minmax(0,1fr);gap:12px;padding-block:16px}
+  .content .people-list>article>em,.content .people-list>article>.inline-actions,.content .access-list article>.status{grid-column:2;justify-self:start}
+  :is(.content,.appointments-main,.account-content) :is(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-list footer)>button{min-height:42px}
+}

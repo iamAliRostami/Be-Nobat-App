@@ -4,40 +4,52 @@
 @inject AppDbContext Db
 @inject AdminAccessScope Access
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>زمان‌های خالی | به‌نوبت</PageTitle>
 
 <div class="page-title">
     <div><h1>زمان‌های خالی</h1><p>ساعات قابل رزرو شعبه یا هر کارمند را مشخص کنید.</p></div>
-    <button type="button" @onclick="OpenForm">+ بازه جدید</button>
+    <button type="button" class="action-primary" @onclick="OpenForm">+ بازه جدید</button>
 </div>
 
 <article class="admin-panel">
-    <div class="toolbar">
-        <select aria-label="فیلتر کسب‌وکار" @bind="BusinessFilter" @bind:after="LoadRules">
+    <div class="toolbar filter-toolbar availability-filters">
+        <label>کسب‌وکار<select aria-label="فیلتر کسب‌وکار" @bind="BusinessFilter" @bind:after="BusinessFilterChanged">
             <option value="">همه کسب‌وکارها</option>
             @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
-        </select>
+        </select></label>
+        <label>شعبه<select aria-label="فیلتر شعبه" @bind="BranchFilter" @bind:after="BranchFilterChanged"><option value="">همه شعب</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Name</option> }</select></label>
+        <label>ارائه‌دهنده<select aria-label="فیلتر ارائه‌دهنده" @bind="ResourceFilter" @bind:after="UpdateFilters"><option value="">همه ارائه‌دهندگان</option>@foreach (var resource in FilterResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
+    </div>
+    <div class="availability-summary">
         <div class="availability-tabs">
-            <button type="button" class="@(ActiveTab == "active" ? "active" : "")" @onclick='() => ActiveTab = "active"'>جاری و آینده</button>
-            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ActiveTab = "past"'>گذشته</button>
+            <button type="button" class="@(ActiveTab == "active" ? "active" : "")" @onclick='() => ChangeTab("active")'>جاری و آینده</button>
+            <button type="button" class="@(ActiveTab == "past" ? "active" : "")" @onclick='() => ChangeTab("past")'>گذشته</button>
         </div>
         <span>@LocalizedDate.FormatNumber(VisibleRules.Count(), Language) بازه</span>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
     </div>
     @if (PageMessage is not null) { <div class="success-notice" role="status">@PageMessage</div> }
     @if (!VisibleRules.Any()) { <p class="empty-state">در این بخش بازه‌ای وجود ندارد.</p> }
     <div class="availability-list">
         @foreach (var rule in VisibleRules)
         {
-            <article>
-                <div class="availability-main">
-                    <b>@DayLabel(rule.DayOfWeek)</b>
-                    <strong>@DateLabel(rule)</strong>
-                    <span>@LocalTime(rule.StartsAt) تا @LocalTime(rule.EndsAt)</span>
+            <article class="availability-row" @key="rule.Id">
+                <div class="availability-details">
+                    <div class="availability-main">
+                        <b>@DayLabel(rule.DayOfWeek)</b>
+                        <strong>@DateLabel(rule)</strong>
+                        <span class="availability-time"><bdi>@LocalTime(rule.StartsAt) تا @LocalTime(rule.EndsAt)</bdi></span>
+                    </div>
+                    <small class="availability-scope entity-meta">
+                        <a class="entity-link" href="@EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", rule.BusinessId)">@rule.Business.Name</a>
+                        @if (rule.Branch is not null) { <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", rule.Branch.Id)">@rule.Branch.Name</a> } else { <span>کل مجموعه</span> }
+                        @if (rule.Resource is not null) { <a class="entity-link" href="@ResourceUrl(rule.Resource)">@rule.Resource.Name</a> } else { <span>همه منابع</span> }
+                    </small>
                 </div>
-                <small class="availability-scope"><a class="entity-link" href="@EntityUrl("/businesses", rule.Business.Name)">@rule.Business.Name</a> · @if (rule.Branch is not null) { <a class="entity-link" href="@EntityUrl("/admin/branches", rule.Branch.Name)">@rule.Branch.Name</a> } else { <text>کل مجموعه</text> } · @if (rule.Resource is not null) { <a class="entity-link" href="@EntityUrl(rule.Resource.Kind == "staff" ? "/admin/team" : "/admin/branches", rule.Resource.Name)">@rule.Resource.Name</a> } else { <text>همه منابع</text> }</small>
                 <div class="availability-state"><em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>@if (BookedRuleIds.Contains(rule.Id)) { <em class="status pending">رزرو شده</em> } else { <em class="status done">بدون رزرو</em> }</div>
-                @if (!IsPast(rule)) { <div class="availability-actions"><button type="button" @onclick="() => Edit(rule)">ویرایش</button><button type="button" class="danger-link" @onclick="() => Remove(rule)">حذف</button></div> }
+                @if (!IsPast(rule)) { <div class="availability-actions"><button type="button" class="action-secondary" @onclick="() => Edit(rule)">ویرایش</button><button type="button" class="action-danger" @onclick="() => Remove(rule)">حذف</button></div> }
             </article>
         }
     </div>
@@ -67,6 +79,10 @@
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "businessId")] public string? BusinessQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public string? BranchQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "resourceId")] public string? ResourceQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "tab")] public string? TabQuery { get; set; }
     private List<Business> Businesses = [];
     private List<Branch> Branches = [];
     private List<AvailabilityRule> Rules = [];
@@ -76,6 +92,8 @@
     private HashSet<Guid> SelectedServiceIds = [];
     private HashSet<Guid> BookedRuleIds = [];
     private string BusinessFilter = "";
+    private string BranchFilter = "";
+    private string ResourceFilter = "";
     private string ActiveTab = "active";
     private bool ShowForm;
     private Guid? EditingId;
@@ -110,6 +128,9 @@
     private IEnumerable<Branch> AvailableBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> AvailableResources => Resources.Where(x => Form.BranchId != null && x.BranchId == Form.BranchId && x.Kind == "staff");
     private IEnumerable<Service> AvailableServices => Services.Where(x => BranchServices.Any(bs => bs.BranchId == Form.BranchId && bs.ServiceId == x.Id));
+    private IEnumerable<Branch> FilterBranches => Branches.Where(x => !Guid.TryParse(BusinessFilter, out var businessId) || x.BusinessId == businessId);
+    private IEnumerable<Resource> FilterResources => Resources.Where(x => FilterBranches.Any(b => b.Id == x.BranchId) && (!Guid.TryParse(BranchFilter, out var branchId) || x.BranchId == branchId));
+    private bool HasFilters => BusinessFilter.Length > 0 || BranchFilter.Length > 0 || ResourceFilter.Length > 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,8 +143,28 @@
         Resources = await Db.Resources.Where(x => branchIds.Contains(x.BranchId)).OrderBy(x => x.Name).ToListAsync();
         Services = await Db.Services.Where(x => businessIds.Contains(x.BusinessId)).OrderBy(x => x.Name).ToListAsync();
         BranchServices = await Db.BranchServices.Where(x => branchIds.Contains(x.BranchId)).ToListAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        BusinessFilter = Guid.TryParse(BusinessQuery, out var businessId) ? businessId.ToString() : "";
+        BranchFilter = Guid.TryParse(BranchQuery, out var branchId) ? branchId.ToString() : "";
+        ResourceFilter = Guid.TryParse(ResourceQuery, out var resourceId) ? resourceId.ToString() : "";
+        ActiveTab = TabQuery == "past" ? "past" : "active";
         await LoadRules();
     }
+
+    private void BusinessFilterChanged() { BranchFilter = ""; ResourceFilter = ""; UpdateFilters(); }
+    private void BranchFilterChanged() { ResourceFilter = ""; UpdateFilters(); }
+    private void ChangeTab(string tab) { ActiveTab = tab; UpdateFilters(); }
+    private void ClearFilters() { BusinessFilter = ""; BranchFilter = ""; ResourceFilter = ""; UpdateFilters(); }
+    private void UpdateFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["businessId"] = BusinessFilter.Length == 0 ? null : BusinessFilter,
+        ["branchId"] = BranchFilter.Length == 0 ? null : BranchFilter,
+        ["resourceId"] = ResourceFilter.Length == 0 ? null : ResourceFilter,
+        ["tab"] = ActiveTab == "past" ? "past" : null,
+    }));
 
     private async Task LoadRules()
     {
@@ -132,6 +173,8 @@
         var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch).Include(x => x.Resource)
             .Where(x => businessIds.Contains(x.BusinessId) && (x.BranchId == null || branchIds.Contains(x.BranchId.Value)));
         if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(x => x.BusinessId == businessId);
+        if (Guid.TryParse(BranchFilter, out var branchId)) query = query.Where(x => x.BranchId == branchId);
+        if (Guid.TryParse(ResourceFilter, out var resourceId)) query = query.Where(x => x.ResourceId == resourceId);
         Rules = await query.OrderBy(x => x.EffectiveDate).ThenBy(x => x.Business.Name).ThenBy(x => x.DayOfWeek).ThenBy(x => x.StartsAt).ToListAsync();
         await LoadBookedRules();
     }
@@ -147,9 +190,11 @@
     private async Task OpenForm()
     {
         EditingId = null;
-        var business = Businesses.FirstOrDefault();
+        var business = Businesses.FirstOrDefault(x => x.Id.ToString() == BusinessFilter) ?? Businesses.FirstOrDefault();
         var businessId = business?.Id ?? Guid.Empty;
         Form = new RuleInput { BusinessId = businessId, BranchId = IsPlatformAdmin ? null : Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id };
+        if (Guid.TryParse(BranchFilter, out var branchId) && AvailableBranches.Any(x => x.Id == branchId)) Form.BranchId = branchId;
+        if (Guid.TryParse(ResourceFilter, out var resourceId) && AvailableResources.Any(x => x.Id == resourceId)) Form.ResourceId = resourceId;
         Form.EffectiveDate = FormToday;
         Form.DayOfWeek = FormToday.DayOfWeek;
         await LoadSelectedServicesAsync(Form.ResourceId);
@@ -304,7 +349,10 @@
         return Today.AddDays(offset);
     }
     private string LocalTime(TimeOnly time) => LocalizedDate.LocalizeDigits(time >= new TimeOnly(23, 59) ? "24:00" : time.ToString("HH:mm"), Language);
-    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
+    private static string EntityUrl(string path, string parameter, Guid id) => $"{path}?{parameter}={id}";
+    private static string ResourceUrl(Resource resource) => resource.Kind == "staff"
+        ? EntityUrl("/admin/team", "resourceId", resource.Id)
+        : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
     private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = BranchClock.Today(null); public DayOfWeek DayOfWeek { get; set; } = BranchClock.Today(null).DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

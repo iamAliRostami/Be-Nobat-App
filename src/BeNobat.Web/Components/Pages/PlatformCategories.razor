@@ -2,21 +2,61 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManagePlatform)]
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Navigation
 
 <PageTitle>مدیریت دسته‌بندی‌ها | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>مدیریت دسته‌بندی‌ها</h1><p>دسته‌های قابل انتخاب برای کسب‌وکارها و کاتالوگ خدمات را مدیریت کنید.</p></div><button type="button" @onclick="NewCategory">+ دسته‌بندی جدید</button></div>
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی دسته‌بندی..." @bind="Search" @bind:event="oninput"/><select @bind="KindFilter"><option value="">همه انواع</option><option value="Business">کسب‌وکار</option><option value="Service">خدمت</option></select><span>@Filtered.Count() دسته‌بندی</span></div>
+    <div class="toolbar filter-toolbar">
+        <input aria-label="جست‌وجوی دسته‌بندی" placeholder="جست‌وجوی دسته‌بندی..." @bind="Search" @bind:event="oninput"/>
+        <select aria-label="فیلتر نوع دسته‌بندی" @bind="KindFilter"><option value="">همه انواع</option><option value="Business">کسب‌وکار</option><option value="Service">خدمت</option></select>
+        <select aria-label="فیلتر وضعیت دسته‌بندی" @bind="StatusFilter"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="inactive">غیرفعال</option></select>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ResetFilters">پاک‌کردن فیلترها</button> }
+        <span>@Filtered.Count() دسته‌بندی</span>
+    </div>
+    @if (!Filtered.Any()) { <p class="empty-state">دسته‌بندی‌ای با این فیلترها پیدا نشد.</p> }
     <div class="service-table category-table"><div class="table-head"><span>عنوان</span><span>نوع</span><span>ترتیب</span><span>وضعیت</span><span></span></div>
-    @foreach(var item in Filtered){<div><span><i class="purple">▦</i><b>@item.Name</b></span><span>@KindLabel(item.Kind)</span><span>@item.SortOrder</span><span><em class="status @(item.IsActive?"confirmed":"cancelled")">@(item.IsActive?"فعال":"غیرفعال")</em></span><span class="inline-actions"><button @onclick="()=>Edit(item)">ویرایش</button><button @onclick="()=>Toggle(item)">@(item.IsActive?"غیرفعال":"فعال")</button></span></div>}
+    @foreach(var item in Filtered)
+    {
+        <div @key="item.Id">
+            <span><i class="purple">▦</i><b><a class="entity-link" href="@CategoryUrl(item)">@item.Name</a></b></span>
+            <span>@KindLabel(item.Kind)</span><span>@item.SortOrder</span>
+            <span><em class="status @(item.IsActive ? "confirmed" : "cancelled")">@(item.IsActive ? "فعال" : "غیرفعال")</em></span>
+            <span class="inline-actions"><button type="button" class="action-secondary" @onclick="() => Edit(item)">ویرایش</button><button type="button" class="@(item.IsActive ? "action-danger" : "action-success")" @onclick="() => Toggle(item)">@(item.IsActive ? "غیرفعال‌سازی" : "فعال‌سازی")</button></span>
+        </div>
+    }
     </div>
 </article>
-@if(ShowForm){<div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="category-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null?"دسته‌بندی جدید":"ویرایش دسته‌بندی")</h2><button type="button" @onclick="Close">×</button></div><label>عنوان<input @bind="Form.Name"/></label><label>نوع<select @bind="Form.Kind" disabled="@(EditingId is not null)"><option value="@CategoryKind.Business">کسب‌وکار</option><option value="@CategoryKind.Service">خدمت</option></select></label><label>ترتیب نمایش<input type="number" @bind="Form.SortOrder"/></label>@if(Error is not null){<div class="auth-error" role="alert">@Error</div>}<button class="primary-button">ذخیره دسته‌بندی</button></EditForm></div>}
+@if(ShowForm){<div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="category-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null?"دسته‌بندی جدید":"ویرایش دسته‌بندی")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div><label>عنوان<input @bind="Form.Name"/></label><label>نوع<select @bind="Form.Kind" disabled="@(EditingId is not null)"><option value="@CategoryKind.Business">کسب‌وکار</option><option value="@CategoryKind.Service">خدمت</option></select></label><label>ترتیب نمایش<input type="number" @bind="Form.SortOrder"/></label>@if(Error is not null){<div class="auth-error" role="alert">@Error</div>}<button class="primary-button">ذخیره دسته‌بندی</button></EditForm></div>}
 
 @code {
-    private List<CategoryDefinition> Items=[]; private string Search=""; private string KindFilter=""; private bool ShowForm; private Guid? EditingId; private Input Form=new(); private string? Error;
-    private IEnumerable<CategoryDefinition> Filtered=>Items.Where(x=>(string.IsNullOrEmpty(KindFilter)||x.Kind.ToString()==KindFilter)&&x.Name.Contains(Search,StringComparison.OrdinalIgnoreCase));
+    private List<CategoryDefinition> Items=[]; private string Search=""; private string KindFilter=""; private string StatusFilter=""; private Guid? SelectedCategoryId; private bool ShowForm; private Guid? EditingId; private Input Form=new(); private string? Error;
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
+    [SupplyParameterFromQuery(Name = "kind")] public string? KindParam { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusParam { get; set; }
+    [SupplyParameterFromQuery(Name = "categoryId")] public Guid? CategoryIdParam { get; set; }
+    private bool HasFilters => !string.IsNullOrWhiteSpace(Search) || SelectedCategoryId is not null || KindFilter != "" || StatusFilter != "";
+    private IEnumerable<CategoryDefinition> Filtered => Items.Where(x =>
+        (SelectedCategoryId is null || x.Id == SelectedCategoryId) &&
+        (KindFilter == "" || x.Kind.ToString() == KindFilter) &&
+        (StatusFilter != "active" || x.IsActive) &&
+        (StatusFilter != "inactive" || !x.IsActive) &&
+        x.Name.Contains(Search.Trim(), StringComparison.OrdinalIgnoreCase));
     protected override Task OnInitializedAsync()=>Load();
+    protected override void OnParametersSet()
+    {
+        Search = QueryParam?.Trim() ?? "";
+        KindFilter = KindParam is "Business" or "Service" ? KindParam : "";
+        StatusFilter = StatusParam is "active" or "inactive" ? StatusParam : "";
+        SelectedCategoryId = CategoryIdParam;
+    }
+    private void ResetFilters()
+    {
+        Search = KindFilter = StatusFilter = "";
+        SelectedCategoryId = null;
+        Navigation.NavigateTo("/platform/categories");
+    }
+    private static string CategoryUrl(CategoryDefinition item) => $"{(item.Kind == CategoryKind.Business ? "/platform" : "/platform/services")}?category={Uri.EscapeDataString(item.Name)}";
     private async Task Load(){await using var db=await DbFactory.CreateDbContextAsync();Items=await db.CategoryDefinitions.IgnoreQueryFilters().OrderBy(x=>x.Kind).ThenBy(x=>x.SortOrder).ThenBy(x=>x.Name).ToListAsync();}
     private void NewCategory(){EditingId=null;Form=new(){SortOrder=Items.Count};Error=null;ShowForm=true;}
     private void Edit(CategoryDefinition x){EditingId=x.Id;Form=new(){Name=x.Name,Kind=x.Kind,SortOrder=x.SortOrder};Error=null;ShowForm=true;}

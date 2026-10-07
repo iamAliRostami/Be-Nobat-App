@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 
 <div class="shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="admin-sidebar" aria-label="منوی مدیریت">
         <div class="brand sidebar-identity">
             <a class="sidebar-home" href="/admin" aria-label="داشبورد به‌نوبت">ب</a>
             <div>
@@ -12,21 +12,21 @@
         <nav>
             <details class="sidebar-group" open>
                 <summary>مدیریت</summary>
-                <div><NavLink href="/admin" Match="NavLinkMatch.All"><i>⌂</i> داشبورد</NavLink>
-                <NavLink href="/admin/calendar"><i>▦</i> تقویم نوبت‌ها</NavLink></div>
+                <div><NavLink href="/admin" Match="NavLinkMatch.All" title="داشبورد" aria-label="داشبورد"><i>⌂</i> <span class="sidebar-label">داشبورد</span></NavLink>
+                <NavLink href="/admin/calendar" title="تقویم نوبت‌ها" aria-label="تقویم نوبت‌ها"><i>▦</i> <span class="sidebar-label">تقویم نوبت‌ها</span></NavLink></div>
             </details>
             <AuthorizeView Policy="@Policies.ManageBusiness" Context="teamContext">
                 <Authorized>
                     <details class="sidebar-group" open>
                     <summary>مدیریت کسب‌وکار</summary>
-                    <div><NavLink href="/businesses"><i>◇</i> خدمات</NavLink>
-                    <NavLink href="/admin/branches"><i>⌖</i> شعب و منابع</NavLink>
+                    <div><NavLink href="/businesses" title="خدمات" aria-label="خدمات"><i>◇</i> <span class="sidebar-label">خدمات</span></NavLink>
+                    <NavLink href="/admin/branches" title="شعب و منابع" aria-label="شعب و منابع"><i>⌖</i> <span class="sidebar-label">شعب و منابع</span></NavLink>
                     @* [fix] این دو صفحه وجود داشتند ولی هیچ لینکی به آن‌ها نبود:
                        «زمان‌های خالی» و «امتیازها و نظرات» عملاً فعال نشده بودند. *@
-                    <NavLink href="/admin/availability"><i>◷</i> زمان‌های خالی</NavLink>
-                    <NavLink href="/admin/reviews"><i>★</i> امتیازها و نظرات</NavLink>
-                    <NavLink href="/admin/customers" Match="NavLinkMatch.All"><i>◈</i> مشتریان</NavLink>
-                    <NavLink href="/admin/team" Match="NavLinkMatch.All"><i>◎</i> اعضای تیم</NavLink></div>
+                    <NavLink href="/admin/availability" title="زمان‌های خالی" aria-label="زمان‌های خالی"><i>◷</i> <span class="sidebar-label">زمان‌های خالی</span></NavLink>
+                    <NavLink href="/admin/reviews" title="امتیازها و نظرات" aria-label="امتیازها و نظرات"><i>★</i> <span class="sidebar-label">امتیازها و نظرات</span></NavLink>
+                    <NavLink href="/admin/customers" Match="NavLinkMatch.All" title="مشتریان" aria-label="مشتریان"><i>◈</i> <span class="sidebar-label">مشتریان</span></NavLink>
+                    <NavLink href="/admin/team" Match="NavLinkMatch.All" title="اعضای تیم" aria-label="اعضای تیم"><i>◎</i> <span class="sidebar-label">اعضای تیم</span></NavLink></div>
                     </details>
                 </Authorized>
             </AuthorizeView>
@@ -34,10 +34,10 @@
                 <Authorized>
                     <details class="sidebar-group" open>
                     <summary>مدیریت سامانه</summary>
-                    <div><NavLink href="/platform" Match="NavLinkMatch.All"><i>▤</i> کسب‌وکارها</NavLink>
-                    <NavLink href="/platform/services" Match="NavLinkMatch.All"><i>✦</i> کاتالوگ خدمات</NavLink>
-                    <NavLink href="/platform/categories" Match="NavLinkMatch.All"><i>▧</i> دسته‌بندی‌ها</NavLink>
-                    <NavLink href="/platform/access" Match="NavLinkMatch.All"><i>♙</i> کاربران و دسترسی‌ها</NavLink></div>
+                    <div><NavLink href="/platform" Match="NavLinkMatch.All" title="کسب‌وکارها" aria-label="کسب‌وکارها"><i>▤</i> <span class="sidebar-label">کسب‌وکارها</span></NavLink>
+                    <NavLink href="/platform/services" Match="NavLinkMatch.All" title="کاتالوگ خدمات" aria-label="کاتالوگ خدمات"><i>✦</i> <span class="sidebar-label">کاتالوگ خدمات</span></NavLink>
+                    <NavLink href="/platform/categories" Match="NavLinkMatch.All" title="دسته‌بندی‌ها" aria-label="دسته‌بندی‌ها"><i>▧</i> <span class="sidebar-label">دسته‌بندی‌ها</span></NavLink>
+                    <NavLink href="/platform/access" Match="NavLinkMatch.All" title="کاربران و دسترسی‌ها" aria-label="کاربران و دسترسی‌ها"><i>♙</i> <span class="sidebar-label">کاربران و دسترسی‌ها</span></NavLink></div>
                     </details>
                 </Authorized>
             </AuthorizeView>
@@ -53,6 +53,7 @@
     </aside>
     <main>
         <header>
+            <button type="button" class="sidebar-toggle" data-sidebar-toggle aria-controls="admin-sidebar" aria-expanded="true" aria-label="باز و بسته کردن منوی مدیریت" title="باز و بسته کردن منوی مدیریت"><span aria-hidden="true">☰</span></button>
             <div class="mobile-brand">به‌نوبت</div>
             <div class="admin-header-actions">
                 <UiPreferences />
@@ -76,6 +77,7 @@
         </header>
         <section class="content">@Body</section>
     </main>
+    <button type="button" class="sidebar-overlay" data-sidebar-close aria-label="بستن منوی مدیریت" tabindex="-1"></button>
 </div>
 
 @code {

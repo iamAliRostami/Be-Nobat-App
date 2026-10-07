@@ -4,9 +4,10 @@
 @inject AppDbContext Db
 @inject AdminAccessScope Access
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>خدمات | به‌نوبت</PageTitle>
-<div class="page-title"><div><h1>خدمات شعب</h1><p>هر خدمت را به شعبه و کارکنان ارائه‌دهنده متصل کنید.</p></div><button type="button" @onclick="OpenNew">+ افزودن خدمت</button></div>
+<div class="page-title"><div><h1>خدمات شعب</h1><p>هر خدمت را به شعبه و کارکنان ارائه‌دهنده متصل کنید.</p></div><button type="button" class="action-primary" @onclick="OpenNew">+ افزودن خدمت</button></div>
 
 @if (ShowForm)
 {
@@ -54,12 +55,26 @@
 }
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجو بین خدمات..." @bind="Search" @bind:event="oninput" /><span>@Filtered.Count() خدمت</span></div>
+    <div class="toolbar">
+        <input aria-label="جست‌وجوی خدمات" placeholder="جست‌وجوی خدمت، کسب‌وکار، شعبه یا ارائه‌دهنده..." @bind="Search" @bind:event="oninput" />
+        <select aria-label="وضعیت خدمات" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
+        <span>@Filtered.Count() خدمت</span>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
+    </div>
+    @if (HasEntityFilter) { <p class="filter-summary">فهرست خدمات مرتبط با مورد انتخاب‌شده</p> }
+    @if (!Filtered.Any()) { <p class="empty-state">خدمتی با این فیلترها پیدا نشد.</p> }
     <div class="service-table branch-services-table">
         <div class="table-head"><span>خدمت</span><span>نام کسب‌وکار</span><span>شعب</span><span>ارائه‌دهندگان</span><span>وضعیت</span><span></span></div>
         @foreach (var service in Filtered)
         {
-            <div><span><i class="rose">✂</i><b>@service.Name<small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان · @(service.CatalogItem is null ? "اختصاصی" : "کاتالوگ")</small></b></span><span>@BusinessName(service.BusinessId)</span><span>@string.Join("، ", service.BranchServices.Select(x => x.Branch.Name))</span><span>@string.Join("، ", service.ServiceResources.Select(x => x.Resource.Name))</span><span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span><span class="inline-actions"><button @onclick="() => Edit(service)">تنظیم</button><button @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span></div>
+            <div>
+                <span><i class="rose">✂</i><b><a class="entity-link" href="@($"/businesses?serviceId={service.Id}")">@service.Name</a><small>@service.DurationMinutes دقیقه · @service.Price.ToString("N0") تومان · @(service.CatalogItem is null ? "اختصاصی" : "کاتالوگ")</small></b></span>
+                <span><a class="entity-link" href="@BusinessUrl(service.BusinessId)">@BusinessName(service.BusinessId)</a></span>
+                <span class="entity-links">@foreach (var assignment in service.BranchServices) { <a class="entity-link" href="@($"/admin/branches?branchId={assignment.BranchId}")">@assignment.Branch.Name</a> }</span>
+                <span class="entity-links">@foreach (var provider in service.ServiceResources) { <a class="entity-link" href="@ResourceUrl(provider.Resource)">@provider.Resource.Name</a> }</span>
+                <span><em class="status @(service.DeletedAt is null ? "confirmed" : "cancelled")">@(service.DeletedAt is null ? "فعال" : "غیرفعال")</em></span>
+                <span class="inline-actions"><button type="button" class="action-secondary" @onclick="() => Edit(service)">تنظیم</button><button type="button" class="@(service.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => ToggleActive(service)">@(service.DeletedAt is null ? "غیرفعال" : "فعال")</button></span>
+            </div>
         }
     </div>
 </article>
@@ -69,6 +84,11 @@
     private const string CustomSource = "custom";
 
     [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "serviceId")] public Guid? FilterServiceId { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? FilterBusinessId { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public Guid? FilterBranchId { get; set; }
+    [SupplyParameterFromQuery(Name = "resourceId")] public Guid? FilterResourceId { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? FilterStatus { get; set; }
 
     private List<Business> BusinessOptions = [];
     private List<Branch> Branches = [];
@@ -76,20 +96,34 @@
     private List<Resource> Resources = [];
     private List<ServiceCatalogItem> CatalogItems = [];
     private string Search = "";
+    private string StatusFilter = "all";
+    private bool IsPlatformAdmin;
     private bool ShowForm;
     private Guid? EditingId;
     private ServiceInput Form = new();
     private HashSet<Guid> SelectedResourceIds = [];
     private string? Error;
     private string Language = "fa";
-    private IEnumerable<Service> Filtered => Services.Where(x =>
-        $"{x.Name} {BusinessOptions.FirstOrDefault(b => b.Id == x.BusinessId)?.Name}".Contains(Search, StringComparison.OrdinalIgnoreCase));
+    private bool HasEntityFilter => FilterServiceId is not null || FilterBusinessId is not null || FilterBranchId is not null || FilterResourceId is not null;
+    private bool HasFilters => HasEntityFilter || Search.Length > 0 || StatusFilter != "all";
+    private IEnumerable<Service> Filtered => Services
+        .Where(x => FilterServiceId is null || x.Id == FilterServiceId)
+        .Where(x => FilterBusinessId is null || x.BusinessId == FilterBusinessId)
+        .Where(x => FilterBranchId is null || x.BranchServices.Any(b => b.BranchId == FilterBranchId))
+        .Where(x => FilterResourceId is null || x.ServiceResources.Any(r => r.ResourceId == FilterResourceId))
+        .Where(x => StatusFilter == "all" || (x.DeletedAt is null) == (StatusFilter == "active"))
+        .Where(x => $"{x.Name} {BusinessName(x.BusinessId)} {string.Join(' ', x.BranchServices.Select(b => b.Branch.Name))} {string.Join(' ', x.ServiceResources.Select(r => r.Resource.Name))}".Contains(Search, StringComparison.OrdinalIgnoreCase));
     private IEnumerable<Branch> FormBranches => Branches.Where(x => x.BusinessId == Form.BusinessId);
     private IEnumerable<Resource> FormResources => Resources.Where(x => x.BranchId == Form.BranchId && x.Kind == "staff");
     private string BusinessName(Guid businessId) => BusinessOptions.FirstOrDefault(x => x.Id == businessId)?.Name ?? "—";
+    private string BusinessUrl(Guid businessId) => $"{(IsPlatformAdmin ? "/platform" : "/businesses")}?businessId={businessId}";
+    private static string ResourceUrl(Resource resource) => resource.Kind == "staff"
+        ? $"/admin/team?resourceId={resource.Id}"
+        : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
 
     protected override async Task OnInitializedAsync()
     {
+        IsPlatformAdmin = await Access.IsPlatformAdminAsync();
         var query = await Access.BranchesAsync();
         Branches = await query.OrderBy(x => x.Name).ToListAsync();
         var ids = Branches.Select(x => x.BusinessId).Distinct().ToList();
@@ -104,9 +138,29 @@
         Language = await JS.InvokeAsync<string>("beNobat.preferences.getLanguage");
         StateHasChanged();
     }
-    protected override void OnParametersSet() => Search = FilterQuery?.Trim() ?? "";
+    protected override void OnParametersSet()
+    {
+        Search = FilterQuery?.Trim() ?? "";
+        StatusFilter = FilterStatus is "active" or "disabled" ? FilterStatus : "all";
+    }
+    private void ClearFilters()
+    {
+        Search = "";
+        StatusFilter = "all";
+        FilterServiceId = FilterBusinessId = FilterBranchId = FilterResourceId = null;
+        Navigation.NavigateTo("/businesses");
+    }
     private async Task Load() { var ids = BusinessOptions.Select(x => x.Id).ToList(); Services = await Db.Services.IgnoreQueryFilters().Where(x => ids.Contains(x.BusinessId)).Include(x => x.CatalogItem).Include(x => x.BranchServices).ThenInclude(x => x.Branch).Include(x => x.ServiceResources).ThenInclude(x => x.Resource).OrderBy(x => x.Name).ToListAsync(); }
-    private void OpenNew() { EditingId = null; var businessId = BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty; Form = new() { BusinessId = businessId, BranchId = Branches.FirstOrDefault(x => x.BusinessId == businessId)?.Id ?? Guid.Empty }; SelectedResourceIds = []; Error = null; ShowForm = true; }
+    private void OpenNew()
+    {
+        EditingId = null;
+        var selectedBranch = Branches.FirstOrDefault(b => b.Id == FilterBranchId);
+        var businessId = BusinessOptions.FirstOrDefault(b => b.Id == FilterBusinessId)?.Id ?? selectedBranch?.BusinessId ?? BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty;
+        Form = new() { BusinessId = businessId, BranchId = selectedBranch is not null && selectedBranch.BusinessId == businessId ? selectedBranch.Id : Branches.FirstOrDefault(b => b.BusinessId == businessId)?.Id ?? Guid.Empty };
+        SelectedResourceIds = [];
+        Error = null;
+        ShowForm = true;
+    }
     private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, CatalogItemId = service.CatalogItemId, Source = service.CatalogItemId is null ? "custom" : "catalog", Name = service.Name, Description = service.Description, DurationMinutes = service.DurationMinutes, Price = assignment?.Price ?? service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).Where(r => Resources.Any(f => f.Id == r && f.BranchId == Form.BranchId)).ToHashSet(); Error = null; ShowForm = true; }
     private Task BusinessChanged() { Form.BranchId = FormBranches.FirstOrDefault()?.Id ?? Guid.Empty; SelectedResourceIds.Clear(); return Task.CompletedTask; }
     private Task BranchChanged()

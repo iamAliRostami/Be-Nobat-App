@@ -140,7 +140,40 @@ window.beNobat = {
         applyTheme(localStorage.getItem('benobat-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
         setLanguage(localStorage.getItem('benobat-language') || 'fa');
         ensureTranslationObserver();
+        initializeSidebar();
     }
+
+    const sidebarViewport = matchMedia('(max-width: 900px)');
+    function setSidebarCollapsed(collapsed, persist = false) {
+        document.documentElement.dataset.sidebarCollapsed = String(collapsed);
+        const sidebar = document.getElementById('admin-sidebar');
+        if (sidebar) sidebar.inert = collapsed && sidebarViewport.matches;
+        for (const button of document.querySelectorAll('[data-sidebar-toggle]')) {
+            button.setAttribute('aria-expanded', String(!collapsed));
+        }
+        if (collapsed && !sidebarViewport.matches) {
+            for (const group of document.querySelectorAll('.sidebar-group')) group.open = true;
+        }
+        if (persist && !sidebarViewport.matches) localStorage.setItem('benobat-sidebar-collapsed', String(collapsed));
+    }
+    function initializeSidebar() {
+        setSidebarCollapsed(sidebarViewport.matches || localStorage.getItem('benobat-sidebar-collapsed') === 'true');
+    }
+    sidebarViewport.addEventListener('change', initializeSidebar);
+    document.addEventListener('click', event => {
+        if (event.target.closest('[data-sidebar-toggle]')) {
+            setSidebarCollapsed(document.documentElement.dataset.sidebarCollapsed !== 'true', true);
+        } else if (event.target.closest('[data-sidebar-close]') ||
+            (sidebarViewport.matches && event.target.closest('.sidebar nav a'))) {
+            setSidebarCollapsed(true);
+        }
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && sidebarViewport.matches) {
+            setSidebarCollapsed(true);
+            document.querySelector('[data-sidebar-toggle]')?.focus();
+        }
+    });
     applyPreferencesFromStorage();
     window.Blazor?.addEventListener?.('enhancedload', applyPreferencesFromStorage);
 

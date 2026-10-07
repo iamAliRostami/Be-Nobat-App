@@ -17,7 +17,7 @@
 
 <div class="page-title">
     <div><h1>@Title</h1><p>@(IsTeam ? "اعضای تیم، وضعیت حساب و سطح دسترسی آن‌ها" : "اطلاعات، سوابق و امتیاز مراجعه‌کنندگان")</p></div>
-    <button type="button" @onclick="OpenAdd">+ @(IsTeam ? "افزودن عضو" : "افزودن مشتری")</button>
+    <button type="button" class="action-primary" @onclick="OpenAdd">+ @(IsTeam ? "افزودن عضو" : "افزودن مشتری")</button>
 </div>
 
 @* [fix] سوییچ بین دو فهرست حالا داخل خود صفحه هم هست و تب فعال مشخص است. *@
@@ -31,11 +31,17 @@
 
 <article class="admin-panel">
     <div class="toolbar">
-        <input placeholder="جست‌وجوی نام، ایمیل یا شماره تماس..." @bind="Query" @bind:event="oninput" />
+        <input aria-label="جست‌وجوی کاربران" placeholder="جست‌وجوی نام، ایمیل یا شماره تماس..." @bind="Query" @bind:event="oninput" />
+        <select aria-label="وضعیت حساب" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
         <span>@Filtered.Count() نتیجه</span>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
     </div>
-
-    @if (!Filtered.Any()) { <p class="empty-state">موردی پیدا نشد.</p> }
+    @if (HasEntityFilter) { <p class="filter-summary">@(IsTeam ? "اعضای تیم مرتبط با مورد انتخاب‌شده" : "مشتریان مرتبط با مورد انتخاب‌شده")</p> }
+    @if (IsTeam && SelectedResource is { UserId: null } resourceWithoutUser)
+    {
+        <p class="empty-state">منبع «@resourceWithoutUser.Name» هنوز به حساب عضو تیم متصل نشده است. <a class="entity-link" href="@($"/admin/branches?branchId={resourceWithoutUser.BranchId}&resourceId={resourceWithoutUser.Id}")">مدیریت منبع در شعبه</a></p>
+    }
+    else if (!Filtered.Any()) { <p class="empty-state">موردی با این فیلترها پیدا نشد.</p> }
 
     <div class="people-list">
         @foreach (var person in Filtered)
@@ -51,7 +57,7 @@
                 }
                 <div>
                     <b>@DisplayNameOf(person.User)</b>
-                    <small class="person-contact"><span>✉ @person.User.Email</span><span>☎ @(string.IsNullOrWhiteSpace(person.User.PhoneNumber) ? "ثبت نشده" : person.User.PhoneNumber)</span><span>@(person.IsDisabled ? "غیرفعال" : "فعال")</span></small>
+                    <small class="person-contact"><span>✉ @person.User.Email</span><span>☎ @(string.IsNullOrWhiteSpace(person.User.PhoneNumber) ? "ثبت نشده" : person.User.PhoneNumber)</span><em class="status @(person.IsDisabled ? "cancelled" : "confirmed")">@(person.IsDisabled ? "غیرفعال" : "فعال")</em></small>
                 </div>
                 <em>
                     @if (IsTeam)
@@ -68,8 +74,8 @@
                     }
                 </em>
                 <div class="inline-actions">
-                    <button type="button" @onclick="() => Edit(person)">ویرایش</button>
-                    <button type="button" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
+                    <button type="button" class="action-secondary" @onclick="() => Edit(person)">ویرایش</button>
+                    <button type="button" class="@(person.IsDisabled ? "action-success" : "action-danger")" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
                 </div>
             </article>
         }
@@ -118,8 +124,15 @@
 @code {
     [Parameter] public string? Mode { get; set; }
     [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "userId")] public Guid? FilterUserId { get; set; }
+    [SupplyParameterFromQuery(Name = "customerId")] public Guid? FilterCustomerId { get; set; }
+    [SupplyParameterFromQuery(Name = "resourceId")] public Guid? FilterResourceId { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public Guid? FilterBranchId { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? FilterBusinessId { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? FilterStatus { get; set; }
 
     private string Query = "";
+    private string StatusFilter = "all";
     private bool ShowForm;
     private string? Error;
     private string? Message;
@@ -127,6 +140,11 @@
     private PersonInput Form = new();
     private List<Person> People = [];
     private List<Branch> ManagedBranches = [];
+    private List<Resource> VisibleResources = [];
+    private List<PersonScope> TeamScopes = [];
+    private List<PersonScope> CustomerScopes = [];
+    private bool IsPlatformAdmin;
+    private bool Disposed;
 
     // [fix] قبلاً IsTeam از روی کل URL و با EndsWith("/team") حساب می‌شد؛ با
     // query string یا اسلش انتهایی اشتباه می‌شد. حالا فقط مسیر نسبی را می‌بینیم.
@@ -136,8 +154,21 @@
 
     private static readonly string[] TeamRoles = [AppRoles.Owner, AppRoles.Manager, AppRoles.Staff];
 
+    private Resource? SelectedResource => VisibleResources.FirstOrDefault(r => r.Id == FilterResourceId);
+    private bool HasEntityFilter => FilterUserId is not null || FilterCustomerId is not null || FilterResourceId is not null || FilterBranchId is not null || FilterBusinessId is not null;
+    private bool HasFilters => HasEntityFilter || Query.Length > 0 || StatusFilter != "all";
+    private IEnumerable<PersonScope> PersonScopes => IsTeam ? TeamScopes : CustomerScopes;
     private IEnumerable<Person> Filtered => People
-        .Where(x => IsTeam ? TeamRoles.Contains(x.Role) : x.Role == AppRoles.Customer)
+        .Where(x => IsTeam ? TeamRoles.Any(x.Roles.Contains) : x.Roles.Contains(AppRoles.Customer))
+        .Where(x => IsPlatformAdmin || PersonScopes.Any(s => s.UserId == x.User.Id))
+        .Where(x => FilterUserId is null || x.User.Id == FilterUserId)
+        .Where(x => FilterCustomerId is null || x.User.Id == FilterCustomerId)
+        .Where(x => (FilterResourceId is null && FilterBranchId is null && FilterBusinessId is null) ||
+            PersonScopes.Any(s => s.UserId == x.User.Id &&
+                (FilterResourceId is null || s.ResourceId == FilterResourceId) &&
+                (FilterBranchId is null || s.BranchId == FilterBranchId) &&
+                (FilterBusinessId is null || s.BusinessId == FilterBusinessId)))
+        .Where(x => StatusFilter == "all" || x.IsDisabled == (StatusFilter == "disabled"))
         .Where(x => $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber}"
             .Contains(Query, StringComparison.OrdinalIgnoreCase));
 
@@ -148,34 +179,82 @@
         await Load();
     }
 
-    protected override void OnParametersSet() => Query = FilterQuery?.Trim() ?? "";
-
-    private async void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    protected override void OnParametersSet()
     {
-        var nextMode = IsTeamLocation(args.Location);
-        if (nextMode == IsTeam) return;
+        ApplyLocationFilters(Navigation.Uri);
+        var nextMode = IsTeamLocation(Navigation.Uri);
+        if (nextMode != IsTeam) Close();
         IsTeam = nextMode;
-        Query = "";
-        await InvokeAsync(async () => { await Load(); StateHasChanged(); });
+    }
+
+    // Both routes have identical parameters, so the router may reuse this component
+    // without calling OnParametersSet. Navigation itself must switch the visible tab.
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
+    {
+        var path = new Uri(args.Location).AbsolutePath.TrimEnd('/');
+        if (!path.Equals("/admin/team", StringComparison.OrdinalIgnoreCase) &&
+            !path.Equals("/admin/customers", StringComparison.OrdinalIgnoreCase) &&
+            !path.StartsWith("/admin/people/", StringComparison.OrdinalIgnoreCase)) return;
+        _ = InvokeAsync(() =>
+        {
+            if (Disposed || args.Location != Navigation.Uri) return;
+            var nextMode = IsTeamLocation(args.Location);
+            if (nextMode != IsTeam) { Close(); Message = null; }
+            IsTeam = nextMode;
+            ApplyLocationFilters(args.Location);
+            StateHasChanged();
+        });
+    }
+
+    private void ApplyLocationFilters(string location)
+    {
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(location).Query);
+        FilterQuery = query.GetValueOrDefault("q").ToString();
+        FilterStatus = query.GetValueOrDefault("status").ToString();
+        FilterUserId = QueryId("userId");
+        FilterCustomerId = QueryId("customerId");
+        FilterResourceId = QueryId("resourceId");
+        FilterBranchId = QueryId("branchId");
+        FilterBusinessId = QueryId("businessId");
+        Query = FilterQuery.Trim();
+        StatusFilter = FilterStatus is "active" or "disabled" ? FilterStatus : "all";
+
+        Guid? QueryId(string key) => Guid.TryParse(query.GetValueOrDefault(key).ToString(), out var id) ? id : null;
     }
 
     private bool IsTeamLocation(string location)
     {
-        if (!string.IsNullOrWhiteSpace(Mode)) return Mode.Equals("team", StringComparison.OrdinalIgnoreCase);
-        return !new Uri(location).AbsolutePath.TrimEnd('/').EndsWith("/customers", StringComparison.OrdinalIgnoreCase);
+        var path = new Uri(location).AbsolutePath.TrimEnd('/');
+        return !path.EndsWith("/customers", StringComparison.OrdinalIgnoreCase);
     }
 
-    public void Dispose() => Navigation.LocationChanged -= LocationChanged;
+    public void Dispose()
+    {
+        Disposed = true;
+        Navigation.LocationChanged -= LocationChanged;
+    }
+
+    private void ClearFilters()
+    {
+        Query = "";
+        StatusFilter = "all";
+        FilterUserId = FilterCustomerId = FilterResourceId = FilterBranchId = FilterBusinessId = null;
+        Navigation.NavigateTo(IsTeam ? "/admin/team" : "/admin/customers");
+    }
 
     private async Task Load()
     {
+        IsPlatformAdmin = await Access.IsPlatformAdminAsync();
         ManagedBranches = await (await Access.ManagedBranchesAsync()).Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
+        var scopeBranches = await (await Access.BranchesAsync()).AsNoTracking().Include(x => x.Memberships).Include(x => x.Resources).ToListAsync();
+        VisibleResources = scopeBranches.SelectMany(b => b.Resources).ToList();
+        TeamScopes = scopeBranches.SelectMany(b => b.Memberships.Select(m => new PersonScope(m.UserId, b.Id, b.BusinessId, null)))
+            .Concat(scopeBranches.SelectMany(b => b.Resources.Where(r => r.UserId is not null).Select(r => new PersonScope(r.UserId!.Value, b.Id, b.BusinessId, r.Id)))).ToList();
         var appointments = await Access.AppointmentsAsync();
-        var allowedUserIds = IsTeam
-            ? await (await Access.BranchesAsync()).SelectMany(x => x.Memberships).Select(x => x.UserId).Distinct().ToListAsync()
-            : await appointments.Select(x => x.CustomerId).Distinct().ToListAsync();
+        CustomerScopes = await appointments.Select(a => new PersonScope(a.CustomerId, a.BranchId, a.Branch.BusinessId, a.ResourceId)).Distinct().ToListAsync();
+        var allowedUserIds = TeamScopes.Concat(CustomerScopes).Select(x => x.UserId).Distinct().ToList();
         var usersQuery = UserManager.Users.AsQueryable();
-        if (!await Access.IsPlatformAdminAsync()) usersQuery = usersQuery.Where(x => allowedUserIds.Contains(x.Id));
+        if (!IsPlatformAdmin) usersQuery = usersQuery.Where(x => allowedUserIds.Contains(x.Id));
         var users = await usersQuery.OrderBy(x => x.DisplayName).ToListAsync();
 
         var visits = await appointments
@@ -194,10 +273,9 @@
         foreach (var user in users)
         {
             var roles = await UserManager.GetRolesAsync(user);
-            var role = roles.FirstOrDefault(x => x != AppRoles.PlatformAdmin) ?? "";
             People.Add(new Person(
                 user,
-                role,
+                roles,
                 visits.GetValueOrDefault(user.Id),
                 user.LockoutEnd > DateTimeOffset.UtcNow,
                 ratings.TryGetValue(user.Id, out var average) ? average : null));
@@ -207,7 +285,11 @@
     private void OpenAdd()
     {
         Editing = null;
-        Form = new PersonInput { Role = IsTeam ? AppRoles.Staff : AppRoles.Customer };
+        Form = new PersonInput
+        {
+            Role = IsTeam ? AppRoles.Staff : AppRoles.Customer,
+            BranchId = ManagedBranches.FirstOrDefault(b => b.Id == FilterBranchId)?.Id,
+        };
         Error = Message = null;
         ShowForm = true;
     }
@@ -362,7 +444,11 @@
         _ => role,
     };
 
-    private sealed record Person(AppUser User, string Role, int Visits, bool IsDisabled, double? Rating);
+    private sealed record Person(AppUser User, IList<string> Roles, int Visits, bool IsDisabled, double? Rating)
+    {
+        public string Role => TeamRoles.FirstOrDefault(Roles.Contains) ?? (Roles.Contains(AppRoles.Customer) ? AppRoles.Customer : "");
+    }
+    private sealed record PersonScope(Guid UserId, Guid BranchId, Guid BusinessId, Guid? ResourceId);
 
     private sealed class PersonInput
     {

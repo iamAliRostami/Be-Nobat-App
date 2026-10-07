@@ -5,6 +5,7 @@
 @inject AppDbContext Db
 @inject AdminAccessScope Access
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>امتیازها و نظرات | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>امتیازها و نظرات</h1><p>نظر مشتریان را بررسی و پاسخ دهید، و به مراجعه‌کنندگان امتیاز بدهید.</p></div></div>
@@ -21,36 +22,51 @@
 @if (Tab == "incoming")
 {
     <div class="stat-cards">
-        <article><i class="orange">★</i><div><small>میانگین امتیاز (منتشرشده)</small><strong>@Average.ToString("0.0")</strong></div></article>
-        <article><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></article>
-        <article><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></article>
-        <article><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></article>
+        <button type="button" class="stat-card-link" aria-label="نمایش نظرات منتشرشده برای میانگین امتیاز" @onclick='() => SetStatusFilter("Published")'><i class="orange">★</i><div><small>میانگین امتیاز (منتشرشده)</small><strong>@Average.ToString("0.0")</strong></div></button>
+        <button type="button" class="stat-card-link" @onclick="ClearFilters"><i class="purple">☷</i><div><small>کل نظرات</small><strong>@Reviews.Count</strong></div></button>
+        <button type="button" class="stat-card-link" aria-pressed='@(Filter == "Pending")' @onclick='() => SetStatusFilter("Pending")'><i class="blue">◷</i><div><small>در انتظار بررسی</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Pending)</strong></div></button>
+        <button type="button" class="stat-card-link" aria-pressed='@(Filter == "Published")' @onclick='() => SetStatusFilter("Published")'><i class="green">✓</i><div><small>منتشرشده</small><strong>@Reviews.Count(x => x.Status == ReviewStatus.Published)</strong></div></button>
     </div>
     <article class="admin-panel">
-        <div class="toolbar">
-            <select @bind="Filter">
+        <div class="toolbar filter-toolbar">
+            <input aria-label="جست‌وجوی نظرات" placeholder="جست‌وجوی مشتری، مجموعه یا متن نظر..." @bind="Search" @bind:event="oninput" />
+            <select aria-label="وضعیت نظر" @bind="Filter">
                 <option value="all">همه</option>
                 <option value="Pending">در انتظار</option>
                 <option value="Published">منتشرشده</option>
                 <option value="Rejected">ردشده</option>
             </select>
+            <select aria-label="امتیاز نظر" @bind="RatingFilter">
+                <option value="">همه امتیازها</option>
+                @for (var rating = 5; rating >= 1; rating--) { <option value="@rating">@rating ستاره</option> }
+            </select>
+            <select aria-label="کسب‌وکار" @bind="BusinessFilter" @bind:after="BusinessFilterChanged">
+                <option value="">همه کسب‌وکارها</option>
+                @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
+            </select>
+            <select aria-label="شعبه" @bind="BranchFilter">
+                <option value="">همه شعبه‌ها</option>
+                @foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }
+            </select>
+            <span>@Filtered.Count() نظر</span>
+            @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
         </div>
-        @if (!Filtered.Any()) { <p class="empty-state">نظری در این وضعیت وجود ندارد.</p> }
+        @if (!Filtered.Any()) { <p class="empty-state">نظری با این فیلترها پیدا نشد.</p> }
         <div class="review-list">
             @foreach (var review in Filtered)
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(review.Customer))">@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", review.Business.Name)">@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", review.Branch.Name)">@review.Branch.Name</a></text> }</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", review.CustomerId)">@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(review.BusinessId)">@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", review.Branch.Id)">@review.Branch.Name</a></text> }</small></div>
                         <span class="stars">@Stars(review.Rating)</span>
                     </header>
                     <p>@review.Comment</p>
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
                     <footer>
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
-                        <button type="button" @onclick="() => Reply(review)">پاسخ</button>
+                        <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published)" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
+                        <button type="button" class="action-danger" disabled="@(review.Status == ReviewStatus.Rejected)" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" class="action-secondary" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>
             }
@@ -70,7 +86,7 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(appointment.Customer))">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", appointment.Service.Name)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", appointment.Branch.Name)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", appointment.CustomerId)">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", "serviceId", appointment.ServiceId)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
                     </header>
                     <footer>
                         <select class="review-rating-select" aria-label="امتیاز @DisplayNameOf(appointment.Customer)" @onchange="e => SetDraftRating(appointment.Id, e.Value?.ToString())">
@@ -80,7 +96,7 @@ else
                             }
                         </select>
                         <input placeholder="یادداشت اختیاری..." value="@DraftComment(appointment.Id)" @onchange="e => SetDraftComment(appointment.Id, e.Value?.ToString())" />
-                        <button type="button" @onclick="() => RateCustomer(appointment)">ثبت امتیاز</button>
+                        <button type="button" class="action-primary" @onclick="() => RateCustomer(appointment)">ثبت امتیاز</button>
                     </footer>
                 </article>
             }
@@ -95,11 +111,11 @@ else
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", DisplayNameOf(item.Customer))">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", item.Business.Name)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", DisplayNameOf(item.Author))">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, null)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)">@item.Business.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, null)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
                     @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
-                    <footer><button type="button" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
+                    <footer><button type="button" class="action-danger" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
                 </article>
             }
         </div>
@@ -112,29 +128,62 @@ else
         <EditForm Model="ReplyForm" FormName="review-reply" OnValidSubmit="SaveReply" class="form-modal" @onclick:stopPropagation>
             <div><h2>پاسخ به نظر</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
             <label>پاسخ مجموعه<textarea @bind="ReplyForm.Text"></textarea></label>
-            <button class="primary-button">ثبت پاسخ و انتشار</button>
+            <button class="primary-button action-primary">ثبت پاسخ و انتشار</button>
         </EditForm>
     </div>
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+    [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusParam { get; set; }
+    [SupplyParameterFromQuery(Name = "rating")] public int? RatingParam { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? BusinessParam { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public Guid? BranchParam { get; set; }
+    [SupplyParameterFromQuery(Name = "customerId")] public Guid? CustomerParam { get; set; }
 
     private List<Review> Reviews = [];
     private List<Appointment> Pending = [];
     private List<CustomerReview> CustomerReviews = [];
+    private List<Business> Businesses = [];
+    private List<Branch> Branches = [];
     private readonly Dictionary<Guid, (int Rating, string Comment)> Drafts = new();
 
     private string Tab = "incoming";
     private string Filter = "all";
+    private string Search = "";
+    private int? RatingFilter;
+    private Guid? BusinessFilter;
+    private Guid? BranchFilter;
+    private Guid? CustomerFilter;
+    private bool IsPlatformAdmin;
     private string? Message;
     private Review? Replying;
     private ReplyInput ReplyForm = new();
     private Guid CurrentUserId;
     private string Language = "fa";
 
-    private IEnumerable<Review> Filtered => Filter == "all" ? Reviews : Reviews.Where(x => x.Status.ToString() == Filter);
+    private IEnumerable<Review> Filtered => Reviews.Where(x =>
+        (Filter == "all" || x.Status.ToString() == Filter)
+        && (RatingFilter is null || x.Rating == RatingFilter)
+        && (BusinessFilter is null || x.BusinessId == BusinessFilter)
+        && (BranchFilter is null || x.BranchId == BranchFilter)
+        && (CustomerFilter is null || x.CustomerId == CustomerFilter)
+        && TextSearch.Matches($"{DisplayNameOf(x.Customer)} {x.Customer.Email} {x.Business.Name} {x.Branch?.Name} {x.Comment} {x.ManagerReply}", Search));
+    private IEnumerable<Branch> FilterBranches => Branches.Where(x => BusinessFilter is null || x.BusinessId == BusinessFilter);
+    private bool HasFilters => !string.IsNullOrWhiteSpace(Search) || Filter != "all" || RatingFilter is not null
+        || BusinessFilter is not null || BranchFilter is not null || CustomerFilter is not null;
     private double Average => Reviews.Any(x => x.Status == ReviewStatus.Published) ? Reviews.Where(x => x.Status == ReviewStatus.Published).Average(x => x.Rating) : 0;
+
+    protected override void OnParametersSet()
+    {
+        Search = QueryParam ?? "";
+        Filter = Enum.TryParse<ReviewStatus>(StatusParam, true, out var status) && Enum.IsDefined(status) ? status.ToString() : "all";
+        RatingFilter = RatingParam is >= 1 and <= 5 ? RatingParam : null;
+        BusinessFilter = BusinessParam;
+        BranchFilter = BranchParam;
+        CustomerFilter = CustomerParam;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -145,6 +194,10 @@ else
             if (idText is not null && Guid.TryParse(idText, out var id)) CurrentUserId = id;
         }
 
+        IsPlatformAdmin = await Access.IsPlatformAdminAsync();
+        Businesses = await Access.ManagedBusinessesAsync();
+        var branchQuery = await Access.ManagedBranchesAsync();
+        Branches = await branchQuery.Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
         await Load();
     }
 
@@ -156,6 +209,42 @@ else
     }
 
     private string FormatDate(DateTimeOffset value, string? zone) => BranchClock.FormatDate(value, zone, Language);
+
+    private void BusinessFilterChanged()
+    {
+        if (BranchFilter is not null && !FilterBranches.Any(x => x.Id == BranchFilter)) BranchFilter = null;
+    }
+
+    private void ClearFilters()
+    {
+        Search = "";
+        Filter = "all";
+        RatingFilter = null;
+        BusinessFilter = null;
+        BranchFilter = null;
+        CustomerFilter = null;
+        UpdateFilterUrl();
+    }
+
+    private void SetStatusFilter(string status)
+    {
+        Filter = status;
+        UpdateFilterUrl();
+    }
+
+    private void UpdateFilterUrl()
+    {
+        var uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["q"] = string.IsNullOrWhiteSpace(Search) ? null : Search,
+            ["status"] = Filter == "all" ? null : Filter,
+            ["rating"] = RatingFilter,
+            ["businessId"] = BusinessFilter,
+            ["branchId"] = BranchFilter,
+            ["customerId"] = CustomerFilter,
+        });
+        if (!string.Equals(uri, Navigation.Uri, StringComparison.Ordinal)) Navigation.NavigateTo(uri);
+    }
 
     private async Task Load()
     {
@@ -259,7 +348,8 @@ else
     private static string DisplayNameOf(AppUser user) =>
         string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
 
-    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
+    private string BusinessUrl(Guid id) => EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", id);
+    private static string EntityUrl(string path, string key, Guid id) => $"{path}?{key}={id}";
 
     private static string Stars(int n) => new string('★', n) + new string('☆', 5 - n);
 

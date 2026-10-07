@@ -4,11 +4,12 @@
 @inject AppDbContext Db
 @inject UserManager<AppUser> UserManager
 @inject AdminAccessScope Access
+@inject NavigationManager Navigation
 
 <PageTitle>شعب و منابع | به‌نوبت</PageTitle>
 <div class="page-title">
     <div><h1>شعب و منابع</h1><p>نشانی، ساعات کاری، اعضا و منابع قابل رزرو هر شعبه را مدیریت کنید.</p></div>
-    <button type="button" @onclick="NewBranch">+ افزودن شعبه</button>
+    <button type="button" class="action-primary" @onclick="NewBranch">+ افزودن شعبه</button>
 </div>
 
 @if (Message is not null) { <div class="success-notice">@Message</div> }
@@ -16,16 +17,19 @@
 
 <article class="admin-panel">
     <div class="toolbar">
-        <input placeholder="جست‌وجوی شعبه یا نشانی..." @bind="Query" @bind:event="oninput" />
+        <input aria-label="جست‌وجوی شعب" placeholder="جست‌وجوی شعبه، کسب‌وکار، نشانی یا منبع..." @bind="Query" @bind:event="oninput" />
+        <select aria-label="وضعیت شعب" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
         <span>@Filtered.Count() شعبه</span>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
     </div>
-    @if (!Filtered.Any()) { <p class="empty-state">هنوز شعبه‌ای ثبت نشده است.</p> }
+    @if (HasEntityFilter) { <p class="filter-summary">شعب مرتبط با مورد انتخاب‌شده</p> }
+    @if (!Filtered.Any()) { <p class="empty-state">شعبه‌ای با این فیلترها پیدا نشد.</p> }
     <div class="management-grid">
         @foreach (var branch in Filtered)
         {
             <article class="management-card">
                 <div class="panel-head">
-                    <div><h2>@branch.Name</h2><p><a class="entity-link" href="@EntityUrl("/businesses", branch.Business.Name)">@branch.Business.Name</a> · @branch.Address</p></div>
+                    <div><h2>@branch.Name</h2><p><a class="entity-link" href="@BusinessUrl(branch.BusinessId)">@branch.Business.Name</a> · @branch.Address</p></div>
                     <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
                 </div>
                 <dl>
@@ -35,17 +39,17 @@
                     <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
                 </dl>
                 <div class="card-actions">
-                    <button type="button" @onclick="() => EditBranch(branch)">ویرایش</button>
-                    <button type="button" @onclick="() => AddResource(branch)">+ منبع</button>
-                    <button type="button" @onclick="() => OpenMembers(branch)">اعضا</button>
-                    <button type="button" class="danger-link" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
+                    <button type="button" class="action-secondary" @onclick="() => EditBranch(branch)">ویرایش</button>
+                    <button type="button" class="action-primary" @onclick="() => AddResource(branch)">+ منبع</button>
+                    <button type="button" class="action-info" @onclick="() => OpenMembers(branch)">اعضا</button>
+                    <button type="button" class="@(branch.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => ToggleBranch(branch)">@(branch.DeletedAt is null ? "غیرفعال" : "فعال")</button>
                 </div>
                 @if (branch.Resources.Count > 0)
                 {
                     <div class="resource-chips">
                         @foreach (var resource in branch.Resources)
                         {
-                            <span><a class="entity-link" href="@EntityUrl(resource.Kind == "staff" ? "/admin/team" : "/admin/branches", resource.Name)">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" title="حذف" @onclick="() => DeleteResource(resource)">×</button></span>
+                            <span><a class="entity-link" href="@ResourceUrl(resource)">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" class="action-danger action-icon" title="حذف منبع" aria-label="@($"حذف منبع {resource.Name}")" @onclick="() => DeleteResource(resource)">×</button></span>
                         }
                     </div>
                 }
@@ -135,7 +139,7 @@
                             <span class="customer-avatar purple">@UserAvatar.Initials(membership.User.DisplayName)</span>
                             <div><b>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small>@membership.User.Email · @(string.IsNullOrWhiteSpace(membership.User.PhoneNumber) ? "بدون شماره تماس" : membership.User.PhoneNumber)</small></div>
                             <em>@RoleLabel(membership.Role)</em>
-                            <div class="inline-actions"><button type="button" class="danger-link" @onclick="() => RemoveMember(membership)">حذف</button></div>
+                            <div class="inline-actions"><button type="button" class="action-danger" @onclick="() => RemoveMember(membership)">حذف</button></div>
                         </article>
                     }
                 </div>
@@ -168,6 +172,10 @@
 
 @code {
     [SupplyParameterFromQuery(Name = "q")] public string? FilterQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? FilterBusinessId { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public Guid? FilterBranchId { get; set; }
+    [SupplyParameterFromQuery(Name = "resourceId")] public Guid? FilterResourceId { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? FilterStatus { get; set; }
 
     private List<Business> Businesses = [];
     private List<Branch> Branches = [];
@@ -175,6 +183,8 @@
     private List<BranchMembership> Memberships = [];
 
     private string Query = "";
+    private string StatusFilter = "all";
+    private bool IsPlatformAdmin;
     private string MemberQuery = "";
     private string TeamMemberQuery = "";
     private bool ShowBranchForm;
@@ -199,8 +209,14 @@
 
     private static readonly string[] TeamRoles = [AppRoles.Owner, AppRoles.Manager, AppRoles.Staff];
 
-    private IEnumerable<Branch> Filtered =>
-        Branches.Where(x => $"{x.Name} {x.Address} {x.Business.Name} {string.Join(' ', x.Resources.Select(r => r.Name))}".Contains(Query, StringComparison.OrdinalIgnoreCase));
+    private bool HasEntityFilter => FilterBusinessId is not null || FilterBranchId is not null || FilterResourceId is not null;
+    private bool HasFilters => HasEntityFilter || Query.Length > 0 || StatusFilter != "all";
+    private IEnumerable<Branch> Filtered => Branches
+        .Where(x => FilterBusinessId is null || x.BusinessId == FilterBusinessId)
+        .Where(x => FilterBranchId is null || x.Id == FilterBranchId)
+        .Where(x => FilterResourceId is null || x.Resources.Any(r => r.Id == FilterResourceId))
+        .Where(x => StatusFilter == "all" || (x.DeletedAt is null) == (StatusFilter == "active"))
+        .Where(x => $"{x.Name} {x.Address} {x.Business.Name} {string.Join(' ', x.Resources.Select(r => r.Name))}".Contains(Query, StringComparison.OrdinalIgnoreCase));
 
     private IEnumerable<AppUser> MemberCandidates =>
         TeamMembers.Where(u => Memberships.All(m => m.UserId != u.Id));
@@ -215,14 +231,28 @@
 
     protected override async Task OnInitializedAsync()
     {
+        IsPlatformAdmin = await Access.IsPlatformAdminAsync();
         Businesses = await Access.ManagedBusinessesAsync();
         await LoadTeamMembers();
         await Load();
     }
 
-    protected override void OnParametersSet() => Query = FilterQuery?.Trim() ?? "";
-
-    private static string EntityUrl(string path, string value) => $"{path}?q={Uri.EscapeDataString(value)}";
+    protected override void OnParametersSet()
+    {
+        Query = FilterQuery?.Trim() ?? "";
+        StatusFilter = FilterStatus is "active" or "disabled" ? FilterStatus : "all";
+    }
+    private void ClearFilters()
+    {
+        Query = "";
+        StatusFilter = "all";
+        FilterBusinessId = FilterBranchId = FilterResourceId = null;
+        Navigation.NavigateTo("/admin/branches");
+    }
+    private string BusinessUrl(Guid businessId) => $"{(IsPlatformAdmin ? "/platform" : "/businesses")}?businessId={businessId}";
+    private static string ResourceUrl(Resource resource) => resource.Kind == "staff"
+        ? $"/admin/team?resourceId={resource.Id}"
+        : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
 
     private async Task LoadTeamMembers()
     {
@@ -263,7 +293,7 @@
     private void NewBranch()
     {
         EditingBranchId = null;
-        BranchForm = new BranchInput { BusinessId = Businesses.FirstOrDefault()?.Id ?? Guid.Empty };
+        BranchForm = new BranchInput { BusinessId = Businesses.FirstOrDefault(b => b.Id == FilterBusinessId)?.Id ?? Businesses.FirstOrDefault()?.Id ?? Guid.Empty };
         Error = Message = null;
         ShowBranchForm = true;
     }

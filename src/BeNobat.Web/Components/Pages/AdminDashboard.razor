@@ -2,6 +2,10 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @inject AdminAccessScope Access
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider Authentication
+@implements IDisposable
+@using System.Globalization
 
 <PageTitle>داشبورد مدیریت | به‌نوبت</PageTitle>
 
@@ -11,19 +15,19 @@
         <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> در شعب تحت مدیریت دارید.</p></Authorized></AuthorizeView>
         <AuthorizeView Roles="@AppRoles.Staff"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> برای پیگیری دارید.</p></Authorized></AuthorizeView>
     </div>
-    <a class="primary-button" href="/admin/calendar">مشاهده تقویم ←</a>
+    <a class="primary-button" href="@CalendarUrl()">مشاهده تقویم ←</a>
 </div>
 
 <div class="stat-cards">
-    <article><i class="purple">▦</i><div><small>نوبت‌های امروز</small><strong>@TodayAppointments.Count</strong></div></article>
-    <article><i class="green">✓</i><div><small>تکمیل‌شده امروز</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Completed)</strong></div></article>
-    <article><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)</strong></div></article>
-    <article><i class="blue">♧</i><div><small>کل نوبت‌ها</small><strong>@TotalAppointments</strong></div></article>
+    <a class="stat-card-link" href="@CalendarUrl()"><i class="purple">▦</i><div><small>نوبت‌های امروز</small><strong>@TodayAppointments.Count</strong></div></a>
+    <a class="stat-card-link" href="@CalendarUrl(AppointmentStatus.Completed)"><i class="green">✓</i><div><small>تکمیل‌شده امروز</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Completed)</strong></div></a>
+    <a class="stat-card-link" href="@CalendarUrl(AppointmentStatus.Pending)"><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)</strong></div></a>
+    <a class="stat-card-link" href="@CalendarUrl(allDates: true)"><i class="blue">♧</i><div><small>کل نوبت‌ها</small><strong>@TotalAppointments</strong></div></a>
 </div>
 
 <div class="dashboard-grid">
     <section class="admin-panel today-list">
-        <div class="panel-head"><div><h2>نوبت‌های امروز</h2><p>@LocalizedDate.Format(TodayDate, "fa")</p></div><a href="/admin/calendar">مشاهده تقویم ←</a></div>
+        <div class="panel-head"><div><h2>نوبت‌های امروز</h2><p>@LocalizedDate.Format(TodayDate, "fa")</p></div><a href="@CalendarUrl()">مشاهده تقویم ←</a></div>
 
         @if (TodayAppointments.Count == 0)
         {
@@ -37,23 +41,38 @@
                 <time>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa")<small>@((appointment.EndsAt - appointment.StartsAt).TotalMinutes.ToString("0")) دقیقه</small></time>
                 <i class="line @(appointment.Status == AppointmentStatus.Completed ? "done" : "")"></i>
                 <span class="customer-avatar rose">@CustomerInitials(appointment)</span>
-                <div><b>@CustomerName(appointment)</b><small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Name</small></div>
+                <div class="schedule-details">
+                    <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b>@CustomerName(appointment)</b></a>
+                    <small class="entity-meta">
+                        @foreach (var service in AppointmentServices(appointment))
+                        {
+                            <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)">@service.Name</a>
+                        }
+                        @if (appointment.Resource is not null)
+                        {
+                            <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")">@ResourceLabel(appointment)</a>
+                        }
+                        else { <span>بدون کارمند</span> }
+                        <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)">@appointment.Branch.Business.Name</a>
+                        <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a>
+                    </small>
+                </div>
                 <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                 @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
                 {
                     <div class="row-actions">
                         @if (appointment.Status == AppointmentStatus.Pending)
                         {
-                            <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
+                            <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
                         }
                         @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
                         {
-                            <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
-                            <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
+                            <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                            <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
                         }
                         else
                         {
-                            <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
+                            <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
                         }
                     </div>
                 }
@@ -85,6 +104,13 @@
     private List<Appointment> TodayAppointments = [];
     private int TotalAppointments;
     private string? Error;
+    private bool CanManageBusiness;
+    private bool IsPlatformAdmin;
+    private readonly CancellationTokenSource Lifetime = new();
+    private CancellationTokenSource? LoadCancellation;
+    private int LoadVersion;
+    private bool IsDisposed;
+    private readonly HashSet<Guid> UpdatingAppointments = [];
 
     private string Greeting
     {
@@ -101,38 +127,96 @@
 
     private async Task LoadAsync()
     {
-        Zone = await Access.DisplayZoneAsync();
-        TodayDate = BranchClock.Today(Zone);
-        var (dayStart, dayEnd) = BranchClock.DayWindow(TodayDate, Zone);
-
-        var appointments = await Access.AppointmentsAsync();
-
-        TodayAppointments = await appointments
-            .AsNoTracking()
-            .Include(a => a.Service)
-            .Include(a => a.Services).ThenInclude(x => x.Service)
-            .Include(a => a.Resource)
-            .Include(a => a.Branch)
-            .Include(a => a.Customer)
-            .Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd)
-            .OrderBy(a => a.StartsAt)
-            .ToListAsync();
-
-        TotalAppointments = await appointments.CountAsync();
+        if (IsDisposed) return;
+        var version = ++LoadVersion;
+        var previous = LoadCancellation;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Lifetime.Token);
+        LoadCancellation = cancellation;
+        previous?.Cancel();
+        var token = cancellation.Token;
+        try
+        {
+            var principal = await Access.PrincipalAsync();
+            token.ThrowIfCancellationRequested();
+            // Each operation owns its context; navigation can start another page while this awaits.
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var zone = await access.DisplayZoneAsync();
+            var today = BranchClock.Today(zone);
+            var (dayStart, dayEnd) = BranchClock.DayWindow(today, zone);
+            var appointments = await access.AppointmentsAsync();
+            var todayAppointments = await appointments
+                .AsNoTracking()
+                .Include(a => a.Service)
+                .Include(a => a.Services).ThenInclude(x => x.Service)
+                .Include(a => a.Resource)
+                .Include(a => a.Branch).ThenInclude(b => b.Business)
+                .Include(a => a.Customer)
+                .Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd)
+                .OrderBy(a => a.StartsAt)
+                .ToListAsync(token);
+            var totalAppointments = await appointments.CountAsync(token);
+            if (IsDisposed || version != LoadVersion) return;
+            Zone = zone;
+            TodayDate = today;
+            CanManageBusiness = AppRoles.BusinessManagers.Any(principal.IsInRole);
+            IsPlatformAdmin = principal.IsInRole(AppRoles.PlatformAdmin);
+            TodayAppointments = todayAppointments;
+            TotalAppointments = totalAppointments;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally
+        {
+            if (ReferenceEquals(LoadCancellation, cancellation)) LoadCancellation = null;
+        }
     }
 
     private async Task UpdateStatus(Guid appointmentId, AppointmentStatus status)
     {
-        Error = await Access.ChangeStatusAsync(appointmentId, status);
-        await LoadAsync();
+        if (IsDisposed || !UpdatingAppointments.Add(appointmentId)) return;
+        var token = Lifetime.Token;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var error = await access.ChangeStatusAsync(appointmentId, status);
+            if (IsDisposed) return;
+            Error = error;
+            await LoadAsync();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally { UpdatingAppointments.Remove(appointmentId); }
+    }
+
+    public void Dispose()
+    {
+        if (IsDisposed) return;
+        IsDisposed = true;
+        Lifetime.Cancel();
+        Lifetime.Dispose();
     }
 
     private static string CustomerName(Appointment appointment) =>
         string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
 
-    private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
-        ? appointment.Service.Name
-        : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
+    private string CalendarUrl(AppointmentStatus? status = null, bool allDates = false) =>
+        $"/admin/calendar?{(allDates ? "range=all" : $"date={TodayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}")}{(status is null ? "" : $"&status={status}")}";
+
+    private string EntityUrl(string path, string parameter, Guid id, string? calendarParameter = null) =>
+        CanManageBusiness ? $"{path}?{parameter}={id}" : $"{CalendarUrl()}&{calendarParameter ?? parameter}={id}";
+
+    private string ResourceUrl(Resource resource) => resource.Kind == "staff"
+        ? EntityUrl("/admin/team", "resourceId", resource.Id)
+        : EntityUrl("/admin/branches", "branchId", resource.BranchId);
+
+    private string BusinessUrl(Business business) => EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", business.Id);
+
+    private static IEnumerable<Service> AppointmentServices(Appointment appointment) =>
+        (appointment.Services.Count == 0 ? new[] { appointment.Service } : appointment.Services.Select(x => x.Service)).DistinctBy(x => x.Id);
+
+    private static string ResourceLabel(Appointment appointment) =>
+        TextSearch.Normalize(appointment.Resource?.Name) == TextSearch.Normalize(CustomerName(appointment))
+            ? "ارائه‌دهنده" : appointment.Resource?.Name ?? "بدون کارمند";
 
     private static string CustomerInitials(Appointment appointment)
     {

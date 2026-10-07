@@ -2,25 +2,46 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @inject AdminAccessScope Access
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+@implements IDisposable
+@using System.Globalization
 
 <PageTitle>تقویم نوبت‌ها | به‌نوبت</PageTitle>
 
-<div class="page-title"><div><h1>تقویم نوبت‌ها</h1><p>برنامه روزانه نوبت‌ها</p></div></div>
+<div class="page-title"><div><h1>تقویم نوبت‌ها</h1><p>برنامه نوبت‌ها و پیگیری وضعیت آن‌ها</p></div></div>
 
 <section class="admin-panel calendar-panel">
     <div class="calendar-toolbar">
         <div>
-            <button type="button" @onclick="() => ChangeDay(0)">امروز</button>
-            <button type="button" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
-            <button type="button" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
-            <h2>@LocalizedDate.Weekday(SelectedDate, "fa")، @LocalizedDate.Format(SelectedDate, "fa")</h2>
+            <button type="button" class="action-secondary" @onclick="() => ChangeDay(0)">امروز</button>
+            <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
+            <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
+            <h2>@(AllDates ? "همه تاریخ‌ها" : $"{LocalizedDate.Weekday(SelectedDate, "fa")}، {LocalizedDate.Format(SelectedDate, "fa")}")</h2>
         </div>
     </div>
+    <div class="calendar-filters filter-toolbar">
+        <label>بازه نمایش<select @bind="RangeFilter" @bind:after="UpdateFilters"><option value="day">روز انتخاب‌شده</option><option value="all">همه تاریخ‌ها</option></select></label>
+        <label>وضعیت<select @bind="StatusFilter" @bind:after="UpdateFilters"><option value="">همه وضعیت‌ها</option>@foreach (var status in Enum.GetValues<AppointmentStatus>()) { <option value="@status">@StatusLabel(status)</option> }</select></label>
+        <label>کسب‌وکار<select @bind="BusinessFilter" @bind:after="UpdateFilters"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }</select></label>
+        <span class="result-count">@LocalizedDate.FormatNumber(DayAppointments.Count, "fa") نوبت</span>
+    </div>
+    @if (HasEntityFilters)
+    {
+        <div class="filter-summary" aria-label="فیلترهای انتخاب‌شده">
+            @if (Guid.TryParse(CustomerQuery, out _)) { <span class="filter-chip">مشتری انتخاب‌شده<a href="@WithoutFilter("customerId")" aria-label="حذف فیلتر مشتری">×</a></span> }
+            @if (Guid.TryParse(ServiceQuery, out _)) { <span class="filter-chip">خدمت انتخاب‌شده<a href="@WithoutFilter("serviceId")" aria-label="حذف فیلتر خدمت">×</a></span> }
+            @if (Guid.TryParse(BranchQuery, out _)) { <span class="filter-chip">شعبه انتخاب‌شده<a href="@WithoutFilter("branchId")" aria-label="حذف فیلتر شعبه">×</a></span> }
+            @if (Guid.TryParse(ResourceQuery, out _)) { <span class="filter-chip">ارائه‌دهنده انتخاب‌شده<a href="@WithoutFilter("resourceId")" aria-label="حذف فیلتر ارائه‌دهنده">×</a></span> }
+            <button type="button" class="action-secondary" @onclick="ClearEntityFilters">پاک کردن فیلترهای جزئی</button>
+        </div>
+    }
     @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
 
     @if (DayAppointments.Count == 0)
     {
-        <p class="empty-state">برای این روز نوبتی ثبت نشده است.</p>
+        <p class="empty-state">با فیلترهای انتخاب‌شده نوبتی ثبت نشده است.</p>
     }
     else
     {
@@ -28,10 +49,25 @@
             @foreach (var appointment in DayAppointments)
             {
                 <article class="event-row @StatusCssClass(appointment.Status)" @key="appointment.Id">
-                    <time>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa") - @BranchClock.FormatTime(appointment.EndsAt, appointment.Branch.TimeZoneId, "fa")</time>
-                    <div>
-                        <b>@(string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email : appointment.Customer.DisplayName)</b>
-                        <small>@ServiceLabel(appointment) · @(appointment.Resource?.Name ?? "بدون کارمند") · @appointment.Branch.Business.Name · @appointment.Branch.Name</small>
+                    <time>
+                        @if (AllDates) { <small>@BranchClock.FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa")</small> }
+                        <bdi>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa") - @BranchClock.FormatTime(appointment.EndsAt, appointment.Branch.TimeZoneId, "fa")</bdi>
+                    </time>
+                    <div class="event-details">
+                        <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b>@CustomerName(appointment)</b></a>
+                        <small class="entity-meta">
+                            @foreach (var service in AppointmentServices(appointment))
+                            {
+                                <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)">@service.Name</a>
+                            }
+                            @if (appointment.Resource is not null)
+                            {
+                                <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")">@ResourceLabel(appointment)</a>
+                            }
+                            else { <span>بدون کارمند</span> }
+                            <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)">@appointment.Branch.Business.Name</a>
+                            <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a>
+                        </small>
                         <small>کد پیگیری: <bdi>@appointment.TrackingCode</bdi>@(string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber) ? "" : $" · ☎ {appointment.Customer.PhoneNumber}")</small>
                         @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small>توضیح مشتری: @appointment.CustomerNote</small> }
                     </div>
@@ -39,13 +75,13 @@
                     @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
                     {
                         <div class="row-actions">
-                            @if (appointment.Status == AppointmentStatus.Pending) { <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button> }
+                            @if (appointment.Status == AppointmentStatus.Pending) { <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button> }
                             @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
                             {
-                                <button type="button" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
-                                <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
+                                <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                                <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
                             }
-                            else { <button type="button" class="outline" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button> }
+                            else { <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button> }
                         </div>
                     }
                 </article>
@@ -55,52 +91,189 @@
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = "date")] public string? DateQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "range")] public string? RangeQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public string? BusinessQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "branchId")] public string? BranchQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "resourceId")] public string? ResourceQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "customerId")] public string? CustomerQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "serviceId")] public string? ServiceQuery { get; set; }
+
     // Blazor renders while DisplayZoneAsync is pending; start with a valid local date.
     private DateOnly SelectedDate = BranchClock.Today(null);
     private string? Zone;
     private string? Error;
     private List<Appointment> DayAppointments = [];
+    private List<Business> Businesses = [];
+    private string RangeFilter = "day";
+    private string StatusFilter = "";
+    private string BusinessFilter = "";
+    private bool CanManageBusiness;
+    private bool IsPlatformAdmin;
+    private readonly CancellationTokenSource Lifetime = new();
+    private CancellationTokenSource? LoadCancellation;
+    private int LoadVersion;
+    private bool IsDisposed;
+    private readonly HashSet<Guid> UpdatingAppointments = [];
+    private bool AllDates => RangeFilter == "all";
+    private bool HasEntityFilters => Guid.TryParse(CustomerQuery, out _) || Guid.TryParse(ServiceQuery, out _) || Guid.TryParse(BranchQuery, out _) || Guid.TryParse(ResourceQuery, out _);
 
     protected override async Task OnInitializedAsync()
     {
-        Zone = await Access.DisplayZoneAsync();
-        SelectedDate = BranchClock.Today(Zone);
+        if (IsDisposed) return;
+        var token = Lifetime.Token;
+        try
+        {
+            var principal = await Access.PrincipalAsync();
+            token.ThrowIfCancellationRequested();
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var zone = await access.DisplayZoneAsync();
+            var businesses = (await (await access.BranchesAsync()).AsNoTracking().Include(x => x.Business).ToListAsync(token))
+                .Select(x => x.Business).DistinctBy(x => x.Id).OrderBy(x => x.Name).ToList();
+            if (IsDisposed) return;
+            Zone = zone;
+            SelectedDate = BranchClock.Today(zone);
+            CanManageBusiness = AppRoles.BusinessManagers.Any(principal.IsInRole);
+            IsPlatformAdmin = principal.IsInRole(AppRoles.PlatformAdmin);
+            Businesses = businesses;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsDisposed) return;
+        SelectedDate = ParseSelectedDate(DateQuery, BranchClock.Today(Zone));
+        RangeFilter = RangeQuery == "all" ? "all" : "day";
+        StatusFilter = Enum.TryParse<AppointmentStatus>(StatusQuery, true, out var status) && Enum.IsDefined(status) ? status.ToString() : "";
+        BusinessFilter = Guid.TryParse(BusinessQuery, out var businessId) ? businessId.ToString() : "";
         await LoadAsync();
     }
 
-    private async Task ChangeDay(int offsetDays)
+    private static DateOnly ParseSelectedDate(string? value, DateOnly fallback) =>
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) &&
+        date >= new DateOnly(622, 3, 22) && date < DateOnly.MaxValue ? date : fallback;
+
+    private void ChangeDay(int offsetDays)
     {
-        SelectedDate = offsetDays == 0 ? BranchClock.Today(Zone) : SelectedDate.AddDays(offsetDays);
-        Error = null;
-        await LoadAsync();
+        var date = offsetDays == 0 ? BranchClock.Today(Zone) : SelectedDate.AddDays(offsetDays);
+        date = ParseSelectedDate(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), BranchClock.Today(Zone));
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["date"] = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), ["range"] = null,
+        }));
     }
+
+    private void UpdateFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["date"] = AllDates ? null : SelectedDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        ["range"] = AllDates ? "all" : null,
+        ["status"] = string.IsNullOrEmpty(StatusFilter) ? null : StatusFilter,
+        ["businessId"] = string.IsNullOrEmpty(BusinessFilter) ? null : BusinessFilter,
+    }));
+
+    private string WithoutFilter(string parameter) => Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> { [parameter] = null });
+
+    private void ClearEntityFilters() => Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+    {
+        ["customerId"] = null, ["serviceId"] = null, ["branchId"] = null, ["resourceId"] = null,
+    }));
 
     private async Task UpdateStatus(Guid id, AppointmentStatus status)
     {
-        Error = await Access.ChangeStatusAsync(id, status);
-        await LoadAsync();
+        if (IsDisposed || !UpdatingAppointments.Add(id)) return;
+        var token = Lifetime.Token;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var error = await access.ChangeStatusAsync(id, status);
+            if (IsDisposed) return;
+            Error = error;
+            await LoadAsync();
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally { UpdatingAppointments.Remove(id); }
     }
 
     private async Task LoadAsync()
     {
-        var (dayStart, dayEnd) = BranchClock.DayWindow(SelectedDate, Zone);
-
-        var appointments = await Access.AppointmentsAsync();
-        DayAppointments = await appointments
-            .AsNoTracking()
-            .Include(a => a.Service)
-            .Include(a => a.Services).ThenInclude(x => x.Service)
-            .Include(a => a.Resource)
-            .Include(a => a.Branch).ThenInclude(b => b.Business)
-            .Include(a => a.Customer)
-            .Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd)
-            .OrderBy(a => a.StartsAt)
-            .ToListAsync();
+        if (IsDisposed) return;
+        var version = ++LoadVersion;
+        var previous = LoadCancellation;
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Lifetime.Token);
+        LoadCancellation = cancellation;
+        previous?.Cancel();
+        var token = cancellation.Token;
+        try
+        {
+            // A previous route/filter load may still be running; never share its DbContext.
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var access = new AdminAccessScope(db, Authentication);
+            var appointments = await access.AppointmentsAsync();
+            var dayAppointments = await FilterAppointments(appointments)
+                .AsNoTracking()
+                .Include(a => a.Service)
+                .Include(a => a.Services).ThenInclude(x => x.Service)
+                .Include(a => a.Resource)
+                .Include(a => a.Branch).ThenInclude(b => b.Business)
+                .Include(a => a.Customer)
+                .OrderBy(a => a.StartsAt)
+                .ToListAsync(token);
+            if (IsDisposed || version != LoadVersion) return;
+            DayAppointments = dayAppointments;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally
+        {
+            if (ReferenceEquals(LoadCancellation, cancellation)) LoadCancellation = null;
+        }
     }
 
-    private static string ServiceLabel(Appointment appointment) => appointment.Services.Count == 0
-        ? appointment.Service.Name
-        : string.Join("، ", appointment.Services.Select(x => x.Service.Name));
+    public void Dispose()
+    {
+        if (IsDisposed) return;
+        IsDisposed = true;
+        Lifetime.Cancel();
+        Lifetime.Dispose();
+    }
+
+    private IQueryable<Appointment> FilterAppointments(IQueryable<Appointment> query)
+    {
+        if (!AllDates)
+        {
+            var (dayStart, dayEnd) = BranchClock.DayWindow(SelectedDate, Zone);
+            query = query.Where(a => a.StartsAt >= dayStart && a.StartsAt < dayEnd);
+        }
+        if (Enum.TryParse<AppointmentStatus>(StatusFilter, out var status) && Enum.IsDefined(status)) query = query.Where(a => a.Status == status);
+        if (Guid.TryParse(BusinessFilter, out var businessId)) query = query.Where(a => a.Branch.BusinessId == businessId);
+        if (Guid.TryParse(BranchQuery, out var branchId)) query = query.Where(a => a.BranchId == branchId);
+        if (Guid.TryParse(ResourceQuery, out var resourceId)) query = query.Where(a => a.ResourceId == resourceId);
+        if (Guid.TryParse(CustomerQuery, out var customerId)) query = query.Where(a => a.CustomerId == customerId);
+        if (Guid.TryParse(ServiceQuery, out var serviceId)) query = query.Where(a => a.ServiceId == serviceId || a.Services.Any(x => x.ServiceId == serviceId));
+        return query;
+    }
+
+    private string EntityUrl(string path, string parameter, Guid id, string? calendarParameter = null) =>
+        CanManageBusiness ? $"{path}?{parameter}={id}" : Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> { [calendarParameter ?? parameter] = id });
+
+    private string ResourceUrl(Resource resource) => resource.Kind == "staff"
+        ? EntityUrl("/admin/team", "resourceId", resource.Id)
+        : EntityUrl("/admin/branches", "branchId", resource.BranchId);
+
+    private string BusinessUrl(Business business) => EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", business.Id);
+
+    private static string CustomerName(Appointment appointment) =>
+        string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
+
+    private static IEnumerable<Service> AppointmentServices(Appointment appointment) =>
+        (appointment.Services.Count == 0 ? new[] { appointment.Service } : appointment.Services.Select(x => x.Service)).DistinctBy(x => x.Id);
+
+    private static string ResourceLabel(Appointment appointment) =>
+        TextSearch.Normalize(appointment.Resource?.Name) == TextSearch.Normalize(CustomerName(appointment))
+            ? "ارائه‌دهنده" : appointment.Resource?.Name ?? "بدون کارمند";
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {
@@ -117,6 +290,7 @@
         AppointmentStatus.Confirmed => "confirmed",
         AppointmentStatus.Completed => "done",
         AppointmentStatus.Cancelled => "cancelled",
+        AppointmentStatus.NoShow => "no-show",
         _ => "pending",
     };
 }

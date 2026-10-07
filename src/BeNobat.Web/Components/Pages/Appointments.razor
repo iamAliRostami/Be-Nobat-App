@@ -100,7 +100,7 @@
                 <div class="appointment-actions">
                     @if (BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
                     {
-                        <button type="button" class="outline" @onclick="() => AskCancel(appointment)">لغو نوبت</button>
+                        <button type="button" class="action-danger" @onclick="() => AskCancel(appointment)">لغو نوبت</button>
                     }
                     else if (BookingPolicy.IsActiveFuture(appointment, DateTimeOffset.UtcNow) && appointment.StartsAt > DateTimeOffset.UtcNow)
                     {
@@ -108,7 +108,7 @@
                     }
                     @if (BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow) && !ReviewedAppointmentIds.Contains(appointment.Id))
                     {
-                        <button type="button" @onclick="() => OpenReview(appointment)">ثبت نظر</button>
+                        <button type="button" class="action-secondary" @onclick="() => OpenReview(appointment)">ثبت نظر</button>
                     }
                     else if (BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow))
                     {
@@ -130,7 +130,7 @@
         <div class="form-modal" role="dialog" aria-modal="true" @onclick:stopPropagation>
             <div><h2>لغو نوبت</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseCancel">×</button></div>
             <p>نوبت «@ServiceLabel(Cancelling)» در @BranchClock.FormatDateTime(Cancelling.StartsAt, Cancelling.Branch.TimeZoneId, Language) لغو شود؟ این کار قابل بازگشت نیست.</p>
-            <button type="button" class="primary-button" disabled="@IsCancelling" @onclick="ConfirmCancel">@(IsCancelling ? "در حال لغو…" : "بله، لغو شود")</button>
+            <button type="button" class="action-danger" disabled="@IsCancelling" @onclick="ConfirmCancel">@(IsCancelling ? "در حال لغو…" : "بله، لغو شود")</button>
             <button type="button" class="outline-link" disabled="@IsCancelling" @onclick="CloseCancel">انصراف</button>
         </div>
     </div>

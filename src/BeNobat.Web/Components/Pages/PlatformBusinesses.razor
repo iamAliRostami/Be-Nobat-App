@@ -4,6 +4,7 @@
 @using System.Text
 @inject AppDbContext Db
 @inject UserManager<AppUser> UserManager
+@inject NavigationManager Navigation
 
 <PageTitle>مدیریت کل سامانه | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>مدیریت کسب‌وکارها</h1><p>نمای کلی تمام مستأجرها، شعب و وضعیت انتشار در سامانه.</p></div><button type="button" @onclick="NewBusiness">+ کسب‌وکار جدید</button></div>
@@ -11,25 +12,32 @@
 @if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
 
 <div class="stat-cards">
-    <article><i class="purple">▤</i><div><small>کسب‌وکارها</small><strong>@Items.Count</strong></div></article>
-    <article><i class="blue">⌖</i><div><small>شعب</small><strong>@Items.Sum(x => x.Branches.Count)</strong></div></article>
-    <article><i class="green">◇</i><div><small>خدمات فعال</small><strong>@Items.Sum(x => x.Services.Count)</strong></div></article>
-    <article><i class="orange">⊘</i><div><small>غیرفعال</small><strong>@Items.Count(x => x.DeletedAt is not null)</strong></div></article>
+    <a class="stat-card-link" href="/platform"><article><i class="purple">▤</i><div><small>کسب‌وکارها</small><strong>@Items.Count</strong></div></article></a>
+    <a class="stat-card-link" href="/admin/branches"><article><i class="blue">⌖</i><div><small>شعب</small><strong>@Items.Sum(x => x.Branches.Count)</strong></div></article></a>
+    <a class="stat-card-link" href="/businesses?status=active"><article><i class="green">◇</i><div><small>خدمات فعال</small><strong>@Items.Where(x => x.DeletedAt is null).Sum(x => x.Services.Count(y => y.DeletedAt is null))</strong></div></article></a>
+    <a class="stat-card-link" href="/platform?status=inactive"><article><i class="orange">⊘</i><div><small>غیرفعال</small><strong>@Items.Count(x => x.DeletedAt is not null)</strong></div></article></a>
 </div>
 
 <article class="admin-panel">
-    <div class="toolbar"><input placeholder="جست‌وجوی نام، دسته‌بندی یا شهر..." @bind="Query" @bind:event="oninput" /><span>@Filtered.Count() کسب‌وکار</span></div>
+    <div class="toolbar filter-toolbar">
+        <input aria-label="جست‌وجوی کسب‌وکار" placeholder="جست‌وجوی نام، دسته‌بندی یا شهر..." @bind="Query" @bind:event="oninput" />
+        <select aria-label="فیلتر دسته‌بندی کسب‌وکار" @bind="SelectedCategory"><option value="">همه دسته‌بندی‌ها</option>@foreach (var category in FilterCategories) { <option value="@category">@category</option> }</select>
+        <select aria-label="فیلتر شهر" @bind="SelectedCity"><option value="">همه شهرها</option>@foreach (var city in Cities) { <option value="@city">@city</option> }</select>
+        <select aria-label="فیلتر وضعیت کسب‌وکار" @bind="StatusFilter"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="inactive">تعلیق‌شده</option></select>
+        @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ResetFilters">پاک‌کردن فیلترها</button> }
+        <span>@Filtered.Count() کسب‌وکار</span>
+    </div>
     @if (!Filtered.Any()) { <p class="empty-state">کسب‌وکاری پیدا نشد.</p> }
     <div class="service-table platform-table">
         <div class="table-head"><span>کسب‌وکار</span><span>شهر</span><span>شعب</span><span>وضعیت</span><span></span></div>
         @foreach (var item in Filtered)
         {
             <div @key="item.Id">
-                <span><i class="purple">▤</i><b>@item.Name<small>@item.Category · /@item.Slug · @(item.RequiresApproval ? "نیازمند تأیید نوبت" : "تأیید خودکار")</small></b></span>
-                <span>@item.City</span>
-                <span>@item.Branches.Count@(item.Branches.Count == 0 ? " (بدون شعبه؛ در سایت نمایش داده نمی‌شود)" : "")</span>
+                <span><i class="purple">▤</i><b><a class="entity-link" href="@($"/platform?businessId={item.Id}")">@item.Name</a><small><a class="entity-link" href="@($"/platform?category={Uri.EscapeDataString(item.Category)}")">@item.Category</a> · /@item.Slug · @(item.RequiresApproval ? "نیازمند تأیید نوبت" : "تأیید خودکار")</small></b></span>
+                <span><a class="entity-link" href="@($"/platform?city={Uri.EscapeDataString(item.City)}")">@item.City</a></span>
+                <span><a class="entity-link" href="@($"/admin/branches?businessId={item.Id}")">@item.Branches.Count@(item.Branches.Count == 0 ? " (بدون شعبه؛ در سایت نمایش داده نمی‌شود)" : "")</a></span>
                 <span><em class="status @(item.DeletedAt is null ? "confirmed" : "cancelled")">@(item.DeletedAt is null ? "فعال" : "تعلیق")</em></span>
-                <span class="inline-actions"><button type="button" @onclick="() => Edit(item)">ویرایش</button><button type="button" @onclick="() => Toggle(item)">@(item.DeletedAt is null ? "تعلیق" : "فعال")</button></span>
+                <span class="inline-actions"><button type="button" class="action-secondary" @onclick="() => Edit(item)">ویرایش</button><button type="button" class="@(item.DeletedAt is null ? "action-danger" : "action-success")" @onclick="() => Toggle(item)">@(item.DeletedAt is null ? "تعلیق" : "فعال‌سازی")</button></span>
             </div>
         }
     </div>
@@ -67,17 +75,47 @@
     private List<Business> Items = [];
     private List<string> CategoryNames = [];
     [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? BusinessIdParam { get; set; }
+    [SupplyParameterFromQuery(Name = "category")] public string? CategoryParam { get; set; }
+    [SupplyParameterFromQuery(Name = "city")] public string? CityParam { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] public string? StatusParam { get; set; }
     private string Query = "";
+    private Guid? SelectedBusinessId;
+    private string SelectedCategory = "";
+    private string SelectedCity = "";
+    private string StatusFilter = "";
     private bool ShowForm;
     private Guid? EditingId;
     private BusinessInput Form = new();
     private string? Error;
     private string? Message;
 
-    private IEnumerable<Business> Filtered => Items.Where(x => $"{x.Name} {x.Category} {x.City}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<string> FilterCategories => CategoryNames.Concat(Items.Select(x => x.Category)).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Order();
+    private IEnumerable<string> Cities => Items.Select(x => x.City).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().Order();
+    private bool HasFilters => !string.IsNullOrWhiteSpace(Query) || SelectedBusinessId is not null || SelectedCategory != "" || SelectedCity != "" || StatusFilter != "";
+    private IEnumerable<Business> Filtered => Items.Where(x =>
+        (SelectedBusinessId is null || x.Id == SelectedBusinessId) &&
+        (SelectedCategory == "" || x.Category == SelectedCategory) &&
+        (SelectedCity == "" || x.City == SelectedCity) &&
+        (StatusFilter != "active" || x.DeletedAt is null) &&
+        (StatusFilter != "inactive" || x.DeletedAt is not null) &&
+        $"{x.Name} {x.Category} {x.City} {x.Slug}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync() => await Load();
-    protected override void OnParametersSet() { if (!string.IsNullOrWhiteSpace(QueryParam)) Query = QueryParam.Trim(); }
+    protected override void OnParametersSet()
+    {
+        Query = QueryParam?.Trim() ?? "";
+        SelectedBusinessId = BusinessIdParam;
+        SelectedCategory = CategoryParam ?? "";
+        SelectedCity = CityParam ?? "";
+        StatusFilter = StatusParam is "active" or "inactive" ? StatusParam : "";
+    }
+    private void ResetFilters()
+    {
+        Query = SelectedCategory = SelectedCity = StatusFilter = "";
+        SelectedBusinessId = null;
+        Navigation.NavigateTo("/platform");
+    }
 
     private async Task Load()
     {
