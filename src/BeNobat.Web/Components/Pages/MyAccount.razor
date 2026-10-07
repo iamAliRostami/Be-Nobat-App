@@ -11,19 +11,20 @@
 <div class="account-page">
     <AccountMenu UserId="@User?.Id" DisplayName="@User?.DisplayName" Email="@User?.Email"
                  AvatarContentType="@User?.AvatarContentType" ConcurrencyStamp="@User?.ConcurrencyStamp" />
-    <main class="account-content">
-<section class="profile-page">
+    <div class="account-content profile-account-content">
+<section class="profile-page" aria-labelledby="profile-heading">
     <div class="page-title">
-        <div><h1>اطلاعات حساب کاربری</h1><p>عکس، مشخصات تماس، ایمیل و نظرهای ثبت‌شده‌ی خود را مدیریت کنید.</p></div>
+        <div><h1 id="profile-heading">اطلاعات حساب کاربری</h1><p>عکس، مشخصات تماس، ایمیل و نظرهای ثبت‌شده‌ی خود را مدیریت کنید.</p></div>
     </div>
 
-    @if (Message is not null) { <div class="success-notice">@Message</div> }
-    @if (ErrorMessage is not null) { <div class="auth-error">@ErrorMessage</div> }
+    @if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
+    @if (ErrorMessage is not null) { <div class="auth-error" role="alert">@ErrorMessage</div> }
 
-    <div class="profile-grid">
+    <div class="profile-grid profile-columns">
+        <div class="profile-column profile-personal-column">
         @* [feature] تا پیش از این عکس پروفایل اصلاً وجود نداشت. *@
-        <article class="admin-panel profile-form">
-            <h2>عکس پروفایل</h2>
+        <article class="admin-panel profile-form profile-card profile-avatar-card" aria-labelledby="profile-avatar-heading">
+            <header class="profile-card-head"><h2 id="profile-avatar-heading">عکس پروفایل</h2></header>
             <div class="avatar-editor">
                 @if (User is not null && UserAvatar.Has(User))
                 {
@@ -33,65 +34,73 @@
                 {
                     <span class="avatar-preview placeholder">@UserAvatar.Initials(User?.DisplayName)</span>
                 }
-                <div>
-                    <label class="file-label">
-                        انتخاب عکس
-                        <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" />
-                    </label>
-                    <small>PNG، JPEG یا WebP؛ حداکثر ۲ مگابایت.</small>
-                    @if (User is not null && UserAvatar.Has(User))
-                    {
-                        <button type="button" class="action-danger" @onclick="RemoveAvatar">حذف عکس</button>
-                    }
+                <div class="profile-avatar-details">
+                    <div class="profile-avatar-actions">
+                        <label class="file-label">
+                            انتخاب عکس
+                            <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" />
+                        </label>
+                        @if (User is not null && UserAvatar.Has(User))
+                        {
+                            <button type="button" class="action-danger" @onclick="RemoveAvatar">حذف عکس</button>
+                        }
+                    </div>
+                    <small class="profile-help">PNG، JPEG یا WebP؛ حداکثر ۲ مگابایت.</small>
                 </div>
             </div>
         </article>
 
-        <EditForm Model="Profile" FormName="account-profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form">
-            <h2>مشخصات من</h2>
-            <label>نام و نام خانوادگی<input @bind="Profile.DisplayName" /></label>
-            <label>شماره تماس<input inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
-            <button class="primary-button">ذخیره تغییرات</button>
+        <EditForm Model="Profile" FormName="account-profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form profile-card profile-contact-card" aria-labelledby="profile-contact-heading">
+            <header class="profile-card-head"><h2 id="profile-contact-heading">مشخصات من</h2></header>
+            <div class="profile-fields">
+                <label>نام و نام خانوادگی<input autocomplete="name" @bind="Profile.DisplayName" /></label>
+                <label>شماره تماس<input type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
+            </div>
+            <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">ذخیره تغییرات</button></div>
         </EditForm>
 
+        <article class="admin-panel profile-form profile-card profile-review-card" aria-labelledby="profile-review-heading">
+            <header class="profile-card-head"><h2 id="profile-review-heading">امتیاز و نظر</h2></header>
+            <p>پس از پایان هر نوبت، از صفحه‌ی «نوبت‌های من» می‌توانید امتیاز و نظر خود را ثبت کنید.</p>
+            <a class="entity-link profile-review-link" href="/appointments">رفتن به نوبت‌های من <span aria-hidden="true">←</span></a>
+            @* [feature] امتیازی که مجموعه‌ها به شما داده‌اند هم نمایش داده می‌شود. *@
+            @if (ReceivedRating is not null)
+            {
+                <div class="profile-rating-summary">
+                    <span class="profile-rating-mark" aria-hidden="true">★</span>
+                    <div><span>امتیاز شما به‌عنوان مراجعه‌کننده</span><strong>@LocalizedDate.FormatNumber(ReceivedRating.Value, "fa", "0.0") از ۵</strong><small>بر اساس @LocalizedDate.FormatNumber(ReceivedCount, "fa") ارزیابی مجموعه‌ها</small></div>
+                </div>
+            }
+        </article>
+        </div>
+
+        <div class="profile-column profile-security-column">
         @* [feature] ایمیل قبلاً disabled بود و هیچ راهی برای تغییرش نبود.
            این فرم عمداً یک POST معمولی به سرور است (نه فرم تعاملی): تغییر ایمیل
            SecurityStamp را عوض می‌کند و باید همان‌جا با RefreshSignInAsync کوکی
            ورود تازه شود، وگرنه کاربر بعد از چند دقیقه از حساب بیرون می‌افتد. *@
-        <form method="post" action="/account/change-email" class="admin-panel profile-form">
+        <form method="post" action="/account/change-email" class="admin-panel profile-form profile-card profile-email-card" aria-labelledby="profile-email-heading">
             <AntiforgeryToken />
-            <h2>ایمیل حساب</h2>
-            <label>ایمیل<input name="email" type="email" required dir="ltr" value="@Profile.Email" /></label>
-            <small>پس از تغییر، برای ورود باید از ایمیل جدید استفاده کنید.</small>
-            <button type="submit" class="primary-button">تغییر ایمیل</button>
+            <header class="profile-card-head"><h2 id="profile-email-heading">ایمیل حساب</h2></header>
+            <div class="profile-fields"><label>ایمیل<input name="email" type="email" required autocomplete="email" dir="ltr" value="@Profile.Email" /></label></div>
+            <small class="profile-help">پس از تغییر، برای ورود باید از ایمیل جدید استفاده کنید.</small>
+            <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">تغییر ایمیل</button></div>
         </form>
 
-        <form method="post" action="/account/change-password" class="admin-panel profile-form">
+        <form method="post" action="/account/change-password" class="admin-panel profile-form profile-card profile-password-card" aria-labelledby="profile-password-heading">
             <AntiforgeryToken />
-            <h2>تغییر گذرواژه</h2>
-            <label>گذرواژه‌ی فعلی<input name="currentPassword" type="password" required autocomplete="current-password" dir="ltr" /></label>
-            <label>گذرواژه‌ی جدید<input name="newPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
-            <label>تکرار گذرواژه‌ی جدید<input name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
-            <button type="submit" class="primary-button">تغییر گذرواژه</button>
+            <header class="profile-card-head"><h2 id="profile-password-heading">تغییر گذرواژه</h2></header>
+            <div class="profile-fields">
+                <label>گذرواژه‌ی فعلی<input name="currentPassword" type="password" required autocomplete="current-password" dir="ltr" /></label>
+                <label>گذرواژه‌ی جدید<input name="newPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
+                <label>تکرار گذرواژه‌ی جدید<input name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
+            </div>
+            <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">تغییر گذرواژه</button></div>
         </form>
-
-        <article class="admin-panel profile-form">
-            <h2>امتیاز و نظر</h2>
-            <p>پس از پایان هر نوبت، از صفحه‌ی «نوبت‌های من» می‌توانید امتیاز و نظر خود را ثبت کنید.</p>
-            <a class="primary-button" href="/appointments">رفتن به نوبت‌های من</a>
-        </article>
+        </div>
     </div>
-
-    @* [feature] امتیازی که مجموعه‌ها به شما داده‌اند هم نمایش داده می‌شود. *@
-    @if (ReceivedRating is not null)
-    {
-        <article class="admin-panel">
-            <h2>امتیاز شما به‌عنوان مراجعه‌کننده</h2>
-            <p class="empty-state">میانگین @ReceivedRating.Value.ToString("0.0") از ۵ بر اساس @ReceivedCount ارزیابی مجموعه‌ها.</p>
-        </article>
-    }
 </section>
-    </main>
+    </div>
 </div>
 
 @code {

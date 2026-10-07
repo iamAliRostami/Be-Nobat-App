@@ -104,7 +104,7 @@ else
                     @if (IsAuthenticated)
                     {
                         <label class="booking-note">شماره موبایل شما (برای هماهنگی مجموعه)
-                            <input class="booking-field" type="tel" inputmode="tel" autocomplete="tel-national" dir="ltr" maxlength="14" required placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="PhoneInput" @bind:event="oninput" />
+                            <input class="booking-field" type="tel" inputmode="tel" autocomplete="tel-national" dir="ltr" maxlength="14" required placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind:get="PhoneInput" @bind:set="UpdatePhoneInput" @bind:event="oninput" />
                         </label>
                     }
                     <label class="booking-note">توضیح برای مجموعه (اختیاری)
@@ -158,6 +158,7 @@ else
     private Guid? CurrentUserId;
     private string? ExistingPhone;
     private string PhoneInput = "";
+    private bool PhoneInputEdited;
     private string CustomerNote = "";
 
     private Business? Business;
@@ -230,11 +231,6 @@ else
         await using (var db = await DbFactory.CreateDbContextAsync())
         {
             Business = await db.Businesses.AsNoTracking().Include(x => x.Branches).FirstOrDefaultAsync(x => x.Id == BusinessId);
-            if (Business is not null && CurrentUserId is Guid uid)
-            {
-                ExistingPhone = await db.Users.AsNoTracking().Where(u => u.Id == uid).Select(u => u.PhoneNumber).FirstOrDefaultAsync();
-                PhoneInput = ExistingPhone ?? "";
-            }
         }
 
         if (Business is null) { IsLoading = false; return; }
@@ -328,7 +324,7 @@ else
         WindowStart = date;
         BuildDays();
         await LoadSlotsAsync();
-        if (Slots.Contains(slot)) { SelectedSlot = slot; Step = 3; }
+        if (Slots.Contains(slot)) { await RefreshContactPhoneAsync(); SelectedSlot = slot; Step = 3; }
         else { Step = 2; ErrorMessage = "زمانی که انتخاب کرده بودید دیگر خالی نیست؛ لطفاً زمان دیگری را انتخاب کنید."; }
     }
 
@@ -490,11 +486,34 @@ else
         return EligibleResources.FirstOrDefault(r => map.TryGetValue(r.Id, out var list) && list.Contains(slot));
     }
 
-    private Task NextFromStep2()
+    private async Task NextFromStep2()
     {
-        if (ProviderChoice.Length == 0) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return Task.CompletedTask; }
-        if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return Task.CompletedTask; }
-        ErrorMessage = null; TermsAccepted = false; Step = 3; return Task.CompletedTask;
+        if (ProviderChoice.Length == 0) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; return; }
+        if (SelectedSlot is null) { ErrorMessage = "یک زمان را انتخاب کنید."; return; }
+        await RefreshContactPhoneAsync();
+        ErrorMessage = null; TermsAccepted = false; Step = 3;
+    }
+
+    private async Task RefreshContactPhoneAsync()
+    {
+        if (CurrentUserId is not Guid userId) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var savedPhone = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.PhoneNumber).FirstOrDefaultAsync();
+        ApplyProfilePhone(savedPhone);
+    }
+
+    private void ApplyProfilePhone(string? savedPhone)
+    {
+        ExistingPhone = savedPhone;
+        // شماره‌ی حساب ممکن است در تب دیگری تغییر کرده باشد؛ فقط تا پیش از ویرایش
+        // این فیلد، تازه‌ترین مقدار حساب را به‌عنوان پیش‌فرض نمایش می‌دهیم.
+        if (!PhoneInputEdited) PhoneInput = savedPhone ?? "";
+    }
+
+    private void UpdatePhoneInput(string? value)
+    {
+        PhoneInput = value ?? "";
+        PhoneInputEdited = true;
     }
 
     private void BackToStep2() { ErrorMessage = null; TermsAccepted = false; Step = 2; }

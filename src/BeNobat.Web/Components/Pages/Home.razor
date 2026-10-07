@@ -76,14 +76,10 @@
         <div class="business-grid">
             @foreach (var business in Results)
             {
-                var accent = business.Category.Contains("دندان") ? "blue"
-                    : business.Category.Contains("ماساژ") || business.Category.Contains("تندرست") ? "green"
-                    : "rose";
-                var icon = business.Category.Contains("دندان") ? "✚" : business.Category.Contains("ماساژ") ? "♧" : "✦";
                 <BusinessCard @key="business.Id" Id="@business.Id" Name="@business.Name" Category="@business.Category" City="@business.City"
                               Location="@(business.Branches.FirstOrDefault()?.Address ?? business.City)"
                               Rating="@Rating(business)" ReviewCount="@business.Reviews.Count"
-                              Accent="@accent" Icon="@icon" ReturnUrl="@SearchReturnUrl"
+                              ReturnUrl="@SearchReturnUrl"
                               UserId="@CurrentUserId" IsFavorite="@FavoriteIds.Contains(business.Id)"
                               OnToggled="@(isFavorite => FavoriteChanged(business.Id, isFavorite))" />
             }

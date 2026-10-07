@@ -1,6 +1,8 @@
 using System.Reflection;
 using BeNobat.Web.Components.Pages;
 using BeNobat.Web.Domain;
+using BeNobat.Web.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace BeNobat.Web.Tests;
@@ -8,6 +10,46 @@ namespace BeNobat.Web.Tests;
 public sealed class BookingContactTests
 {
     private const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+
+    [Fact]
+    public void Final_step_prefills_the_saved_profile_mobile_and_refreshes_an_untouched_default()
+    {
+        var component = new Booking();
+
+        ApplyProfilePhone(component, "09121234567");
+        Assert.Equal("09121234567", Get(component, "PhoneInput"));
+        ApplyProfilePhone(component, "09351234567");
+
+        Assert.Equal("09351234567", Get(component, "PhoneInput"));
+        Assert.Equal("09351234567", Get(component, "ExistingPhone"));
+    }
+
+    [Theory]
+    [InlineData("09133333333")]
+    [InlineData("")]
+    public void Refreshing_the_saved_profile_does_not_replace_a_manually_edited_or_cleared_phone(string editedPhone)
+    {
+        var component = new Booking();
+        ApplyProfilePhone(component, "09121234567");
+        typeof(Booking).GetMethod("UpdatePhoneInput", PrivateInstance)!.Invoke(component, new object[] { editedPhone });
+
+        ApplyProfilePhone(component, "09351234567");
+
+        Assert.Equal(editedPhone, Get(component, "PhoneInput"));
+        Assert.Equal("09351234567", Get(component, "ExistingPhone"));
+    }
+
+    [Fact]
+    public async Task Guest_final_step_does_not_read_or_prefill_an_account_phone()
+    {
+        var component = new Booking();
+        typeof(Booking).GetProperty("DbFactory", PrivateInstance)!.SetValue(component, new UnexpectedContextFactory());
+
+        await (Task)typeof(Booking).GetMethod("RefreshContactPhoneAsync", PrivateInstance)!.Invoke(component, null)!;
+
+        Assert.Equal("", Get(component, "PhoneInput"));
+        Assert.Null(Get(component, "ExistingPhone"));
+    }
 
     [Theory]
     [InlineData("")]
@@ -46,4 +88,14 @@ public sealed class BookingContactTests
 
     private static object? Get(Booking component, string field) =>
         typeof(Booking).GetField(field, PrivateInstance)!.GetValue(component);
+
+    private static void ApplyProfilePhone(Booking component, string? phone) =>
+        typeof(Booking).GetMethod("ApplyProfilePhone", PrivateInstance)!.Invoke(component, new object?[] { phone });
+
+    private sealed class UnexpectedContextFactory : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() => throw new InvalidOperationException("Guests must not load an account phone.");
+        public Task<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Guests must not load an account phone.");
+    }
 }

@@ -2,7 +2,7 @@
 @inject NavigationManager Navigation
 
 <article class="business-card">
-    <div class="business-cover @Accent"><span>@Icon</span><button class="favorite-button @(IsFavorite ? "active" : "")" aria-label="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" aria-pressed="@(IsFavorite ? "true" : "false")" title="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" type="button" @onclick="ToggleFavorite"><svg viewBox="0 0 24 24" width="17" height="17" fill="@(IsFavorite ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><small><a class="business-category-link" href="@CategoryUrl" aria-label="@($"مشاهده کسب‌وکارهای دسته‌بندی {Category}")">@Category</a></small></div>
+    <div class="business-cover @CoverAccent"><span aria-hidden="true">@CoverIcon</span><button class="favorite-button @(IsFavorite ? "active" : "")" aria-label="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" aria-pressed="@(IsFavorite ? "true" : "false")" title="@(IsFavorite ? "حذف از علاقه‌مندی‌ها" : "افزودن به علاقه‌مندی‌ها")" type="button" @onclick="ToggleFavorite"><svg viewBox="0 0 24 24" width="17" height="17" fill="@(IsFavorite ? "currentColor" : "none")" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><small><a class="business-category-link" href="@CategoryUrl" aria-label="@($"مشاهده کسب‌وکارهای دسته‌بندی {Category}")">@Category</a></small></div>
     <div class="business-card-body">
         <div class="business-name">
             <div><h3><a class="entity-link" href="/business/@Id">@Name</a></h3><p>⌖ @Location@(string.IsNullOrWhiteSpace(City) ? "" : $"، {City}")</p></div>
@@ -28,7 +28,7 @@
     [Parameter] public string Rating { get; set; } = "";
     [Parameter] public int ReviewCount { get; set; }
     [Parameter] public string Accent { get; set; } = "";
-    [Parameter] public string Icon { get; set; } = "✦";
+    [Parameter] public string Icon { get; set; } = "";
     [Parameter] public string? ReturnUrl { get; set; }
 
     /// <summary>شناسه‌ی کاربر واردشده (خالی برای مهمان). صفحه‌ی والد یک‌بار می‌خواند تا هر کارت جداگانه به دیتابیس نرود.</summary>
@@ -40,6 +40,16 @@
     [Parameter] public EventCallback<bool> OnToggled { get; set; }
 
     private bool busy;
+
+    private string CoverAccent => !string.IsNullOrWhiteSpace(Accent) ? Accent
+        : Category.Contains("دندان") ? "blue"
+        : Category.Contains("ماساژ") || Category.Contains("تندرست") ? "green"
+        : "rose";
+
+    private string CoverIcon => !string.IsNullOrWhiteSpace(Icon) ? Icon
+        : Category.Contains("دندان") ? "✚"
+        : Category.Contains("ماساژ") ? "♧"
+        : "✦";
 
     private string CategoryUrl => $"/?category={Uri.EscapeDataString(Category)}&city=#businesses";
 
