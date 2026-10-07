@@ -435,7 +435,7 @@ html[data-theme="dark"] .public-user-menu[open]>summary{background:#27463f}
    حالا SVG است و با grid دقیقاً وسط قرار می‌گیرد. */
 .business-cover button{display:grid;place-items:center;padding:0;line-height:0}
 .business-cover button svg{display:block}
-.business-cover .favorite-button.active{background:var(--primary);color:#fff}.business-cover .favorite-button:hover{transform:scale(1.08)}.favorites-page{min-height:60vh}.category-table.service-table .table-head,.category-table.service-table>div{grid-template-columns:2fr 1fr .6fr .8fr 1.2fr}.stat-cards .filter-card{cursor:pointer}.stat-cards .filter-card:hover,.stat-cards .filter-card.active{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 22px #146a5c18}
+.business-cover .favorite-button.active{background:var(--primary);color:#fff}.business-cover .favorite-button:hover{transform:scale(1.08)}.favorites-page{min-height:60vh}.favorites-page .business-card{display:block}.category-table.service-table .table-head,.category-table.service-table>div{grid-template-columns:2fr 1fr .6fr .8fr 1.2fr}.stat-cards .filter-card{cursor:pointer}.stat-cards .filter-card:hover,.stat-cards .filter-card.active{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 22px #146a5c18}
 
 /* [fix] مرحله‌ی دوم رزرو راه برگشت نداشت. */
 button.back-link{background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:11px;color:#758581}
