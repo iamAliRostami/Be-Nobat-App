@@ -11,22 +11,24 @@ namespace BeNobat.Web.Tests;
 
 public sealed class AdminDashboardTests
 {
-    [Fact]
-    public void Dashboard_date_can_be_formatted_while_access_scope_is_loading()
+    [Theory]
+    [InlineData(typeof(AdminDashboard), "TodayDate")]
+    [InlineData(typeof(AdminCalendar), "SelectedDate")]
+    public void Admin_date_can_be_formatted_while_access_scope_is_loading(Type componentType, string dateField)
     {
         using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql("Host=localhost;Database=unused").Options);
-        var dashboard = new AdminDashboard();
+        var component = Activator.CreateInstance(componentType)!;
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
-        typeof(AdminDashboard).GetProperty("Access", flags)!.SetValue(dashboard,
+        componentType.GetProperty("Access", flags)!.SetValue(component,
             new AdminAccessScope(db, new PendingAuthentication()));
 
-        var initialization = (Task)typeof(AdminDashboard)
-            .GetMethod("OnInitializedAsync", flags)!.Invoke(dashboard, null)!;
+        var initialization = (Task)componentType
+            .GetMethod("OnInitializedAsync", flags)!.Invoke(component, null)!;
         Assert.False(initialization.IsCompleted);
 
         // This is the value consumed by the first render, before DisplayZoneAsync completes.
-        var date = (DateOnly)typeof(AdminDashboard).GetField("TodayDate", flags)!.GetValue(dashboard)!;
+        var date = (DateOnly)componentType.GetField(dateField, flags)!.GetValue(component)!;
         Assert.NotEqual(DateOnly.MinValue, date);
         Assert.NotEmpty(LocalizedDate.Format(date, "fa"));
     }

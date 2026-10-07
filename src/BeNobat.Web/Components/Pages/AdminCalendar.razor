@@ -55,7 +55,8 @@
 </section>
 
 @code {
-    private DateOnly SelectedDate;
+    // Blazor renders while DisplayZoneAsync is pending; start with a valid local date.
+    private DateOnly SelectedDate = BranchClock.Today(null);
     private string? Zone;
     private string? Error;
     private List<Appointment> DayAppointments = [];
