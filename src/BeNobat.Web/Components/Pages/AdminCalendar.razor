@@ -18,7 +18,7 @@
             <button type="button" class="action-secondary" @onclick="() => ChangeDay(0)">امروز</button>
             <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
             <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
-            <h2>@(AllDates ? "همه تاریخ‌ها" : $"{LocalizedDate.Weekday(SelectedDate, "fa")}، {LocalizedDate.Format(SelectedDate, "fa")}")</h2>
+            <h2>@(AllDates ? "همه تاریخ‌ها" : $"{LocalizedDate.Weekday(SelectedDate, UiLocale.Language)}{(UiLocale.Language == "en" ? ", " : "، ")}{LocalizedDate.Format(SelectedDate, UiLocale.Language)}")</h2>
         </div>
     </div>
     <form class="calendar-search search-toolbar" @onsubmit="UpdateFilters" @onsubmit:preventDefault>
@@ -29,8 +29,8 @@
     <div class="calendar-filters filter-toolbar">
         <label>بازه نمایش<select @bind="RangeFilter" @bind:after="UpdateFilters"><option value="day">روز انتخاب‌شده</option><option value="all">همه تاریخ‌ها</option></select></label>
         <label>وضعیت<select @bind="StatusFilter" @bind:after="UpdateFilters"><option value="">همه وضعیت‌ها</option>@foreach (var status in Enum.GetValues<AppointmentStatus>()) { <option value="@status">@StatusLabel(status)</option> }</select></label>
-        <label>کسب‌وکار<select @bind="BusinessFilter" @bind:after="UpdateFilters"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }</select></label>
-        <span class="result-count">@LocalizedDate.FormatNumber(DayAppointments.Count, "fa") نوبت</span>
+        <label>کسب‌وکار<select @bind="BusinessFilter" @bind:after="UpdateFilters"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }</select></label>
+        <span class="result-count">@LocalizedDate.FormatNumber(DayAppointments.Count, UiLocale.Language) نوبت</span>
     </div>
     @if (HasEntityFilters)
     {
@@ -55,26 +55,26 @@
             {
                 <article class="event-row @StatusCssClass(appointment.Status)" @key="appointment.Id">
                     <time>
-                        @if (AllDates) { <small>@BranchClock.FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa")</small> }
-                        <bdi>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa") - @BranchClock.FormatTime(appointment.EndsAt, appointment.Branch.TimeZoneId, "fa")</bdi>
+                        @if (AllDates) { <small>@BranchClock.FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId, UiLocale.Language)</small> }
+                        <bdi>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, UiLocale.Language) - @BranchClock.FormatTime(appointment.EndsAt, appointment.Branch.TimeZoneId, UiLocale.Language)</bdi>
                     </time>
                     <div class="event-details">
-                        <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b>@CustomerName(appointment)</b></a>
+                        <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b data-i18n-skip>@CustomerName(appointment)</b></a>
                         <small class="entity-meta">
                             @foreach (var service in AppointmentServices(appointment))
                             {
-                                <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)">@service.Name</a>
+                                <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)" data-i18n-skip>@service.Name</a>
                             }
                             @if (appointment.Resource is not null)
                             {
-                                <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")">@ResourceLabel(appointment)</a>
+                                <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")" data-i18n-skip>@ResourceLabel(appointment)</a>
                             }
                             else { <span>بدون کارمند</span> }
-                            <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)">@appointment.Branch.Business.Name</a>
-                            <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a>
+                            <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)" data-i18n-skip>@appointment.Branch.Business.Name</a>
+                            <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a>
                         </small>
                         <small>کد پیگیری: <bdi>@appointment.TrackingCode</bdi>@(string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber) ? "" : $" · ☎ {appointment.Customer.PhoneNumber}")</small>
-                        @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small>توضیح مشتری: @appointment.CustomerNote</small> }
+                        @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small><span>توضیح مشتری:</span> <span data-i18n-skip>@appointment.CustomerNote</span></small> }
                     </div>
                     <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                     @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)

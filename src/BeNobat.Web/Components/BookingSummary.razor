@@ -1,8 +1,8 @@
 <aside class="booking-summary">
     <h3>خلاصه نوبت</h3>
-    <div class="summary-business"><i>✦</i><span><b>@BusinessName</b><small>@BranchName</small></span></div>
+    <div class="summary-business"><i>✦</i><span><b data-i18n-skip>@BusinessName</b><small data-i18n-skip>@BranchName</small></span></div>
     <dl>
-        <div><dt>خدمت</dt><dd>@(string.IsNullOrEmpty(ServiceName) ? "—" : ServiceName)</dd></div>
+        <div><dt>خدمت</dt><dd data-i18n-skip>@(string.IsNullOrEmpty(ServiceName) ? "—" : ServiceName)</dd></div>
         @if (Time is not null)
         {
             <div><dt>زمان</dt><dd>@Time</dd></div>

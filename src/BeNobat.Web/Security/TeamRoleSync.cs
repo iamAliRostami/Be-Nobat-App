@@ -38,8 +38,13 @@ public static class TeamRoleSync
         var toRemove = current.Where(r => TeamRoles.Contains(r) && r != target).ToList();
         var needsAdd = target is not null && !current.Contains(target);
 
-        if (toRemove.Count > 0) await users.RemoveFromRolesAsync(user, toRemove);
-        if (needsAdd) await users.AddToRoleAsync(user, target!);
-        if (toRemove.Count > 0 || needsAdd) await users.UpdateSecurityStampAsync(user);
+        if (toRemove.Count > 0) Ensure(await users.RemoveFromRolesAsync(user, toRemove));
+        if (needsAdd) Ensure(await users.AddToRoleAsync(user, target!));
+        if (toRemove.Count > 0 || needsAdd) Ensure(await users.UpdateSecurityStampAsync(user));
+    }
+
+    private static void Ensure(IdentityResult result)
+    {
+        if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
     }
 }

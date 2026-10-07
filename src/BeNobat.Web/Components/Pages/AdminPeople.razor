@@ -17,7 +17,7 @@
 
 <div class="page-title">
     <div><h1>@Title</h1><p>@(IsTeam ? "اعضای تیم، وضعیت حساب و سطح دسترسی آن‌ها" : "اطلاعات، سوابق و امتیاز مراجعه‌کنندگان")</p></div>
-    <button type="button" class="action-primary" @onclick="OpenAdd">+ @(IsTeam ? "افزودن عضو" : "افزودن مشتری")</button>
+    @if (IsTeam || IsPlatformAdmin) { <button type="button" class="action-primary" @onclick="OpenAdd">+ @(IsTeam ? "افزودن عضو" : "افزودن مشتری")</button> }
 </div>
 
 @* [fix] سوییچ بین دو فهرست حالا داخل خود صفحه هم هست و تب فعال مشخص است. *@
@@ -53,10 +53,10 @@
                 }
                 else
                 {
-                    <span class="customer-avatar purple">@UserAvatar.Initials(person.User.DisplayName)</span>
+                    <span class="customer-avatar purple" data-i18n-skip>@UserAvatar.Initials(person.User.DisplayName)</span>
                 }
                 <div>
-                    <b>@DisplayNameOf(person.User)</b>
+                    <b data-i18n-skip>@DisplayNameOf(person.User)</b>
                     <small class="person-contact"><span>✉ @person.User.Email</span><span>☎ @(string.IsNullOrWhiteSpace(person.User.PhoneNumber) ? "ثبت نشده" : person.User.PhoneNumber)</span><em class="status @(person.IsDisabled ? "cancelled" : "confirmed")">@(person.IsDisabled ? "غیرفعال" : "فعال")</em></small>
                 </div>
                 <em class="person-metrics">
@@ -80,10 +80,17 @@
                         }
                     }
                 </em>
-                <div class="inline-actions">
-                    <button type="button" class="action-secondary" @onclick="() => Edit(person)">ویرایش</button>
-                    <button type="button" class="@(person.IsDisabled ? "action-success" : "action-danger")" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
-                </div>
+                @if (IsPlatformAdmin)
+                {
+                    <div class="inline-actions">
+                        <button type="button" class="action-secondary" @onclick="() => Edit(person)">ویرایش</button>
+                        <button type="button" class="@(person.IsDisabled ? "action-success" : "action-danger")" @onclick="() => ToggleUser(person)">@(person.IsDisabled ? "فعال‌سازی" : "غیرفعال")</button>
+                    </div>
+                }
+                else if (IsTeam)
+                {
+                    <a class="entity-link" href="/admin/branches">مدیریت عضویت شعبه</a>
+                }
             </article>
         }
     </div>
@@ -106,7 +113,7 @@
                 <label>شعبه
                     <select required @bind="Form.BranchId">
                         <option value="">— انتخاب شعبه —</option>
-                        @foreach (var branch in ManagedBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }
+                        @foreach (var branch in ManagedBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Business.Name · @branch.Name</option> }
                     </select>
                 </label>
                 <label>نقش در شعبه
@@ -253,14 +260,14 @@
     {
         IsPlatformAdmin = await Access.IsPlatformAdminAsync();
         ManagedBranches = await (await Access.ManagedBranchesAsync()).Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
-        var scopeBranches = await (await Access.BranchesAsync()).AsNoTracking().Include(x => x.Memberships).Include(x => x.Resources).ToListAsync();
+        var scopeBranches = await (await Access.ManagedBranchesAsync()).AsNoTracking().Include(x => x.Memberships).Include(x => x.Resources).ToListAsync();
         VisibleResources = scopeBranches.SelectMany(b => b.Resources).ToList();
         TeamScopes = scopeBranches.SelectMany(b => b.Memberships.Select(m => new PersonScope(m.UserId, b.Id, b.BusinessId, null)))
             .Concat(scopeBranches.SelectMany(b => b.Resources.Where(r => r.UserId is not null).Select(r => new PersonScope(r.UserId!.Value, b.Id, b.BusinessId, r.Id)))).ToList();
         var appointments = await Access.AppointmentsAsync();
         CustomerScopes = await appointments.Select(a => new PersonScope(a.CustomerId, a.BranchId, a.Branch.BusinessId, a.ResourceId)).Distinct().ToListAsync();
         var allowedUserIds = TeamScopes.Concat(CustomerScopes).Select(x => x.UserId).Distinct().ToList();
-        var usersQuery = UserManager.Users.AsQueryable();
+        var usersQuery = UserManager.Users.AsNoTracking().AsQueryable();
         if (!IsPlatformAdmin) usersQuery = usersQuery.Where(x => allowedUserIds.Contains(x.Id));
         var users = await usersQuery.OrderBy(x => x.DisplayName).ToListAsync();
 
@@ -319,6 +326,11 @@
     private async Task Save()
     {
         Error = null;
+        if (!await Access.IsActiveUserAsync() || (!IsTeam && !await Access.IsPlatformAdminAsync())) { Error = "اجازه‌ی مدیریت حساب‌ها را ندارید."; return; }
+        if (string.IsNullOrWhiteSpace(Form.Name) || Form.Name.Trim().Length > 200 ||
+            string.IsNullOrWhiteSpace(Form.Email) || Form.Email.Trim().Length > 254 ||
+            !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(Form.Email.Trim()))
+        { Error = "نام و ایمیل معتبر الزامی است."; return; }
         if (!UserInputValidation.TryNormalizeIranianMobile(Form.Phone, out var phone))
         {
             Error = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
@@ -331,7 +343,7 @@
 
             if (IsTeam)
             {
-                if (Form.BranchId is not Guid selectedBranch || ManagedBranches.All(b => b.Id != selectedBranch))
+                if (Form.BranchId is not Guid selectedBranch || !await Access.CanManageBranchAsync(selectedBranch))
                 {
                     Error = "یک شعبه‌ی معتبر انتخاب کنید.";
                     return;
@@ -359,6 +371,7 @@
                 PhoneNumber = phone,
             };
 
+            await using var transaction = await Db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
             var password = $"Bn1!{Guid.NewGuid():N}"[..12];
             var result = await UserManager.CreateAsync(user, password);
             if (!result.Succeeded)
@@ -375,14 +388,17 @@
             }
             else
             {
-                await UserManager.AddToRoleAsync(user, AppRoles.Customer);
+                var roleResult = await UserManager.AddToRoleAsync(user, AppRoles.Customer);
+                if (!roleResult.Succeeded) { Error = string.Join("، ", roleResult.Errors.Select(e => e.Description)); return; }
             }
+            await transaction.CommitAsync();
             Message = $"حساب ساخته شد. رمز موقت: «{password}» — فقط همین یک‌بار نمایش داده می‌شود؛ آن را امن به کاربر بدهید.";
         }
         else
         {
             var user = await UserManager.FindByIdAsync(Editing.User.Id.ToString());
             if (user is null) return;
+            await Db.Entry(user).ReloadAsync();
             if (await IsProtectedAsync(user)) { Error = "اجازه‌ی ویرایش این کاربر را ندارید."; return; }
 
             user.DisplayName = Form.Name.Trim();
@@ -413,23 +429,27 @@
     {
         var user = await UserManager.FindByIdAsync(person.User.Id.ToString());
         if (user is null) return;
+        await Db.Entry(user).ReloadAsync();
         if (user.Id == await Access.UserIdAsync()) { Message = null; Error = "حساب خودتان را نمی‌توانید غیرفعال کنید."; return; }
         if (await IsProtectedAsync(user)) { Message = null; Error = "اجازه‌ی تغییر وضعیت این کاربر را ندارید."; return; }
+        if (await UserManager.IsInRoleAsync(user, AppRoles.PlatformAdmin)) { Error = "وضعیت مدیر سامانه را از بخش دسترسی سامانه مدیریت کنید."; return; }
         Error = null;
 
         user.LockoutEnabled = true;
         user.LockoutEnd = person.IsDisabled ? null : DateTimeOffset.MaxValue;
-        await UserManager.UpdateAsync(user);
+        var result = await UserManager.UpdateAsync(user);
+        if (!result.Succeeded) { Error = string.Join("، ", result.Errors.Select(e => e.Description)); return; }
+        var stampResult = await UserManager.UpdateSecurityStampAsync(user);
+        if (!stampResult.Succeeded) { Error = string.Join("، ", stampResult.Errors.Select(e => e.Description)); return; }
         await Load();
     }
 
     /// <summary>مدیر سامانه و مالکانی که کاربر جاری مالکشان نیست، توسط مدیران شعبه قابل دستکاری نیستند.</summary>
     private async Task<bool> IsProtectedAsync(AppUser target)
     {
-        if (await Access.IsPlatformAdminAsync()) return false;
-        if (await UserManager.IsInRoleAsync(target, AppRoles.PlatformAdmin)) return true;
-        var branchIds = ManagedBranches.Select(b => b.Id).ToList();
-        return await Access.TargetOutranksMeAsync(target.Id, branchIds);
+        // Identity profiles and lockout are global. A branch manager controls only
+        // memberships; changing a shared customer's account would affect tenants.
+        return !await Access.IsPlatformAdminAsync();
     }
 
     private void Close()

@@ -14,10 +14,10 @@
     }
     else
     {
-        <a class="back-link" href="/business/@BusinessId">→ بازگشت به @BusinessName</a>
+        <a class="back-link" href="/business/@BusinessId">→ بازگشت به <span data-i18n-skip>@BusinessName</span></a>
         <div class="page-title">
             <div>
-                <h1>نظرهای @BusinessName</h1>
+                <h1>نظرهای <span data-i18n-skip>@BusinessName</span></h1>
                 <p>@(Reviews.Count == 0 ? "هنوز نظری منتشر نشده است" : $"{Reviews.Count} نظر منتشرشده · میانگین {Average:0.0} از ۵")</p>
             </div>
             <a class="primary-button" href="/appointments">ثبت نظر برای نوبت‌های من</a>
@@ -27,11 +27,11 @@
             {
                 <article @key="review.Id">
                     <header>
-                        <div><b>@review.Author</b><small>@review.Date@(review.BranchName is null ? "" : $" · {review.BranchName}")</small></div>
+                        <div><b data-i18n-skip>@review.Author</b><small data-i18n-skip>@review.Date@(review.BranchName is null ? "" : $" · {review.BranchName}")</small></div>
                         <span class="stars" aria-label="@review.Rating از ۵">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span>
                     </header>
-                    @if (!string.IsNullOrWhiteSpace(review.Comment)) { <p>@review.Comment</p> }
-                    @if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: @review.Reply</blockquote> }
+                    @if (!string.IsNullOrWhiteSpace(review.Comment)) { <p data-i18n-skip>@review.Comment</p> }
+                    @if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.Reply</span></blockquote> }
                 </article>
             }
         </div>
@@ -73,7 +73,7 @@
                 x.ManagerReply,
                 string.IsNullOrWhiteSpace(x.Author) ? "کاربر" : x.Author,
                 x.BranchName,
-                BranchClock.FormatDate(x.CreatedAt, x.Zone, "fa"))).ToList();
+                BranchClock.FormatDate(x.CreatedAt, x.Zone, UiLocale.Language))).ToList();
         }
         Loaded = true;
     }

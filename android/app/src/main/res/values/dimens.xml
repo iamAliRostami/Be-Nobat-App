@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="button_corner_radius">24dp</dimen>
+    <dimen name="input_corner_radius">14dp</dimen>
+    <dimen name="card_corner_radius">28dp</dimen>
+    <dimen name="view_spacing">12dp</dimen>
+    <dimen name="form_input_margin">16dp</dimen>
+    <dimen name="header_text_size">32sp</dimen>
+
+    <dimen name="form_width">0dp</dimen>
+    <dimen name="form_width_percent">1.0</dimen>
+</resources>

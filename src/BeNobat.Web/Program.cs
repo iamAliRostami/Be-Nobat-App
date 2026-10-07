@@ -1,4 +1,6 @@
 using BeNobat.Web.Components;
+using BeNobat.Web.Api;
+using BeNobat.Web.Application;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using BeNobat.Web.Security;
@@ -6,6 +8,11 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using System.Text.Json.Serialization;
+using Npgsql;
 
 var resetDemo = args.Contains("--reset-demo", StringComparer.Ordinal);
 var seedDemo = resetDemo || args.Contains("--seed-demo", StringComparer.Ordinal);
@@ -45,6 +52,27 @@ builder.Services.AddHostedService<AppointmentMaintenanceService>();
 // Individual Accounts" template and is what actually works here.
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AdminAccessScope>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<UiLocale>();
+builder.Services.AddScoped<ApiScope>();
+builder.Services.AddScoped<MobileTokenService>();
+builder.Services.AddScoped<AppointmentBookingService>();
+builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("mobile-auth", http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 8, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true,
+        }));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.Headers.RetryAfter = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(new ApiError("rate_limited", "Too many attempts. Try again in a minute."), cancellationToken);
+    };
+});
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.ManagePlatform, policy => policy.RequireRole(AppRoles.PlatformAdmin))
     // مدیریت کل کسب‌وکار (خدمات، شعبه‌ها، تیم): فقط نقش‌های مدیریتی بالادستی.
@@ -69,6 +97,7 @@ builder.Services
     // (مثل "Username 'x' is already taken.") در فرم ثبت‌نام نمایش داده می‌شد.
     .AddErrorDescriber<PersianIdentityErrorDescriber>()
     .AddDefaultTokenProviders();
+builder.Services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, MobileBearerHandler>(MobileAuthentication.Scheme, _ => { });
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -113,12 +142,39 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.Use(async (http, next) =>
+{
+    if (!http.Request.Path.StartsWithSegments("/api/v1")) { await next(http); return; }
+    try { await next(http); }
+    catch (BadHttpRequestException ex) when (!http.Response.HasStarted)
+    {
+        http.Response.Clear(); http.Response.StatusCode = ex.StatusCode;
+        await http.Response.WriteAsJsonAsync(new ApiError("invalid_input", "The request body or parameters are invalid."));
+    }
+    catch (DbUpdateConcurrencyException) when (!http.Response.HasStarted)
+    {
+        http.Response.Clear(); http.Response.StatusCode = 409;
+        await http.Response.WriteAsJsonAsync(new ApiError("conflict", "The record changed. Refresh and try again."));
+    }
+    catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } && !http.Response.HasStarted)
+    {
+        http.Response.Clear(); http.Response.StatusCode = 409;
+        await http.Response.WriteAsJsonAsync(new ApiError("conflict", "This record already exists. Refresh and try again."));
+    }
+    catch (Exception ex) when (!http.Response.HasStarted)
+    {
+        app.Logger.LogError(ex, "API request failed for {Path}", http.Request.Path);
+        http.Response.Clear(); http.Response.StatusCode = 500;
+        await http.Response.WriteAsJsonAsync(new ApiError("server_error", "The request could not be completed."));
+    }
+});
 
 // [fix] UseAuthentication() was missing entirely, so no request ever had its auth
 // cookie validated into a signed-in ClaimsPrincipal -- every request looked
 // anonymous regardless of login state, which is why the admin panel could not
 // tell staff from the public and login had no visible effect.
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // [fix] UseAntiforgery() must run after UseAuthentication/UseAuthorization
@@ -126,9 +182,12 @@ app.UseAuthorization();
 // authorization when both are present).
 app.UseAntiforgery();
 
-app.MapPost("/account/logout", async (SignInManager<AppUser> signInManager, HttpRequest request) =>
+app.MapPost("/account/logout", async (SignInManager<AppUser> signInManager, HttpContext http, IAntiforgery antiforgery) =>
 {
+    try { await antiforgery.ValidateRequestAsync(http); }
+    catch (AntiforgeryValidationException) { return Results.BadRequest("Invalid antiforgery token."); }
     await signInManager.SignOutAsync();
+    var request = http.Request;
     var returnUrl = request.Form.TryGetValue("returnUrl", out var value) ? value.ToString() : "/";
     // LocalRedirect روی آدرس غیرمحلی exception می‌اندازد؛ ورودی را پیش از آن پاک‌سازی می‌کنیم.
     return Results.LocalRedirect(SafeRedirect.Local(returnUrl));
@@ -140,7 +199,8 @@ app.MapPost("/account/change-password", async (
     HttpContext http,
     IAntiforgery antiforgery,
     UserManager<AppUser> userManager,
-    SignInManager<AppUser> signInManager) =>
+    SignInManager<AppUser> signInManager,
+    AppDbContext db) =>
 {
     try
     {
@@ -151,13 +211,7 @@ app.MapPost("/account/change-password", async (
         return Results.LocalRedirect("/account/profile?passwordError=invalid");
     }
 
-    var user = await userManager.GetUserAsync(http.User);
-    if (user is null)
-    {
-        return Results.LocalRedirect("/account/login");
-    }
-
-    var form = await http.Request.ReadFormAsync();
+    var form = await http.Request.ReadFormAsync(http.RequestAborted);
     var currentPassword = form["currentPassword"].ToString();
     var newPassword = form["newPassword"].ToString();
     var confirmPassword = form["confirmPassword"].ToString();
@@ -172,16 +226,25 @@ app.MapPost("/account/change-password", async (
         return Results.LocalRedirect("/account/profile?passwordError=mismatch");
     }
 
-    var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
-    if (!result.Succeeded)
+    var result = await AccountCredentialChanges.ChangePasswordAsync(db, userManager, http.User,
+        currentPassword, newPassword, http.RequestAborted);
+    if (result.Failure == CredentialChangeFailure.SessionExpired)
     {
-        var wrongCurrent = result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.PasswordMismatch));
-        return Results.LocalRedirect(wrongCurrent
-            ? "/account/profile?passwordError=wrong"
-            : "/account/profile?passwordError=weak");
+        await signInManager.SignOutAsync();
+        return Results.LocalRedirect("/account/login");
+    }
+    if (!result.Success)
+    {
+        var error = result.Failure switch
+        {
+            CredentialChangeFailure.PasswordMismatch => "wrong",
+            CredentialChangeFailure.WeakPassword => "weak",
+            _ => "invalid",
+        };
+        return Results.LocalRedirect($"/account/profile?passwordError={error}");
     }
 
-    await signInManager.RefreshSignInAsync(user);
+    await signInManager.RefreshSignInAsync(result.User!);
     return Results.LocalRedirect("/account/profile?passwordChanged=1");
 }).RequireAuthorization();
 
@@ -194,7 +257,8 @@ app.MapPost("/account/change-email", async (
     HttpContext http,
     Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery,
     UserManager<AppUser> userManager,
-    SignInManager<AppUser> signInManager) =>
+    SignInManager<AppUser> signInManager,
+    AppDbContext db) =>
 {
     try
     {
@@ -205,40 +269,21 @@ app.MapPost("/account/change-email", async (
         return Results.LocalRedirect("/account/profile?emailError=invalid");
     }
 
-    var user = await userManager.GetUserAsync(http.User);
-    if (user is null)
+    var form = await http.Request.ReadFormAsync(http.RequestAborted);
+    var result = await AccountCredentialChanges.ChangeEmailAsync(db, userManager, http.User,
+        form["email"].ToString(), http.RequestAborted);
+    if (result.Failure == CredentialChangeFailure.SessionExpired)
     {
+        await signInManager.SignOutAsync();
         return Results.LocalRedirect("/account/login");
     }
+    if (!result.Success)
+        return Results.LocalRedirect(result.Failure == CredentialChangeFailure.DuplicateEmail
+            ? "/account/profile?emailError=duplicate"
+            : "/account/profile?emailError=invalid");
+    if (!result.Changed) return Results.LocalRedirect("/account/profile");
 
-    var email = http.Request.Form["email"].ToString().Trim();
-
-    if (string.IsNullOrWhiteSpace(email) || !email.Contains('@') || email.Length > 256)
-    {
-        return Results.LocalRedirect("/account/profile?emailError=invalid");
-    }
-
-    if (string.Equals(email, user.Email, StringComparison.OrdinalIgnoreCase))
-    {
-        return Results.LocalRedirect("/account/profile");
-    }
-
-    var existing = await userManager.FindByEmailAsync(email);
-    if (existing is not null && existing.Id != user.Id)
-    {
-        return Results.LocalRedirect("/account/profile?emailError=duplicate");
-    }
-
-    if (!(await userManager.SetEmailAsync(user, email)).Succeeded ||
-        !(await userManager.SetUserNameAsync(user, email)).Succeeded)
-    {
-        return Results.LocalRedirect("/account/profile?emailError=invalid");
-    }
-
-    user.EmailConfirmed = true;
-    await userManager.UpdateAsync(user);
-    await signInManager.RefreshSignInAsync(user);
-
+    await signInManager.RefreshSignInAsync(result.User!);
     return Results.LocalRedirect("/account/profile?emailChanged=1");
 }).RequireAuthorization();
 
@@ -269,6 +314,8 @@ app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellat
     // این شمارنده‌ها سراسری‌اند؛ برای پرسنل و مدیران یک کسب‌وکار نباید قابل مشاهده باشند.
     .RequireAuthorization(Policies.ManagePlatform);
 app.MapHealthChecks("/health");
+app.MapGroup("/api/v1").MapMobileAuthentication().MapPublicEndpoints().MapCustomerEndpoints().MapManagementEndpoints();
+app.MapFallback("/api/v1/{**path}", () => ApiResults.Error("not_found", "The requested API route was not found.", 404));
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();

@@ -17,10 +17,10 @@
     <div class="toolbar filter-toolbar availability-filters">
         <label>کسب‌وکار<select aria-label="فیلتر کسب‌وکار" @bind="BusinessFilter" @bind:after="BusinessFilterChanged">
             <option value="">همه کسب‌وکارها</option>
-            @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
+            @foreach (var business in Businesses) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }
         </select></label>
-        <label>شعبه<select aria-label="فیلتر شعبه" @bind="BranchFilter" @bind:after="BranchFilterChanged"><option value="">همه شعب</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Name</option> }</select></label>
-        <label>ارائه‌دهنده<select aria-label="فیلتر ارائه‌دهنده" @bind="ResourceFilter" @bind:after="UpdateFilters"><option value="">همه ارائه‌دهندگان</option>@foreach (var resource in FilterResources) { <option value="@resource.Id">@resource.Name</option> }</select></label>
+        <label>شعبه<select aria-label="فیلتر شعبه" @bind="BranchFilter" @bind:after="BranchFilterChanged"><option value="">همه شعب</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Name</option> }</select></label>
+        <label>ارائه‌دهنده<select aria-label="فیلتر ارائه‌دهنده" @bind="ResourceFilter" @bind:after="UpdateFilters"><option value="">همه ارائه‌دهندگان</option>@foreach (var resource in FilterResources) { <option value="@resource.Id" data-i18n-skip>@resource.Name</option> }</select></label>
     </div>
     <div class="availability-summary">
         <div class="availability-tabs">
@@ -43,9 +43,9 @@
                         <span class="availability-time"><bdi>@LocalTime(rule.StartsAt) تا @LocalTime(rule.EndsAt)</bdi></span>
                     </div>
                     <small class="availability-scope entity-meta">
-                        <a class="entity-link" href="@EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", rule.BusinessId)">@rule.Business.Name</a>
-                        @if (rule.Branch is not null) { <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", rule.Branch.Id)">@rule.Branch.Name</a> } else { <span>کل مجموعه</span> }
-                        @if (rule.Resource is not null) { <a class="entity-link" href="@ResourceUrl(rule.Resource)">@rule.Resource.Name</a> } else { <span>همه منابع</span> }
+                        <a class="entity-link" href="@EntityUrl(IsPlatformAdmin ? "/platform" : "/businesses", "businessId", rule.BusinessId)" data-i18n-skip>@rule.Business.Name</a>
+                        @if (rule.Branch is not null) { <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", rule.Branch.Id)" data-i18n-skip>@rule.Branch.Name</a> } else { <span>کل مجموعه</span> }
+                        @if (rule.Resource is not null) { <a class="entity-link" href="@ResourceUrl(rule.Resource)" data-i18n-skip>@rule.Resource.Name</a> } else { <span>همه منابع</span> }
                     </small>
                 </div>
                 <div class="availability-state"><em class="status @(rule.IsAvailable ? "confirmed" : "cancelled")">@(rule.IsAvailable ? "قابل رزرو" : "مسدود")</em>@if (BookedRuleIds.Contains(rule.Id)) { <em class="status pending">رزرو شده</em> } else { <em class="status done">بدون رزرو</em> }</div>
@@ -60,12 +60,12 @@
     <div class="modal-backdrop" @onclick="Close">
         <EditForm Model="Form" FormName="availability-rule" OnValidSubmit="Save" class="form-modal availability-form-modal" @onclick:stopPropagation>
             <div><h2>@(EditingId is null ? "بازه جدید" : "ویرایش بازه")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id">@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id">@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId" @bind:after="ResourceChanged"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id">@resource.Name</option>}</select></label></div>
+            <div class="availability-fields"><label>کسب‌وکار<select @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach(var business in Businesses){<option value="@business.Id" data-i18n-skip>@business.Name</option>}</select></label><label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@if (IsPlatformAdmin) { <option value="">کل مجموعه</option> }@foreach(var branch in AvailableBranches){<option value="@branch.Id" data-i18n-skip>@branch.Name</option>}</select></label><label>ارائه‌دهنده<select @bind="Form.ResourceId" @bind:after="ResourceChanged"><option value="">همه کارکنان شعبه</option>@foreach(var resource in AvailableResources){<option value="@resource.Id" data-i18n-skip>@resource.Name</option>}</select></label></div>
             @if (Form.BranchId is not null)
             {
                 <fieldset class="availability-services"><legend>@(Form.ResourceId is null ? "خدمات قابل ارائه توسط همه کارکنان" : "خدمات قابل ارائه توسط این کارمند")</legend>
                     @if (!AvailableServices.Any()) { <small>ابتدا یک خدمت فعال برای این شعبه تعریف کنید.</small> }
-                    @foreach (var service in AvailableServices) { <label class="check-label"><input type="checkbox" checked="@SelectedServiceIds.Contains(service.Id)" @onchange="() => ToggleService(service.Id)" /><span>@service.Name</span></label> }
+                    @foreach (var service in AvailableServices) { <label class="check-label"><input type="checkbox" checked="@SelectedServiceIds.Contains(service.Id)" @onchange="() => ToggleService(service.Id)" /><span data-i18n-skip>@service.Name</span></label> }
                     <small>@(Form.ResourceId is null ? "خدمات انتخاب‌شده به همه کارکنان شعبه تخصیص داده می‌شوند." : "کارمند فقط برای خدمات انتخاب‌شده در مرحله رزرو نمایش داده می‌شود.")</small>
                 </fieldset>
             }
@@ -132,11 +132,13 @@
     private IEnumerable<Resource> FilterResources => Resources.Where(x => FilterBranches.Any(b => b.Id == x.BranchId) && (!Guid.TryParse(BranchFilter, out var branchId) || x.BranchId == branchId));
     private bool HasFilters => BusinessFilter.Length > 0 || BranchFilter.Length > 0 || ResourceFilter.Length > 0;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadOptions();
+
+    private async Task LoadOptions()
     {
         IsPlatformAdmin = await Access.IsPlatformAdminAsync();
-        var branchQuery = await Access.BranchesAsync();
-        Branches = await branchQuery.Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
+        var branchQuery = await Access.ManagedBranchesAsync();
+        Branches = await branchQuery.AsNoTracking().Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
         var businessIds = Branches.Select(x => x.BusinessId).Distinct().ToList();
         Businesses = await Db.Businesses.Where(x => businessIds.Contains(x.Id)).OrderBy(x => x.Name).ToListAsync();
         var branchIds = Branches.Select(x => x.Id).ToList();
@@ -168,6 +170,8 @@
 
     private async Task LoadRules()
     {
+        // Circuit options are refreshed before applying URL filters or saving.
+        await LoadOptions();
         var branchIds = Branches.Select(x => x.Id).ToList();
         var businessIds = Businesses.Select(x => x.Id).ToList();
         var query = Db.AvailabilityRules.Include(x => x.Business).Include(x => x.Branch).Include(x => x.Resource)
@@ -279,35 +283,49 @@
 
     private async Task Save()
     {
+        Error = null;
+        await LoadOptions();
+        if (!await Access.CanManageAvailabilityAsync(Form.BusinessId, Form.BranchId, Form.ResourceId)) { Error = "اجازه‌ی مدیریت این برنامه کاری را ندارید."; return; }
+        if (EditingId is Guid editingId)
+        {
+            var original = await Db.AvailabilityRules.AsNoTracking().FirstOrDefaultAsync(r => r.Id == editingId);
+            if (original is null || !await Access.CanManageAvailabilityAsync(original.BusinessId, original.BranchId, original.ResourceId))
+            { Error = "اجازه‌ی ویرایش این برنامه کاری را ندارید."; return; }
+        }
         if (Form.BusinessId == Guid.Empty || Form.EndsAt <= Form.StartsAt || (!IsPlatformAdmin && Form.BranchId is null)) { Error = "بازه زمانی و شعبه انتخاب‌شده معتبر نیست."; return; }
-        if (Form.EffectiveDate < FormToday) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
+        if (Form.EffectiveDate < FormToday || (Form.EffectiveDate == FormToday && Form.StartsAt < TimeOnly.FromDateTime(CurrentLocalNow.DateTime))) { Error = "امکان تعریف یا ویرایش زمان خالی برای تاریخ گذشته وجود ندارد."; return; }
         if (Form.ResourceId is Guid resourceId && !AvailableResources.Any(x => x.Id == resourceId)) { Error = "کارمند باید متعلق به شعبه انتخاب‌شده باشد."; return; }
-        if (Form.BranchId is not null && (SelectedServiceIds.Count == 0 || SelectedServiceIds.Any(id => AvailableServices.All(x => x.Id != id)))) { Error = "حداقل یک خدمت فعال همین شعبه را برای ارائه‌دهنده انتخاب کنید."; return; }
+        if (Form.IsAvailable && Form.BranchId is not null && (SelectedServiceIds.Count == 0 || SelectedServiceIds.Any(id => AvailableServices.All(x => x.Id != id)))) { Error = "حداقل یک خدمت فعال همین شعبه را برای ارائه‌دهنده انتخاب کنید."; return; }
         if (Form.BranchId is not null && !AvailableResources.Any()) { Error = "برای این شعبه هنوز هیچ کارمندی تعریف نشده است."; return; }
-        if (Form.BranchId is Guid branchId && !await Access.CanAccessBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
+        if (Form.BranchId is Guid branchId && !await Access.CanManageBranchAsync(branchId)) { Error = "به این شعبه دسترسی ندارید."; return; }
         var duplicateOrOverlap = await Db.AvailabilityRules.AnyAsync(x =>
             x.Id != EditingId && x.BusinessId == Form.BusinessId && x.BranchId == Form.BranchId &&
-            x.ResourceId == Form.ResourceId && x.EffectiveDate == Form.EffectiveDate && x.DayOfWeek == Form.DayOfWeek &&
+            x.ResourceId == Form.ResourceId && x.EffectiveDate == Form.EffectiveDate && x.DayOfWeek == Form.EffectiveDate.DayOfWeek &&
             x.IsAvailable == Form.IsAvailable && x.StartsAt < Form.EndsAt && Form.StartsAt < x.EndsAt);
         if (duplicateOrOverlap) { Error = "برای این دامنه، کارمند و روز یک بازه هم‌پوشان از همین نوع قبلاً تعریف شده است."; return; }
-        var rule = EditingId is null ? new AvailabilityRule() : await Db.AvailabilityRules.FirstAsync(x => x.Id == EditingId);
+        var rule = EditingId is null ? new AvailabilityRule() : await Db.AvailabilityRules.FirstOrDefaultAsync(x => x.Id == EditingId);
+        if (rule is null) { Error = "برنامه کاری پیدا نشد."; return; }
+        if (EditingId is not null) await Db.Entry(rule).ReloadAsync();
         rule.BusinessId = Form.BusinessId; rule.BranchId = Form.BranchId; rule.ResourceId = Form.ResourceId; rule.EffectiveDate = Form.EffectiveDate; rule.DayOfWeek = Form.EffectiveDate.DayOfWeek;
         rule.StartsAt = Form.StartsAt; rule.EndsAt = Form.EndsAt; rule.IsAvailable = Form.IsAvailable;
         if (EditingId is null) Db.AvailabilityRules.Add(rule);
-        if (Form.ResourceId is Guid providerId)
+        rule.UpdatedAt = DateTimeOffset.UtcNow;
+        if (Form.IsAvailable && Form.ResourceId is Guid providerId)
         {
-            var existing = await Db.ServiceResources.Where(x => x.ResourceId == providerId).ToListAsync();
+            var existing = await Db.ServiceResources.IgnoreQueryFilters().Where(x => x.ResourceId == providerId).ToListAsync();
             Db.ServiceResources.RemoveRange(existing.Where(x => !SelectedServiceIds.Contains(x.ServiceId)));
+            foreach (var link in existing.Where(x => SelectedServiceIds.Contains(x.ServiceId))) { link.DeletedAt = null; link.UpdatedAt = DateTimeOffset.UtcNow; }
             var existingIds = existing.Select(x => x.ServiceId).ToHashSet();
             Db.ServiceResources.AddRange(SelectedServiceIds.Where(id => !existingIds.Contains(id))
                 .Select(id => new ServiceResource { ResourceId = providerId, ServiceId = id }));
         }
-        else if (Form.BranchId is not null)
+        else if (Form.IsAvailable && Form.BranchId is not null)
         {
             // A branch-wide availability interval applies to all staff, so the selected
             // qualifications must also be created for every staff resource in that branch.
             var staffIds = AvailableResources.Select(x => x.Id).ToList();
-            var existing = await Db.ServiceResources.Where(x => staffIds.Contains(x.ResourceId) && SelectedServiceIds.Contains(x.ServiceId)).ToListAsync();
+            var existing = await Db.ServiceResources.IgnoreQueryFilters().Where(x => staffIds.Contains(x.ResourceId) && SelectedServiceIds.Contains(x.ServiceId)).ToListAsync();
+            foreach (var link in existing) { link.DeletedAt = null; link.UpdatedAt = DateTimeOffset.UtcNow; }
             var existingPairs = existing.Select(x => (x.ResourceId, x.ServiceId)).ToHashSet();
             Db.ServiceResources.AddRange(staffIds.SelectMany(resourceId => SelectedServiceIds
                 .Where(serviceId => !existingPairs.Contains((resourceId, serviceId)))
@@ -316,7 +334,20 @@
         await Db.SaveChangesAsync(); Close(); await LoadRules();
     }
 
-    private async Task Remove(AvailabilityRule rule) { if (IsPast(rule)) return; PageMessage = BookedRuleIds.Contains(rule.Id) ? "این بازه نوبت فعال دارد؛ نوبت‌های موجود حفظ می‌شوند ولی زمان جدیدی از آن رزرو نخواهد شد." : null; Db.AvailabilityRules.Remove(rule); await Db.SaveChangesAsync(); await LoadRules(); }
+    private async Task Remove(AvailabilityRule rule)
+    {
+        var current = await Db.AvailabilityRules.FirstOrDefaultAsync(r => r.Id == rule.Id);
+        if (current is null) return;
+        await Db.Entry(current).ReloadAsync();
+        if (!await Access.CanManageAvailabilityAsync(current.BusinessId, current.BranchId, current.ResourceId))
+        { Error = "اجازه‌ی حذف این برنامه کاری را ندارید."; return; }
+        if (IsPast(current)) return;
+        PageMessage = BookedRuleIds.Contains(current.Id) ? "این بازه نوبت فعال دارد؛ نوبت‌های موجود حفظ می‌شوند ولی زمان جدیدی از آن رزرو نخواهد شد." : null;
+        current.DeletedAt = DateTimeOffset.UtcNow;
+        current.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        await LoadRules();
+    }
     private async Task LoadBookedRules()
     {
         BookedRuleIds = [];

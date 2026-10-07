@@ -240,18 +240,18 @@ html[data-theme="dark"]{
   --primary:#76D6C3;
   --on-primary:#00382F;
   --secondary:#235347;
-  --on-secondary:#3F2E00;
+  --on-secondary:#D7EDE3;
   --background:#0E1514;
   --surface:#17201E;
-  --on-surface:#DEE5E2;
-  --on-surface-variant:#AEBAB6;
-  --outline:#64726E;
+  --on-surface:#ECF2EF;
+  --on-surface-variant:#BBC9C3;
+  --outline:#82968E;
   --brand-mark-bg:#76D6C3;
   --brand-mark-fg:#063B33;
   --accent:#F2C66D;
   --error:#FFB4AB;
   --primary-container:#1E3B36;
-  --outline-soft:#2A3634;
+  --outline-soft:#3A4C45;
   --dark:#0B1211;
   background:var(--background);
 }
@@ -933,3 +933,46 @@ html[data-theme="dark"] .review-list blockquote{background:var(--primary-contain
   .content .people-list>article>em,.content .people-list>article>.inline-actions,.content .access-list article>.status{grid-column:2;justify-self:start}
   :is(.content,.appointments-main,.account-content) :is(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions,.review-list footer)>button{min-height:42px}
 }
+
+/* Dark surfaces retain the green palette and give secondary text and controls
+   sufficient contrast without repainting decorative business cover artwork. */
+html[data-theme="dark"]{
+  --surface-raised:#202D28;
+  --surface-input:#1D2725;
+}
+html[data-theme="dark"] :is(.public-brand strong,.public-header nav,.account-menu nav a,.tabs button,.auth-tabs a){color:var(--on-surface-variant)}
+html[data-theme="dark"] :is(.account-menu nav a.active,.auth-tabs a.active,.tabs b,.eyebrow,.quick-tags a,.slot-row a,.quick-panel i,.booking-title>span,.account-user>span,.avatar-preview.placeholder,.resource-chips>span){background:var(--primary-container);color:var(--primary);border-color:var(--outline-soft)}
+html[data-theme="dark"] :is(.account-menu nav a,.auth-tabs a,.quick-panel a):hover{background:var(--surface-raised);color:var(--on-surface)}
+html[data-theme="dark"] :is(.sidebar nav a:hover,.sidebar nav a.active,.sidebar-home,.booking-progress .done b,.service-option.selected>u,.business-cover .favorite-button.active){background:var(--primary);color:var(--on-primary)}
+html[data-theme="dark"] :is(.service-table .table-head,.membership-list>article,.tip-box,.success-details,.empty-state,.directory-meta>span){background:var(--surface-raised);color:var(--on-surface-variant);border-color:var(--outline-soft)}
+html[data-theme="dark"] :is(.salon-card,.floating-card){background:var(--surface);color:var(--on-surface);border:1px solid var(--outline-soft)}
+html[data-theme="dark"] :is(.business-name p,.score small,.slot-row small,.schedule-row div small,.schedule-row time small,.admin-welcome>span,.admin-welcome p,.success-card p,.appointment-info p,.appointment-info div,.appointment-date small,.booking-summary dt,.booking-summary>p,.date-strip span,.auth-switch,.back-link,.tip-box p,.steps p,.resource-chips small,.account-user small){color:var(--on-surface-variant)}
+html[data-theme="dark"] :is(.stat-cards i.purple,.customer-avatar.purple,.steps article i,.cat.consult){background:var(--primary-container);color:var(--primary)}
+html[data-theme="dark"] :is(.stat-cards i.green,.customer-avatar.green,.cat.sport,.next-slot>span,.success-icon,.steps article:nth-of-type(3) i){background:var(--action-success-bg);color:var(--action-success)}
+html[data-theme="dark"] :is(.stat-cards i.blue,.customer-avatar.blue,.cat.health){background:var(--action-confirm-bg);color:var(--action-confirm)}
+html[data-theme="dark"] :is(.stat-cards i.orange,.cat.repair){background:var(--action-warning-bg);color:var(--action-warning)}
+html[data-theme="dark"] :is(.customer-avatar.rose,.booking-logo,.service-option>i,.summary-business i,.confirmation-business>i,.cat.beauty){background:#402C38;color:#F0BCD7}
+html[data-theme="dark"] :is(.cat.education,.steps article:nth-of-type(2) i){background:#20383B;color:#B6E4E8}
+html[data-theme="dark"] :is(.slot-row strong,.appointment-info .confirmed,.time-title small,.stat-cards .up,.success-card>span){color:var(--action-success)}
+html[data-theme="dark"] .success-notice{background:var(--action-success-bg);color:var(--action-success);border-color:var(--action-success-border)}
+html[data-theme="dark"] .business-cover small{background:var(--surface);color:var(--on-surface-variant)}
+html[data-theme="dark"] .business-cover .favorite-button:not(.active){background:var(--surface);color:var(--primary)}
+html[data-theme="dark"] :is(.account-user,.tabs,.appointment-date,.booking-title,.booking-summary h3,.summary-total,.panel-head,.slot-row,.resource-chips,.service-table>div,.people-list>article,.availability-list>article,.access-list article,.review-list header,.review-list footer,.bars){border-color:var(--outline-soft)}
+html[data-theme="dark"] .booking-progress b{border-color:var(--outline);color:var(--on-surface-variant)}
+html[data-theme="dark"] .booking-progress .active b{border-color:var(--primary);color:var(--primary)}
+html[data-theme="dark"] .booking-progress i{background:var(--outline)}
+html[data-theme="dark"] .booking-progress .done+i{background:var(--primary)}
+html[data-theme="dark"] :is(input,select,textarea){caret-color:var(--primary)}
+html[data-theme="dark"] :is(input::placeholder,textarea::placeholder){color:var(--on-surface-variant);opacity:1}
+html[data-theme="dark"] :where(a,button,summary):focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+html[data-theme="dark"] :is(.cal-nav,.cal-foot button,.booking-back-button,.step-back){background:var(--surface-raised);color:var(--primary);border-color:var(--outline)}
+html[data-theme="dark"] .disabled-row{opacity:1;background:var(--background)}
+html[data-theme="dark"] .bars i{background:var(--primary-container)}
+html[data-theme="dark"] .bars i:nth-child(6){background:var(--primary)}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important}}
+html[data-theme="dark"] :is(.auth-card,.profile-form,.form-modal,.member-form,.booking-filters) label{color:var(--on-surface-variant)}
+html[data-theme="dark"] :is(.check-label,.event-row time,.booking-summary dt){color:var(--on-surface-variant)}
+html[data-theme="dark"] :is(.availability-tabs button.active,.sidebar nav a.active,.booking-progress .done b){color:var(--on-primary)}
+html[data-theme="dark"] .public-user-menu>div :is(a.active,a:hover,button:hover){background:var(--primary-container);color:var(--primary)}
+html[data-theme="dark"] .public-user-menu>summary .header-avatar{background:var(--primary-container);color:var(--primary)}
+html[data-theme="dark"] .steps article>b{color:var(--on-primary)}

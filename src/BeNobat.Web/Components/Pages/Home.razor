@@ -44,7 +44,7 @@
         @foreach (var category in Categories)
         {
             <a href="@CategoryUrl(category.Name)" aria-label="@($"مشاهده کسب‌وکارهای دسته‌بندی {category.Name}")">
-                <i class="cat @category.CssClass">@category.Icon</i><strong>@category.Name</strong>
+                <i class="cat @category.CssClass">@category.Icon</i><strong data-i18n-skip>@category.Name</strong>
             </a>
         }
     </div>
@@ -302,7 +302,7 @@
         await LoadFeaturedAsync();
     }
 
-    private static string Rating(Business business) => business.Reviews.Count == 0
+    private string Rating(Business business) => business.Reviews.Count == 0
         ? "—"
-        : LocalizedDate.FormatNumber(Math.Round(business.Reviews.Average(x => x.Rating), 1), "fa", "0.0");
+        : LocalizedDate.FormatNumber(Math.Round(business.Reviews.Average(x => x.Rating), 1), UiLocale.Language, "0.0");
 }

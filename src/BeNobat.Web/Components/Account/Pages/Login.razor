@@ -11,7 +11,7 @@
 <PageTitle>ورود | به‌نوبت</PageTitle>
 
 <div class="account-auth-page">
-    <EditForm Model="Input" FormName="login" OnValidSubmit="LoginUser" class="auth-card">
+    <EditForm Model="Input!" FormName="login" OnValidSubmit="LoginUser" class="auth-card">
         <DataAnnotationsValidator />
         <h1>ورود به حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو و مشاهده نوبت‌هایتان وارد شوید.</p>
@@ -27,16 +27,16 @@
         }
 
         <label>ایمیل
-            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" dir="ltr" />
+            <InputText @bind-Value="Input!.Email" type="email" autocomplete="username" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.Email" />
+        <ValidationMessage For="() => Input!.Email" />
 
         <label>رمز عبور
-            <InputText @bind-Value="Input.Password" type="password" autocomplete="current-password" dir="ltr" />
+            <InputText @bind-Value="Input!.Password" type="password" autocomplete="current-password" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.Password" />
+        <ValidationMessage For="() => Input!.Password" />
 
-        <label class="auth-remember"><InputCheckbox @bind-Value="Input.RememberMe" /> مرا به خاطر بسپار</label>
+        <label class="auth-remember"><InputCheckbox @bind-Value="Input!.RememberMe" /> مرا به خاطر بسپار</label>
 
         <button type="submit" class="primary-button auth-submit">ورود</button>
         <p class="auth-switch">حساب کاربری ندارید؟ <a href="@RegisterHref">ثبت‌نام کنید</a></p>
@@ -47,7 +47,9 @@
     private string? ErrorMessage;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -65,11 +67,11 @@
     private async Task LoginUser()
     {
         ErrorMessage = null;
-        var email = Input.Email.Trim();
+        var email = Input!.Email.Trim();
         var result = await SignInManager.PasswordSignInAsync(
             email,
-            Input.Password,
-            Input.RememberMe,
+            Input!.Password,
+            Input!.RememberMe,
             lockoutOnFailure: true);
 
         if (result.Succeeded)

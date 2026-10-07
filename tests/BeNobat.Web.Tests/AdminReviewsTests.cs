@@ -19,7 +19,7 @@ public sealed class AdminReviewsTests
 
     [Theory]
     [InlineData(AppRoles.Manager, true)]
-    [InlineData(AppRoles.PlatformAdmin, false)]
+    [InlineData(AppRoles.PlatformAdmin, true)]
     public async Task Editing_lookup_keeps_the_actual_authorization_query_and_targets_only_the_requested_id(
         string role, bool requiresMembership)
     {
@@ -37,6 +37,8 @@ public sealed class AdminReviewsTests
         Assert.Contains(evaluationId.ToString(), sql);
         Assert.Contains("\"Id\" =", sql);
         Assert.Contains("\"DeletedAt\" IS NULL", sql);
+        Assert.Contains("benobat.\"AspNetUserRoles\"", sql);
+        Assert.Contains("benobat.\"AspNetRoles\"", sql);
         if (requiresMembership)
         {
             Assert.Contains("benobat.\"BranchMemberships\"", sql);

@@ -51,33 +51,33 @@
                     <h3 class="appointment-service-links">
                         @if (appointment.Services.Count == 0)
                         {
-                            <a class="entity-link" href="/service/@appointment.ServiceId">@appointment.Service.Name</a>
+                            <a class="entity-link" href="/service/@appointment.ServiceId" data-i18n-skip>@appointment.Service.Name</a>
                         }
                         else
                         {
                             @foreach (var item in appointment.Services)
                             {
-                                <a class="entity-link" href="/service/@item.ServiceId">@item.Service.Name</a>
+                                <a class="entity-link" href="/service/@item.ServiceId" data-i18n-skip>@item.Service.Name</a>
                             }
                         }
                     </h3>
                     <p class="appointment-entity-links">
-                        <a class="entity-link" href="/business/@appointment.Branch.BusinessId">@appointment.Branch.Business.Name</a>
+                        <a class="entity-link" href="/business/@appointment.Branch.BusinessId" data-i18n-skip>@appointment.Branch.Business.Name</a>
                         <span aria-hidden="true">·</span>
-                        <a class="entity-link" href="/branch/@appointment.BranchId">@appointment.Branch.Name</a>
+                        <a class="entity-link" href="/branch/@appointment.BranchId" data-i18n-skip>@appointment.Branch.Name</a>
                         @if (appointment.Resource is not null)
                         {
-                            <span aria-hidden="true">·</span><a class="entity-link" href="/provider/@appointment.ResourceId">@appointment.Resource.Name</a>
+                            <span aria-hidden="true">·</span><a class="entity-link" href="/provider/@appointment.ResourceId" data-i18n-skip>@appointment.Resource.Name</a>
                         }
                     </p>
-                    <div><span>◷ ساعت @BranchClock.FormatTime(appointment.StartsAt, zone, Language) تا @BranchClock.FormatTime(appointment.EndsAt, zone, Language)</span><span>⌖ <a class="entity-link" href="/branch/@appointment.BranchId">@(string.IsNullOrWhiteSpace(appointment.Branch.Address) ? appointment.Branch.Name : appointment.Branch.Address)</a></span><span>💳 @LocalizedDate.FormatNumber(appointment.FinalPrice, Language, "N0") تومان</span><span>کد پیگیری: <bdi>@appointment.TrackingCode</bdi></span></div>
+                    <div><span>◷ ساعت @BranchClock.FormatTime(appointment.StartsAt, zone, Language) تا @BranchClock.FormatTime(appointment.EndsAt, zone, Language)</span><span>⌖ <a class="entity-link" href="/branch/@appointment.BranchId" data-i18n-skip>@(string.IsNullOrWhiteSpace(appointment.Branch.Address) ? appointment.Branch.Name : appointment.Branch.Address)</a></span><span>💳 @LocalizedDate.FormatNumber(appointment.FinalPrice, Language, "N0") تومان</span><span>کد پیگیری: <bdi>@appointment.TrackingCode</bdi></span></div>
                     @if (appointment.Status == AppointmentStatus.Pending)
                     {
                         <small class="appointment-hint">منتظر تأیید مجموعه است؛ پس از تأیید وضعیت اینجا تغییر می‌کند.</small>
                     }
                     @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote))
                     {
-                        <small class="appointment-hint">توضیح شما: @appointment.CustomerNote</small>
+                        <small class="appointment-hint">توضیح شما: <span data-i18n-skip>@appointment.CustomerNote</span></small>
                     }
                 </div>
                 <div class="appointment-actions">
@@ -199,12 +199,13 @@
     {
         await using var db = await DbFactory.CreateDbContextAsync();
         var appointments = await db.Appointments
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Include(a => a.Service)
             .Include(a => a.Services).ThenInclude(x => x.Service)
             .Include(a => a.Resource)
             .Include(a => a.Branch).ThenInclude(b => b.Business)
-            .Where(a => a.CustomerId == userId)
+            .Where(a => a.CustomerId == userId && a.DeletedAt == null)
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
 
@@ -246,9 +247,22 @@
         try
         {
             await using var db = await DbFactory.CreateDbContextAsync();
-            var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
-            if (appointment is null) { Cancelling = null; return; }
-            if (!BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
+            var principal = AuthStateTask is null ? null : (await AuthStateTask).User;
+            var session = UserContext.CurrentSessionUsers(db, principal);
+            if (UserContext.IdOf(principal) != userId || !await session.AnyAsync())
+            {
+                ActionError = "نشست شما منقضی شده است؛ دوباره وارد حساب شوید.";
+                Cancelling = null;
+                return;
+            }
+            var now = DateTimeOffset.UtcNow;
+            var cutoff = now.Add(BookingPolicy.CustomerCancellationNotice);
+            var changed = await db.Appointments.IgnoreQueryFilters()
+                .Where(a => a.Id == appointmentId && a.CustomerId == userId && a.DeletedAt == null && session.Any()
+                    && (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.StartsAt >= cutoff)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.Status, AppointmentStatus.Cancelled)
+                    .SetProperty(a => a.UpdatedAt, now));
+            if (changed == 0)
             {
                 ActionError = "لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است؛ برای موارد فوری با شعبه تماس بگیرید.";
                 Cancelling = null;
@@ -256,9 +270,6 @@
                 return;
             }
 
-            appointment.Status = AppointmentStatus.Cancelled;
-            appointment.UpdatedAt = DateTimeOffset.UtcNow;
-            await db.SaveChangesAsync();
             ActionError = null;
             ReviewMessage = "نوبت لغو شد.";
             Cancelling = null;
@@ -321,9 +332,16 @@
         try
         {
             await using var db = await DbFactory.CreateDbContextAsync();
+            var principal = AuthStateTask is null ? null : (await AuthStateTask).User;
+            if (UserContext.IdOf(principal) != userId || !await UserContext.CurrentSessionUsers(db, principal).AnyAsync())
+            {
+                ReviewError = "نشست شما منقضی شده است؛ دوباره وارد حساب شوید.";
+                return;
+            }
             var appointment = await db.Appointments
+                .IgnoreQueryFilters()
                 .Include(a => a.Branch)
-                .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId);
+                .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == userId && a.DeletedAt == null);
 
             // مقایسه‌ی زمان بیرون از SQL انجام می‌شود (timestamptz فقط UTC می‌پذیرد).
             if (appointment is null || !BookingPolicy.CanCustomerReview(appointment, DateTimeOffset.UtcNow))

@@ -5,6 +5,25 @@ namespace BeNobat.Web.Tests;
 
 public sealed class LocalizedDateTests
 {
+    [Theory]
+    [InlineData("fa")]
+    [InlineData("ar")]
+    public void Uninitialized_dates_never_crash_localized_rendering(string language)
+    {
+        Assert.Equal("—", LocalizedDate.Format(DateOnly.MinValue, language));
+        Assert.Equal(("—", "—"), LocalizedDate.DayAndMonth(DateOnly.MinValue, language));
+        var (year, month, day) = LocalizedDate.GetParts(DateOnly.MinValue, language);
+        Assert.Equal(LocalizedDate.MinSupported(language), LocalizedDate.FromParts(year, month, day, language));
+    }
+
+    [Fact]
+    public void Arabic_calendar_clamps_picker_but_does_not_mislabel_unsupported_dates()
+    {
+        Assert.Equal("—", LocalizedDate.Format(DateOnly.MaxValue, "ar"));
+        Assert.Equal(LocalizedDate.MaxSupported("ar"), LocalizedDate.Clamp(DateOnly.MaxValue, "ar"));
+        Assert.Equal("9999/12/31", LocalizedDate.Format(DateOnly.MaxValue, "en"));
+    }
+
     [Fact]
     public void Persian_parts_match_a_known_date()
     {

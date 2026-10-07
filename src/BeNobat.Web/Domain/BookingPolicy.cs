@@ -14,7 +14,7 @@ public static class BookingPolicy
     /// <summary>سقف نوبت‌های فعال (در انتظار/تأییدشده‌ی آینده) برای هر مشتری؛ مانع رزرو انبوه و بی‌مصرف.</summary>
     public const int MaxActiveAppointmentsPerCustomer = 10;
 
-    public static bool IsWithinHorizon(DateOnly date, DateOnly today) => date <= today.AddDays(MaxAdvanceDays);
+    public static bool IsWithinHorizon(DateOnly date, DateOnly today) => date >= today && date <= today.AddDays(MaxAdvanceDays);
 
     /// <summary>
     /// ماشین وضعیت نوبت: در انتظار ← تأیید/لغو؛ تأییدشده ← لغو؛ «تکمیل» و «عدم حضور» فقط بعد از
@@ -63,11 +63,7 @@ public static class BookingPolicy
 
     public static (DateTimeOffset Start, DateTimeOffset End) UtcDayWindow(DateOnly date, TimeZoneInfo zone)
     {
-        var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        var start = new DateTimeOffset(local, zone.GetUtcOffset(local)).ToUniversalTime();
-        var nextLocal = date.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        var end = new DateTimeOffset(nextLocal, zone.GetUtcOffset(nextLocal)).ToUniversalTime();
-        return (start, end);
+        return BranchClock.DayWindow(date, zone);
     }
 
     public static bool Overlaps(DateTimeOffset startsAt, DateTimeOffset endsAt,

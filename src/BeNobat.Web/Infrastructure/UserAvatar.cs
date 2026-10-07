@@ -13,6 +13,19 @@ public static class UserAvatar
 
     public static readonly string[] AllowedContentTypes = ["image/png", "image/jpeg", "image/webp"];
 
+    /// <summary>Validate the supported image signature against the declared type before storing untrusted bytes.</summary>
+    public static bool ValidImage(ReadOnlySpan<byte> bytes, string? contentType)
+    {
+        if (bytes.Length == 0 || bytes.Length > MaxBytes) return false;
+        return contentType?.Trim().ToLowerInvariant() switch
+        {
+            "image/png" => bytes.Length >= 8 && bytes[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }),
+            "image/jpeg" => bytes.Length >= 3 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255,
+            "image/webp" => bytes.Length >= 12 && bytes[..4].SequenceEqual("RIFF"u8) && bytes.Slice(8, 4).SequenceEqual("WEBP"u8),
+            _ => false,
+        };
+    }
+
     public static bool Has(AppUser? user) => !string.IsNullOrEmpty(user?.AvatarContentType);
 
     public static bool Has(string? contentType) => !string.IsNullOrEmpty(contentType);

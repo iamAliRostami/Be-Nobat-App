@@ -21,9 +21,9 @@
         <a class="back-link" href="/#businesses">→ بازگشت به فهرست کسب‌وکارها</a>
         <header class="directory-hero">
             <div class="directory-mark" aria-hidden="true">@Icon</div>
-            <div class="directory-heading"><span class="directory-kicker">@KindLabel</span><h1>@Title</h1><p>@Subtitle</p>
+            <div class="directory-heading"><span class="directory-kicker">@KindLabel</span><h1 data-i18n-skip>@Title</h1>@if (BusinessId is not null) { <p><span>@SubtitleCategory</span> · <span data-i18n-skip>@Subtitle</span></p> } else if (ProviderId is not null) { <p><span>ارائه‌دهنده در</span> <span data-i18n-skip>@Subtitle</span></p> } else { <p data-i18n-skip>@Subtitle</p> }
                 @if (Metadata.Count > 0) { <div class="directory-meta">@foreach (var value in Metadata) { <span>@value</span> }</div> }
-                @if (!string.IsNullOrWhiteSpace(Description)) { <p class="directory-description">@Description</p> }
+                @if (!string.IsNullOrWhiteSpace(Description)) { <p class="directory-description" data-i18n-skip>@Description</p> }
             </div>
             @if (BusinessIdForBooking is Guid businessId)
             {
@@ -35,31 +35,31 @@
         {
             <nav class="directory-breadcrumbs" aria-label="مسیر مرتبط">
                 <a href="/">صفحه اصلی</a>
-                @foreach (var link in ParentLinks) { <span class="directory-crumb"><span aria-hidden="true">/</span><a href="@link.Url" title="@link.Description">@link.Label</a></span> }
-                <span class="directory-crumb"><span aria-hidden="true">/</span><span aria-current="page">@Title</span></span>
+                @foreach (var link in ParentLinks) { <span class="directory-crumb"><span aria-hidden="true">/</span><a href="@link.Url" title="@link.Description" data-i18n-skip>@link.Label</a></span> }
+                <span class="directory-crumb"><span aria-hidden="true">/</span><span aria-current="page" data-i18n-skip>@Title</span></span>
             </nav>
         }
 
         <dl class="directory-stats">
-            @if (Services.Count > 0) { <div><dt>خدمات قابل رزرو</dt><dd>@LocalizedDate.FormatNumber(Services.Count, "fa")</dd></div> }
-            @if (Providers.Count > 0) { <div><dt>ارائه‌دهندگان</dt><dd>@LocalizedDate.FormatNumber(Providers.Count, "fa")</dd></div> }
-            @if (Branches.Count > 0) { <div><dt>شعب فعال</dt><dd>@LocalizedDate.FormatNumber(Branches.Count, "fa")</dd></div> }
-            <div><dt>نظرات منتشرشده</dt><dd>@LocalizedDate.FormatNumber(PublishedReviewCount, "fa")</dd></div>
+            @if (Services.Count > 0) { <div><dt>خدمات قابل رزرو</dt><dd>@LocalizedDate.FormatNumber(Services.Count, UiLocale.Language)</dd></div> }
+            @if (Providers.Count > 0) { <div><dt>ارائه‌دهندگان</dt><dd>@LocalizedDate.FormatNumber(Providers.Count, UiLocale.Language)</dd></div> }
+            @if (Branches.Count > 0) { <div><dt>شعب فعال</dt><dd>@LocalizedDate.FormatNumber(Branches.Count, UiLocale.Language)</dd></div> }
+            <div><dt>نظرات منتشرشده</dt><dd>@LocalizedDate.FormatNumber(PublishedReviewCount, UiLocale.Language)</dd></div>
         </dl>
 
         <div class="directory-grid">
             <div class="directory-content">
                 @if (Services.Count > 0)
                 {
-                    <section class="directory-panel" aria-labelledby="directory-services"><div class="panel-head"><div><h2 id="directory-services">خدمات</h2><p>@LocalizedDate.FormatNumber(Services.Count, "fa") خدمت قابل رزرو</p></div></div><div class="directory-links">@foreach (var item in Services) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">✦</span><span class="directory-item-copy"><b>@item.Label</b><small>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
+                    <section class="directory-panel" aria-labelledby="directory-services"><div class="panel-head"><div><h2 id="directory-services">خدمات</h2><p>@LocalizedDate.FormatNumber(Services.Count, UiLocale.Language) خدمت قابل رزرو</p></div></div><div class="directory-links">@foreach (var item in Services) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">✦</span><span class="directory-item-copy"><b data-i18n-skip>@item.Label</b><small>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
                 }
                 @if (Providers.Count > 0)
                 {
-                    <section class="directory-panel" aria-labelledby="directory-providers"><div class="panel-head"><div><h2 id="directory-providers">ارائه‌دهندگان</h2><p>@LocalizedDate.FormatNumber(Providers.Count, "fa") متخصص و عضو تیم</p></div></div><div class="directory-links">@foreach (var item in Providers) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">◎</span><span class="directory-item-copy"><b>@item.Label</b><small>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
+                    <section class="directory-panel" aria-labelledby="directory-providers"><div class="panel-head"><div><h2 id="directory-providers">ارائه‌دهندگان</h2><p>@LocalizedDate.FormatNumber(Providers.Count, UiLocale.Language) متخصص و عضو تیم</p></div></div><div class="directory-links">@foreach (var item in Providers) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">◎</span><span class="directory-item-copy"><b data-i18n-skip>@item.Label</b><small data-i18n-skip>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
                 }
                 @if (Branches.Count > 0)
                 {
-                    <section class="directory-panel" aria-labelledby="directory-branches"><div class="panel-head"><div><h2 id="directory-branches">شعب</h2><p>@LocalizedDate.FormatNumber(Branches.Count, "fa") شعبه فعال</p></div></div><div class="directory-links">@foreach (var item in Branches) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">⌖</span><span class="directory-item-copy"><b>@item.Label</b><small>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
+                    <section class="directory-panel" aria-labelledby="directory-branches"><div class="panel-head"><div><h2 id="directory-branches">شعب</h2><p>@LocalizedDate.FormatNumber(Branches.Count, UiLocale.Language) شعبه فعال</p></div></div><div class="directory-links">@foreach (var item in Branches) { <a href="@item.Url"><span class="directory-item-icon" aria-hidden="true">⌖</span><span class="directory-item-copy"><b data-i18n-skip>@item.Label</b><small data-i18n-skip>@item.Description</small></span><span class="directory-item-arrow" aria-hidden="true">←</span></a> }</div></section>
                 }
                 @if (Services.Count == 0 && Providers.Count == 0 && Branches.Count == 0)
                 {
@@ -68,15 +68,15 @@
             </div>
             <aside class="directory-panel directory-reviews" aria-labelledby="directory-reviews-title">
                 <div class="review-summary">
-                    <div><strong>@(PublishedReviewCount == 0 ? "—" : LocalizedDate.FormatNumber(Average, "fa", "0.0"))</strong><span class="stars" aria-hidden="true">@SummaryStars</span></div>
-                    <p>@(PublishedReviewCount == 0 ? "هنوز نظری منتشر نشده است" : $"میانگین امتیاز از ۵، بر پایه {LocalizedDate.FormatNumber(PublishedReviewCount, "fa")} نظر منتشرشده")</p>
+                    <div><strong>@(PublishedReviewCount == 0 ? "—" : LocalizedDate.FormatNumber(Average, UiLocale.Language, "0.0"))</strong><span class="stars" aria-hidden="true">@SummaryStars</span></div>
+                    <p>@(PublishedReviewCount == 0 ? "هنوز نظری منتشر نشده است" : $"میانگین امتیاز از ۵، بر پایه {LocalizedDate.FormatNumber(PublishedReviewCount, UiLocale.Language)} نظر منتشرشده")</p>
                 </div>
                 <h2 id="directory-reviews-title">امتیازها و نظرات</h2>
-                @if (PublishedReviewCount > Reviews.Count) { <p class="directory-review-limit">@LocalizedDate.FormatNumber(Reviews.Count, "fa") نظر اخیر</p> }
+                @if (PublishedReviewCount > Reviews.Count) { <p class="directory-review-limit">@LocalizedDate.FormatNumber(Reviews.Count, UiLocale.Language) نظر اخیر</p> }
                 @if (Reviews.Count == 0) { <p class="empty-state">هنوز نظری برای این مورد منتشر نشده است.</p> }
                 @foreach (var review in Reviews)
                 {
-                    <article><header><b>@review.Author</b><span class="stars" aria-label="@($"{LocalizedDate.FormatNumber(review.Rating, "fa")} از ۵ ستاره")">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span></header><small>@LocalizedDate.Format(DateOnly.FromDateTime(review.CreatedAt.UtcDateTime), "fa")</small><p>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: @review.Reply</blockquote> }</article>
+                    <article><header><b data-i18n-skip>@review.Author</b><span class="stars" aria-label="@($"{LocalizedDate.FormatNumber(review.Rating, UiLocale.Language)} از ۵ ستاره")">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span></header><small>@LocalizedDate.Format(DateOnly.FromDateTime(review.CreatedAt.UtcDateTime), UiLocale.Language)</small><p data-i18n-skip>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.Reply</span></blockquote> }</article>
                 }
             </aside>
         </div>
@@ -90,7 +90,7 @@
     [Parameter] public Guid? ServiceId { get; set; }
 
     private bool IsLoading = true, NotFound;
-    private string Title = "", Subtitle = "", Description = "", KindLabel = "", Icon = "✦";
+    private string Title = "", Subtitle = "", SubtitleCategory = "", Description = "", KindLabel = "", Icon = "✦";
     private Guid? BusinessIdForBooking;
     private string CurrentPath = "/";
     private string BookingQuery = "";
@@ -116,7 +116,7 @@
     protected override async Task OnParametersSetAsync()
     {
         IsLoading = true; NotFound = false; ParentLinks = []; Services = []; Providers = []; Branches = []; Reviews = []; Metadata = [];
-        Title = Subtitle = Description = KindLabel = BookingQuery = "";
+        Title = Subtitle = SubtitleCategory = Description = KindLabel = BookingQuery = "";
         BusinessIdForBooking = null; CurrentPath = "/"; PublishedReviewCount = 0; Average = 0;
         await using var db = await DbFactory.CreateDbContextAsync();
         if (BusinessId is Guid businessId) await LoadBusiness(db, businessId);
@@ -131,7 +131,7 @@
     {
         var item = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
-        Title = item.Name; Subtitle = $"{item.Category} · {item.City}"; Description = item.Description; KindLabel = "کسب‌وکار"; Icon = "ب"; BusinessIdForBooking = id; CurrentPath = $"/business/{id}";
+        Title = item.Name; SubtitleCategory = item.Category; Subtitle = item.City; Description = item.Description; KindLabel = "کسب‌وکار"; Icon = "ب"; BusinessIdForBooking = id; CurrentPath = $"/business/{id}";
         Branches = (await db.Branches.AsNoTracking().Where(x => x.BusinessId == id).OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Address, $"/branch/{x.Id}")).ToList();
         // فقط خدماتی که حداقل به یک شعبه متصل‌اند قابل رزروند.
         var services = await db.BranchServices.AsNoTracking().Include(x => x.Service)
@@ -146,7 +146,7 @@
     {
         var item = await db.Branches.AsNoTracking().Include(x => x.Business).FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
-        var hours = $"ساعت کاری {LocalizedDate.FormatNumber(item.OpenHour, "fa")}:۰۰ تا {LocalizedDate.FormatNumber(item.CloseHour, "fa")}:۰۰";
+        var hours = $"ساعت کاری {LocalizedDate.FormatNumber(item.OpenHour, UiLocale.Language)}:۰۰ تا {LocalizedDate.FormatNumber(item.CloseHour, UiLocale.Language)}:۰۰";
         Title = item.Name; Subtitle = string.IsNullOrWhiteSpace(item.Address) ? item.Business.Name : item.Address; Metadata = [hours]; KindLabel = "شعبه"; Icon = "⌖"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/branch/{id}";
         BookingQuery = $"&branch={id}";
         ParentLinks.Add(new(item.Business.Name, "مشاهده کسب‌وکار", $"/business/{item.BusinessId}"));
@@ -159,7 +159,7 @@
     {
         var item = await db.Resources.AsNoTracking().Include(x => x.Branch).ThenInclude(x => x.Business).FirstOrDefaultAsync(x => x.Id == id && x.Kind == "staff");
         if (item is null) { NotFound = true; return; }
-        Title = item.Name; Subtitle = $"ارائه‌دهنده در {item.Branch.Name} · {item.Branch.Business.Name}"; KindLabel = "ارائه‌دهنده"; Icon = "◎"; BusinessIdForBooking = item.Branch.BusinessId; CurrentPath = $"/provider/{id}";
+        Title = item.Name; Subtitle = $"{item.Branch.Name} · {item.Branch.Business.Name}"; KindLabel = "ارائه‌دهنده"; Icon = "◎"; BusinessIdForBooking = item.Branch.BusinessId; CurrentPath = $"/provider/{id}";
         BookingQuery = $"&branch={item.BranchId}&provider={id}";
         ParentLinks = [new(item.Branch.Business.Name, "کسب‌وکار", $"/business/{item.Branch.BusinessId}"), new(item.Branch.Name, "شعبه", $"/branch/{item.BranchId}")];
         var branchServices = await db.BranchServices.AsNoTracking().Include(x => x.Service).Where(x => x.BranchId == item.BranchId && x.Service.ServiceResources.Any(r => r.ResourceId == id)).OrderBy(x => x.Service.Name).ToListAsync();
@@ -193,8 +193,8 @@
             .ToListAsync();
     }
 
-    private static string ServiceMetadata(int duration, decimal price) =>
-        $"{LocalizedDate.FormatNumber(duration, "fa")} دقیقه · {LocalizedDate.FormatNumber(price, "fa", "N0")} تومان";
+    private string ServiceMetadata(int duration, decimal price) =>
+        $"{LocalizedDate.FormatNumber(duration, UiLocale.Language)} دقیقه · {LocalizedDate.FormatNumber(price, UiLocale.Language, "N0")} تومان";
 
     private sealed record LinkItem(string Label, string Description, string Url);
     private sealed record ReviewView(string Author, int Rating, DateTimeOffset CreatedAt, string Comment, string? Reply);

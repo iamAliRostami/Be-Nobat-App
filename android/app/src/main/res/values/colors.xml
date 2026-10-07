@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#146B5D</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+    <color name="colorSecondary">#8EB69B</color>
+    <color name="colorOnSecondary">#302400</color>
+    <color name="windowBackground">#F5F8F7</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorOnSurface">#17211F</color>
+    <color name="colorOnSurfaceVariant">#596562</color>
+    <color name="colorOutline">#B9C7C3</color>
+    <color name="brand_mark_background">#0B4F46</color>
+    <color name="brand_mark_foreground">#FFFFFF</color>
+    <color name="brand_accent">#F2B84B</color>
+    <color name="error_red">#BA1A1A</color>
+</resources>

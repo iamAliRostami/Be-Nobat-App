@@ -44,11 +44,11 @@
             </select>
             <select aria-label="کسب‌وکار" @bind="BusinessFilter" @bind:after="BusinessFilterChanged">
                 <option value="">همه کسب‌وکارها</option>
-                @foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }
+                @foreach (var business in Businesses) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }
             </select>
             <select aria-label="شعبه" @bind="BranchFilter">
                 <option value="">همه شعبه‌ها</option>
-                @foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }
+                @foreach (var branch in FilterBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Business.Name · @branch.Name</option> }
             </select>
             <span>@Filtered.Count() نظر</span>
             @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
@@ -59,11 +59,11 @@
             {
                 <article>
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", review.CustomerId)">@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(review.BusinessId)">@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", review.Branch.Id)">@review.Branch.Name</a></text> }</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", review.CustomerId)" data-i18n-skip>@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(review.BusinessId)" data-i18n-skip>@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", review.Branch.Id)" data-i18n-skip>@review.Branch.Name</a></text> }</small></div>
                         <span class="stars">@Stars(review.Rating)</span>
                     </header>
-                    <p>@review.Comment</p>
-                    @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: @review.ManagerReply</blockquote> }
+                    <p data-i18n-skip>@review.Comment</p>
+                    @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.ManagerReply</span></blockquote> }
                     <footer>
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
                         <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
@@ -81,8 +81,8 @@ else
         <div class="toolbar filter-toolbar">
             <input aria-label="جست‌وجوی ارزیابی مراجعه‌کنندگان" placeholder="جست‌وجوی نام، شماره تماس، کد پیگیری یا یادداشت..." @bind="Search" @bind:event="oninput" />
             <select aria-label="وضعیت ارزیابی" @bind="EvaluationFilter" @bind:after="UpdateFilterUrl"><option value="all">همه نوبت‌ها</option><option value="unreviewed">بدون ارزیابی</option><option value="reviewed">ارزیابی‌شده</option></select>
-            <select aria-label="کسب‌وکار ارزیابی" @bind="BusinessFilter" @bind:after="BusinessFilterChanged"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id">@business.Name</option> }</select>
-            <select aria-label="شعبه ارزیابی" @bind="BranchFilter" @bind:after="UpdateFilterUrl"><option value="">همه شعبه‌ها</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id">@branch.Business.Name · @branch.Name</option> }</select>
+            <select aria-label="کسب‌وکار ارزیابی" @bind="BusinessFilter" @bind:after="BusinessFilterChanged"><option value="">همه کسب‌وکارها</option>@foreach (var business in Businesses) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }</select>
+            <select aria-label="شعبه ارزیابی" @bind="BranchFilter" @bind:after="UpdateFilterUrl"><option value="">همه شعبه‌ها</option>@foreach (var branch in FilterBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Business.Name · @branch.Name</option> }</select>
             <span>@(FilteredPending.Count() + FilteredCustomerReviews.Count()) مورد</span>
             @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
         </div>
@@ -101,7 +101,7 @@ else
             {
                 <article @key="appointment.Id">
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", appointment.CustomerId)">@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", "serviceId", appointment.ServiceId)">@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", appointment.CustomerId)" data-i18n-skip>@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", "serviceId", appointment.ServiceId)" data-i18n-skip>@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
                     </header>
                     <small class="evaluation-tracking">کد پیگیری: <bdi>@appointment.TrackingCode</bdi> · @(appointment.Customer.PhoneNumber ?? "بدون شماره تماس")</small>
                     <footer>
@@ -129,11 +129,11 @@ else
             {
                 <article @key="item.Id">
                     <header>
-                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)">@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)">@item.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", item.Appointment.BranchId)">@item.Appointment.Branch.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)">@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, item.Appointment.Branch.TimeZoneId)</small></div>
+                        <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)" data-i18n-skip>@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)" data-i18n-skip>@item.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", item.Appointment.BranchId)" data-i18n-skip>@item.Appointment.Branch.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)" data-i18n-skip>@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, item.Appointment.Branch.TimeZoneId)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>
                     </header>
                     <small class="evaluation-tracking">کد پیگیری: <bdi>@item.Appointment.TrackingCode</bdi> · @(item.Customer.PhoneNumber ?? "بدون شماره تماس")</small>
-                    @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p>@item.Comment</p> }
+                    @if (!string.IsNullOrWhiteSpace(item.Comment)) { <p data-i18n-skip>@item.Comment</p> }
                     <footer><button type="button" class="action-secondary" disabled="@BusyIds.Contains(item.Id)" @onclick="() => EditCustomerReview(item)">ویرایش ارزیابی</button><button type="button" class="action-danger" disabled="@BusyIds.Contains(item.Id)" @onclick="() => DeleteCustomerReview(item)">حذف</button></footer>
                 </article>
             }

@@ -2,14 +2,16 @@
 @attribute [Authorize(Policy = Policies.ManagePlatform)]
 @rendermode InteractiveServer
 @using System.Text
-@inject AppDbContext Db
-@inject UserManager<AppUser> UserManager
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject AdminAccessScope Access
 @inject NavigationManager Navigation
 
 <PageTitle>مدیریت کل سامانه | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>مدیریت کسب‌وکارها</h1><p>نمای کلی تمام مستأجرها، شعب و وضعیت انتشار در سامانه.</p></div><button type="button" @onclick="NewBusiness">+ کسب‌وکار جدید</button></div>
 
 @if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
+@if (Error is not null && !ShowForm) { <div class="auth-error" role="alert">@Error</div> }
 
 <div class="stat-cards">
     <a class="stat-card-link" href="/platform"><article><i class="purple">▤</i><div><small>کسب‌وکارها</small><strong>@Items.Count</strong></div></article></a>
@@ -33,7 +35,7 @@
         @foreach (var item in Filtered)
         {
             <div @key="item.Id">
-                <span><i class="purple">▤</i><b><a class="entity-link" href="@($"/platform?businessId={item.Id}")">@item.Name</a><small><a class="entity-link" href="@($"/platform?category={Uri.EscapeDataString(item.Category)}")">@item.Category</a> · /@item.Slug · @(item.RequiresApproval ? "نیازمند تأیید نوبت" : "تأیید خودکار")</small></b></span>
+                <span><i class="purple">▤</i><b><a class="entity-link" href="@($"/platform?businessId={item.Id}")" data-i18n-skip>@item.Name</a><small><a class="entity-link" href="@($"/platform?category={Uri.EscapeDataString(item.Category)}")">@item.Category</a> · /@item.Slug · @(item.RequiresApproval ? "نیازمند تأیید نوبت" : "تأیید خودکار")</small></b></span>
                 <span><a class="entity-link" href="@($"/platform?city={Uri.EscapeDataString(item.City)}")">@item.City</a></span>
                 <span><a class="entity-link" href="@($"/admin/branches?businessId={item.Id}")">@item.Branches.Count@(item.Branches.Count == 0 ? " (بدون شعبه؛ در سایت نمایش داده نمی‌شود)" : "")</a></span>
                 <span><em class="status @(item.DeletedAt is null ? "confirmed" : "cancelled")">@(item.DeletedAt is null ? "فعال" : "تعلیق")</em></span>
@@ -66,7 +68,7 @@
                 <label>ایمیل مالک (اختیاری؛ باید قبلاً ثبت‌نام کرده باشد)<input type="email" dir="ltr" @bind="Form.OwnerEmail" /></label>
             }
             @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
-            <button class="primary-button">ذخیره</button>
+            <button class="primary-button" disabled="@Saving">ذخیره</button>
         </EditForm>
     </div>
 }
@@ -85,6 +87,7 @@
     private string SelectedCity = "";
     private string StatusFilter = "";
     private bool ShowForm;
+    private bool Saving;
     private Guid? EditingId;
     private BusinessInput Form = new();
     private string? Error;
@@ -117,10 +120,26 @@
         Navigation.NavigateTo("/platform");
     }
 
+    private async Task<bool> EnsureAccess()
+    {
+        if (await Access.IsPlatformAdminAsync()) return true;
+        Items = [];
+        CategoryNames = [];
+        ShowForm = false;
+        Message = null;
+        Error = "دسترسی مدیریت سامانه ندارید؛ دوباره وارد حساب شوید.";
+        return false;
+    }
+
     private async Task Load()
     {
-        Items = await Db.Businesses.IgnoreQueryFilters().AsNoTracking().Include(x => x.Branches).Include(x => x.Services).OrderBy(x => x.Name).ToListAsync();
-        CategoryNames = await Db.CategoryDefinitions.AsNoTracking()
+        if (!await EnsureAccess()) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        Items = await db.Businesses.IgnoreQueryFilters().AsNoTracking()
+            .Include(x => x.Branches.Where(branch => branch.DeletedAt == null))
+            .Include(x => x.Services.Where(service => service.DeletedAt == null))
+            .OrderBy(x => x.Name).ToListAsync();
+        CategoryNames = await db.CategoryDefinitions.AsNoTracking()
             .Where(x => x.Kind == CategoryKind.Business && x.IsActive)
             .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).Select(x => x.Name).ToListAsync();
     }
@@ -128,20 +147,21 @@
     private void EnsureCategory(string current)
     {
         if (!string.IsNullOrWhiteSpace(current) && !CategoryNames.Contains(current)) CategoryNames.Add(current);
-        if (CategoryNames.Count == 0) CategoryNames.Add("عمومی");
     }
 
-    private void NewBusiness()
+    private async Task NewBusiness()
     {
+        if (Saving || !await EnsureAccess()) return;
+        await Load();
         EditingId = null;
         Error = Message = null;
-        EnsureCategory("عمومی");
-        Form = new() { Category = CategoryNames.First() };
+        Form = new() { Category = CategoryNames.FirstOrDefault() ?? "" };
         ShowForm = true;
     }
 
-    private void Edit(Business x)
+    private async Task Edit(Business x)
     {
+        if (Saving || !await EnsureAccess()) return;
         EditingId = x.Id;
         Error = Message = null;
         EnsureCategory(x.Category);
@@ -163,70 +183,129 @@
         }
 
         var slug = builder.ToString().Trim('-');
+        if (slug.Length > 100) slug = slug[..100].TrimEnd('-');
         return slug.Length >= 2 ? slug : "biz-" + Guid.NewGuid().ToString("N")[..6];
     }
 
+    private static string? ValidateInput(BusinessInput form, out string slug)
+    {
+        form.Name = (form.Name ?? "").Trim();
+        form.Category = (form.Category ?? "").Trim();
+        form.City = (form.City ?? "").Trim();
+        form.Description = (form.Description ?? "").Trim();
+        form.FirstBranchName = (form.FirstBranchName ?? "").Trim();
+        form.OwnerEmail = (form.OwnerEmail ?? "").Trim();
+        slug = string.IsNullOrWhiteSpace(form.Slug) ? MakeSlug(form.Name) : form.Slug.Trim().ToLowerInvariant();
+        if (form.Name.Length is 0 or > 200) return "نام کسب‌وکار باید بین ۱ تا ۲۰۰ نویسه باشد.";
+        if (slug.Length > 100 || !System.Text.RegularExpressions.Regex.IsMatch(slug, "^[a-z0-9]+(-[a-z0-9]+)*$"))
+            return "شناسه URL باید حداکثر ۱۰۰ نویسه و فقط شامل حروف انگلیسی، عدد و خط تیره باشد.";
+        if (form.Category.Length is 0 or > 200) return "یک دسته‌بندی معتبر انتخاب کنید.";
+        if (form.City.Length > 100 || form.Description.Length > 5000 || form.FirstBranchName.Length > 200 || form.OwnerEmail.Length > 256)
+            return "شهر، توضیحات، نام شعبه یا ایمیل بیش از حد طولانی است.";
+        return null;
+    }
+
+    private static IQueryable<Business> SlugConflicts(AppDbContext db, string slug, Guid? editingId) =>
+        db.Businesses.IgnoreQueryFilters().Where(x => x.Slug.ToLower() == slug && x.Id != editingId);
+
     private async Task Save()
     {
-        Error = null;
-        Form.Name = Form.Name.Trim();
-        if (string.IsNullOrWhiteSpace(Form.Name)) { Error = "نام کسب‌وکار الزامی است."; return; }
-
-        var slug = string.IsNullOrWhiteSpace(Form.Slug) ? MakeSlug(Form.Name) : Form.Slug.Trim().ToLowerInvariant();
-        if (!System.Text.RegularExpressions.Regex.IsMatch(slug, "^[a-z0-9]+(-[a-z0-9]+)*$"))
+        if (Saving || !await EnsureAccess()) return;
+        Error = ValidateInput(Form, out var slug);
+        if (Error is not null) return;
+        Saving = true;
+        try
         {
-            Error = "شناسه URL فقط می‌تواند شامل حروف انگلیسی کوچک، عدد و خط تیره باشد.";
-            return;
-        }
-
-        if (await Db.Businesses.IgnoreQueryFilters().AnyAsync(x => x.Slug == slug && x.Id != EditingId))
-        {
-            Error = "این شناسه URL قبلاً استفاده شده است.";
-            return;
-        }
-
-        AppUser? owner = null;
-        if (EditingId is null && !string.IsNullOrWhiteSpace(Form.OwnerEmail))
-        {
-            owner = await UserManager.FindByEmailAsync(Form.OwnerEmail.Trim());
-            if (owner is null) { Error = "کاربری با این ایمیل پیدا نشد؛ ابتدا باید ثبت‌نام کند یا از «اعضای تیم» ساخته شود."; return; }
-        }
-
-        var business = EditingId is null ? new Business { Name = Form.Name } : await Db.Businesses.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingId);
-        business.Name = Form.Name;
-        business.Slug = slug;
-        business.Category = Form.Category.Trim();
-        business.City = Form.City.Trim();
-        business.Description = Form.Description.Trim();
-        business.RequiresApproval = Form.RequiresApproval;
-        business.UpdatedAt = DateTimeOffset.UtcNow;
-
-        if (EditingId is null)
-        {
-            Db.Businesses.Add(business);
-            // کسب‌وکار بدون شعبه در سایت دیده نمی‌شود و رزرو ندارد؛ شعبه‌ی اول همین‌جا ساخته می‌شود.
-            var branch = new Branch
+            await using var identityScope = ScopeFactory.CreateAsyncScope();
+            var db = identityScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = identityScope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var business = EditingId is Guid id
+                ? await db.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id)
+                : new Business { Name = Form.Name };
+            if (business is null) { Error = "کسب‌وکار پیدا نشد؛ فهرست را تازه کنید."; return; }
+            if (!await db.CategoryDefinitions.AnyAsync(x => x.Kind == CategoryKind.Business && x.IsActive && x.Name == Form.Category)
+                && (EditingId is null || business.Category != Form.Category))
             {
-                Business = business,
-                Name = string.IsNullOrWhiteSpace(Form.FirstBranchName) ? "شعبه مرکزی" : Form.FirstBranchName.Trim(),
-            };
-            Db.Branches.Add(branch);
-            if (owner is not null) Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
-        }
+                Error = "دسته‌بندی انتخاب‌شده فعال نیست؛ ابتدا یک دسته‌بندی فعال بسازید.";
+                return;
+            }
+            var baseSlug = slug;
+            while (await SlugConflicts(db, slug, EditingId).AnyAsync())
+            {
+                if (!string.IsNullOrWhiteSpace(Form.Slug))
+                {
+                    Error = "این شناسه URL قبلاً استفاده شده است.";
+                    return;
+                }
+                slug = baseSlug[..Math.Min(baseSlug.Length, 87)].TrimEnd('-') + "-" + Guid.NewGuid().ToString("N")[..12];
+            }
 
-        await Db.SaveChangesAsync();
-        if (owner is not null) await TeamRoleSync.SyncAsync(UserManager, Db, owner);
-        Message = EditingId is null ? "کسب‌وکار و شعبه‌ی اول ساخته شد. خدمات و کارکنان را از بخش «شعب و منابع» و «خدمات» تکمیل کنید." : "تغییرات ذخیره شد.";
-        Close();
-        await Load();
+            AppUser? owner = null;
+            if (EditingId is null && !string.IsNullOrWhiteSpace(Form.OwnerEmail))
+            {
+                owner = await users.FindByEmailAsync(Form.OwnerEmail);
+                if (owner is null) { Error = "کاربری با این ایمیل پیدا نشد؛ ابتدا باید ثبت‌نام کند یا از «اعضای تیم» ساخته شود."; return; }
+                if (await users.IsLockedOutAsync(owner)) { Error = "حساب مالک غیرفعال است."; return; }
+            }
+
+            business.Name = Form.Name;
+            business.Slug = slug;
+            business.Category = Form.Category;
+            business.City = Form.City;
+            business.Description = Form.Description;
+            business.RequiresApproval = Form.RequiresApproval;
+            business.UpdatedAt = DateTimeOffset.UtcNow;
+
+            if (EditingId is null)
+            {
+                db.Businesses.Add(business);
+                var branch = new Branch
+                {
+                    Business = business,
+                    Name = string.IsNullOrWhiteSpace(Form.FirstBranchName) ? "شعبه مرکزی" : Form.FirstBranchName,
+                };
+                db.Branches.Add(branch);
+                if (owner is not null) db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
+            }
+
+            await db.SaveChangesAsync();
+            if (owner is not null)
+            {
+                try { await TeamRoleSync.SyncAsync(users, db, owner); }
+                catch (InvalidOperationException ex) { Error = ex.Message; return; }
+            }
+            await transaction.CommitAsync();
+            Message = EditingId is null ? "کسب‌وکار و شعبه‌ی اول ساخته شد. خدمات و کارکنان را از بخش «شعب و منابع» و «خدمات» تکمیل کنید." : "تغییرات ذخیره شد.";
+            Close();
+            await Load();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+        {
+            Error = "این شناسه URL هم‌زمان توسط کاربر دیگری ثبت شد؛ شناسه دیگری انتخاب کنید.";
+        }
+        finally { Saving = false; }
     }
 
     private async Task Toggle(Business x)
     {
-        var item = await Db.Businesses.IgnoreQueryFilters().FirstAsync(y => y.Id == x.Id);
-        item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null;
-        await Db.SaveChangesAsync();
-        await Load();
+        if (Saving || !await EnsureAccess()) return;
+        Saving = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var item = await db.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync(y => y.Id == x.Id);
+            if (item is null) { Error = "کسب‌وکار پیدا نشد؛ فهرست را تازه کنید."; return; }
+            // Suspension belongs to the parent. Preserve independently archived children
+            // so reactivation cannot restore previously removed branches or services.
+            item.DeletedAt = x.DeletedAt is null ? DateTimeOffset.UtcNow : null;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            Message = x.DeletedAt is null ? "کسب‌وکار تعلیق شد." : "کسب‌وکار فعال شد.";
+            Error = null;
+            await Load();
+        }
+        finally { Saving = false; }
     }
 
     private void Close() { ShowForm = false; Error = null; }

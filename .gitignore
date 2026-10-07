@@ -2,3 +2,8 @@ Be-Nobat-App.zip
 *.mp4
 Be-Nobat-App-fixed.zip
 Be-Nobat-App-reviewed.zip
+
+# Python test runners and packaged delivery artifacts
+__pycache__/
+*.py[cod]
+*.apk

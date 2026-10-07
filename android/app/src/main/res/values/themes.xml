@@ -1,0 +1,29 @@
+<resources>
+    <style name="Base.Theme.BeNobat" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="colorOnSecondary">@color/colorOnSecondary</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
+        <item name="colorOutline">@color/colorOutline</item>
+
+        <item name="android:statusBarColor">@color/windowBackground</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+        <item name="materialButtonStyle">@style/Widget.BeNobat.Button</item>
+        <item name="materialCardViewStyle">@style/Widget.BeNobat.Card</item>
+        <item name="textInputStyle">@style/Widget.BeNobat.TextInputLayout</item>
+
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="fontFamily">@font/app_font</item>
+
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.BeNobat.Headline</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.BeNobat.Body</item>
+    </style>
+
+    <style name="Theme.BeNobat" parent="Base.Theme.BeNobat" />
+
+</resources>

@@ -1,4 +1,5 @@
 using BeNobat.Web.Domain;
+using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -128,10 +129,39 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             var parameter = System.Linq.Expressions.Expression.Parameter(entityType.ClrType, "entity");
             var deletedAt = System.Linq.Expressions.Expression.Property(parameter, nameof(Entity.DeletedAt));
+            // Keep the null constant typed to the nullable column. EF can otherwise
+            // fold a repeated explicit soft-delete predicate into WHERE FALSE.
             var filter = System.Linq.Expressions.Expression.Lambda(
-                System.Linq.Expressions.Expression.Equal(deletedAt, System.Linq.Expressions.Expression.Constant(null)),
+                System.Linq.Expressions.Expression.Equal(deletedAt, System.Linq.Expressions.Expression.Constant(null, typeof(DateTimeOffset?))),
                 parameter);
             builder.Entity(entityType.ClrType).HasQueryFilter(filter);
         }
+
+        // Active catalog graphs must not expose descendants of suspended businesses.
+        // Historical appointment/review readers explicitly opt out and retain their own soft-delete filter.
+        builder.Entity<Branch>().HasQueryFilter(x => x.DeletedAt == null && x.Business.DeletedAt == null);
+        builder.Entity<Service>().HasQueryFilter(x => x.DeletedAt == null && x.Business.DeletedAt == null);
+        builder.Entity<Resource>().HasQueryFilter(x => x.DeletedAt == null
+            && x.Branch.DeletedAt == null && x.Branch.Business.DeletedAt == null
+            && (x.UserId == null || (x.User != null
+                && (!x.User.LockoutEnabled || x.User.LockoutEnd == null || x.User.LockoutEnd <= DateTimeOffset.UtcNow)
+                && x.Branch.Memberships.Any(m => m.DeletedAt == null && m.UserId == x.UserId
+                    && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff)))));
+        builder.Entity<BranchMembership>().HasQueryFilter(x => x.DeletedAt == null
+            && x.Branch.DeletedAt == null && x.Branch.Business.DeletedAt == null);
+        builder.Entity<BranchService>().HasQueryFilter(x => x.DeletedAt == null
+            && x.Branch.DeletedAt == null && x.Branch.Business.DeletedAt == null
+            && x.Service.DeletedAt == null && x.Service.Business.DeletedAt == null
+            && x.Branch.BusinessId == x.Service.BusinessId);
+        builder.Entity<ServiceResource>().HasQueryFilter(x => x.DeletedAt == null
+            && x.Service.DeletedAt == null && x.Service.Business.DeletedAt == null
+            && x.Resource.DeletedAt == null && x.Resource.Branch.DeletedAt == null
+            && x.Resource.Branch.Business.DeletedAt == null
+            && x.Resource.Branch.BusinessId == x.Service.BusinessId);
+        builder.Entity<AvailabilityRule>().HasQueryFilter(x => x.DeletedAt == null && x.Business.DeletedAt == null
+            && (x.BranchId == null || (x.Branch != null && x.Branch.DeletedAt == null && x.Branch.BusinessId == x.BusinessId))
+            && (x.ResourceId == null || (x.Resource != null && x.Resource.DeletedAt == null
+                && x.Resource.Branch.DeletedAt == null && x.Resource.Branch.BusinessId == x.BusinessId
+                && (x.BranchId == null || x.Resource.BranchId == x.BranchId))));
     }
 }

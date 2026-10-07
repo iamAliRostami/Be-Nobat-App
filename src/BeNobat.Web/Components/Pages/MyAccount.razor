@@ -2,9 +2,10 @@
 @layout Layout.PublicLayout
 @attribute [Authorize]
 @rendermode InteractiveServer
-@inject UserManager<AppUser> UserManager
+@inject IServiceScopeFactory ScopeFactory
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IDbContextFactory<AppDbContext> DbFactory
+@inject ILogger<MyAccount> Logger
 
 <PageTitle>اطلاعات حساب | به‌نوبت</PageTitle>
 
@@ -32,17 +33,17 @@
                 }
                 else
                 {
-                    <span class="avatar-preview placeholder">@UserAvatar.Initials(User?.DisplayName)</span>
+                    <span class="avatar-preview placeholder" data-i18n-skip>@UserAvatar.Initials(User?.DisplayName)</span>
                 }
                 <div class="profile-avatar-details">
                     <div class="profile-avatar-actions">
                         <label class="file-label">
                             انتخاب عکس
-                            <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" />
+                            <InputFile disabled="@IsSaving" OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" />
                         </label>
                         @if (User is not null && UserAvatar.Has(User))
                         {
-                            <button type="button" class="action-danger" @onclick="RemoveAvatar">حذف عکس</button>
+                            <button type="button" class="action-danger" disabled="@IsSaving" @onclick="RemoveAvatar">حذف عکس</button>
                         }
                     </div>
                     <small class="profile-help">PNG، JPEG یا WebP؛ حداکثر ۲ مگابایت.</small>
@@ -53,10 +54,10 @@
         <EditForm Model="Profile" FormName="account-profile" OnValidSubmit="SaveProfile" class="admin-panel profile-form profile-card profile-contact-card" aria-labelledby="profile-contact-heading">
             <header class="profile-card-head"><h2 id="profile-contact-heading">مشخصات من</h2></header>
             <div class="profile-fields">
-                <label>نام و نام خانوادگی<input autocomplete="name" @bind="Profile.DisplayName" /></label>
-                <label>شماره تماس<input type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
+                <label>نام و نام خانوادگی<input autocomplete="name" required maxlength="100" disabled="@IsSaving" @bind="Profile.DisplayName" /></label>
+                <label>شماره تماس<input type="tel" disabled="@IsSaving" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
             </div>
-            <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">ذخیره تغییرات</button></div>
+            <div class="profile-card-actions"><button type="submit" disabled="@IsSaving" class="primary-button action-primary">ذخیره تغییرات</button></div>
         </EditForm>
 
         <article class="admin-panel profile-form profile-card profile-review-card" aria-labelledby="profile-review-heading">
@@ -68,7 +69,7 @@
             {
                 <div class="profile-rating-summary">
                     <span class="profile-rating-mark" aria-hidden="true">★</span>
-                    <div><span>امتیاز شما به‌عنوان مراجعه‌کننده</span><strong>@LocalizedDate.FormatNumber(ReceivedRating.Value, "fa", "0.0") از ۵</strong><small>بر اساس @LocalizedDate.FormatNumber(ReceivedCount, "fa") ارزیابی مجموعه‌ها</small></div>
+                    <div><span>امتیاز شما به‌عنوان مراجعه‌کننده</span><strong>@LocalizedDate.FormatNumber(ReceivedRating.Value, UiLocale.Language, "0.0") از ۵</strong><small>بر اساس @LocalizedDate.FormatNumber(ReceivedCount, UiLocale.Language) ارزیابی مجموعه‌ها</small></div>
                 </div>
             }
         </article>
@@ -115,6 +116,7 @@
     private int ReceivedCount;
     private string? Message;
     private string? ErrorMessage;
+    private bool IsSaving;
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,8 +142,9 @@
 
     private async Task LoadAsync()
     {
-        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
-        User = await UserManager.GetUserAsync(principal);
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        User = await FreshUserAsync(users);
         if (User is null) return;
 
         Profile = new ProfileInput
@@ -160,82 +163,145 @@
         ReceivedRating = ratings.Count == 0 ? null : ratings.Average(x => (double)x);
     }
 
+    private async Task<AppUser?> FreshUserAsync(UserManager<AppUser> users)
+    {
+        var principal = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        var id = UserContext.IdOf(principal);
+        var stamp = principal.FindFirst(users.Options.ClaimsIdentity.SecurityStampClaimType)?.Value;
+        var user = id is Guid userId ? await users.FindByIdAsync(userId.ToString()) : null;
+        if (user is null || (User is not null && User.Id != user.Id) || stamp is null || !string.Equals(stamp, user.SecurityStamp, StringComparison.Ordinal)
+            || (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow))
+        {
+            User = null;
+            Profile = new();
+            ReceivedRating = null;
+            ReceivedCount = 0;
+            ErrorMessage = "نشست شما منقضی شده است؛ دوباره وارد حساب شوید.";
+            return null;
+        }
+        return user;
+    }
+
     private async Task SaveProfile()
     {
-        var user = User;
-        if (user is null) return;
-
-        ErrorMessage = null;
+        if (User is null || IsSaving) return;
+        Message = ErrorMessage = null;
+        if (!UserInputValidation.TryNormalizeDisplayName(Profile.DisplayName, out var name))
+        {
+            ErrorMessage = "نام و نام خانوادگی باید بین ۱ تا ۱۰۰ نویسه باشد.";
+            return;
+        }
         if (!UserInputValidation.TryNormalizeIranianMobile(Profile.Phone, out var phone))
         {
             ErrorMessage = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
             return;
         }
-        user.DisplayName = Profile.DisplayName.Trim();
-        user.PhoneNumber = phone;
-
-        var result = await UserManager.UpdateAsync(user);
-        if (result.Succeeded)
+        IsSaving = true;
+        try
         {
-            Message = "اطلاعات حساب ذخیره شد.";
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var user = await FreshUserAsync(users);
+            if (user is null) return;
+            user.DisplayName = name;
+            if (user.PhoneNumber != phone) user.PhoneNumberConfirmed = false;
+            user.PhoneNumber = phone;
+            ApplyUpdateResult(await users.UpdateAsync(user), user, "اطلاعات حساب ذخیره شد.");
+            if (ErrorMessage is null) { Profile.DisplayName = name; Profile.Phone = phone; }
         }
-        else
+        catch (Exception exception)
         {
-            ErrorMessage = string.Join("، ", result.Errors.Select(x => x.Description).Distinct(StringComparer.Ordinal));
+            Logger.LogError(exception, "Failed to save account profile");
+            Message = null;
+            ErrorMessage = "ذخیره اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";
         }
+        finally { IsSaving = false; }
     }
 
     private async Task UploadAvatar(InputFileChangeEventArgs e)
     {
-        var user = User;
-        if (user is null) return;
-
+        if (User is null || IsSaving) return;
         Message = ErrorMessage = null;
         var file = e.File;
-
         if (!UserAvatar.AllowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
         {
             ErrorMessage = "فقط فایل‌های PNG، JPEG و WebP پذیرفته می‌شوند.";
             return;
         }
-
-        if (file.Size > UserAvatar.MaxBytes)
+        if (file.Size <= 0 || file.Size > UserAvatar.MaxBytes)
         {
             ErrorMessage = "حجم عکس نباید بیشتر از ۲ مگابایت باشد.";
             return;
         }
-
+        IsSaving = true;
         try
         {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var user = await FreshUserAsync(users);
+            if (user is null) return;
             using var stream = file.OpenReadStream(UserAvatar.MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-
-            user.AvatarData = buffer.ToArray();
+            var bytes = buffer.ToArray();
+            if (!UserAvatar.ValidImage(bytes, file.ContentType))
+            {
+                ErrorMessage = "فایل انتخاب‌شده یک تصویر معتبر PNG، JPEG یا WebP نیست.";
+                return;
+            }
+            user.AvatarData = bytes;
             user.AvatarContentType = file.ContentType.ToLowerInvariant();
-
-            var result = await UserManager.UpdateAsync(user);
-            Message = result.Succeeded ? "عکس پروفایل به‌روزرسانی شد." : null;
-            ErrorMessage = result.Succeeded
-                ? null
-                : string.Join("، ", result.Errors.Select(x => x.Description).Distinct(StringComparer.Ordinal));
+            ApplyUpdateResult(await users.UpdateAsync(user), user, "عکس پروفایل به‌روزرسانی شد.");
         }
-        catch (IOException)
+        catch (IOException) { ErrorMessage = "خواندن فایل انجام نشد؛ دوباره تلاش کنید."; }
+        catch (Exception exception)
         {
-            ErrorMessage = "خواندن فایل انجام نشد؛ دوباره تلاش کنید.";
+            Logger.LogError(exception, "Failed to save account avatar");
+            Message = null;
+            ErrorMessage = "ذخیره اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";
         }
+        finally { IsSaving = false; }
     }
 
     private async Task RemoveAvatar()
     {
-        var user = User;
-        if (user is null) return;
+        if (User is null || IsSaving) return;
+        Message = ErrorMessage = null;
+        IsSaving = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var user = await FreshUserAsync(users);
+            if (user is null) return;
+            user.AvatarData = null;
+            user.AvatarContentType = null;
+            ApplyUpdateResult(await users.UpdateAsync(user), user, "عکس پروفایل حذف شد.");
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to remove account avatar");
+            Message = null;
+            ErrorMessage = "ذخیره اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";
+        }
+        finally { IsSaving = false; }
+    }
 
-        user.AvatarData = null;
-        user.AvatarContentType = null;
-        await UserManager.UpdateAsync(user);
-        Message = "عکس پروفایل حذف شد.";
-        ErrorMessage = null;
+    private void ApplyUpdateResult(IdentityResult result, AppUser updatedUser, string successMessage)
+    {
+        if (result.Succeeded)
+        {
+            User = updatedUser;
+            Message = successMessage;
+            ErrorMessage = null;
+        }
+        else
+        {
+            Message = null;
+            ErrorMessage = result.Errors.Any()
+                ? string.Join("، ", result.Errors.Select(x => x.Description).Distinct(StringComparer.Ordinal))
+                : "ذخیره اطلاعات حساب انجام نشد؛ دوباره تلاش کنید.";
+        }
     }
 
     private sealed class ProfileInput

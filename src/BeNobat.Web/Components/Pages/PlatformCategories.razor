@@ -3,9 +3,11 @@
 @attribute [Authorize(Policy = Policies.ManagePlatform)]
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject NavigationManager Navigation
+@inject AdminAccessScope Access
 
 <PageTitle>مدیریت دسته‌بندی‌ها | به‌نوبت</PageTitle>
 <div class="page-title"><div><h1>مدیریت دسته‌بندی‌ها</h1><p>دسته‌های قابل انتخاب برای کسب‌وکارها و کاتالوگ خدمات را مدیریت کنید.</p></div><button type="button" @onclick="NewCategory">+ دسته‌بندی جدید</button></div>
+@if (Error is not null && !ShowForm) { <div class="auth-error" role="alert">@Error</div> }
 <article class="admin-panel">
     <div class="toolbar filter-toolbar">
         <input aria-label="جست‌وجوی دسته‌بندی" placeholder="جست‌وجوی دسته‌بندی..." @bind="Search" @bind:event="oninput"/>
@@ -19,7 +21,7 @@
     @foreach(var item in Filtered)
     {
         <div @key="item.Id">
-            <span><i class="purple">▦</i><b><a class="entity-link" href="@CategoryUrl(item)">@item.Name</a></b></span>
+            <span><i class="purple">▦</i><b><a class="entity-link" href="@CategoryUrl(item)" data-i18n-skip>@item.Name</a></b></span>
             <span>@KindLabel(item.Kind)</span><span>@item.SortOrder</span>
             <span><em class="status @(item.IsActive ? "confirmed" : "cancelled")">@(item.IsActive ? "فعال" : "غیرفعال")</em></span>
             <span class="inline-actions"><button type="button" class="action-secondary" @onclick="() => Edit(item)">ویرایش</button><button type="button" class="@(item.IsActive ? "action-danger" : "action-success")" @onclick="() => Toggle(item)">@(item.IsActive ? "غیرفعال‌سازی" : "فعال‌سازی")</button></span>
@@ -27,10 +29,10 @@
     }
     </div>
 </article>
-@if(ShowForm){<div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="category-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null?"دسته‌بندی جدید":"ویرایش دسته‌بندی")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div><label>عنوان<input @bind="Form.Name"/></label><label>نوع<select @bind="Form.Kind" disabled="@(EditingId is not null)"><option value="@CategoryKind.Business">کسب‌وکار</option><option value="@CategoryKind.Service">خدمت</option></select></label><label>ترتیب نمایش<input type="number" @bind="Form.SortOrder"/></label>@if(Error is not null){<div class="auth-error" role="alert">@Error</div>}<button class="primary-button">ذخیره دسته‌بندی</button></EditForm></div>}
+@if(ShowForm){<div class="modal-backdrop" @onclick="Close"><EditForm Model="Form" FormName="category-form" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation><div><h2>@(EditingId is null?"دسته‌بندی جدید":"ویرایش دسته‌بندی")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div><label>عنوان<input @bind="Form.Name"/></label><label>نوع<select @bind="Form.Kind" disabled="@(EditingId is not null)"><option value="@CategoryKind.Business">کسب‌وکار</option><option value="@CategoryKind.Service">خدمت</option></select></label><label>ترتیب نمایش<input type="number" min="0" @bind="Form.SortOrder"/></label>@if(Error is not null){<div class="auth-error" role="alert">@Error</div>}<button class="primary-button" disabled="@Saving">ذخیره دسته‌بندی</button></EditForm></div>}
 
 @code {
-    private List<CategoryDefinition> Items=[]; private string Search=""; private string KindFilter=""; private string StatusFilter=""; private Guid? SelectedCategoryId; private bool ShowForm; private Guid? EditingId; private Input Form=new(); private string? Error;
+    private List<CategoryDefinition> Items=[]; private string Search=""; private string KindFilter=""; private string StatusFilter=""; private Guid? SelectedCategoryId; private bool ShowForm; private bool Saving; private Guid? EditingId; private Input Form=new(); private string? Error;
     [SupplyParameterFromQuery(Name = "q")] public string? QueryParam { get; set; }
     [SupplyParameterFromQuery(Name = "kind")] public string? KindParam { get; set; }
     [SupplyParameterFromQuery(Name = "status")] public string? StatusParam { get; set; }
@@ -57,11 +59,119 @@
         Navigation.NavigateTo("/platform/categories");
     }
     private static string CategoryUrl(CategoryDefinition item) => $"{(item.Kind == CategoryKind.Business ? "/platform" : "/platform/services")}?category={Uri.EscapeDataString(item.Name)}";
-    private async Task Load(){await using var db=await DbFactory.CreateDbContextAsync();Items=await db.CategoryDefinitions.IgnoreQueryFilters().OrderBy(x=>x.Kind).ThenBy(x=>x.SortOrder).ThenBy(x=>x.Name).ToListAsync();}
-    private void NewCategory(){EditingId=null;Form=new(){SortOrder=Items.Count};Error=null;ShowForm=true;}
-    private void Edit(CategoryDefinition x){EditingId=x.Id;Form=new(){Name=x.Name,Kind=x.Kind,SortOrder=x.SortOrder};Error=null;ShowForm=true;}
-    private async Task Save(){Form.Name=Form.Name.Trim();if(string.IsNullOrWhiteSpace(Form.Name)){Error="عنوان دسته‌بندی را وارد کنید.";return;}await using var db=await DbFactory.CreateDbContextAsync();if(await db.CategoryDefinitions.IgnoreQueryFilters().AnyAsync(x=>x.Kind==Form.Kind&&x.Name==Form.Name&&x.Id!=EditingId)){Error="این دسته‌بندی قبلاً برای همین نوع ثبت شده است.";return;}var x=EditingId is Guid id?await db.CategoryDefinitions.IgnoreQueryFilters().FirstAsync(x=>x.Id==id):new CategoryDefinition{Name=Form.Name};var oldName=x.Name;var oldKind=x.Kind;x.Name=Form.Name;x.Kind=Form.Kind;x.SortOrder=Form.SortOrder;x.IsActive=true;if(EditingId is null)db.CategoryDefinitions.Add(x);else if(oldName!=Form.Name||oldKind!=Form.Kind){if(oldKind==CategoryKind.Business)await db.Businesses.IgnoreQueryFilters().Where(b=>b.Category==oldName).ExecuteUpdateAsync(setters=>setters.SetProperty(b=>b.Category,Form.Name));else await db.ServiceCatalogItems.IgnoreQueryFilters().Where(service=>service.Category==oldName).ExecuteUpdateAsync(setters=>setters.SetProperty(service=>service.Category,Form.Name));}await db.SaveChangesAsync();Close();await Load();}
-    private async Task Toggle(CategoryDefinition item){await using var db=await DbFactory.CreateDbContextAsync();var x=await db.CategoryDefinitions.IgnoreQueryFilters().FirstAsync(x=>x.Id==item.Id);x.IsActive=!x.IsActive;await db.SaveChangesAsync();await Load();}
+    private async Task<bool> EnsureAccess()
+    {
+        if (await Access.IsPlatformAdminAsync()) return true;
+        Items = [];
+        ShowForm = false;
+        Error = "دسترسی مدیریت سامانه ندارید؛ دوباره وارد حساب شوید.";
+        return false;
+    }
+    private async Task Load()
+    {
+        if (!await EnsureAccess()) return;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        Items = await db.CategoryDefinitions.AsNoTracking()
+            .OrderBy(x => x.Kind).ThenBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+    }
+    private async Task NewCategory()
+    {
+        if (Saving || !await EnsureAccess()) return;
+        EditingId = null;
+        Form = new() { SortOrder = Items.Count };
+        Error = null;
+        ShowForm = true;
+    }
+    private async Task Edit(CategoryDefinition x)
+    {
+        if (Saving || !await EnsureAccess()) return;
+        EditingId = x.Id;
+        Form = new() { Name = x.Name, Kind = x.Kind, SortOrder = x.SortOrder };
+        Error = null;
+        ShowForm = true;
+    }
+    private static string? ValidateInput(Input form)
+    {
+        form.Name = (form.Name ?? "").Trim();
+        if (form.Name.Length is 0 or > 200) return "عنوان دسته‌بندی باید بین ۱ تا ۲۰۰ نویسه باشد.";
+        if (!Enum.IsDefined(form.Kind)) return "نوع دسته‌بندی معتبر نیست.";
+        if (form.SortOrder < 0) return "ترتیب نمایش نمی‌تواند منفی باشد.";
+        return null;
+    }
+    private static IQueryable<CategoryDefinition> NameConflicts(AppDbContext db, CategoryKind kind, string normalizedName, Guid? editingId) =>
+        db.CategoryDefinitions.IgnoreQueryFilters().Where(x => x.Kind == kind && x.Name.ToLower() == normalizedName && x.Id != editingId);
+
+    private async Task Save()
+    {
+        if (Saving || !await EnsureAccess()) return;
+        Error = ValidateInput(Form);
+        if (Error is not null) return;
+        Saving = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            var item = EditingId is Guid id
+                ? await db.CategoryDefinitions.FirstOrDefaultAsync(x => x.Id == id)
+                : new CategoryDefinition { Name = Form.Name, Kind = Form.Kind };
+            if (item is null) { Error = "دسته‌بندی پیدا نشد یا حذف شده است؛ فهرست را تازه کنید."; return; }
+            if (EditingId is not null && item.Kind != Form.Kind)
+            {
+                Error = "نوع دسته‌بندی موجود را نمی‌توانید تغییر دهید.";
+                return;
+            }
+            var normalizedName = Form.Name.ToLowerInvariant();
+            if (await NameConflicts(db, Form.Kind, normalizedName, EditingId).AnyAsync())
+            {
+                Error = "این دسته‌بندی قبلاً برای همین نوع ثبت شده است.";
+                return;
+            }
+            var oldName = item.Name;
+            var now = DateTimeOffset.UtcNow;
+            item.Name = Form.Name;
+            item.SortOrder = Form.SortOrder;
+            item.UpdatedAt = now;
+            if (EditingId is null) db.CategoryDefinitions.Add(item);
+            // Editing preserves active status; the explicit toggle controls activation.
+            await db.SaveChangesAsync();
+            if (EditingId is not null && oldName != Form.Name)
+            {
+                // Category names are stored on their consumers. Rename every reference,
+                // including archived records, in the same transaction as the definition.
+                if (item.Kind == CategoryKind.Business)
+                    await db.Businesses.IgnoreQueryFilters().Where(b => b.Category == oldName)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(b => b.Category, Form.Name).SetProperty(b => b.UpdatedAt, now));
+                else
+                    await db.ServiceCatalogItems.IgnoreQueryFilters().Where(service => service.Category == oldName)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(service => service.Category, Form.Name).SetProperty(service => service.UpdatedAt, now));
+            }
+            await transaction.CommitAsync();
+            Close();
+            await Load();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+        {
+            Error = "این دسته‌بندی هم‌زمان ثبت شد؛ عنوان دیگری انتخاب کنید.";
+        }
+        finally { Saving = false; }
+    }
+    private async Task Toggle(CategoryDefinition item)
+    {
+        if (Saving || !await EnsureAccess()) return;
+        Saving = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var entity = await db.CategoryDefinitions.FirstOrDefaultAsync(x => x.Id == item.Id);
+            if (entity is null) { Error = "دسته‌بندی پیدا نشد یا حذف شده است؛ فهرست را تازه کنید."; return; }
+            entity.IsActive = !item.IsActive;
+            entity.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            Error = null;
+            await Load();
+        }
+        finally { Saving = false; }
+    }
     private void Close(){ShowForm=false;Error=null;} private static string KindLabel(CategoryKind kind)=>kind==CategoryKind.Business?"کسب‌وکار":"خدمت";
     private sealed class Input{public string Name{get;set;}="";public CategoryKind Kind{get;set;}public int SortOrder{get;set;}}
 }

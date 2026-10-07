@@ -55,16 +55,19 @@ public static class DbSeeder
                 await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
             }
         }
-        else if (!await userManager.IsInRoleAsync(admin, AppRoles.PlatformAdmin))
-        {
-            await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
-        }
+        // An existing email is not proof that an account was provisioned by the
+        // seeder. Preserve explicit role revocations and never promote a customer
+        // who registered this address before the first administrator was created.
 
         var db = services.GetRequiredService<AppDbContext>();
-        var existingCategories = await db.CategoryDefinitions.IgnoreQueryFilters().Select(x => new { x.Kind, x.Name }).ToListAsync(cancellationToken);
+        // Category names are editable identities in the current schema. Seed an
+        // entire kind only when it has never been configured, including archived
+        // rows, so a restart cannot resurrect renamed or disabled defaults.
+        var configuredCategoryKinds = (await db.CategoryDefinitions.IgnoreQueryFilters()
+            .Select(x => x.Kind).Distinct().ToListAsync(cancellationToken)).ToHashSet();
         var categories = Taxonomy.BusinessCategories.Select((name, index) => new CategoryDefinition { Name = name, Kind = CategoryKind.Business, SortOrder = index })
             .Concat(Taxonomy.ServiceCategories.Select((name, index) => new CategoryDefinition { Name = name, Kind = CategoryKind.Service, SortOrder = index }));
-        db.CategoryDefinitions.AddRange(categories.Where(category => !existingCategories.Any(x => x.Kind == category.Kind && x.Name == category.Name)));
+        db.CategoryDefinitions.AddRange(categories.Where(category => !configuredCategoryKinds.Contains(category.Kind)));
         await db.SaveChangesAsync(cancellationToken);
         var catalog = new[]
         {
@@ -84,21 +87,11 @@ public static class DbSeeder
             Catalog("سرویس دوره‌ای خودرو", "car-periodic-service", "خدمات خودرو", 90), Catalog("کارواش", "car-wash", "خدمات خودرو", 45),
             Catalog("نظافت منزل", "home-cleaning", "خدمات منزل", 180), Catalog("تعمیر لوازم خانگی", "appliance-repair", "خدمات منزل", 90)
         };
-        var existingItems = await db.ServiceCatalogItems.IgnoreQueryFilters().ToDictionaryAsync(x => x.Slug, cancellationToken);
-        foreach (var item in catalog)
-        {
-            if (!existingItems.TryGetValue(item.Slug, out var existing))
-            {
-                db.ServiceCatalogItems.Add(item);
-                continue;
-            }
-
-            // These slugs belong to the built-in taxonomy, so keep their classification canonical
-            // when upgrading a database that was seeded by an older application version.
-            existing.Name = item.Name;
-            existing.Category = item.Category;
-            existing.SuggestedDurationMinutes = item.SuggestedDurationMinutes;
-        }
+        // Seed defaults only once. Platform managers may review, customize or
+        // archive built-in items, and a restart must preserve those decisions.
+        var existingSlugs = (await db.ServiceCatalogItems.IgnoreQueryFilters()
+            .Select(x => x.Slug).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        db.ServiceCatalogItems.AddRange(catalog.Where(item => !existingSlugs.Contains(item.Slug)));
         await db.SaveChangesAsync(cancellationToken);
 
     }

@@ -2,6 +2,12 @@ namespace BeNobat.Web.Security;
 
 public static class UserInputValidation
 {
+    public static bool TryNormalizeDisplayName(string? value, out string normalized)
+    {
+        normalized = value?.Trim() ?? "";
+        return normalized.Length is >= 1 and <= 100 && !normalized.Any(char.IsControl);
+    }
+
     public static bool TryNormalizeIranianMobile(string? value, out string normalized)
     {
         normalized = string.Concat((value ?? string.Empty).Trim().Select(ToLatinDigit))

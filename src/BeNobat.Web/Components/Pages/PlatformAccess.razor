@@ -1,7 +1,8 @@
 @page "/platform/access"
 @attribute [Authorize(Policy = Policies.ManagePlatform)]
 @rendermode InteractiveServer
-@inject UserManager<AppUser> UserManager
+@inject IServiceScopeFactory ScopeFactory
+@inject AdminAccessScope Access
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
@@ -22,10 +23,10 @@
         @foreach (var item in Filtered)
         {
             <article @key="item.User.Id" class="@(item.Disabled ? "disabled-row" : "")">
-                <span class="customer-avatar purple">@UserAvatar.Initials(item.User.DisplayName)</span>
-                <div class="access-user-details"><b>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small></div>
-                <label>دسترسی<select @bind="item.SelectedRole">@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select></label>
-                <div class="access-actions"><button type="button" class="action-primary" @onclick="() => SaveRole(item)" disabled="@item.Saving">ذخیره نقش</button><button type="button" class="@(item.Disabled ? "action-success" : "action-danger")" @onclick="() => ToggleAccess(item)">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="action-warning" @onclick="() => ResetPassword(item)" disabled="@item.Saving">ریست رمز</button></div>
+                <span class="customer-avatar purple" data-i18n-skip>@UserAvatar.Initials(item.User.DisplayName)</span>
+                <div class="access-user-details"><b data-i18n-skip>@DisplayName(item.User)</b><small>✉ @item.User.Email</small><small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small><small>@($"نقش‌ها: {string.Join("، ", item.Roles.Select(RoleLabel))}")</small></div>
+                <label>دسترسی سراسری<select @bind="item.SelectedRole"><option value="@AppRoles.Customer">@RoleLabel(AppRoles.Customer)</option><option value="@AppRoles.PlatformAdmin">@RoleLabel(AppRoles.PlatformAdmin)</option></select></label>
+                <div class="access-actions"><button type="button" class="action-primary" @onclick="() => SaveRole(item)" disabled="@Saving">ذخیره نقش</button><button type="button" class="@(item.Disabled ? "action-success" : "action-danger")" @onclick="() => ToggleAccess(item)" disabled="@Saving">@(item.Disabled ? "فعال‌سازی" : "غیرفعال‌سازی")</button><button type="button" class="action-warning" @onclick="() => ResetPassword(item)" disabled="@Saving">ریست رمز</button></div>
                 <em class="status @(item.Disabled ? "cancelled" : "confirmed")">@(item.Disabled ? "غیرفعال" : "فعال")</em>
             </article>
         }
@@ -44,13 +45,14 @@
     private string RoleFilter = "";
     private string? Message;
     private string? Error;
+    private bool Saving;
     private bool HasFilters => !string.IsNullOrWhiteSpace(Query) || SelectedUserId is not null || StatusFilter != "" || RoleFilter != "";
     private IEnumerable<UserAccess> Filtered => Items.Where(x =>
         (SelectedUserId is null || x.User.Id == SelectedUserId) &&
         (StatusFilter != "active" || !x.Disabled) &&
         (StatusFilter != "disabled" || x.Disabled) &&
-        (RoleFilter == "" || x.Role == RoleFilter) &&
-        $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {x.Role} {RoleLabel(x.Role)}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+        (RoleFilter == "" || x.Roles.Contains(RoleFilter)) &&
+        $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {string.Join(" ", x.Roles)} {string.Join(" ", x.Roles.Select(RoleLabel))}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync() => await Load();
     protected override void OnParametersSet()
@@ -66,15 +68,28 @@
         SelectedUserId = null;
         Navigation.NavigateTo("/platform/access");
     }
+    private async Task<bool> EnsureAccess()
+    {
+        if (await Access.IsPlatformAdminAsync()) return true;
+        Items = [];
+        Message = null;
+        Error = "دسترسی مدیریت سامانه ندارید؛ دوباره وارد حساب شوید.";
+        return false;
+    }
+
     private async Task Load()
     {
-        Items = [];
-        foreach (var user in await UserManager.Users.OrderBy(x => x.DisplayName).ToListAsync())
+        if (!await EnsureAccess()) return;
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+        var items = new List<UserAccess>();
+        foreach (var user in await users.Users.AsNoTracking().OrderBy(x => x.DisplayName).ToListAsync())
         {
-            var roles = await UserManager.GetRolesAsync(user);
-            var role = AppRoles.All.FirstOrDefault(roles.Contains) ?? AppRoles.Customer;
-            Items.Add(new UserAccess(user, role, user.LockoutEnd > DateTimeOffset.UtcNow));
+            var roles = await users.GetRolesAsync(user);
+            var knownRoles = AppRoles.All.Where(roles.Contains).ToArray();
+            items.Add(new UserAccess(user, knownRoles.Length == 0 ? [AppRoles.Customer] : knownRoles));
         }
+        Items = items;
     }
 
     private async Task<bool> IsSelfAsync(UserAccess item)
@@ -83,62 +98,134 @@
         return UserContext.IdOf(principal) == item.User.Id;
     }
 
+    private bool CheckResult(IdentityResult result)
+    {
+        if (result.Succeeded) return true;
+        Error = string.Join("، ", result.Errors.Select(x => x.Description));
+        return false;
+    }
+
+    private static bool HasOtherActivePlatformAdmin(IEnumerable<AppUser> administrators, Guid targetId, DateTimeOffset now) =>
+        administrators.Any(user => user.Id != targetId && (!user.LockoutEnabled || user.LockoutEnd is null || user.LockoutEnd <= now));
+
     private async Task SaveRole(UserAccess item)
     {
-        if (!AppRoles.All.Contains(item.SelectedRole)) return;
-        if (await IsSelfAsync(item) && item.SelectedRole != AppRoles.PlatformAdmin)
+        if (Saving || !await EnsureAccess()) return;
+        Message = Error = null;
+        if (item.SelectedRole is not (AppRoles.PlatformAdmin or AppRoles.Customer))
         {
-            Message = null; Error = "نقش مدیر کل را برای حساب خودتان نمی‌توانید کم کنید؛ از مدیر دیگری بخواهید.";
+            Error = "نقش مالک، مدیر یا کارمند را از عضویت‌های شعبه مدیریت کنید.";
             return;
         }
-        item.Saving = true;
-        Message = Error = null;
-        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
-        if (user is null) { Error = "کاربر پیدا نشد."; item.Saving = false; return; }
-        var current = await UserManager.GetRolesAsync(user);
-        var remove = current.Where(AppRoles.All.Contains).Where(x => x != item.SelectedRole).ToArray();
-        var addResult = await UserManager.IsInRoleAsync(user, item.SelectedRole) ? IdentityResult.Success : await UserManager.AddToRoleAsync(user, item.SelectedRole);
-        var removeResult = addResult.Succeeded && remove.Length > 0 ? await UserManager.RemoveFromRolesAsync(user, remove) : IdentityResult.Success;
-        if (!removeResult.Succeeded || !addResult.Succeeded)
-            Error = string.Join("، ", removeResult.Errors.Concat(addResult.Errors).Select(x => x.Description));
-        else
+        if (await IsSelfAsync(item) && item.SelectedRole != AppRoles.PlatformAdmin)
         {
-            await UserManager.UpdateSecurityStampAsync(user);
-            Message = $"دسترسی {DisplayName(user)} روی «{RoleLabel(item.SelectedRole)}» ذخیره شد.";
+            Error = "نقش مدیر کل را برای حساب خودتان نمی‌توانید کم کنید؛ از مدیر دیگری بخواهید.";
+            return;
         }
-        await Load();
+        Saving = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            // The last-administrator check and role changes share a serializable
+            // transaction so two administrators cannot concurrently remove each other.
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            var user = await users.FindByIdAsync(item.User.Id.ToString());
+            if (user is null) { Error = "کاربر پیدا نشد."; return; }
+            var isAdmin = await users.IsInRoleAsync(user, AppRoles.PlatformAdmin);
+            if (isAdmin && item.SelectedRole != AppRoles.PlatformAdmin
+                && !HasOtherActivePlatformAdmin(await users.GetUsersInRoleAsync(AppRoles.PlatformAdmin), user.Id, DateTimeOffset.UtcNow))
+            {
+                Error = "آخرین مدیر فعال سامانه را نمی‌توانید حذف کنید.";
+                return;
+            }
+
+            var changed = false;
+            if (!await users.IsInRoleAsync(user, item.SelectedRole))
+            {
+                if (!CheckResult(await users.AddToRoleAsync(user, item.SelectedRole))) return;
+                changed = true;
+            }
+            if (item.SelectedRole != AppRoles.PlatformAdmin && isAdmin)
+            {
+                if (!CheckResult(await users.RemoveFromRoleAsync(user, AppRoles.PlatformAdmin))) return;
+                changed = true;
+            }
+            // Identity team roles follow memberships. A global Customer grant must
+            // never erase the user's Owner/Manager/Staff role while memberships exist.
+            try { await TeamRoleSync.SyncAsync(users, db, user); }
+            catch (InvalidOperationException ex) { Error = ex.Message; return; }
+            if (changed && !CheckResult(await users.UpdateSecurityStampAsync(user))) return;
+            await transaction.CommitAsync();
+            Message = $"دسترسی سراسری {DisplayName(user)} روی «{RoleLabel(item.SelectedRole)}» ذخیره شد؛ نقش‌های شعبه از عضویت‌ها تعیین می‌شوند.";
+            await Load();
+        }
+        catch (DbUpdateConcurrencyException) { Error = "اطلاعات کاربر هم‌زمان تغییر کرد؛ فهرست را تازه کنید و دوباره تلاش کنید."; }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "40001" })
+        { Error = "دسترسی‌ها هم‌زمان تغییر کردند؛ دوباره تلاش کنید."; }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "40001")
+        { Error = "دسترسی‌ها هم‌زمان تغییر کردند؛ دوباره تلاش کنید."; }
+        finally { Saving = false; }
     }
 
     private async Task ToggleAccess(UserAccess item)
     {
-        if (await IsSelfAsync(item)) { Message = null; Error = "حساب خودتان را نمی‌توانید غیرفعال کنید."; return; }
-        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
-        if (user is null) return;
-        user.LockoutEnabled = true;
-        user.LockoutEnd = item.Disabled ? null : DateTimeOffset.MaxValue;
-        var result = await UserManager.UpdateAsync(user);
-        Message = result.Succeeded ? "وضعیت دسترسی کاربر تغییر کرد." : null;
-        Error = result.Succeeded ? null : string.Join("، ", result.Errors.Select(x => x.Description));
-        await Load();
+        if (Saving || !await EnsureAccess()) return;
+        Message = Error = null;
+        if (await IsSelfAsync(item)) { Error = "حساب خودتان را نمی‌توانید غیرفعال کنید."; return; }
+        Saving = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            var user = await users.FindByIdAsync(item.User.Id.ToString());
+            if (user is null) { Error = "کاربر پیدا نشد."; return; }
+            if (!item.Disabled && await users.IsInRoleAsync(user, AppRoles.PlatformAdmin)
+                && !HasOtherActivePlatformAdmin(await users.GetUsersInRoleAsync(AppRoles.PlatformAdmin), user.Id, DateTimeOffset.UtcNow))
+            {
+                Error = "آخرین مدیر فعال سامانه را نمی‌توانید غیرفعال کنید.";
+                return;
+            }
+            if (!CheckResult(await users.SetLockoutEnabledAsync(user, true))) return;
+            if (!CheckResult(await users.SetLockoutEndDateAsync(user, item.Disabled ? null : DateTimeOffset.MaxValue))) return;
+            // Rotating on both disable and reactivation prevents an old authenticated
+            // circuit from becoming valid again when an account is re-enabled.
+            if (!CheckResult(await users.UpdateSecurityStampAsync(user))) return;
+            await transaction.CommitAsync();
+            Message = "وضعیت دسترسی کاربر تغییر کرد.";
+            await Load();
+        }
+        catch (DbUpdateConcurrencyException) { Error = "اطلاعات کاربر هم‌زمان تغییر کرد؛ دوباره تلاش کنید."; }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "40001" })
+        { Error = "دسترسی‌ها هم‌زمان تغییر کردند؛ دوباره تلاش کنید."; }
+        catch (Npgsql.PostgresException ex) when (ex.SqlState == "40001")
+        { Error = "دسترسی‌ها هم‌زمان تغییر کردند؛ دوباره تلاش کنید."; }
+        finally { Saving = false; }
     }
 
     private async Task ResetPassword(UserAccess item)
     {
-        item.Saving = true;
+        if (Saving || !await EnsureAccess()) return;
         Message = Error = null;
-        var user = await UserManager.FindByIdAsync(item.User.Id.ToString());
-        if (user is null) { Error = "کاربر پیدا نشد."; item.Saving = false; return; }
-        var temporary = NewTemporaryPassword();
-        var token = await UserManager.GeneratePasswordResetTokenAsync(user);
-        var result = await UserManager.ResetPasswordAsync(user, token, temporary);
-        if (result.Succeeded)
+        if (await IsSelfAsync(item)) { Error = "رمز حساب خودتان را از بخش پروفایل تغییر دهید."; return; }
+        Saving = true;
+        try
         {
-            await UserManager.UpdateSecurityStampAsync(user);
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+            var user = await users.FindByIdAsync(item.User.Id.ToString());
+            if (user is null) { Error = "کاربر پیدا نشد."; return; }
+            var temporary = NewTemporaryPassword();
+            var token = await users.GeneratePasswordResetTokenAsync(user);
+            // Identity's password reset also rotates the security stamp.
+            if (!CheckResult(await users.ResetPasswordAsync(user, token, temporary))) return;
             Message = $"رمز موقت {DisplayName(user)}: «{temporary}» — فقط همین یک‌بار نمایش داده می‌شود؛ آن را امن به کاربر بدهید و بخواهید پس از ورود تغییرش دهد.";
+            await Load();
         }
-        else
-            Error = string.Join("، ", result.Errors.Select(x => x.Description));
-        await Load();
+        finally { Saving = false; }
     }
 
     private static string DisplayName(AppUser user) => string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
@@ -150,12 +237,11 @@
         return "Bn" + new string(chars) + "@7";
     }
     private static string RoleLabel(string role) => role switch { AppRoles.PlatformAdmin => "مدیر کل سامانه", AppRoles.Owner => "مدیر کسب‌وکار", AppRoles.Manager => "مدیر شعبه", AppRoles.Staff => "کارمند", _ => "مشتری" };
-    private sealed class UserAccess(AppUser user, string role, bool disabled)
+    private sealed class UserAccess(AppUser user, string[] roles)
     {
         public AppUser User { get; } = user;
-        public string Role { get; } = role;
-        public string SelectedRole { get; set; } = role;
-        public bool Disabled { get; } = disabled;
-        public bool Saving { get; set; }
+        public string[] Roles { get; } = roles;
+        public string SelectedRole { get; set; } = roles.Contains(AppRoles.PlatformAdmin) ? AppRoles.PlatformAdmin : AppRoles.Customer;
+        public bool Disabled { get; } = user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow;
     }
 }

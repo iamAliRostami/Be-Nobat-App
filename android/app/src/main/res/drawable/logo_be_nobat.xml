@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- A continuous BN monogram: the queue path resolves into a confirmed appointment. -->
+    <path
+        android:fillColor="@color/brand_mark_background"
+        android:pathData="M48,2A46,46 0,1 0,48 94A46,46 0,1 0,48 2" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M29,27L29,69M29,29L48,29C58,29 63,34 63,41C63,48 58,52 48,52L29,52M48,52L66,69M66,27L66,69"
+        android:strokeColor="@color/brand_mark_foreground"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="7" />
+    <path
+        android:fillColor="@color/brand_accent"
+        android:pathData="M72,20A6,6 0,1 0,72 32A6,6 0,1 0,72 20" />
+</vector>

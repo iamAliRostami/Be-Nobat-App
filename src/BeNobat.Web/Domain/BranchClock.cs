@@ -52,15 +52,33 @@ public static class BranchClock
     /// <summary>لحظه‌ی (UTC) متناظر با یک تاریخ و ساعت دیواری در منطقه‌ی شعبه.</summary>
     public static DateTimeOffset FromLocal(DateOnly date, TimeOnly time, string? zoneId)
     {
-        var zone = Zone(zoneId);
-        var local = date.ToDateTime(time, DateTimeKind.Unspecified);
-        if (zone.IsInvalidTime(local)) local = local.AddHours(1);
-        return new DateTimeOffset(local, zone.GetUtcOffset(local)).ToUniversalTime();
+        var instants = LocalInstants(date.ToDateTime(time, DateTimeKind.Unspecified), Zone(zoneId));
+        if (instants.Count == 0) throw new ArgumentException("The local time does not exist in the branch time zone.", nameof(time));
+        return instants[0];
+    }
+
+    /// <summary>Nonexistent clock times have no instant; repeated clock times have two, ordered by UTC.</summary>
+    public static IReadOnlyList<DateTimeOffset> LocalInstants(DateTime local, TimeZoneInfo zone)
+    {
+        local = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
+        if (zone.IsInvalidTime(local)) return [];
+        var offsets = zone.IsAmbiguousTime(local) ? zone.GetAmbiguousTimeOffsets(local) : [zone.GetUtcOffset(local)];
+        return offsets.Select(offset => new DateTimeOffset(local, offset).ToUniversalTime()).OrderBy(x => x).ToList();
     }
 
     /// <summary>بازه‌ی UTC که کل یک روز محلی شعبه را می‌پوشاند: [شروع، پایان).</summary>
-    public static (DateTimeOffset Start, DateTimeOffset End) DayWindow(DateOnly date, string? zoneId) =>
-        (FromLocal(date, TimeOnly.MinValue, zoneId), FromLocal(date.AddDays(1), TimeOnly.MinValue, zoneId));
+    public static (DateTimeOffset Start, DateTimeOffset End) DayWindow(DateOnly date, string? zoneId) => DayWindow(date, Zone(zoneId));
+
+    public static (DateTimeOffset Start, DateTimeOffset End) DayWindow(DateOnly date, TimeZoneInfo zone) =>
+        (DayBoundary(date, zone), DayBoundary(date.AddDays(1), zone));
+
+    private static DateTimeOffset DayBoundary(DateOnly date, TimeZoneInfo zone)
+    {
+        var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        // Some zones jump at midnight, or skip a whole date. The day begins at the first valid instant.
+        while (zone.IsInvalidTime(local)) local = local.AddMinutes(1);
+        return LocalInstants(local, zone)[0];
+    }
 
     public static string FormatTime(DateTimeOffset value, string? zoneId, string language) =>
         LocalizedDate.FormatTime(ToLocal(value, zoneId), language);

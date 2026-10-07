@@ -11,7 +11,7 @@
 <PageTitle>ثبت‌نام | به‌نوبت</PageTitle>
 
 <div class="account-auth-page">
-    <EditForm Model="Input" FormName="register" OnValidSubmit="RegisterUser" class="auth-card">
+    <EditForm Model="Input!" FormName="register" OnValidSubmit="RegisterUser" class="auth-card">
         <DataAnnotationsValidator />
         <h1>ساخت حساب کاربری</h1>
         <p class="auth-subtitle">برای رزرو نوبت، یک حساب کاربری بسازید.</p>
@@ -32,30 +32,30 @@
         }
 
         <label>نام و نام خانوادگی
-            <InputText @bind-Value="Input.DisplayName" autocomplete="name" />
+            <InputText @bind-Value="Input!.DisplayName" autocomplete="name" />
         </label>
-        <ValidationMessage For="() => Input.DisplayName" />
+        <ValidationMessage For="() => Input!.DisplayName" />
 
         <label>ایمیل
-            <InputText @bind-Value="Input.Email" type="email" autocomplete="username" dir="ltr" />
+            <InputText @bind-Value="Input!.Email" type="email" autocomplete="username" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.Email" />
+        <ValidationMessage For="() => Input!.Email" />
 
         @* شماره موبایل برای هماهنگی مجموعه با مراجعه‌کننده لازم است؛ قبلاً در ثبت‌نام گرفته نمی‌شد. *@
         <label>شماره موبایل
-            <InputText @bind-Value="Input.Phone" type="tel" inputmode="tel" maxlength="14" autocomplete="tel" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" dir="ltr" />
+            <InputText @bind-Value="Input!.Phone" type="tel" inputmode="tel" maxlength="14" autocomplete="tel" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.Phone" />
+        <ValidationMessage For="() => Input!.Phone" />
 
         <label>رمز عبور
-            <InputText @bind-Value="Input.Password" type="password" autocomplete="new-password" dir="ltr" />
+            <InputText @bind-Value="Input!.Password" type="password" autocomplete="new-password" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.Password" />
+        <ValidationMessage For="() => Input!.Password" />
 
         <label>تکرار رمز عبور
-            <InputText @bind-Value="Input.ConfirmPassword" type="password" autocomplete="new-password" dir="ltr" />
+            <InputText @bind-Value="Input!.ConfirmPassword" type="password" autocomplete="new-password" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input.ConfirmPassword" />
+        <ValidationMessage For="() => Input!.ConfirmPassword" />
 
         <button type="submit" class="primary-button auth-submit">ثبت‌نام</button>
         <p class="auth-switch">قبلاً ثبت‌نام کرده‌اید؟ <a href="@LoginHref">وارد شوید</a></p>
@@ -67,7 +67,9 @@
     private bool EmailTaken;
 
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel? Input { get; set; }
+
+    protected override void OnInitialized() => Input ??= new();
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
@@ -87,20 +89,20 @@
         ErrorMessage = null;
         EmailTaken = false;
 
-        if (Input.Password != Input.ConfirmPassword)
+        if (Input!.Password != Input!.ConfirmPassword)
         {
             ErrorMessage = "رمز عبور و تکرار آن یکسان نیستند.";
             return;
         }
 
-        if (!UserInputValidation.TryNormalizeIranianMobile(Input.Phone, out var phone))
+        if (!UserInputValidation.TryNormalizeIranianMobile(Input!.Phone, out var phone))
         {
             ErrorMessage = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
             return;
         }
 
         // ایمیل را قبل از ساخت حساب نرمال می‌کنیم؛ «Ali@Example.com » و «ali@example.com» نباید دو حساب شوند.
-        var email = Input.Email.Trim();
+        var email = Input!.Email.Trim();
 
         if (await UserManager.FindByEmailAsync(email) is not null)
         {
@@ -113,11 +115,11 @@
         {
             UserName = email,
             Email = email,
-            DisplayName = Input.DisplayName.Trim(),
+            DisplayName = Input!.DisplayName.Trim(),
             PhoneNumber = phone,
         };
 
-        var result = await UserManager.CreateAsync(user, Input.Password);
+        var result = await UserManager.CreateAsync(user, Input!.Password);
 
         if (!result.Succeeded)
         {

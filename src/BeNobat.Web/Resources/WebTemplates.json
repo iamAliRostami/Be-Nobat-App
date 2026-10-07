@@ -1,0 +1,495 @@
+[
+  {
+    "fa": "{0} | به‌نوبت",
+    "en": "{0} | Be Nobat",
+    "ar": "{0} | بي نوبات",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "{0} مرکز آماده‌ی رزرو آنلاین",
+    "en": "{0} businesses ready for online booking",
+    "ar": "{0} منشأة متاحة للحجز عبر الإنترنت",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "کسب‌وکارهای «{0}»",
+    "en": "Businesses in “{0}”",
+    "ar": "الأنشطة ضمن «{0}»",
+    "args": [
+      "ui"
+    ]
+  },
+  {
+    "fa": "نتایج برای «{0}»",
+    "en": "Results for “{0}”",
+    "ar": "نتائج البحث عن «{0}»",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "مشاهده کسب‌وکارهای دسته‌بندی {0}",
+    "en": "View businesses in {0}",
+    "ar": "عرض الأنشطة في تصنيف {0}",
+    "args": [
+      "ui"
+    ]
+  },
+  {
+    "fa": "عکس پروفایل {0}",
+    "en": "Profile photo of {0}",
+    "ar": "صورة الملف الشخصي لـ{0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "میانگین امتیاز از ۵، بر پایه {0} نظر منتشرشده",
+    "en": "Average out of 5, based on {0} published reviews",
+    "ar": "المتوسط من ٥، بناءً على {0} مراجعة منشورة",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} نظر منتشرشده · میانگین {1} از ۵",
+    "en": "{0} published reviews · average {1} out of 5",
+    "ar": "{0} مراجعة منشورة · المتوسط {1} من ٥",
+    "args": [
+      "number",
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} از ۵ ستاره",
+    "en": "{0} out of 5 stars",
+    "ar": "{0} من ٥ نجوم",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} از ۵",
+    "en": "{0} out of 5",
+    "ar": "{0} من ٥",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "بر اساس {0} ارزیابی مجموعه‌ها",
+    "en": "Based on {0} business evaluations",
+    "ar": "بناءً على {0} تقييم من المنشآت",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "ساعت کاری {0}:۰۰ تا {1}:۰۰",
+    "en": "Working hours {0}:00 to {1}:00",
+    "ar": "ساعات العمل من {0}:٠٠ إلى {1}:٠٠",
+    "args": [
+      "number",
+      "number"
+    ]
+  },
+  {
+    "fa": "ارائه‌دهنده در {0} · {1}",
+    "en": "Provider at {0} · {1}",
+    "ar": "مقدم خدمة في {0} · {1}",
+    "args": [
+      "data",
+      "data"
+    ]
+  },
+  {
+    "fa": "ارائه‌دهنده: {0}",
+    "en": "Provider: {0}",
+    "ar": "مقدم الخدمة: {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "{0} دقیقه · {1} تومان",
+    "en": "{0} minutes · {1} Toman",
+    "ar": "{0} دقائق · {1} تومان",
+    "args": [
+      "number",
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} دقیقه · {1} تومان · اختصاصی",
+    "en": "{0} minutes · {1} Toman · Custom",
+    "ar": "{0} دقائق · {1} تومان · مخصصة",
+    "args": [
+      "number",
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} دقیقه · {1} تومان · کاتالوگ",
+    "en": "{0} minutes · {1} Toman · Catalog",
+    "ar": "{0} دقائق · {1} تومان · كتالوج",
+    "args": [
+      "number",
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} دقیقه",
+    "en": "{0} minutes",
+    "ar": "{0} دقائق",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} minute"
+  },
+  {
+    "fa": "{0} تومان",
+    "en": "{0} Toman",
+    "ar": "{0} تومان",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} ستاره",
+    "en": "{0} stars",
+    "ar": "{0} نجوم",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} star"
+  },
+  {
+    "fa": "{0} نظر اخیر",
+    "en": "{0} recent reviews",
+    "ar": "{0} مراجعة حديثة",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} recent review"
+  },
+  {
+    "fa": "{0} نظر",
+    "en": "{0} reviews",
+    "ar": "{0} مراجعات",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} review"
+  },
+  {
+    "fa": "{0} نوبت",
+    "en": "{0} appointments",
+    "ar": "{0} مواعيد",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} appointment"
+  },
+  {
+    "fa": "{0} خدمت قابل رزرو",
+    "en": "{0} bookable services",
+    "ar": "{0} خدمات متاحة للحجز",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} bookable service"
+  },
+  {
+    "fa": "{0} خدمت",
+    "en": "{0} services",
+    "ar": "{0} خدمات",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} service"
+  },
+  {
+    "fa": "{0} متخصص و عضو تیم",
+    "en": "{0} specialists and team members",
+    "ar": "{0} مختصين وأعضاء فريق",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "{0} شعبه فعال",
+    "en": "{0} active branches",
+    "ar": "{0} فروع نشطة",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} active branch"
+  },
+  {
+    "fa": "{0} شعبه",
+    "en": "{0} branches",
+    "ar": "{0} فروع",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} branch"
+  },
+  {
+    "fa": "{0} دسته‌بندی",
+    "en": "{0} categories",
+    "ar": "{0} تصنيفات",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} category"
+  },
+  {
+    "fa": "{0} کسب‌وکار",
+    "en": "{0} businesses",
+    "ar": "{0} أنشطة",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} business"
+  },
+  {
+    "fa": "{0} کاربر",
+    "en": "{0} users",
+    "ar": "{0} مستخدمين",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} user"
+  },
+  {
+    "fa": "{0} نتیجه",
+    "en": "{0} results",
+    "ar": "{0} نتائج",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} result"
+  },
+  {
+    "fa": "{0} نفر",
+    "en": "{0} people",
+    "ar": "{0} أشخاص",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} person"
+  },
+  {
+    "fa": "{0} مورد",
+    "en": "{0} items",
+    "ar": "{0} عناصر",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} item"
+  },
+  {
+    "fa": "{0} بازه",
+    "en": "{0} periods",
+    "ar": "{0} فترات",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} period"
+  },
+  {
+    "fa": "{0} زمان موجود",
+    "en": "{0} available times",
+    "ar": "{0} أوقات متاحة",
+    "args": [
+      "number"
+    ],
+    "enOne": "{0} available time"
+  },
+  {
+    "fa": "مشاهده {0} نوبت {1}",
+    "en": "View {0} appointments for {1}",
+    "ar": "عرض {0} مواعيد لـ{1}",
+    "args": [
+      "number",
+      "data"
+    ]
+  },
+  {
+    "fa": "مشاهده ارزیابی‌های {0} با میانگین امتیاز {1}",
+    "en": "View evaluations for {0}, average rating {1}",
+    "ar": "عرض تقييمات {0} بمتوسط {1}",
+    "args": [
+      "data",
+      "number"
+    ]
+  },
+  {
+    "fa": "یادداشت ارزیابی {0}",
+    "en": "Evaluation note for {0}",
+    "ar": "ملاحظة تقييم {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "برای {0} قبلاً امتیاز ثبت شده است.",
+    "en": "A rating has already been saved for {0}.",
+    "ar": "تم حفظ تقييم لـ{0} بالفعل.",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "امتیاز {0} از ۵ برای {1} ثبت شد.",
+    "en": "Rating {0} out of 5 saved for {1}.",
+    "ar": "تم حفظ تقييم {0} من ٥ لـ{1}.",
+    "args": [
+      "number",
+      "data"
+    ]
+  },
+  {
+    "fa": "حذف منبع {0}",
+    "en": "Remove resource {0}",
+    "ar": "إزالة المورد {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "منبع جدید برای {0}",
+    "en": "New resource for {0}",
+    "ar": "مورد جديد لـ{0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "اعضای {0}",
+    "en": "Members of {0}",
+    "ar": "أعضاء {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "ویرایش ارزیابی {0}",
+    "en": "Edit evaluation for {0}",
+    "ar": "تعديل تقييم {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "نظر درباره‌ی {0}",
+    "en": "Review for {0}",
+    "ar": "مراجعة عن {0}",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "رزرو فقط تا {0} روز آینده امکان‌پذیر است.",
+    "en": "Bookings are available up to {0} days ahead.",
+    "ar": "الحجز متاح حتى {0} يومًا مقدمًا.",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "رزرو فقط از امروز تا {0} روز آینده امکان‌پذیر است.",
+    "en": "Bookings are available from today up to {0} days ahead.",
+    "ar": "الحجز متاح من اليوم وحتى {0} يومًا مقدمًا.",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "حداکثر {0} نوبت فعال می‌توانید داشته باشید؛ ابتدا یکی از نوبت‌ها را لغو کنید یا منتظر برگزاری آن‌ها بمانید.",
+    "en": "You can have up to {0} active appointments. Cancel one or wait until an appointment has finished.",
+    "ar": "يمكنك الاحتفاظ بـ{0} مواعيد نشطة كحد أقصى. ألغِ أحدها أو انتظر انتهاء موعد.",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "ثبت نوبت انجام نشد. دوباره تلاش کنید؛ در صورت تکرار، کد خطا {0} را به پشتیبانی اعلام کنید.",
+    "en": "Booking failed. Try again; if it continues, report error code {0} to support.",
+    "ar": "تعذّر الحجز. حاول مجددًا؛ إذا استمر الخطأ، أبلغ الدعم بالرمز {0}.",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "رمز عبور باید حداقل {0} کاراکتر باشد.",
+    "en": "Password must contain at least {0} characters.",
+    "ar": "يجب ألا تقل كلمة المرور عن {0} أحرف.",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "رمز عبور باید حداقل {0} کاراکتر متفاوت داشته باشد.",
+    "en": "Password must contain at least {0} different characters.",
+    "ar": "يجب أن تتضمن كلمة المرور {0} أحرف مختلفة على الأقل.",
+    "args": [
+      "number"
+    ]
+  },
+  {
+    "fa": "حساب ساخته شد. رمز موقت: «{0}» — فقط همین یک‌بار نمایش داده می‌شود؛ آن را امن به کاربر بدهید.",
+    "en": "Account created. Temporary password: “{0}” — shown only once; share it with the user securely.",
+    "ar": "تم إنشاء الحساب. كلمة المرور المؤقتة: «{0}» — تظهر مرة واحدة فقط؛ أوصلها إلى المستخدم بأمان.",
+    "args": [
+      "data"
+    ]
+  },
+  {
+    "fa": "رمز موقت {0}: «{1}» — فقط همین یک‌بار نمایش داده می‌شود؛ آن را امن به کاربر بدهید و بخواهید پس از ورود تغییرش دهد.",
+    "en": "Temporary password for {0}: “{1}” — shown only once; share it securely and ask the user to change it after signing in.",
+    "ar": "كلمة المرور المؤقتة لـ{0}: «{1}» — تظهر مرة واحدة فقط؛ أوصلها بأمان واطلب من المستخدم تغييرها بعد الدخول.",
+    "args": [
+      "data",
+      "data"
+    ]
+  },
+  {
+    "fa": "دسترسی سراسری {0} روی «{1}» ذخیره شد؛ نقش‌های شعبه از عضویت‌ها تعیین می‌شوند.",
+    "en": "Platform role for {0} saved as “{1}”. Branch roles are determined by memberships.",
+    "ar": "تم حفظ الدور العام لـ{0} باسم «{1}». تُحدد أدوار الفروع من العضويات.",
+    "args": [
+      "data",
+      "ui"
+    ]
+  },
+  {
+    "fa": "{0} (قدیمی)",
+    "en": "{0} (legacy)",
+    "ar": "{0} (قديم)",
+    "args": [
+      "ui"
+    ]
+  },
+  {
+    "fa": "نقش‌ها: {0}",
+    "en": "Roles: {0}",
+    "ar": "الأدوار: {0}",
+    "args": [
+      "ui"
+    ]
+  },
+  {
+    "fa": "{0}:00 تا {1}:00",
+    "en": "{0}:00 to {1}:00",
+    "ar": "{0}:٠٠ إلى {1}:٠٠",
+    "args": [
+      "number",
+      "number"
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE_PATH || 'playwright');
+const fs=require('fs');
+const assert=require('assert/strict');
+(async()=>{
+ const browser=await chromium.launch({...(process.env.CHROMIUM_EXECUTABLE ? {executablePath:process.env.CHROMIUM_EXECUTABLE} : {}),args:['--no-sandbox']});
+ const page=await browser.newPage();
+ const path=require('path');
+ const dir=path.resolve(__dirname,'../src/BeNobat.Web/wwwroot')+'/';
+ const scripts=['i18n/catalog.js','i18n/localizer.js','app.js'].map(file=>'<script>'+fs.readFileSync(dir+file,'utf8')+'</script>').join('');
+ await page.route('https://benobat.test/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><html lang=fa dir=rtl><head><meta charset="utf-8"></head><body>'+scripts+'</body></html>'}));
+ await page.goto('https://benobat.test/',{waitUntil:'domcontentloaded'});
+ await page.evaluate(()=>{
+  localStorage.setItem('benobat-language','fa');
+  document.body.innerHTML='<div id="status">در انتظار</div><button id="favorite" aria-label="افزودن به علاقه‌مندی‌ها">تأیید</button><p id="name" data-i18n-skip>فعال</p><p id="review" data-i18n-skip>خدمات من برای مشتری</p><input id="phone" value="09121234567" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷"><div id="count">۳ نوبت</div>';
+  window.beNobat.preferences.setLanguage('en');
+ });
+ await page.waitForTimeout(50);
+ assert.equal(await page.locator('#status').innerText(),'Pending');
+ assert.equal(await page.locator('#name').innerText(),'فعال');
+ assert.equal(await page.locator('#review').innerText(),'خدمات من برای مشتری');
+ assert.equal(await page.locator('#phone').inputValue(),'09121234567');
+ await page.evaluate(()=>{
+  document.querySelector('#status').firstChild.nodeValue='تأیید شده';
+  document.querySelector('#favorite').setAttribute('aria-label','حذف از علاقه‌مندی‌ها');
+  document.querySelector('#count').firstChild.nodeValue='۱۴ نوبت';
+  document.title='تقویم نوبت‌ها | به‌نوبت';
+  document.body.insertAdjacentHTML('beforeend','<div id="late">برای ثبت نوبت ابتدا قوانین رزرو را مطالعه و تأیید کنید.</div>');
+ });
+ await page.waitForTimeout(50);
+ assert.equal(await page.locator('#status').innerText(),'Confirmed');
+ assert.equal(await page.title(),'Appointment calendar | Be Nobat');
+ assert.equal(await page.locator('#favorite').getAttribute('aria-label'),'Remove from favorites');
+ assert.equal(await page.locator('#count').innerText(),'14 appointments');
+ assert.equal(await page.locator('#late').innerText(),'Read and accept the booking terms before booking.');
+ await page.evaluate(()=>window.beNobat.preferences.setLanguage('ar'));
+ await page.waitForTimeout(50);
+ assert.equal(await page.locator('#status').innerText(),'مؤكد');
+ assert.equal(await page.locator('#favorite').getAttribute('aria-label'),'إزالة من المفضلة');
+ assert.equal(await page.locator('#count').innerText(),'١٤ مواعيد');
+ assert.equal(await page.locator('#name').innerText(),'فعال');
+ await page.evaluate(()=>window.beNobat.preferences.setLanguage('fa'));
+ await page.waitForTimeout(50);
+ assert.equal(await page.locator('#status').innerText(),'تأیید شده');
+ assert.equal(await page.locator('#favorite').getAttribute('aria-label'),'حذف از علاقه‌مندی‌ها');
+ assert.equal(await page.locator('#phone').getAttribute('placeholder'),'مثلاً ۰۹۱۲۱۲۳۴۵۶۷');
+ console.log('Browser DOM regression passed: fa/en/ar roundtrip, new nodes, in-place text updates, dynamic aria, numeric counts, user names/reviews and form values.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});

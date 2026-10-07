@@ -9,8 +9,20 @@ public static class LocalizedDate
     private static readonly string[] PersianMonths = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
     private static readonly string[] ArabicMonths = ["محرم", "صفر", "ربيع الأول", "ربيع الآخر", "جمادى الأولى", "جمادى الآخرة", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"];
 
+    private static Calendar CalendarFor(string language) => language switch
+    {
+        "fa" => Persian, "ar" => Hijri, _ => new GregorianCalendar(),
+    };
+
+    public static DateOnly MinSupported(string language) => DateOnly.FromDateTime(CalendarFor(language).MinSupportedDateTime);
+    public static DateOnly MaxSupported(string language) => DateOnly.FromDateTime(CalendarFor(language).MaxSupportedDateTime);
+    public static bool IsSupported(DateOnly date, string language) => date >= MinSupported(language) && date <= MaxSupported(language);
+    public static DateOnly Clamp(DateOnly date, string language) => date < MinSupported(language)
+        ? MinSupported(language) : date > MaxSupported(language) ? MaxSupported(language) : date;
+
     public static (int Year, int Month, int Day) GetParts(DateOnly date, string language)
     {
+        date = Clamp(date, language);
         var value = date.ToDateTime(TimeOnly.MinValue);
         return language switch
         {
@@ -42,6 +54,8 @@ public static class LocalizedDate
 
     public static string Format(DateOnly date, string language)
     {
+        // Uninitialized/legacy dates must not crash rendering or invent a date.
+        if (!IsSupported(date, language)) return "—";
         var value = date.ToDateTime(TimeOnly.MinValue);
         return language switch
         {
@@ -53,6 +67,7 @@ public static class LocalizedDate
 
     public static (string Day, string Month) DayAndMonth(DateOnly date, string language)
     {
+        if (!IsSupported(date, language)) return ("—", "—");
         var value = date.ToDateTime(TimeOnly.MinValue);
         return language switch
         {

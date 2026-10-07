@@ -46,7 +46,7 @@
             <AuthorizeView>
                 <Authorized>
                     <UserAvatarBadge User="context.User" />
-                    <div><a class="sidebar-profile-name" href="/account/profile"><b>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b></a><small>@RoleLabel(context.User)</small></div>
+                    <div><a class="sidebar-profile-name" href="/account/profile"><b data-i18n-skip>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b></a><small>@RoleLabel(context.User)</small></div>
                 </Authorized>
             </AuthorizeView>
         </div>

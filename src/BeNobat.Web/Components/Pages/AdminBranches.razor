@@ -29,11 +29,11 @@
         {
             <article class="management-card">
                 <div class="panel-head">
-                    <div><h2>@branch.Name</h2><p><a class="entity-link" href="@BusinessUrl(branch.BusinessId)">@branch.Business.Name</a> · @branch.Address</p></div>
+                    <div><h2 data-i18n-skip>@branch.Name</h2><p><a class="entity-link" href="@BusinessUrl(branch.BusinessId)" data-i18n-skip>@branch.Business.Name</a> · <span data-i18n-skip>@branch.Address</span></p></div>
                     <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
                 </div>
                 <dl>
-                    <div><dt>ساعت کاری</dt><dd>@branch.OpenHour:00 تا @branch.CloseHour:00</dd></div>
+                    <div><dt>ساعت کاری</dt><dd>@($"{branch.OpenHour}:00 تا {branch.CloseHour}:00")</dd></div>
                     <div><dt>منطقه زمانی</dt><dd>@branch.TimeZoneId</dd></div>
                     <div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div>
                     <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
@@ -49,7 +49,7 @@
                     <div class="resource-chips">
                         @foreach (var resource in branch.Resources)
                         {
-                            <span><a class="entity-link" href="@ResourceUrl(resource)">@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" class="action-icon action-remove-plain" title="حذف منبع" aria-label="@($"حذف منبع {resource.Name}")" @onclick="() => DeleteResource(resource)">×</button></span>
+                            <span><a class="entity-link" href="@ResourceUrl(resource)" data-i18n-skip>@resource.Name</a> <small>@KindLabel(resource.Kind)</small><button type="button" class="action-icon action-remove-plain" title="حذف منبع" aria-label="@($"حذف منبع {resource.Name}")" @onclick="() => DeleteResource(resource)">×</button></span>
                         }
                     </div>
                 }
@@ -64,7 +64,7 @@
         <EditForm Model="BranchForm" FormName="admin-branch" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
             <DataAnnotationsValidator />
             <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-            <label>کسب‌وکار<select @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id">@b.Name</option> }</select></label>
+            <label>کسب‌وکار<select disabled="@(EditingBranchId is not null)" @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id" data-i18n-skip>@b.Name</option> }</select></label>
             <label>نام شعبه<input required @bind="BranchForm.Name" /></label>
             <label>نشانی<input @bind="BranchForm.Address" /></label>
             <label>منطقه زمانی<select @bind="BranchForm.TimeZoneId">@foreach (var zone in TimeZones) { <option value="@zone.Id">@zone.Label</option> }</select></label>
@@ -136,8 +136,8 @@
                     @foreach (var membership in Memberships)
                     {
                         <article>
-                            <span class="customer-avatar purple">@UserAvatar.Initials(membership.User.DisplayName)</span>
-                            <div><b>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small>@membership.User.Email · @(string.IsNullOrWhiteSpace(membership.User.PhoneNumber) ? "بدون شماره تماس" : membership.User.PhoneNumber)</small></div>
+                            <span class="customer-avatar purple" data-i18n-skip>@UserAvatar.Initials(membership.User.DisplayName)</span>
+                            <div><b data-i18n-skip>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small><span data-i18n-skip>@membership.User.Email</span> · @(string.IsNullOrWhiteSpace(membership.User.PhoneNumber) ? "بدون شماره تماس" : membership.User.PhoneNumber)</small></div>
                             <em>@RoleLabel(membership.Role)</em>
                             <div class="inline-actions"><button type="button" class="action-danger" @onclick="() => RemoveMember(membership)">حذف</button></div>
                         </article>
@@ -156,6 +156,7 @@
                         }
                     </select>
                 </label>
+                <label>یا ایمیل حساب موجود<input type="email" autocomplete="off" placeholder="name@example.com" @bind="MemberForm.Email" /></label>
                 <label>نقش در شعبه
                     <select @bind="MemberForm.Role">
                         <option value="@AppRoles.Staff">پرسنل</option>
@@ -256,33 +257,25 @@
 
     private async Task LoadTeamMembers()
     {
-        var ids = new HashSet<Guid>();
-        var members = new List<AppUser>();
-
-        foreach (var role in TeamRoles)
-        {
-            foreach (var user in await UserManager.GetUsersInRoleAsync(role))
-            {
-                if (ids.Add(user.Id))
-                {
-                    members.Add(user);
-                }
-            }
-        }
-
+        // A customer's existing account can join a team without creating a duplicate
+        // identity. Account lockout prevents offering disabled accounts as providers.
+        var query = UserManager.Users.AsNoTracking()
+            .Where(u => !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= DateTimeOffset.UtcNow);
         if (!await Access.IsPlatformAdminAsync())
         {
-            var allowedIds = await (await Access.BranchesAsync())
-                .SelectMany(x => x.Memberships).Select(x => x.UserId).Distinct().ToListAsync();
-            members = members.Where(x => allowedIds.Contains(x.Id)).ToList();
+            var branches = await Access.ManagedBranchesAsync();
+            var appointments = await Access.AppointmentsAsync();
+            query = query.Where(u => Db.BranchMemberships.Any(m => m.UserId == u.Id && branches.Any(b => b.Id == m.BranchId)) ||
+                appointments.Any(a => a.CustomerId == u.Id));
         }
-        TeamMembers = members.OrderBy(x => x.DisplayName).ToList();
+        TeamMembers = await query.OrderBy(u => u.DisplayName).ToListAsync();
     }
 
     private async Task Load()
     {
-        var query = await Access.BranchesAsync();
-        Branches = await query.IgnoreQueryFilters()
+        Businesses = await Access.ManagedBusinessesAsync();
+        var query = await Access.ManagedBranchesAsync(includeArchived: true);
+        Branches = await query.IgnoreQueryFilters().AsNoTracking()
             .Include(x => x.Business)
             .Include(x => x.Resources.Where(r => r.DeletedAt == null))
             .Include(x => x.Memberships.Where(m => m.DeletedAt == null))
@@ -322,7 +315,7 @@
             return;
         }
 
-        if (!Businesses.Any(x => x.Id == BranchForm.BusinessId)) { Error = "به این کسب‌وکار دسترسی ندارید."; return; }
+        if (!(await Access.ManagedBusinessesAsync()).Any(x => x.Id == BranchForm.BusinessId)) { Error = "به این کسب‌وکار دسترسی ندارید."; return; }
         if (EditingBranchId is Guid editId && !await Access.CanManageBranchAsync(editId)) { Error = "اجازه‌ی ویرایش این شعبه را ندارید."; return; }
         if (EditingBranchId is null && !await Access.IsBusinessOwnerAsync(BranchForm.BusinessId))
         {
@@ -331,10 +324,18 @@
         }
         if (BranchForm.OpenHour < 0 || BranchForm.CloseHour > 24) { Error = "ساعت کاری باید بین ۰ تا ۲۴ باشد."; return; }
 
+        if (BranchForm.Name.Trim().Length > 200 || BranchForm.Address.Trim().Length > 1000 ||
+            !TimeZones.Any(z => z.Id == BranchForm.TimeZoneId)) { Error = "نام، نشانی یا منطقه زمانی معتبر نیست."; return; }
         var branch = EditingBranchId is null
             ? new Branch { Name = BranchForm.Name }
-            : await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == EditingBranchId);
-        branch.TimeZoneId = TimeZones.Any(z => z.Id == BranchForm.TimeZoneId) ? BranchForm.TimeZoneId : "Asia/Tehran";
+            : await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == EditingBranchId);
+        if (branch is null) { Error = "شعبه پیدا نشد."; return; }
+        if (EditingBranchId is not null)
+        {
+            await Db.Entry(branch).ReloadAsync();
+            if (branch.BusinessId != BranchForm.BusinessId) { Error = "کسب‌وکار شعبه را نمی‌توان تغییر داد."; return; }
+        }
+        branch.TimeZoneId = BranchForm.TimeZoneId;
 
         branch.BusinessId = BranchForm.BusinessId;
         branch.Name = BranchForm.Name.Trim();
@@ -361,14 +362,18 @@
     private async Task ToggleBranch(Branch branch)
     {
         if (!await Access.CanManageBranchAsync(branch.Id)) { Error = "اجازه‌ی این کار را ندارید."; return; }
-        if (branch.DeletedAt is null && await Db.Appointments.AnyAsync(a => a.BranchId == branch.Id &&
+        var item = await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == branch.Id);
+        if (item is null) return;
+        await Db.Entry(item).ReloadAsync();
+        var deactivate = branch.DeletedAt is null;
+        if (deactivate && item.DeletedAt is null && await Db.Appointments.AnyAsync(a => a.BranchId == branch.Id &&
                 (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
         {
             Message = null; Error = "این شعبه نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌ها را لغو یا تکمیل کنید.";
             return;
         }
-        var item = await Db.Branches.IgnoreQueryFilters().FirstAsync(x => x.Id == branch.Id);
-        item.DeletedAt = item.DeletedAt is null ? DateTimeOffset.UtcNow : null;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        item.DeletedAt = deactivate ? item.DeletedAt ?? DateTimeOffset.UtcNow : null;
         await Db.SaveChangesAsync();
         await Load();
     }
@@ -405,6 +410,11 @@
         if (branch is null) return;
         if (!await Access.CanManageBranchAsync(branch.Id)) { Error = "اجازه‌ی مدیریت منابع این شعبه را ندارید."; return; }
 
+        if (!await Db.Branches.AnyAsync(b => b.Id == branch.Id) || ResourceForm.Kind is not ("staff" or "room" or "equipment") || ResourceForm.Name.Trim().Length > 200)
+        {
+            Error = "شعبه، نوع یا نام منبع معتبر نیست."; return;
+        }
+        if (ResourceForm.Kind != "staff") ResourceForm.UserId = null;
         if (ResourceForm.Kind == "staff" && ResourceForm.UserId is null)
         {
             Error = "برای منبع از نوع «عضو تیم» باید یک عضو را از لیست انتخاب کنید.";
@@ -425,7 +435,8 @@
         }
 
         if (ResourceForm.UserId is Guid memberId &&
-            !await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == memberId))
+            !await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == memberId &&
+                (!x.User.LockoutEnabled || x.User.LockoutEnd == null || x.User.LockoutEnd <= DateTimeOffset.UtcNow)))
         {
             Error = "کارمند باید ابتدا عضو همین شعبه باشد.";
             return;
@@ -446,8 +457,9 @@
 
     private async Task DeleteResource(Resource resource)
     {
-        var item = await Db.Resources.FindAsync(resource.Id);
+        var item = await Db.Resources.FirstOrDefaultAsync(r => r.Id == resource.Id);
         if (item is null) return;
+        await Db.Entry(item).ReloadAsync();
         if (!await Access.CanManageBranchAsync(item.BranchId)) { Error = "اجازه‌ی حذف این منبع را ندارید."; return; }
         if (await Db.Appointments.AnyAsync(a => a.ResourceId == item.Id &&
                 (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
@@ -476,7 +488,8 @@
         var branch = MemberBranch;
         if (branch is null) return;
 
-        Memberships = await Db.BranchMemberships
+        if (!await Access.CanManageBranchAsync(branch.Id)) { Memberships = []; Error = "به اعضای این شعبه دسترسی ندارید."; return; }
+        Memberships = await Db.BranchMemberships.AsNoTracking()
             .Include(x => x.User)
             .Where(x => x.BranchId == branch.Id)
             .OrderBy(x => x.User.DisplayName)
@@ -488,12 +501,14 @@
         var branch = MemberBranch;
         if (branch is null) return;
 
-        if (MemberForm.UserId is not Guid userId)
-        {
-            Error = "یک کاربر را انتخاب کنید.";
-            return;
-        }
-
+        // An exact email allows joining an existing account without exposing the
+        // global user directory to a business manager.
+        var user = MemberForm.UserId is Guid selectedUserId
+            ? await UserManager.FindByIdAsync(selectedUserId.ToString())
+            : string.IsNullOrWhiteSpace(MemberForm.Email) ? null : await UserManager.FindByEmailAsync(MemberForm.Email.Trim());
+        if (user is not null) await Db.Entry(user).ReloadAsync();
+        var userId = user?.Id ?? Guid.Empty;
+        if (user is null || (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow)) { Error = "کاربر فعال پیدا نشد."; return; }
         if (await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == userId))
         {
             Error = "این کاربر از قبل عضو این شعبه است.";
@@ -505,16 +520,14 @@
             return;
         }
 
-        Db.BranchMemberships.Add(new BranchMembership
-        {
-            BranchId = branch.Id,
-            UserId = userId,
-            Role = MemberForm.Role,
-        });
+        await using var transaction = await Db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var archived = await Db.BranchMemberships.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.BranchId == branch.Id && m.UserId == userId);
+        if (archived is null) Db.BranchMemberships.Add(new BranchMembership { BranchId = branch.Id, UserId = userId, Role = MemberForm.Role });
+        else { await Db.Entry(archived).ReloadAsync(); archived.DeletedAt = null; archived.Role = MemberForm.Role; archived.UpdatedAt = DateTimeOffset.UtcNow; }
 
         await Db.SaveChangesAsync();
-        var user = await UserManager.FindByIdAsync(userId.ToString());
-        if (user is not null) await TeamRoleSync.SyncAsync(UserManager, Db, user);
+        await TeamRoleSync.SyncAsync(UserManager, Db, user);
+        await transaction.CommitAsync();
         Error = null;
         Message = "عضو جدید به شعبه اضافه شد.";
         MemberForm = new MemberInput();
@@ -525,6 +538,11 @@
 
     private async Task RemoveMember(BranchMembership membership)
     {
+        await using var transaction = await Db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var current = await Db.BranchMemberships.FirstOrDefaultAsync(m => m.Id == membership.Id);
+        if (current is null) return;
+        await Db.Entry(current).ReloadAsync();
+        membership = current;
         if (!await Access.CanManageBranchAsync(membership.BranchId) ||
             (membership.Role == AppRoles.Owner && !await Access.CanAssignRoleAsync(AppRoles.Owner, membership.BranchId)))
         {
@@ -537,10 +555,17 @@
             Error = "آخرین مالک شعبه را نمی‌توان حذف کرد.";
             return;
         }
-        Db.BranchMemberships.Remove(membership);
+        var resources = await Db.Resources.Where(r => r.BranchId == membership.BranchId && r.UserId == membership.UserId).ToListAsync();
+        if (await Db.Appointments.AnyAsync(a => a.ResourceId != null && resources.Select(r => r.Id).Contains(a.ResourceId.Value) &&
+            (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
+        { Error = "این عضو نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌ها را لغو یا تکمیل کنید."; return; }
+        foreach (var resource in resources) { resource.DeletedAt = DateTimeOffset.UtcNow; resource.UpdatedAt = DateTimeOffset.UtcNow; }
+        membership.DeletedAt = DateTimeOffset.UtcNow;
+        membership.UpdatedAt = DateTimeOffset.UtcNow;
         await Db.SaveChangesAsync();
         var removedUser = await UserManager.FindByIdAsync(membership.UserId.ToString());
         if (removedUser is not null) await TeamRoleSync.SyncAsync(UserManager, Db, removedUser);
+        await transaction.CommitAsync();
         Error = null;
         await LoadMemberships();
         await Load();
@@ -592,6 +617,7 @@
 
     private sealed class MemberInput
     {
+        public string Email { get; set; } = "";
         public Guid? UserId { get; set; }
         public string Role { get; set; } = AppRoles.Staff;
     }

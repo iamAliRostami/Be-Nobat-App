@@ -10,7 +10,7 @@
 <PageTitle>داشبورد مدیریت | به‌نوبت</PageTitle>
 
 <div class="admin-welcome">
-    <div><span>@LocalizedDate.Format(TodayDate, "fa")</span><h1>@Greeting 👋</h1>
+    <div><span>@LocalizedDate.Format(TodayDate, UiLocale.Language)</span><h1>@Greeting 👋</h1>
         <AuthorizeView Roles="@AppRoles.PlatformAdmin"><Authorized><p>نمای مدیریتی کل سامانه و وضعیت همه نوبت‌ها</p></Authorized></AuthorizeView>
         <AuthorizeView Roles="@($"{AppRoles.Owner},{AppRoles.Manager}")"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> در شعب تحت مدیریت دارید.</p></Authorized></AuthorizeView>
         <AuthorizeView Roles="@AppRoles.Staff"><Authorized><p>امروز <b>@TodayAppointments.Count نوبت</b> برای پیگیری دارید.</p></Authorized></AuthorizeView>
@@ -27,7 +27,7 @@
 
 <div class="dashboard-grid">
     <section class="admin-panel today-list">
-        <div class="panel-head"><div><h2>نوبت‌های امروز</h2><p>@LocalizedDate.Format(TodayDate, "fa")</p></div><a href="@CalendarUrl()">مشاهده تقویم ←</a></div>
+        <div class="panel-head"><div><h2>نوبت‌های امروز</h2><p>@LocalizedDate.Format(TodayDate, UiLocale.Language)</p></div><a href="@CalendarUrl()">مشاهده تقویم ←</a></div>
 
         @if (TodayAppointments.Count == 0)
         {
@@ -38,23 +38,23 @@
         @foreach (var appointment in TodayAppointments)
         {
             <div class="schedule-row" @key="appointment.Id">
-                <time>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, "fa")<small>@((appointment.EndsAt - appointment.StartsAt).TotalMinutes.ToString("0")) دقیقه</small></time>
+                <time>@BranchClock.FormatTime(appointment.StartsAt, appointment.Branch.TimeZoneId, UiLocale.Language)<small>@((appointment.EndsAt - appointment.StartsAt).TotalMinutes.ToString("0")) دقیقه</small></time>
                 <i class="line @(appointment.Status == AppointmentStatus.Completed ? "done" : "")"></i>
-                <span class="customer-avatar rose">@CustomerInitials(appointment)</span>
+                <span class="customer-avatar rose" data-i18n-skip>@CustomerInitials(appointment)</span>
                 <div class="schedule-details">
-                    <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b>@CustomerName(appointment)</b></a>
+                    <a class="entity-link customer-link" href="@EntityUrl("/admin/customers", "userId", appointment.CustomerId, "customerId")"><b data-i18n-skip>@CustomerName(appointment)</b></a>
                     <small class="entity-meta">
                         @foreach (var service in AppointmentServices(appointment))
                         {
-                            <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)">@service.Name</a>
+                            <a class="entity-link" href="@EntityUrl("/businesses", "serviceId", service.Id)" data-i18n-skip>@service.Name</a>
                         }
                         @if (appointment.Resource is not null)
                         {
-                            <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")">@ResourceLabel(appointment)</a>
+                            <a class="entity-link" href="@ResourceUrl(appointment.Resource)" title="@($"ارائه‌دهنده: {appointment.Resource.Name}")" data-i18n-skip>@ResourceLabel(appointment)</a>
                         }
                         else { <span>بدون کارمند</span> }
-                        <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)">@appointment.Branch.Business.Name</a>
-                        <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)">@appointment.Branch.Name</a>
+                        <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)" data-i18n-skip>@appointment.Branch.Business.Name</a>
+                        <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a>
                     </small>
                 </div>
                 <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
@@ -136,11 +136,14 @@
         var token = cancellation.Token;
         try
         {
-            var principal = await Access.PrincipalAsync();
+            await Access.PrincipalAsync();
             token.ThrowIfCancellationRequested();
             // Each operation owns its context; navigation can start another page while this awaits.
             await using var db = await DbFactory.CreateDbContextAsync(token);
             var access = new AdminAccessScope(db, Authentication);
+            var isPlatformAdmin = await access.IsPlatformAdminAsync();
+            var canManageBusiness = isPlatformAdmin || await (await access.ManagedBranchesAsync(includeArchived: true))
+                .IgnoreQueryFilters().AnyAsync(token);
             var zone = await access.DisplayZoneAsync();
             var today = BranchClock.Today(zone);
             var (dayStart, dayEnd) = BranchClock.DayWindow(today, zone);
@@ -159,8 +162,8 @@
             if (IsDisposed || version != LoadVersion) return;
             Zone = zone;
             TodayDate = today;
-            CanManageBusiness = AppRoles.BusinessManagers.Any(principal.IsInRole);
-            IsPlatformAdmin = principal.IsInRole(AppRoles.PlatformAdmin);
+            CanManageBusiness = canManageBusiness;
+            IsPlatformAdmin = isPlatformAdmin;
             TodayAppointments = todayAppointments;
             TotalAppointments = totalAppointments;
         }

@@ -77,7 +77,7 @@
         if (!isFavorite) Items.RemoveAll(x => x.Id == businessId);
     }
 
-    private static string Rating(Business business) => business.Reviews.Count == 0
+    private string Rating(Business business) => business.Reviews.Count == 0
         ? "—"
-        : LocalizedDate.FormatNumber(Math.Round(business.Reviews.Average(x => x.Rating), 1), "fa", "0.0");
+        : LocalizedDate.FormatNumber(Math.Round(business.Reviews.Average(x => x.Rating), 1), UiLocale.Language, "0.0");
 }

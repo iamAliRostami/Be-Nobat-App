@@ -36,12 +36,12 @@
                     var number = day;
                     <button type="button"
                             class="cal-day @(date == Value ? "selected" : "") @(Today is DateOnly today && date == today ? "today" : "")"
-                            disabled="@(date < Min)"
+                            disabled="@(date < EffectiveMin || date > EffectiveMax)"
                             aria-current="@(date == Value ? "date" : null)"
                             @onclick="() => PickAsync(date)">@LocalizedDate.FormatNumber(number, Language)</button>
                 }
             </div>
-            @if (Today is DateOnly todayDate && todayDate >= Min)
+            @if (Today is DateOnly todayDate && todayDate >= EffectiveMin && todayDate <= EffectiveMax)
             {
                 <div class="cal-foot">
                     <button type="button" @onclick="() => PickAsync(todayDate)">@LocalizedDate.Choose(Language, "امروز", "اليوم", "Today")</button>
@@ -58,6 +58,8 @@
     /// <summary>Earliest selectable date; earlier days are disabled and the previous-month button stops at this month.</summary>
     [Parameter] public DateOnly Min { get; set; }
 
+    [Parameter] public DateOnly Max { get; set; } = DateOnly.MaxValue;
+
     /// <summary>Optional "today" used for the highlight and the Today shortcut.</summary>
     [Parameter] public DateOnly? Today { get; set; }
 
@@ -66,6 +68,23 @@
     private bool IsOpen;
     private int ViewYear;
     private int ViewMonth;
+    private string PreviousLanguage = "";
+    private DateOnly EffectiveMin => LocalizedDate.Clamp(Min, Language);
+    private DateOnly EffectiveMax => LocalizedDate.Clamp(Max, Language);
+
+    protected override void OnParametersSet()
+    {
+        if (IsOpen && PreviousLanguage != Language) SetView();
+        PreviousLanguage = Language;
+    }
+
+    private void SetView()
+    {
+        var selected = Value < EffectiveMin ? EffectiveMin : Value > EffectiveMax ? EffectiveMax : Value;
+        var parts = LocalizedDate.GetParts(selected, Language);
+        ViewYear = parts.Year;
+        ViewMonth = parts.Month;
+    }
 
     private string FieldLabel => LocalizedDate.Choose(Language, "انتخاب تاریخ", "اختيار التاريخ", "Choose a date");
 
@@ -95,7 +114,7 @@
     {
         get
         {
-            var min = LocalizedDate.GetParts(Min, Language);
+            var min = LocalizedDate.GetParts(EffectiveMin, Language);
             return MonthKey(ViewYear, ViewMonth) > MonthKey(min.Year, min.Month);
         }
     }
@@ -104,6 +123,8 @@
     {
         get
         {
+            var max = LocalizedDate.GetParts(EffectiveMax, Language);
+            if (MonthKey(ViewYear, ViewMonth) >= MonthKey(max.Year, max.Month)) return false;
             var (year, month) = LocalizedDate.AddMonths(ViewYear, ViewMonth, 1);
             try
             {
@@ -127,9 +148,7 @@
         }
 
         // Open on the month of the current value (never before the minimum month).
-        var parts = LocalizedDate.GetParts(Value < Min ? Min : Value, Language);
-        ViewYear = parts.Year;
-        ViewMonth = parts.Month;
+        SetView();
         IsOpen = true;
     }
 
@@ -149,7 +168,7 @@
 
     private async Task PickAsync(DateOnly date)
     {
-        if (date < Min) return;
+        if (date < EffectiveMin || date > EffectiveMax) return;
         IsOpen = false;
         await ValueChanged.InvokeAsync(date);
     }
