@@ -14,6 +14,16 @@ public static class BookingPolicy
     /// <summary>سقف نوبت‌های فعال (در انتظار/تأییدشده‌ی آینده) برای هر مشتری؛ مانع رزرو انبوه و بی‌مصرف.</summary>
     public const int MaxActiveAppointmentsPerCustomer = 10;
 
+    /// <summary>
+    /// حداکثر دقیقه‌ای که یک خدمت می‌تواند از فاصله‌ی خالیِ بین نوبت‌ها بلندتر باشد (همان «گپ» ۱۵ دقیقه‌ای).
+    /// چنین نوبتی با تأیید شعبه ثبت می‌شود.
+    /// </summary>
+    public const int OverrunToleranceMinutes = 15;
+    public const int OverrunStepMinutes = 5;
+
+    /// <summary>برای خدمت‌های کوتاه‌تر از این مقدار تحمل زمانی اعمال نمی‌شود.</summary>
+    public const int MinDurationForOverrunMinutes = 45;
+
     public static bool IsWithinHorizon(DateOnly date, DateOnly today) => date >= today && date <= today.AddDays(MaxAdvanceDays);
 
     /// <summary>

@@ -74,13 +74,15 @@
                             <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a>
                         </small>
                         <small>کد پیگیری: <bdi>@appointment.TrackingCode</bdi>@(string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber) ? "" : $" · ☎ {appointment.Customer.PhoneNumber}")</small>
+                        @if (appointment.OverrunMinutes > 0) { <small class="appointment-hint changed">◔ خدمت حدود @appointment.OverrunMinutes دقیقه از بازه‌ی رزروشده بلندتر است (با فاصله‌ی بین نوبت‌ها جبران می‌شود).</small> }
+                        @if (appointment.RequestedStartsAt is DateTimeOffset requestedStart) { <small class="appointment-hint changed">زمان درخواستی مشتری: @BranchClock.FormatDateTime(requestedStart, appointment.Branch.TimeZoneId, UiLocale.Language)</small> }
                         @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small><span>توضیح مشتری:</span> <span data-i18n-skip>@appointment.CustomerNote</span></small> }
                     </div>
                     <em class="status @StatusCssClass(appointment.Status)">@StatusLabel(appointment.Status)</em>
                     @if (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed)
                     {
                         <div class="row-actions">
-                            @if (appointment.Status == AppointmentStatus.Pending) { <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button> }
+                            @if (appointment.Status == AppointmentStatus.Pending) { <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => OpenConfirm(appointment.Id)">تأیید</button> }
                             @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
                             {
                                 <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
@@ -95,7 +97,20 @@
     }
 </section>
 
+@if (ConfirmingId is Guid confirmingId)
+{
+    <ConfirmAppointmentDialog AppointmentId="confirmingId" OnClose="CloseConfirm" />
+}
+
 @code {
+    private Guid? ConfirmingId;
+    private void OpenConfirm(Guid id) { Error = null; ConfirmingId = id; }
+    private async Task CloseConfirm(bool confirmed)
+    {
+        ConfirmingId = null;
+        if (confirmed) await LoadAsync();
+    }
+
     [SupplyParameterFromQuery(Name = "q")] public string? SearchQuery { get; set; }
     [SupplyParameterFromQuery(Name = "date")] public string? DateQuery { get; set; }
     [SupplyParameterFromQuery(Name = "range")] public string? RangeQuery { get; set; }

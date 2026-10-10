@@ -1,0 +1,203 @@
+@using BeNobat.Web.Application
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider Authentication
+@inject AppointmentBookingService BookingService
+@inject UiLocale UiLocale
+@inject ILogger<ConfirmAppointmentDialog> Logger
+
+@* تأیید نوبت «در انتظار» با امکان انتخاب زمان نهایی توسط شعبه.
+   زمان‌های پیشنهادی همان‌هایی است که سرور هنگام تأیید دوباره اعتبارسنجی می‌کند (همان کارمند، همان مدت خدمات). *@
+<div class="modal-backdrop" @onclick="Cancel">
+    <section class="form-modal reschedule-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title" @onclick:stopPropagation>
+        <div><h2 id="confirm-dialog-title">تأیید نوبت و تعیین زمان</h2><button type="button" aria-label="بستن پنجره" title="بستن" disabled="@IsSaving" @onclick="Cancel">×</button></div>
+        @if (IsLoading)
+        {
+            <p class="empty-state">در حال دریافت اطلاعات…</p>
+        }
+        else if (Info is null)
+        {
+            <p class="empty-state">@(Error ?? "نوبت پیدا نشد یا دسترسی ندارید.")</p>
+        }
+        else
+        {
+            <p><b data-i18n-skip>@Info.Customer</b> · <span data-i18n-skip>@string.Join("، ", Info.ServiceNames)</span>@(Info.ResourceName is null ? "" : $" · {Info.ResourceName}")</p>
+            <p class="appointment-hint">زمان درخواستی مشتری: @BranchClock.FormatDateTime(Info.RequestedOrCurrentStart, Info.Zone, UiLocale.Language)@(Info.OverrunMinutes > 0 ? $" — این زمان حدود {Info.OverrunMinutes} دقیقه از فاصله‌ی خالی بلندتر است." : "")</p>
+
+            <div class="day-switch">
+                <button type="button" class="outline-link" disabled="@(!CanGoPrev || IsLoadingOptions)" @onclick="() => ShiftDay(-1)" aria-label="روز قبل">→</button>
+                <b>@LocalizedDate.Weekday(Date, UiLocale.Language), @LocalizedDate.Format(Date, UiLocale.Language)</b>
+                <button type="button" class="outline-link" disabled="@(!CanGoNext || IsLoadingOptions)" @onclick="() => ShiftDay(1)" aria-label="روز بعد">←</button>
+            </div>
+
+            @if (IsLoadingOptions) { <p class="empty-state">در حال بررسی زمان‌ها…</p> }
+            else if (Options.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد؛ روز دیگری را ببینید یا نوبت را در همان زمان درخواستی تأیید کنید.</p> }
+            else
+            {
+                <div class="time-grid">
+                    @foreach (var option in Options)
+                    {
+                        <button type="button" class="@(Selected == option.StartsAt ? "selected" : "") @(option.OverrunMinutes > 0 ? "flex-slot" : "")" aria-pressed="@(Selected == option.StartsAt ? "true" : "false")" @onclick="() => Pick(option)">@BranchClock.FormatTime(option.StartsAt, Info.Zone, UiLocale.Language)@(option.OverrunMinutes > 0 ? " ◔" : "")</button>
+                    }
+                </div>
+                @if (Options.Any(x => x.OverrunMinutes > 0)) { <small class="appointment-hint">◔ یعنی خدمت تا @BookingPolicy.OverrunToleranceMinutes دقیقه از فاصله‌ی خالی بلندتر است و با فاصله‌ی بین نوبت‌ها جبران می‌شود.</small> }
+            }
+
+            @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
+            <button type="button" class="primary-button" disabled="@IsSaving" @onclick="Confirm">
+                @(IsSaving ? "در حال ثبت…" : Selected is DateTimeOffset chosen ? $"تأیید و انتقال به {BranchClock.FormatDateTime(chosen, Info.Zone, UiLocale.Language)}" : "تأیید در زمان درخواستی")
+            </button>
+            @if (Selected is not null) { <button type="button" class="outline-link" disabled="@IsSaving" @onclick="ClearSelection">بازگشت به زمان درخواستی</button> }
+            <small class="appointment-hint">پس از تأیید، زمان جدید در «نوبت‌های من» برای مشتری نمایش داده می‌شود.</small>
+        }
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid AppointmentId { get; set; }
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    private sealed record AppointmentInfo(DateTimeOffset StartsAt, DateTimeOffset? RequestedStartsAt, int OverrunMinutes,
+        string Zone, string Customer, List<string> ServiceNames, string? ResourceName, bool CanReschedule)
+    {
+        public DateTimeOffset RequestedOrCurrentStart => RequestedStartsAt ?? StartsAt;
+    }
+
+    private AppointmentInfo? Info;
+    private List<RescheduleOption> Options = [];
+    private DateTimeOffset? Selected;
+    private DateOnly Date;
+    private bool IsLoading = true;
+    private bool IsLoadingOptions;
+    private bool IsSaving;
+    private int OptionsVersion;
+    private string? Error;
+
+    private DateOnly Today => BranchClock.Today(Info?.Zone);
+    private bool CanGoPrev => Date > Today;
+    private bool CanGoNext => Date < Today.AddDays(BookingPolicy.MaxAdvanceDays);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var access = new AdminAccessScope(db, Authentication);
+            var row = await (await access.AppointmentsAsync()).AsNoTracking()
+                .Where(a => a.Id == AppointmentId && a.Status == AppointmentStatus.Pending)
+                .Select(a => new
+                {
+                    a.StartsAt, a.RequestedStartsAt, a.OverrunMinutes,
+                    Zone = a.Branch.TimeZoneId,
+                    Customer = a.Customer.DisplayName,
+                    ServiceNames = a.Services.Select(s => s.Service.Name).ToList(),
+                    FallbackService = a.Service.Name,
+                    Resource = a.Resource != null ? a.Resource.Name : null,
+                    HasResource = a.ResourceId != null,
+                })
+                .FirstOrDefaultAsync();
+            if (row is not null)
+            {
+                var names = row.ServiceNames.Count > 0 ? row.ServiceNames : [row.FallbackService];
+                Info = new AppointmentInfo(row.StartsAt, row.RequestedStartsAt, row.OverrunMinutes, row.Zone,
+                    string.IsNullOrWhiteSpace(row.Customer) ? "مشتری" : row.Customer, names, row.Resource, row.HasResource);
+                var originalDate = BranchClock.LocalDate(row.StartsAt, row.Zone);
+                Date = originalDate < Today ? Today : originalDate;
+            }
+            else Error = "این نوبت دیگر در انتظار تأیید نیست یا به آن دسترسی ندارید.";
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load appointment {AppointmentId} for confirmation", AppointmentId);
+            Error = "دریافت اطلاعات نوبت ممکن نشد؛ دوباره تلاش کنید.";
+        }
+        finally { IsLoading = false; }
+
+        if (Info is not null && Info.CanReschedule) await LoadOptionsAsync();
+    }
+
+    private async Task LoadOptionsAsync()
+    {
+        var version = ++OptionsVersion;
+        IsLoadingOptions = true;
+        Options = [];
+        try
+        {
+            var result = await BookingService.GetRescheduleOptionsAsync(AppointmentId, Date);
+            if (version != OptionsVersion) return;
+            Options = result.ToList();
+            if (Selected is DateTimeOffset kept && Options.All(x => x.StartsAt != kept)) Selected = null;
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load reschedule options for appointment {AppointmentId}", AppointmentId);
+            if (version == OptionsVersion) Error = "دریافت زمان‌های خالی ممکن نشد.";
+        }
+        finally { if (version == OptionsVersion) IsLoadingOptions = false; }
+    }
+
+    private async Task ShiftDay(int direction)
+    {
+        var next = Date.AddDays(direction);
+        if (next < Today || next > Today.AddDays(BookingPolicy.MaxAdvanceDays)) return;
+        Date = next;
+        Error = null;
+        await LoadOptionsAsync();
+    }
+
+    private void Pick(RescheduleOption option)
+    {
+        Error = null;
+        // انتخاب دوباره‌ی زمان فعلی یعنی «بدون جابه‌جایی».
+        Selected = Info is not null && option.StartsAt == Info.StartsAt ? null : option.StartsAt;
+    }
+
+    private void ClearSelection() { Selected = null; Error = null; }
+
+    private async Task Cancel()
+    {
+        if (IsSaving) return;
+        await OnClose.InvokeAsync(false);
+    }
+
+    private async Task Confirm()
+    {
+        if (IsSaving || Info is null) return;
+        IsSaving = true;
+        Error = null;
+        try
+        {
+            await using (var db = await DbFactory.CreateDbContextAsync())
+            {
+                var access = new AdminAccessScope(db, Authentication);
+                if (!await (await access.AppointmentsAsync()).AnyAsync(a => a.Id == AppointmentId))
+                {
+                    Error = "به این نوبت دسترسی ندارید.";
+                    return;
+                }
+            }
+
+            var failure = await BookingService.ConfirmAsync(AppointmentId, Selected);
+            if (failure is null)
+            {
+                await OnClose.InvokeAsync(true);
+                return;
+            }
+
+            Error = failure switch
+            {
+                ConfirmFailure.NotFound => "نوبت پیدا نشد.",
+                ConfirmFailure.NotPending => "این نوبت دیگر در انتظار تأیید نیست؛ فهرست را تازه کنید.",
+                ConfirmFailure.CustomerOverlap => "مشتری در این بازه نوبت فعال دیگری دارد؛ زمان دیگری انتخاب کنید.",
+                ConfirmFailure.InvalidTime => "زمان انتخاب‌شده معتبر نیست.",
+                _ => "این زمان دیگر خالی نیست؛ یکی از زمان‌های به‌روز را انتخاب کنید.",
+            };
+            if (failure == ConfirmFailure.SlotUnavailable) { Selected = null; await LoadOptionsAsync(); }
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to confirm appointment {AppointmentId}", AppointmentId);
+            Error = "تأیید نوبت انجام نشد؛ دوباره تلاش کنید.";
+        }
+        finally { IsSaving = false; }
+    }
+}

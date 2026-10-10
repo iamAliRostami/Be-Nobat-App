@@ -63,7 +63,7 @@
                     <div class="row-actions">
                         @if (appointment.Status == AppointmentStatus.Pending)
                         {
-                            <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Confirmed)">تأیید</button>
+                            <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => OpenConfirm(appointment.Id)">تأیید</button>
                         }
                         @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
                         {
@@ -98,7 +98,20 @@
     </aside>
 </div>
 
+@if (ConfirmingId is Guid confirmingId)
+{
+    <ConfirmAppointmentDialog AppointmentId="confirmingId" OnClose="CloseConfirm" />
+}
+
 @code {
+    private Guid? ConfirmingId;
+    private void OpenConfirm(Guid id) { Error = null; ConfirmingId = id; }
+    private async Task CloseConfirm(bool confirmed)
+    {
+        ConfirmingId = null;
+        if (confirmed) await LoadAsync();
+    }
+
     // Blazor renders while DisplayZoneAsync is pending; never format DateOnly.MinValue.
     private DateOnly TodayDate = BranchClock.Today(null);
     private List<Appointment> TodayAppointments = [];

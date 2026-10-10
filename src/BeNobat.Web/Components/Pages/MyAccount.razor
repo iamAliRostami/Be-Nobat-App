@@ -56,6 +56,7 @@
             <div class="profile-fields">
                 <label>نام و نام خانوادگی<input autocomplete="name" required maxlength="100" disabled="@IsSaving" @bind="Profile.DisplayName" /></label>
                 <label>شماره تماس<input type="tel" disabled="@IsSaving" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Profile.Phone" /></label>
+                @if (string.IsNullOrWhiteSpace(Profile.Phone)) { <small class="appointment-hint">هنوز شماره‌ای در حساب شما ثبت نشده است؛ این شماره هنگام رزرو نوبت هم به‌صورت پیش‌فرض استفاده می‌شود.</small> }
             </div>
             <div class="profile-card-actions"><button type="submit" disabled="@IsSaving" class="primary-button action-primary">ذخیره تغییرات</button></div>
         </EditForm>

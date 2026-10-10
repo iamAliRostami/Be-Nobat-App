@@ -153,6 +153,37 @@ public static class AvailabilityResolver
         return result.ToList();
     }
 
+    /// <summary>
+    /// شروع‌هایی که خدمت دقیقاً در فاصله‌ی خالی جا نمی‌شود ولی با «تحمل زمانی» (حداکثر
+    /// <see cref="BookingPolicy.OverrunToleranceMinutes"/> دقیقه) جا می‌شود. مقدار هر کلید، دقیقه‌ی اضافه است.
+    /// شروع‌های کاملاً جاشونده (<paramref name="strict"/>) در نتیجه نمی‌آیند.
+    /// </summary>
+    public static Dictionary<DateTimeOffset, int> FlexibleSlots(
+        IEnumerable<TimeInterval> intervals,
+        DateOnly date,
+        string? zoneId,
+        TimeSpan duration,
+        int stepMinutes,
+        IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> busy,
+        DateTimeOffset nowUtc,
+        IEnumerable<DateTimeOffset> strict)
+    {
+        var result = new Dictionary<DateTimeOffset, int>();
+        if (duration < TimeSpan.FromMinutes(BookingPolicy.MinDurationForOverrunMinutes)) return result;
+        var intervalList = intervals.ToList();
+        var busyList = busy.ToList();
+        var taken = new HashSet<DateTimeOffset>(strict);
+        for (var overrun = BookingPolicy.OverrunStepMinutes; overrun <= BookingPolicy.OverrunToleranceMinutes; overrun += BookingPolicy.OverrunStepMinutes)
+        {
+            foreach (var start in Slots(intervalList, date, zoneId, duration - TimeSpan.FromMinutes(overrun), stepMinutes, busyList, nowUtc))
+            {
+                if (taken.Add(start)) result[start] = overrun;
+            }
+        }
+
+        return result;
+    }
+
     private static List<(DateTimeOffset Start, DateTimeOffset End)> UtcIntervals(
         IEnumerable<TimeInterval> intervals, DateOnly date, TimeZoneInfo zone)
     {

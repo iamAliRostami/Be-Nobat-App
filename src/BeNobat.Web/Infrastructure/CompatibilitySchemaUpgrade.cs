@@ -135,6 +135,8 @@ public static class CompatibilitySchemaUpgrade
 
             -- یادداشت مشتری روی نوبت و تنظیم «نیاز به تأیید» برای هر کسب‌وکار.
             ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "CustomerNote" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "OverrunMinutes" integer NOT NULL DEFAULT 0;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "RequestedStartsAt" timestamp with time zone NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "RequiresApproval" boolean NOT NULL DEFAULT TRUE;
             CREATE INDEX IF NOT EXISTS "IX_Appointments_ResourceId_StartsAt" ON benobat."Appointments" ("ResourceId", "StartsAt");
             CREATE INDEX IF NOT EXISTS "IX_Appointments_CustomerId_StartsAt" ON benobat."Appointments" ("CustomerId", "StartsAt");

@@ -976,3 +976,10 @@ html[data-theme="dark"] :is(.availability-tabs button.active,.sidebar nav a.acti
 html[data-theme="dark"] .public-user-menu>div :is(a.active,a:hover,button:hover){background:var(--primary-container);color:var(--primary)}
 html[data-theme="dark"] .public-user-menu>summary .header-avatar{background:var(--primary-container);color:var(--primary)}
 html[data-theme="dark"] .steps article>b{color:var(--on-primary)}
+.time-grid button.flex-slot{border-style:dashed;border-color:#e0a63a;color:#8a5b00}
+.time-grid button.flex-slot.selected{background:#e0a63a;border-color:#e0a63a;color:#fff}
+html[data-theme="dark"] .time-grid button.flex-slot{color:#f2c46b;border-color:#c4952f}
+.reschedule-dialog .time-grid{margin:12px 0}
+.reschedule-dialog .day-switch{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0}
+.reschedule-dialog .day-switch button{min-width:44px}
+.appointment-hint.changed{color:#8a5b00}

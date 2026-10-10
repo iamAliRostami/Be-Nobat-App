@@ -86,7 +86,14 @@ else
                     @if (ProviderChoice.Length == 0) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
                     else if (IsLoadingSlots) { <p class="empty-state">در حال بررسی زمان‌های خالی…</p> }
                     else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد. روز دیگری را انتخاب کنید@(NextAvailableDate is DateOnly next ? $" — نزدیک‌ترین روز خالی: {LocalizedDate.Format(next, Language)}" : "").@if (NextAvailableDate is DateOnly jump) { <button type="button" class="link-button" @onclick="() => SelectDate(jump)">برو به آن روز</button> }</p> }
-                    else { <div class="time-grid">@foreach (var slot in Slots) { <button type="button" class="@(SelectedSlot == slot ? "selected" : "")" aria-pressed="@(SelectedSlot == slot ? "true" : "false")" @onclick="() => PickSlot(slot)">@BranchClock.FormatTime(slot, SelectedBranch?.TimeZoneId, Language)</button> }</div> }
+                    else
+                    {
+                        <div class="time-grid">@foreach (var slot in Slots) { <button type="button" class="@(SelectedSlot == slot ? "selected" : "") @(IsFlexibleSlot(slot) ? "flex-slot" : "")" aria-pressed="@(SelectedSlot == slot ? "true" : "false")" title="@(IsFlexibleSlot(slot) ? "نیازمند هماهنگی با شعبه" : "")" @onclick="() => PickSlot(slot)">@BranchClock.FormatTime(slot, SelectedBranch?.TimeZoneId, Language)@(IsFlexibleSlot(slot) ? " ◔" : "")</button> }</div>
+                        @if (Slots.Any(IsFlexibleSlot))
+                        {
+                            <p class="booking-login-hint">زمان‌های دارای «◔» کمی کوتاه‌تر از مدت خدمت شما هستند (حداکثر @BookingPolicy.OverrunToleranceMinutes دقیقه). با انتخاب آن‌ها درخواست شما به شعبه می‌رسد و شعبه زمان نهایی را تأیید می‌کند.</p>
+                        }
+                    }
                 </section>
                 <BookingSummary OnContinue="NextFromStep2" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@(SelectedSlot is null ? null : FormatSelectedTime())" Language="@Language" />
             </div>
@@ -108,11 +115,19 @@ else
                         <label class="booking-note">شماره موبایل شما (برای هماهنگی مجموعه)
                             <input class="booking-field" type="tel" disabled="@IsBooking" inputmode="tel" autocomplete="tel-national" dir="ltr" maxlength="14" required placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind:get="PhoneInput" @bind:set="UpdatePhoneInput" @bind:event="oninput" />
                         </label>
+                        <small class="appointment-hint">@(string.IsNullOrWhiteSpace(ExistingPhone) ? "شماره‌ای در حساب شما ثبت نشده است؛ با ثبت نوبت در حسابتان ذخیره می‌شود." : "شماره‌ی ثبت‌شده در حساب شما به‌صورت پیش‌فرض آمده است؛ در صورت نیاز می‌توانید آن را تغییر دهید.")</small>
                     }
                     <label class="booking-note">توضیح برای مجموعه (اختیاری)
                         <textarea class="booking-field" rows="3" disabled="@IsBooking" maxlength="500" placeholder="هر نکته‌ای که مجموعه باید بداند…" @bind="CustomerNote" @bind:event="oninput"></textarea>
                     </label>
+                    @if (SelectedSlot is DateTimeOffset chosenSlot && IsFlexibleSlot(chosenSlot))
+                    {
+                        <p class="booking-login-hint">این زمان کمی کوتاه‌تر از مدت خدمت شماست؛ شعبه درخواست را بررسی می‌کند و در صورت نیاز چند دقیقه زمان را جابه‌جا می‌کند. نتیجه در «نوبت‌های من» نمایش داده می‌شود.</p>
+                    }
+                    else
+                    {
                     <p class="booking-login-hint">@(Business.RequiresApproval ? "نوبت شما پس از تأیید مجموعه قطعی می‌شود و نتیجه در «نوبت‌های من» نمایش داده می‌شود." : "نوبت شما بلافاصله پس از ثبت قطعی می‌شود.")</p>
+                    }
                     @if (!IsAuthenticated)
                     {
                         <p class="booking-login-hint">برای ثبت نوبت باید وارد حساب خود شوید یا ثبت‌نام کنید؛ انتخاب‌های شما حفظ می‌شود و بعد از ورود به همین مرحله برمی‌گردید.</p>
@@ -123,7 +138,7 @@ else
         }
         else
         {
-            <section class="success-card"><div class="success-icon">✓</div><span>@(CreatedStatus == AppointmentStatus.Confirmed ? "نوبت شما ثبت و تأیید شد" : "درخواست نوبت شما ثبت شد")</span><h1>@(CreatedStatus == AppointmentStatus.Confirmed ? "منتظرت هستیم!" : "منتظر تأیید مجموعه باشید")</h1><p>@(CreatedStatus == AppointmentStatus.Confirmed ? "جزئیات نوبت در «نوبت‌های من» قابل مشاهده است." : "به‌محض تأیید مجموعه، وضعیت نوبت در «نوبت‌های من» به «تأیید شده» تغییر می‌کند.")</p><div class="success-details"><div><small>شماره پیگیری</small><b>@TrackingCode</b></div><div><small>خدمات</small><b data-i18n-skip>@SelectedServicesLabel</b></div><div><small>متخصص</small><b data-i18n-skip>@(ResourceForSelectedSlot?.Name ?? "—")</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
+            <section class="success-card"><div class="success-icon">✓</div><span>@(CreatedStatus == AppointmentStatus.Confirmed ? "نوبت شما ثبت و تأیید شد" : "درخواست نوبت شما ثبت شد")</span><h1>@(CreatedStatus == AppointmentStatus.Confirmed ? "منتظرت هستیم!" : "منتظر تأیید مجموعه باشید")</h1><p>@(CreatedStatus == AppointmentStatus.Confirmed ? "جزئیات نوبت در «نوبت‌های من» قابل مشاهده است." : CreatedOverrun > 0 ? "این زمان کمی کوتاه‌تر از مدت خدمت شماست؛ شعبه زمان نهایی را تأیید می‌کند و ممکن است چند دقیقه آن را جابه‌جا کند. نتیجه در «نوبت‌های من» نمایش داده می‌شود." : "به‌محض تأیید مجموعه، وضعیت نوبت در «نوبت‌های من» به «تأیید شده» تغییر می‌کند.")</p><div class="success-details"><div><small>شماره پیگیری</small><b>@TrackingCode</b></div><div><small>خدمات</small><b data-i18n-skip>@SelectedServicesLabel</b></div><div><small>متخصص</small><b data-i18n-skip>@(ResourceForSelectedSlot?.Name ?? "—")</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
         }
     </div>
 }
@@ -183,6 +198,8 @@ else
     private DateOnly SelectedDate;
     private DateTimeOffset? SelectedSlot;
     private Dictionary<Guid, List<DateTimeOffset>> SlotsByResource = new();
+    // زمان‌هایی که فقط با «تحمل زمانی» جا می‌شوند (کارمند ← زمان ← دقیقه‌ی اضافه).
+    private Dictionary<Guid, Dictionary<DateTimeOffset, int>> FlexibleByResource = new();
     private List<DateTimeOffset> Slots = [];
     private DateOnly? NextAvailableDate;
     private string? ErrorMessage;
@@ -193,6 +210,7 @@ else
     private bool TermsAccepted;
     private string? TrackingCode;
     private AppointmentStatus CreatedStatus = AppointmentStatus.Pending;
+    private int CreatedOverrun;
     private Resource? BookedResource;
     private sealed record DayOption(DateOnly Date, string Weekday, string DayNumber, string Month);
     private const int WindowDays = 7;
@@ -242,7 +260,7 @@ else
         SlotsLoadVersion++; IsLoadingSlots = false;
         Step = 1; SelectedSlot = null; BookedResource = null; TrackingCode = null;
         SelectedServiceIds = []; EligibleResources = []; ProviderChoice = ""; HasPendingProviderQuery = true;
-        Slots = []; SlotsByResource = new(); ErrorMessage = null; TermsAccepted = false;
+        Slots = []; SlotsByResource = new(); FlexibleByResource = new(); ErrorMessage = null; TermsAccepted = false;
         PhoneInputEdited = false; PhoneInput = ""; ExistingPhone = null; CustomerNote = "";
 
         await using (var db = await DbFactory.CreateDbContextAsync())
@@ -260,6 +278,13 @@ else
             BuildDays();
             await LoadBranchServicesAsync();
             await TryRestoreSelectionAsync();
+        }
+
+        // شماره‌ی حساب از همان ابتدا خوانده می‌شود تا فیلد مرحله‌ی آخر (و بازگشت بعد از ورود) پر باشد.
+        if (IsAuthenticated)
+        {
+            try { await RefreshContactPhoneAsync(); }
+            catch (Exception exception) { Logger.LogWarning(exception, "Could not load the account phone number"); }
         }
 
         IsLoading = false;
@@ -433,6 +458,7 @@ else
         var version = ++SlotsLoadVersion;
         Slots = [];
         SlotsByResource = new();
+        FlexibleByResource = new();
         NextAvailableDate = null;
         if (SelectedBranch is null || ProviderChoice.Length == 0 || SelectedDuration is null) return;
         var businessId = BusinessId;
@@ -463,7 +489,10 @@ else
             }
             if (AnyProvider) EligibleResources = availability.Resources.ToList();
             SlotsByResource = availability.SlotsByResource.ToDictionary(x => x.Key, x => x.Value);
-            Slots = SlotsByResource.Values.SelectMany(x => x).Distinct().OrderBy(x => x).ToList();
+            FlexibleByResource = availability.FlexibleByResource.ToDictionary(x => x.Key, x => x.Value);
+            Slots = SlotsByResource.Values.SelectMany(x => x)
+                .Concat(FlexibleByResource.Values.SelectMany(x => x.Keys))
+                .Distinct().OrderBy(x => x).ToList();
             if (SelectedSlot is DateTimeOffset kept && !Slots.Contains(kept)) SelectedSlot = null;
             if (Slots.Count == 0)
             {
@@ -492,22 +521,27 @@ else
             if (date > MaxDate) break;
             var availability = await BookingService.GetAvailabilityAsync(businessId, branchId, serviceIds, resourceId, date);
             if (!availability.Success) break;
-            if (availability.SlotsByResource.Values.Any(x => x.Count > 0)) return date;
+            if (availability.SlotsByResource.Values.Any(x => x.Count > 0) || availability.FlexibleByResource.Values.Any(x => x.Count > 0)) return date;
         }
         return null;
     }
 
-    // اولین کارمند (به ترتیب فهرست) که در آن زمان آزاد است.
+    // زمانی که فقط با تحمل زمانی جا می‌شود (هیچ کارمندی آن را کاملاً جا نمی‌دهد).
+    private bool IsFlexibleSlot(DateTimeOffset slot) =>
+        !SlotsByResource.Values.Any(list => list.Contains(slot)) && FlexibleByResource.Values.Any(map => map.ContainsKey(slot));
+
+    // اولین کارمند (به ترتیب فهرست) که در آن زمان آزاد است؛ کارمندی که کاملاً جا دارد بر تحمل‌زمانی مقدم است.
     private Resource? PickResource(Dictionary<Guid, List<DateTimeOffset>> map, DateTimeOffset slot)
     {
         if (SelectedResourceId is Guid fixedId)
         {
-            return map.TryGetValue(fixedId, out var fixedSlots) && fixedSlots.Contains(slot)
-                ? EligibleResources.FirstOrDefault(r => r.Id == fixedId)
-                : null;
+            var fits = map.TryGetValue(fixedId, out var fixedSlots) && fixedSlots.Contains(slot)
+                || FlexibleByResource.TryGetValue(fixedId, out var fixedFlex) && fixedFlex.ContainsKey(slot);
+            return fits ? EligibleResources.FirstOrDefault(r => r.Id == fixedId) : null;
         }
 
-        return EligibleResources.FirstOrDefault(r => map.TryGetValue(r.Id, out var list) && list.Contains(slot));
+        return EligibleResources.FirstOrDefault(r => map.TryGetValue(r.Id, out var list) && list.Contains(slot))
+            ?? EligibleResources.FirstOrDefault(r => FlexibleByResource.TryGetValue(r.Id, out var flex) && flex.ContainsKey(slot));
     }
 
     private async Task NextFromStep2()
@@ -639,6 +673,7 @@ else
         PhoneInput = normalized;
         TrackingCode = appointment.TrackingCode;
         CreatedStatus = appointment.Status;
+        CreatedOverrun = appointment.OverrunMinutes;
         BookedResource = result.Resource;
         ErrorMessage = null;
         Step = 4;

@@ -159,6 +159,16 @@ public sealed class Appointment : Entity
     public string CustomerNote { get; set; } = string.Empty;
 
     /// <summary>
+    /// «تحمل زمانی»: خدمت این‌قدر دقیقه بلندتر از بازه‌ی رزروشده (StartsAt..EndsAt) است و در فاصله‌ی
+    /// بین نوبت‌ها جذب می‌شود. نوبتی که این مقدار را دارد همیشه «در انتظار تأیید» ثبت می‌شود تا شعبه
+    /// زمان نهایی را مشخص کند. EndsAt همان پایان بازه‌ی رزروشده است (برای هم‌پوشان نشدن نوبت‌ها).
+    /// </summary>
+    public int OverrunMinutes { get; set; }
+
+    /// <summary>زمان اولیه‌ی درخواستی مشتری، وقتی شعبه هنگام تأیید زمان را جابه‌جا کرده است.</summary>
+    public DateTimeOffset? RequestedStartsAt { get; set; }
+
+    /// <summary>
     /// کد پیگیری قابل‌نمایش؛ از بخش تصادفی انتهای شناسه ساخته می‌شود (ابتدای UUID نسخه ۷
     /// فقط زمان است و کدهای هم‌زمان را شبیه هم می‌کرد). فقط برای نمایش است.
     /// </summary>

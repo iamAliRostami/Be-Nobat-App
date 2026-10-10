@@ -75,6 +75,14 @@
                     {
                         <small class="appointment-hint">منتظر تأیید مجموعه است؛ پس از تأیید وضعیت اینجا تغییر می‌کند.</small>
                     }
+                    @if (appointment.RequestedStartsAt is DateTimeOffset requestedStart && requestedStart != appointment.StartsAt)
+                    {
+                        <small class="appointment-hint changed">شعبه زمان نوبت را از @BranchClock.FormatDateTime(requestedStart, zone, Language) به @BranchClock.FormatDateTime(appointment.StartsAt, zone, Language) تغییر داد.</small>
+                    }
+                    @if (appointment.OverrunMinutes > 0 && appointment.Status != AppointmentStatus.Cancelled)
+                    {
+                        <small class="appointment-hint">این خدمت کمی (تا @appointment.OverrunMinutes دقیقه) بیشتر از بازه‌ی رزروشده طول می‌کشد.</small>
+                    }
                     @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote))
                     {
                         <small class="appointment-hint">توضیح شما: <span data-i18n-skip>@appointment.CustomerNote</span></small>
