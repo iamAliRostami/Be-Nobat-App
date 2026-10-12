@@ -7,3 +7,28 @@ Be-Nobat-App-reviewed.zip
 __pycache__/
 *.py[cod]
 *.apk
+
+# .NET / IDE generated outputs
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+**/TestResults/
+*.trx
+
+# Android generated outputs and local settings
+**/build/
+.gradle/
+.gradle-*/
+**/.gradle/
+**/.gradle-*/
+**/.kotlin/
+**/.cxx/
+**/.externalNativeBuild/
+**/local.properties
+*.aab
+*.jks
+*.keystore
