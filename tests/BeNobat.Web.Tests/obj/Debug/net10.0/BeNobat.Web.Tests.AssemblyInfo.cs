@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BeNobat.Web.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90220225b898dd440f5a9cb197a9fc7b21de53c8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5cf12ff158b3f71e6dca4f738b8ec4fc4626f2c5")]
 [assembly: System.Reflection.AssemblyProductAttribute("BeNobat.Web.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BeNobat.Web.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -213,3 +213,4 @@ D:\rostami\projects\be-nobat-app\tests\BeNobat.Web.Tests\obj\Debug\net10.0\refin
 D:\rostami\projects\be-nobat-app\tests\BeNobat.Web.Tests\obj\Debug\net10.0\BeNobat.Web.Tests.pdb
 D:\rostami\projects\be-nobat-app\tests\BeNobat.Web.Tests\obj\Debug\net10.0\BeNobat.Web.Tests.genruntimeconfig.cache
 D:\rostami\projects\be-nobat-app\tests\BeNobat.Web.Tests\obj\Debug\net10.0\ref\BeNobat.Web.Tests.dll
+D:\Rostami\Projects\Be-Nobat-App\tests\BeNobat.Web.Tests\bin\Debug\net10.0\Resources\WebTemplates.json

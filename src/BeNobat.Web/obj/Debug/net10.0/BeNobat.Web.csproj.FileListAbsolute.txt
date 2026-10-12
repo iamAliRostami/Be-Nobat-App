@@ -185,5 +185,11 @@ D:\rostami\projects\be-nobat-app\src\BeNobat.Web\obj\Debug\net10.0\refint\BeNoba
 D:\rostami\projects\be-nobat-app\src\BeNobat.Web\obj\Debug\net10.0\BeNobat.Web.pdb
 D:\rostami\projects\be-nobat-app\src\BeNobat.Web\obj\Debug\net10.0\BeNobat.Web.genruntimeconfig.cache
 D:\rostami\projects\be-nobat-app\src\BeNobat.Web\obj\Debug\net10.0\ref\BeNobat.Web.dll
-D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\jnk6fp6cwn-{0}-ss9dgc7e9h-ss9dgc7e9h.gz
-D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\keq6ptp551-{0}-ty4vp6syxl-ty4vp6syxl.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\bin\Debug\net10.0\Resources\WebTemplates.json
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\jnk6fp6cwn-{0}-b2yjoy2b1h-b2yjoy2b1h.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\keq6ptp551-{0}-maqsiyvogy-maqsiyvogy.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\pir1478brq-{0}-phj70w5k00-phj70w5k00.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\2kuee192ly-{0}-u1uc76ekrg-u1uc76ekrg.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\22fo8uw1zn-{0}-jreoetbuaf-jreoetbuaf.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\53uhtnwvzx-{0}-ytsx83tfiz-ytsx83tfiz.gz
+D:\Rostami\Projects\Be-Nobat-App\src\BeNobat.Web\obj\Debug\net10.0\compressed\1xvio7t4tc-{0}-sn5tphhz9w-sn5tphhz9w.gz

@@ -10,7 +10,6 @@
         "dependencies": {
           "BeNobat.Web": "1.0.0",
           "Microsoft.NET.Test.Sdk": "18.0.0",
-          "Microsoft.OpenApi": "2.7.5",
           "xunit.v3": "3.2.1"
         },
         "runtime": {

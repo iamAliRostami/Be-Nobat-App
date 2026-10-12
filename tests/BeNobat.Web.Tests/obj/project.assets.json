@@ -2835,30 +2835,29 @@
     "net10.0": [
       "BeNobat.Web >= 1.0.0",
       "Microsoft.NET.Test.Sdk >= 18.0.0",
-      "Microsoft.OpenApi >= 2.7.5",
       "xunit.runner.visualstudio >= 3.1.5",
       "xunit.v3 >= 3.2.1"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\administrator\\.nuget\\packages\\": {},
+    "C:\\Users\\a.rostami.MAKAN.001\\.nuget\\packages\\": {},
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\rostami\\projects\\be-nobat-app\\tests\\BeNobat.Web.Tests\\BeNobat.Web.Tests.csproj",
+      "projectUniqueName": "D:\\Rostami\\Projects\\Be-Nobat-App\\tests\\BeNobat.Web.Tests\\BeNobat.Web.Tests.csproj",
       "projectName": "BeNobat.Web.Tests",
-      "projectPath": "D:\\rostami\\projects\\be-nobat-app\\tests\\BeNobat.Web.Tests\\BeNobat.Web.Tests.csproj",
-      "packagesPath": "C:\\Users\\administrator\\.nuget\\packages\\",
-      "outputPath": "D:\\rostami\\projects\\be-nobat-app\\tests\\BeNobat.Web.Tests\\obj\\",
+      "projectPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\tests\\BeNobat.Web.Tests\\BeNobat.Web.Tests.csproj",
+      "packagesPath": "C:\\Users\\a.rostami.MAKAN.001\\.nuget\\packages\\",
+      "outputPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\tests\\BeNobat.Web.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
       ],
       "configFilePaths": [
-        "D:\\rostami\\projects\\be-nobat-app\\NuGet.Config",
-        "C:\\Users\\administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "D:\\Rostami\\Projects\\Be-Nobat-App\\NuGet.Config",
+        "C:\\Users\\a.rostami.MAKAN.001\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -2866,7 +2865,6 @@
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -2874,8 +2872,8 @@
           "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {
-            "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
-              "projectPath": "D:\\rostami\\projects\\be-nobat-app\\src\\BeNobat.Web\\BeNobat.Web.csproj"
+            "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj": {
+              "projectPath": "D:\\Rostami\\Projects\\Be-Nobat-App\\src\\BeNobat.Web\\BeNobat.Web.csproj"
             }
           }
         }
@@ -2901,10 +2899,6 @@
           "Microsoft.NET.Test.Sdk": {
             "target": "Package",
             "version": "[18.0.0, )"
-          },
-          "Microsoft.OpenApi": {
-            "target": "Package",
-            "version": "[2.7.5, )"
           },
           "xunit.runner.visualstudio": {
             "target": "Package",
