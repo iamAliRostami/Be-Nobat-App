@@ -197,3 +197,12 @@ Production schema startup still uses the existing `EnsureCreated` and compatibil
 upgrade workflow. Versioned EF migration rollout, production load/capacity testing,
 payment integration and store publication have not been introduced or claimed by
 this audit.
+
+### Local validation — 2026-10-12
+
+- Server: 306 tests passed, none failed or skipped, using an isolated PostgreSQL 17 container on localhost:55432; health endpoint returned Healthy.
+- Live HTTP: 70 customer/management checks and 28 account checks passed. The account suite was run separately after the shared login rate-limit window expired.
+- Android Studio project: 23 JVM tests passed. Both userDebug and adminDebug APKs built. lintUserDebug completed with 0 errors and 38 warnings.
+- Windows-only test adaptation: TokenManagerTest uses explicit OkioStorage/PreferencesSerializer for atomic file replacement, and closes its coroutine scope. Application storage is unchanged.
+- Android instrumented tests and device results are recorded separately in the Android project's build/codex-device-tests.log.
+- No existing production database was used, migrated or reset.
