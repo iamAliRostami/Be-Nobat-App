@@ -1,0 +1,931 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Modern Header Bar -->
+    <LinearLayout
+        android:id="@+id/bookingHeaderBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBack"
+            style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="@string/action_back"
+            app:icon="@drawable/ic_back" />
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+            android:textSize="18sp"
+            android:text="@string/book_now" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnThemeToggle"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/switch_theme"
+            app:icon="@drawable/ic_switch_theme" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLanguage"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/language"
+            app:icon="@drawable/ic_language" />
+    </LinearLayout>
+
+    <!-- Modern Step Progress Header (Matching Web Booking.razor) -->
+    <LinearLayout
+        android:id="@+id/layoutStepProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="12dp">
+
+        <!-- Step 1 Indicator -->
+        <LinearLayout
+            android:id="@+id/stepIndicator1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvStepCircle1"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_step_circle_active"
+                android:gravity="center"
+                android:text="۱"
+                android:textColor="?attr/colorOnPrimary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvStepLabel1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/step_services"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Divider 1 -->
+        <View
+            android:id="@+id/stepDivider1"
+            android:layout_width="0dp"
+            android:layout_height="2dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="14dp"
+            android:layout_weight="1"
+            android:background="@color/colorOutline" />
+
+        <!-- Step 2 Indicator -->
+        <LinearLayout
+            android:id="@+id/stepIndicator2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvStepCircle2"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_step_circle_inactive"
+                android:gravity="center"
+                android:text="۲"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvStepLabel2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/step_time_provider"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Divider 2 -->
+        <View
+            android:id="@+id/stepDivider2"
+            android:layout_width="0dp"
+            android:layout_height="2dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="14dp"
+            android:layout_weight="1"
+            android:background="@color/colorOutline" />
+
+        <!-- Step 3 Indicator -->
+        <LinearLayout
+            android:id="@+id/stepIndicator3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvStepCircle3"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_step_circle_inactive"
+                android:gravity="center"
+                android:text="۳"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvStepLabel3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/step_confirm"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollBooking"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp">
+
+            <!-- ============================================== -->
+            <!-- STEP 1: Branch and Services Selection          -->
+            <!-- ============================================== -->
+            <LinearLayout
+                android:id="@+id/layoutStep1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvStep1Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/step_1_title"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvStep1Desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/step_1_desc"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12sp" />
+
+                <!-- Branch Selection -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilBranch"
+                    style="@style/Widget.BeNobat.TextInputLayout.Dropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/admin_branch">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/dropdownBranch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:inputType="none"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Services List -->
+                <TextView
+                    android:id="@+id/tvServicesHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/booking_select_services"
+                    android:textAppearance="@style/TextAppearance.BeNobat.StepTitle" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/servicesList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:nestedScrollingEnabled="false"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:itemCount="2"
+                    tools:listitem="@layout/item_service_selectable" />
+
+                <!-- Step 1 Summary & Next Button -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardStep1Summary"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    app:cardCornerRadius="16dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvStep1SummaryText"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/booking_summary_card"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvStep1Price"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                tools:text="۲۵۰,۰۰۰ تومان" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvStep1Duration"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            tools:text="۲ خدمت انتخاب شده • ۴۵ دقیقه" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnStep1Next"
+                            style="@style/Widget.BeNobat.Button"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="14dp"
+                            android:text="@string/btn_continue_to_time"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- ============================================== -->
+            <!-- STEP 2: Staff, Date, and Time Selection        -->
+            <!-- ============================================== -->
+            <LinearLayout
+                android:id="@+id/layoutStep2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvStep2Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/step_2_title"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvStep2Desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/step_2_desc"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12sp" />
+
+                <!-- Provider Dropdown -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilProvider"
+                    style="@style/Widget.BeNobat.TextInputLayout.Dropdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/admin_resource">
+
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/dropdownProvider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="false"
+                        android:inputType="none"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Date Selection Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvStep4"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/booking_select_date"
+                        android:textAppearance="@style/TextAppearance.BeNobat.StepTitle" />
+
+                    <TextView
+                        android:id="@+id/tvSelectedDateDisplay"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        tools:text="دوشنبه ۲۸ مهر" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPrevWindow"
+                        style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="@string/booking_prev_window"
+                        android:padding="0dp"
+                        app:icon="@drawable/ic_back"
+                        app:iconSize="16dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNextWindow"
+                        style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="4dp"
+                        android:contentDescription="@string/booking_next_window"
+                        android:padding="0dp"
+                        android:rotation="180"
+                        app:icon="@drawable/ic_back"
+                        app:iconSize="16dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPickCalendar"
+                        style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="4dp"
+                        android:contentDescription="@string/booking_pick_calendar"
+                        android:padding="0dp"
+                        app:icon="@drawable/ic_calendar"
+                        app:iconSize="16dp" />
+                </LinearLayout>
+
+                <!-- Date Strip Horizontal List -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvDateStrip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:listitem="@layout/item_booking_date" />
+
+                <!-- Time Slots Header -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvStep5"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/booking_select_slot"
+                        android:textAppearance="@style/TextAppearance.BeNobat.StepTitle" />
+
+                    <TextView
+                        android:id="@+id/tvSlotsCountBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_stat_badge"
+                        android:paddingStart="8dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="8dp"
+                        android:paddingBottom="2dp"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        tools:text="۴ زمان موجود"
+                        tools:visibility="visible" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/progressSlots"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvNoSlots"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:text="@string/no_slots_available"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvSlots"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:nestedScrollingEnabled="false"
+                    tools:itemCount="6"
+                    tools:listitem="@layout/item_booking_slot" />
+
+                <!-- Step 2 Navigation Actions -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStep2Back"
+                        style="@style/Widget.BeNobat.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:text="@string/btn_back_to_services"
+                        android:textSize="13sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStep2Next"
+                        style="@style/Widget.BeNobat.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:text="@string/btn_continue_to_confirm"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ============================================== -->
+            <!-- STEP 3: Review and Final Confirmation          -->
+            <!-- ============================================== -->
+            <LinearLayout
+                android:id="@+id/layoutStep3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvStep3Title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/step_3_title"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvStep3Desc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="@string/step_3_desc"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12sp" />
+
+                <!-- Confirmation Card Matching Web Booking.razor -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardConfirmationDetails"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    app:cardCornerRadius="16dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/tvConfirmBusiness"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            tools:text="سالن زیبایی ماهان" />
+
+                        <TextView
+                            android:id="@+id/tvConfirmBranch"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            tools:text="شعبه سعادت‌آباد" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@color/colorOutline" />
+
+                        <!-- Service and Duration -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/services_section"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/tvConfirmServices"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="کوتاهی مو، براشینگ (۴۵ دقیقه)" />
+                        </LinearLayout>
+
+                        <!-- Specialist -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/specialist_label"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/tvConfirmSpecialist"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp"
+                                tools:text="علی رضایی" />
+                        </LinearLayout>
+
+                        <!-- Date and Time -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/selected_time_label"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/tvConfirmTime"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="دوشنبه ۲۸ مهر • ساعت ۱۰:۳۰" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="12dp"
+                            android:layout_marginBottom="12dp"
+                            android:background="@color/colorOutline" />
+
+                        <!-- Price -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/total_price_label"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvConfirmPrice"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                tools:text="۲۵۰,۰۰۰ تومان" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Phone Input -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilPhone"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:hint="@string/phone_for_booking"
+                    app:startIconDrawable="@drawable/ic_mobile">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPhone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="phone"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Note Input -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilNote"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/note_for_booking">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine"
+                        android:minLines="2"
+                        android:textSize="13sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Terms Checkbox -->
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cbTerms"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/accept_terms"
+                    android:textSize="13sp" />
+
+                <!-- Step 3 Navigation Actions -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStep3Back"
+                        style="@style/Widget.BeNobat.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:text="@string/btn_back_to_time"
+                        android:textSize="13sp" />
+
+                    <FrameLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnConfirm"
+                            style="@style/Widget.BeNobat.Button"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:alpha="0.5"
+                            android:enabled="false"
+                            android:text="@string/confirm_booking"
+                            android:textSize="13sp" />
+
+                        <ProgressBar
+                            android:id="@+id/loadingProgress"
+                            style="?android:attr/progressBarStyleSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:visibility="gone" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ============================================== -->
+            <!-- SUCCESS STATE: Booking Confirmation            -->
+            <!-- ============================================== -->
+            <LinearLayout
+                android:id="@+id/layoutSuccess"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivSuccessIcon"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:background="@drawable/bg_step_circle_active"
+                    android:padding="16dp"
+                    android:src="@drawable/ic_check"
+                    app:tint="?attr/colorOnPrimary"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:id="@+id/tvSuccessTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/booking_success"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvSuccessTrackingCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_stat_badge"
+                    android:paddingStart="16dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="6dp"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    tools:text="کد پیگیری: ۱۲۳۴۵۶" />
+
+                <TextView
+                    android:id="@+id/tvSuccessDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="4dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="13sp"
+                    tools:text="نوبت شما با موفقیت ثبت شد." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewAppointments"
+                    style="@style/Widget.BeNobat.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/view_my_appointments"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBackToHome"
+                    style="@style/Widget.BeNobat.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/back_to_home"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- Hidden compatibility views (preserved for backward compatibility if any) -->
+            <TextView
+                android:id="@+id/tvStep1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvStep2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvStep3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvStep6"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPickDate"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/slotChips"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvResult"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

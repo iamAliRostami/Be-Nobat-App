@@ -1,19 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules"
-        android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="@string/app_name" android:localeConfig="@xml/locales_config"
-        android:supportsRtl="true" android:theme="@style/Theme.BeNobat"
-        android:networkSecurityConfig="@xml/network_security_config">
-        <service android:name="androidx.appcompat.app.AppLocalesMetadataHolderService" android:enabled="false" android:exported="false">
-            <meta-data android:name="autoStoreLocales" android:value="true" />
+
+    <application
+        android:name=".helpers.App"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.BeNobat"
+        android:usesCleartextTraffic="true">
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="true"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
         </service>
-        <activity android:name=".ui.MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+
+        <!-- Launcher -->
+        <activity
+            android:name=".ui.activities.StartActivity"
+            android:theme="@style/Theme.App.Starting"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Auth -->
+        <activity
+            android:name=".ui.activities.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.RegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Customer surface -->
+        <activity
+            android:name=".ui.activities.HomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.BusinessDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.BookingActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.BookingSuccessActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.AppointmentsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.FavoritesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.activities.ProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Admin surface -->
+        <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminCalendarActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminBranchesActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminReviewsActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminServicesActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminAvailabilityActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminCustomersActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminTeamActivity" android:exported="false" />
+
+        <!-- Platform surface -->
+        <activity android:name=".ui.activities.PlatformBusinessesActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformCatalogActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformCategoriesActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformAccessActivity" android:exported="false" />
+
+        <!-- Legacy example activity (kept for back-compat) -->
+        <activity
+            android:name=".ui.activities.ExampleActivity"
+            android:exported="false" />
     </application>
+
 </manifest>

@@ -223,17 +223,16 @@ public sealed class AdminAccessScope(
     {
         var allowed = await (await AppointmentsAsync()).AnyAsync(a => a.Id == appointmentId);
         if (!allowed) return "به این نوبت دسترسی ندارید.";
-        var appointment = await db.Appointments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == appointmentId);
+        var appointment = await db.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
         if (appointment is null) return "نوبت پیدا نشد.";
         var now = DateTimeOffset.UtcNow;
         if (!BookingPolicy.CanTransition(appointment.Status, to, appointment.StartsAt, now))
             return to is AppointmentStatus.Completed or AppointmentStatus.NoShow && appointment.StartsAt > now
                 ? "تکمیل یا عدم حضور فقط پس از شروع نوبت ثبت می‌شود."
                 : "این تغییر وضعیت برای نوبت مجاز نیست (وضعیت نوبت قبلاً نهایی شده است).";
-        var updated = await (await AppointmentsAsync())
-            .Where(a => a.Id == appointmentId && a.Status == appointment.Status && a.StartsAt == appointment.StartsAt)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.Status, to).SetProperty(a => a.UpdatedAt, now));
-        if (updated == 0) return "وضعیت یا دسترسی این نوبت تغییر کرده است؛ فهرست را تازه کنید.";
+        appointment.Status = to;
+        appointment.UpdatedAt = now;
+        await db.SaveChangesAsync();
         return null;
     }
 }

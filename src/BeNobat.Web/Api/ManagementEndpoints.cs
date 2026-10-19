@@ -855,11 +855,9 @@ public static class ManagementEndpoints
         if (item is null) return Missing();
         var now = DateTimeOffset.UtcNow;
         if (!BookingPolicy.CanTransition(item.Status, status, item.StartsAt, now)) return Conflict("This appointment status transition is not allowed.");
-        var previous = item.Status;
-        var changed = await scope.Appointments().Where(a => a.Id == id && a.Status == previous).ExecuteUpdateAsync(setters =>
-            setters.SetProperty(a => a.Status, status).SetProperty(a => a.UpdatedAt, now), ct);
-        if (changed != 1) return Conflict("The appointment changed while you were updating it. Refresh and try again.");
-        await db.Entry(item).ReloadAsync(ct);
+        item.Status = status;
+        item.UpdatedAt = now;
+        await db.SaveChangesAsync(ct);
         return await GetAppointment(id, scope, ct);
     }
 

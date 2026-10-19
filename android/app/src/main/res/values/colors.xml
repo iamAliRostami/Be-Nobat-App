@@ -13,4 +13,9 @@
     <color name="brand_mark_foreground">#FFFFFF</color>
     <color name="brand_accent">#F2B84B</color>
     <color name="error_red">#BA1A1A</color>
+    <color name="colorSecondaryContainer">#D8ECE4</color>
+    <color name="colorOnSecondaryContainer">#0B4F46</color>
+    <color name="colorErrorContainer">#FEEBEB</color>
+    <color name="colorOnErrorContainer">#991B1B</color>
+    <color name="colorErrorBorder">#FCA5A5</color>
 </resources>

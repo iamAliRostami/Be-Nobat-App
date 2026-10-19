@@ -64,14 +64,15 @@
                         @if (appointment.Status == AppointmentStatus.Pending)
                         {
                             <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => OpenConfirm(appointment.Id)">تأیید</button>
+                            <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
                         }
-                        @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
+                        else if (appointment.Status == AppointmentStatus.Confirmed)
                         {
-                            <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
-                            <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
-                        }
-                        else
-                        {
+                            @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
+                            {
+                                <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                                <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
+                            }
                             <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
                         }
                     </div>
@@ -201,6 +202,11 @@
             await LoadAsync();
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception)
+        {
+            if (IsDisposed) return;
+            Error = "خطایی در به‌روزرسانی وضعیت نوبت رخ داد؛ دوباره تلاش کنید.";
+        }
         finally { UpdatingAppointments.Remove(appointmentId); }
     }
 

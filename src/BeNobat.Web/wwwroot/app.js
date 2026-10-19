@@ -98,6 +98,10 @@ window.beNobat = {
         } else if (event.target.closest('[data-sidebar-close]') ||
             (sidebarViewport.matches && event.target.closest('.sidebar nav a'))) {
             setSidebarCollapsed(true);
+        } else if (event.target.closest('[data-admin-refresh]')) {
+            const btn = event.target.closest('[data-admin-refresh]');
+            btn?.classList.add('is-refreshing');
+            window.location.reload();
         }
     });
     document.addEventListener('keydown', event => {

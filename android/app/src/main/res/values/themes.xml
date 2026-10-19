@@ -4,6 +4,8 @@
         <item name="colorOnPrimary">@color/colorOnPrimary</item>
         <item name="colorSecondary">@color/colorSecondary</item>
         <item name="colorOnSecondary">@color/colorOnSecondary</item>
+        <item name="colorSecondaryContainer">@color/colorSecondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/colorOnSecondaryContainer</item>
         <item name="android:windowBackground">@color/windowBackground</item>
         <item name="colorSurface">@color/colorSurface</item>
         <item name="colorOnSurface">@color/colorOnSurface</item>
@@ -16,14 +18,38 @@
         <item name="materialButtonStyle">@style/Widget.BeNobat.Button</item>
         <item name="materialCardViewStyle">@style/Widget.BeNobat.Card</item>
         <item name="textInputStyle">@style/Widget.BeNobat.TextInputLayout</item>
+        <item name="bottomNavigationStyle">@style/Widget.BeNobat.BottomNavigationView</item>
 
         <item name="android:fontFamily">@font/app_font</item>
         <item name="fontFamily">@font/app_font</item>
 
         <item name="textAppearanceHeadlineMedium">@style/TextAppearance.BeNobat.Headline</item>
         <item name="textAppearanceBodyLarge">@style/TextAppearance.BeNobat.Body</item>
+        <item name="android:datePickerDialogTheme">@style/ThemeOverlay.BeNobat.DatePickerDialog</item>
+    </style>
+
+    <style name="ThemeOverlay.BeNobat.DatePickerDialog" parent="Theme.Material3.DayNight.Dialog.Alert">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorSecondary">@color/colorPrimary</item>
+        <item name="colorOnSecondary">@color/colorOnPrimary</item>
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
+        <item name="android:datePickerStyle">@style/Widget.BeNobat.DatePicker</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.BeNobat.Button.Text</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.BeNobat.Button.Text</item>
+    </style>
+
+    <style name="Widget.BeNobat.DatePicker" parent="android:Widget.Material.Light.DatePicker">
+        <item name="android:headerBackground">@color/colorPrimary</item>
     </style>
 
     <style name="Theme.BeNobat" parent="Base.Theme.BeNobat" />
 
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/windowBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_be_nobat</item>
+        <item name="postSplashScreenTheme">@style/Theme.BeNobat</item>
+    </style>
 </resources>

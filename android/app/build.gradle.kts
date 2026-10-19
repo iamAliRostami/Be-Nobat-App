@@ -1,61 +1,126 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.serialization)
 }
-val productionApiUrl = providers.environmentVariable("BENOBAT_API_BASE_URL").orNull?.trimEnd('/')
-require(productionApiUrl == null || productionApiUrl.startsWith("https://")) {
-    "BENOBAT_API_BASE_URL must use HTTPS."
-}
+
 android {
     namespace = "com.leon.be_nobat"
-    compileSdk = 35
+    compileSdk = 37
+
     defaultConfig {
         applicationId = "com.leon.be_nobat"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 24
+        targetSdk = 37
         versionCode = 2
-        versionName = "2.0.0"
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+
+        // Production server URL. Override via -PbackendUrl=... or local.properties.
+        buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8080/api/v1\"")
+        buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8080\"")
+        buildConfigField("String", "API_VERSION", "\"v1\"")
     }
-    val signingPath = providers.environmentVariable("BENOBAT_KEYSTORE_PATH").orNull
-    if (signingPath != null) {
-        signingConfigs.create("release") {
-            storeFile = file(signingPath)
-            storePassword = providers.environmentVariable("BENOBAT_KEYSTORE_PASSWORD").get()
-            keyAlias = providers.environmentVariable("BENOBAT_KEY_ALIAS").get()
-            keyPassword = providers.environmentVariable("BENOBAT_KEY_PASSWORD").get()
+
+    flavorDimensions += "version"
+    productFlavors {
+        create("prod") {
+            dimension = "version"
+            buildConfigField("Boolean", "DEMO_MODE", "false")
+        }
+        create("demo") {
+            dimension = "version"
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+            buildConfigField("Boolean", "DEMO_MODE", "true")
         }
     }
+
     buildTypes {
-        debug { isDebuggable = true }
+        debug {
+            // Talk to the dev server forwarded via `adb reverse tcp:8080 tcp:8080`.
+            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8080/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8080\"")
+            isDebuggable = true
+        }
         release {
-            buildConfigField("String", "API_BASE_URL", "\"${productionApiUrl ?: ""}\"")
+            // Override these in your release signing config (e.g. via gradle.properties or CI env vars).
+            buildConfigField("String", "API_BASE_URL", "\"https://api.benobat.example.com/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"https://api.benobat.example.com\"")
+            isMinifyEnabled = false
             isDebuggable = false
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (signingPath != null) signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions { jvmTarget = "17" }
-    buildFeatures { viewBinding = true; buildConfig = true }
+
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
+
 dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20240303")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
+
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.cardview)
+
+    // Networking
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.client.logging)
+    implementation(libs.ktor.client.auth)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.datetime)
+
+    // Storage / Security
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.core.splashscreen)
+
+    // DI
+    implementation(libs.koin.android)
+
+    // Lifecycle / ViewModel
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    // Image loading
+    implementation(libs.coil)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.ktor.client.core)
+    testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }
