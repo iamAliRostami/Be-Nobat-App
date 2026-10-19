@@ -123,50 +123,94 @@
 @if (MemberBranch is not null)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <div class="form-modal membership-modal" @onclick:stopPropagation>
-            <div><h2>اعضای @MemberBranch.Name</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-
-            @if (Memberships.Count == 0)
-            {
-                <p class="empty-state">هنوز عضوی به این شعبه اضافه نشده است.</p>
-            }
-            else
-            {
-                <div class="people-list membership-list">
-                    @foreach (var membership in Memberships)
-                    {
-                        <article>
-                            <span class="customer-avatar purple" data-i18n-skip>@UserAvatar.Initials(membership.User.DisplayName)</span>
-                            <div><b data-i18n-skip>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</b><small><span data-i18n-skip>@membership.User.Email</span> · @(string.IsNullOrWhiteSpace(membership.User.PhoneNumber) ? "بدون شماره تماس" : membership.User.PhoneNumber)</small></div>
-                            <em>@RoleLabel(membership.Role)</em>
-                            <div class="inline-actions"><button type="button" class="action-danger" @onclick="() => RemoveMember(membership)">حذف</button></div>
-                        </article>
-                    }
+        <div class="membership-modal" @onclick:stopPropagation role="dialog" aria-modal="true" aria-labelledby="membership-modal-title">
+            <div class="membership-modal-header">
+                <div>
+                    <h2 id="membership-modal-title">اعضای @MemberBranch.Name</h2>
+                    <p class="membership-modal-subtitle">مدیریت اعضا و دسترسی‌های این شعبه</p>
                 </div>
-            }
+                <button type="button" class="modal-close-btn" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
+            </div>
 
-            <EditForm Model="MemberForm" FormName="branch-member" OnValidSubmit="AddMember" class="member-form">
-                <label>کاربر
-                    <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="MemberQuery" @bind:event="oninput" />
-                    <select @bind="MemberForm.UserId">
-                        <option value="">— انتخاب کاربر —</option>
-                        @foreach (var candidate in FilteredMemberCandidates)
+            <!-- بخش اعضای فعلی شعبه (اسکرول افقی) -->
+            <div class="membership-current-section">
+                <div class="membership-section-head">
+                    <span class="membership-count-badge">اعضای فعلی شعبه (@Memberships.Count نفر)</span>
+                </div>
+
+                @if (Memberships.Count == 0)
+                {
+                    <div class="membership-empty-notice">
+                        <span>هنوز عضوی به این شعبه اضافه نشده است.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="members-horizontal-track">
+                        @foreach (var membership in Memberships)
                         {
-                            <option value="@candidate.Id">@MemberLabel(candidate)</option>
+                            <div class="member-chip-card">
+                                <div class="member-chip-info">
+                                    <strong class="member-chip-name" data-i18n-skip>@(string.IsNullOrWhiteSpace(membership.User.DisplayName) ? membership.User.Email : membership.User.DisplayName)</strong>
+                                    <small class="member-chip-contact" data-i18n-skip>@membership.User.Email</small>
+                                </div>
+                                <div class="member-chip-actions">
+                                    <span class="member-chip-role role-pill-@membership.Role.ToLowerInvariant()">@RoleLabel(membership.Role)</span>
+                                    <button type="button" class="action-icon action-remove-plain member-chip-delete" title="حذف عضو از شعبه" aria-label="@($"حذف {membership.User.DisplayName ?? membership.User.Email} از شعبه")" @onclick="() => RemoveMember(membership)">×</button>
+                                </div>
+                            </div>
                         }
-                    </select>
-                </label>
-                <label>یا ایمیل حساب موجود<input type="email" autocomplete="off" placeholder="name@example.com" @bind="MemberForm.Email" /></label>
-                <label>نقش در شعبه
-                    <select @bind="MemberForm.Role">
-                        <option value="@AppRoles.Staff">پرسنل</option>
-                        <option value="@AppRoles.Manager">مدیر</option>
-                        <option value="@AppRoles.Owner">مالک</option>
-                    </select>
-                </label>
-                @if (Error is not null) { <div class="auth-error">@Error</div> }
-                <button class="primary-button">افزودن عضو</button>
-            </EditForm>
+                    </div>
+                }
+            </div>
+
+            <!-- بخش افزودن عضو جدید -->
+            <div class="membership-add-section">
+                <div class="membership-section-head">
+                    <span>افزودن عضو جدید به شعبه</span>
+                </div>
+
+                <EditForm Model="MemberForm" FormName="branch-member" OnValidSubmit="AddMember" class="member-add-form">
+                    <div class="member-input-group">
+                        <label class="member-input-label">
+                            <span>انتخاب از اعضای تیم یا کاربران سیستم</span>
+                            <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="MemberQuery" @bind:event="oninput" />
+                            <select @bind="MemberForm.UserId" class="member-select-input">
+                                <option value="">— انتخاب از لیست کاربران —</option>
+                                @foreach (var candidate in FilteredMemberCandidates)
+                                {
+                                    <option value="@candidate.Id">@MemberLabel(candidate)</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="member-or-divider">
+                        <span>یا وارد کردن ایمیل حساب موجود</span>
+                    </div>
+
+                    <div class="member-input-group">
+                        <label class="member-input-label">
+                            <span>ایمیل حساب کاربری</span>
+                            <input type="email" autocomplete="off" placeholder="name@example.com" @bind="MemberForm.Email" class="member-text-input" />
+                        </label>
+                    </div>
+
+                    <div class="member-form-submit-row">
+                        <label class="member-input-label role-select-label">
+                            <span>نقش در شعبه</span>
+                            <select @bind="MemberForm.Role" class="member-select-input">
+                                <option value="@AppRoles.Staff">پرسنل</option>
+                                <option value="@AppRoles.Manager">مدیر</option>
+                                <option value="@AppRoles.Owner">مالک</option>
+                            </select>
+                        </label>
+                        <button type="submit" class="action-primary add-member-action-btn">+ افزودن به شعبه</button>
+                    </div>
+
+                    @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
+                </EditForm>
+            </div>
         </div>
     </div>
 }
