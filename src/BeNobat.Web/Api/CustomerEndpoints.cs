@@ -72,13 +72,12 @@ public static class CustomerEndpoints
         customer.MapPost("/appointments/{appointmentId:guid}/cancel", async (Guid appointmentId, ApiScope scope, AppDbContext db, CancellationToken ct) =>
         {
             var now = DateTimeOffset.UtcNow;
-            var count = await db.Appointments.IgnoreQueryFilters().Where(a => a.DeletedAt == null && a.Id == appointmentId && a.CustomerId == scope.UserId &&
-                (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.StartsAt >= now.Add(BookingPolicy.CustomerCancellationNotice))
+            var count = await CustomerCancellation.Eligible(db, db.Appointments.IgnoreQueryFilters().Where(a => a.DeletedAt == null && a.Id == appointmentId && a.CustomerId == scope.UserId), now)
                 .ExecuteUpdateAsync(update => update.SetProperty(a => a.Status, AppointmentStatus.Cancelled).SetProperty(a => a.UpdatedAt, now), ct);
             if (count == 0)
             {
                 var exists = await db.Appointments.IgnoreQueryFilters().AnyAsync(a => a.DeletedAt == null && a.Id == appointmentId && a.CustomerId == scope.UserId, ct);
-                return ApiResults.Error(exists ? "cancellation_unavailable" : "not_found", exists ? "This appointment cannot be cancelled within two hours of its start or after a final status." : "Appointment was not found.", exists ? 409 : 404);
+                return ApiResults.Error(exists ? "cancellation_unavailable" : "not_found", exists ? "The cancellation deadline has passed or this appointment has a final status." : "Appointment was not found.", exists ? 409 : 404);
             }
             return Results.Ok(await AppointmentDetail(db, appointmentId, scope.UserId, ct));
         });
@@ -137,7 +136,7 @@ public static class CustomerEndpoints
         return ApiResults.Error(code, "The booking could not be completed. Refresh availability and check the selected details.", status);
     }
     private static IQueryable<Appointment> History(AppDbContext db) => db.Appointments.IgnoreQueryFilters().AsNoTracking().Where(a => a.DeletedAt == null)
-        .Include(a => a.Branch).ThenInclude(b => b.Business).Include(a => a.Service).Include(a => a.Resource).Include(a => a.Services).ThenInclude(s => s.Service);
+        .Include(a => a.Branch).ThenInclude(b => b.Business).Include(a => a.Branch).ThenInclude(b => b.BranchServices).Include(a => a.Service).Include(a => a.Resource).Include(a => a.Services).ThenInclude(s => s.Service);
     private static async Task<AppointmentDto?> AppointmentDetail(AppDbContext db, Guid id, Guid customer, CancellationToken ct)
     {
         var appointment = await History(db).FirstOrDefaultAsync(a => a.Id == id && a.CustomerId == customer, ct);
@@ -147,7 +146,7 @@ public static class CustomerEndpoints
     }
     private static AppointmentDto ToDto(Appointment a, Guid? review) => new(a.Id, a.Branch.BusinessId, a.Branch.Business.Name, a.BranchId, a.Branch.Name, a.Branch.TimeZoneId,
         a.Services.Count > 0 ? a.Services.Select(s => s.Service.Name).ToArray() : [a.Service.Name], a.ResourceId, a.Resource?.Name, a.StartsAt, a.EndsAt, a.Status.ToString(), a.FinalPrice,
-        a.Currency, a.CustomerNote, a.TrackingCode, BookingPolicy.CanCustomerCancel(a, DateTimeOffset.UtcNow), review == null && a.Branch.DeletedAt == null && a.Branch.Business.DeletedAt == null && BookingPolicy.CanCustomerReview(a, DateTimeOffset.UtcNow), review);
+        a.Currency, a.CustomerNote, a.TrackingCode, BookingPolicy.CanCustomerCancel(a, DateTimeOffset.UtcNow), review == null && a.Branch.DeletedAt == null && a.Branch.Business.DeletedAt == null && BookingPolicy.CanCustomerReview(a, DateTimeOffset.UtcNow), review, CancellationPolicy.NoticeMinutes(a), CancellationPolicy.Deadline(a));
 }
 public sealed record SlotDto(Guid ResourceId, string ResourceName, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
 public sealed record BookingInput(Guid BusinessId, Guid BranchId, Guid[]? ServiceIds, Guid? ResourceId, DateTimeOffset StartsAt, string? PhoneNumber, string? CustomerNote, bool TermsAccepted, decimal? ExpectedPrice = null, int? ExpectedDurationMinutes = null);

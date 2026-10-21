@@ -57,6 +57,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
     private lateinit var tilFirstBranchAddress: TextInputLayout
     private lateinit var etFirstBranchAddress: TextInputEditText
     private lateinit var weeklyHoursEditor: WeeklyHoursEditor
+    private lateinit var cancellationEditor: com.leon.be_nobat.helpers.CancellationNoticeEditor
     private lateinit var cardBusinessStatus: View
     private lateinit var switchBusinessActive: MaterialSwitch
     private lateinit var tvBusinessId: TextView
@@ -108,6 +109,9 @@ class PlatformBusinessEditActivity : BaseActivity() {
         tilFirstBranchAddress = findViewById(R.id.tilFirstBranchAddress)
         etFirstBranchAddress = findViewById(R.id.etFirstBranchAddress)
         weeklyHoursEditor = findViewById(R.id.weeklyHoursEditor)
+        cancellationEditor = com.leon.be_nobat.helpers.CancellationNoticeEditor(this)
+        cancellationEditor.setValue(120, allowInheritance = false)
+        (weeklyHoursEditor.parent as android.widget.LinearLayout).addView(cancellationEditor, 0)
         cardBusinessStatus = findViewById(R.id.cardBusinessStatus)
         switchBusinessActive = findViewById(R.id.switchBusinessActive)
         tvBusinessId = findViewById(R.id.tvBusinessId)
@@ -144,6 +148,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
         lifecycleScope.launch {
             managementRepository.getBusiness(businessId).onSuccess { business ->
                 existingBusiness = business
+                cancellationEditor.setValue(business.cancellationNoticeMinutes, allowInheritance = false)
                 etBusinessName.setText(business.name)
                 etBusinessSlug.setText(business.slug)
                 etBusinessDescription.setText(business.description)
@@ -199,6 +204,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
     }
 
     private fun saveBusiness() {
+        if (cancellationEditor.validate() != null) return
         val name = etBusinessName.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             tilBusinessName.error = "نام کسب‌وکار الزامی است."
@@ -241,6 +247,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
             firstBranchName = branchName,
             firstBranchAddress = branchAddress,
             firstBranchWeeklyHours = hours,
+            cancellationNoticeMinutes = cancellationEditor.value,
         )
 
         btnSave.isEnabled = false

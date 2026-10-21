@@ -40,6 +40,8 @@ class AppointmentsActivity : BaseActivity() {
 
     private val tokenManager: TokenManager by inject()
 
+    private val notificationPermission = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { }
+
     override fun setupViews() {
         setupMainHeader(getString(R.string.orders_title))
 
@@ -51,6 +53,11 @@ class AppointmentsActivity : BaseActivity() {
                 startActivity(intent)
                 finish()
                 return@launch
+            }
+            if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                !getSharedPreferences("notification_permission", MODE_PRIVATE).getBoolean("asked", false)) {
+                getSharedPreferences("notification_permission", MODE_PRIVATE).edit().putBoolean("asked", true).apply()
+                notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
 
@@ -201,7 +208,10 @@ class AppointmentsActivity : BaseActivity() {
                     btnCopyTrackingCode.setOnClickListener { copyTrackingAction() }
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatus(tvStatus, item.status)
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, item.status)
-                    btnCancel.isVisible = item.canCancel
+                    val deadline = item.cancellationDeadline ?: com.leon.be_nobat.domain.CancellationPolicy.deadline(item.startsAt, item.cancellationNoticeMinutes)
+                    tvCancellationDeadline.text = "مهلت لغو: ${deadline?.let { com.leon.be_nobat.notifications.AppointmentMessages.date(it, item.timeZoneId) }.orEmpty()}"
+                    tvCancellationDeadline.isVisible = deadline != null
+                    btnCancel.isVisible = item.canCancel && com.leon.be_nobat.domain.CancellationPolicy.canCancel(item.status, item.startsAt, item.cancellationNoticeMinutes)
                     btnReview.isVisible = item.canReview
                     btnCancel.setOnClickListener { onCancel(item) }
                     btnReview.setOnClickListener { onReview(item) }

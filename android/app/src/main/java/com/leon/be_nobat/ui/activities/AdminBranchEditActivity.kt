@@ -49,6 +49,7 @@ class AdminBranchEditActivity : BaseActivity() {
     private lateinit var tilBranchAddress: TextInputLayout
     private lateinit var etBranchAddress: TextInputEditText
     private lateinit var weeklyHoursEditor: WeeklyHoursEditor
+    private lateinit var cancellationEditor: com.leon.be_nobat.helpers.CancellationNoticeEditor
     private lateinit var cardBranchDetails: View
     private lateinit var switchBranchActive: MaterialSwitch
     private lateinit var tvBranchId: TextView
@@ -95,6 +96,9 @@ class AdminBranchEditActivity : BaseActivity() {
         tilBranchAddress = findViewById(R.id.tilBranchAddress)
         etBranchAddress = findViewById(R.id.etBranchAddress)
         weeklyHoursEditor = findViewById(R.id.weeklyHoursEditor)
+        cancellationEditor = com.leon.be_nobat.helpers.CancellationNoticeEditor(this)
+        cancellationEditor.setValue(null)
+        (weeklyHoursEditor.parent as android.widget.LinearLayout).addView(cancellationEditor, 0)
         cardBranchDetails = findViewById(R.id.cardBranchDetails)
         switchBranchActive = findViewById(R.id.switchBranchActive)
         tvBranchId = findViewById(R.id.tvBranchId)
@@ -150,6 +154,7 @@ class AdminBranchEditActivity : BaseActivity() {
     private suspend fun loadBranchDetails(branchId: String) {
         managementRepository.getBranch(branchId).onSuccess { branch ->
             existingBranch = branch
+            cancellationEditor.setValue(branch.cancellationNoticeMinutes)
             etBranchName.setText(branch.name)
             etBranchAddress.setText(branch.address)
 
@@ -206,6 +211,7 @@ class AdminBranchEditActivity : BaseActivity() {
     }
 
     private fun saveBranch() {
+        if (cancellationEditor.validate() != null) return
         val name = etBranchName.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             tilBranchName.error = "نام شعبه الزامی است."
@@ -244,6 +250,7 @@ class AdminBranchEditActivity : BaseActivity() {
             openHour = existingBranch?.openHour ?: 8,
             closeHour = existingBranch?.closeHour ?: 20,
             weeklyHours = hours,
+            cancellationNoticeMinutes = cancellationEditor.value,
         )
 
         btnSave.isEnabled = false

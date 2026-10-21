@@ -44,6 +44,93 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         }
     }
 
+    override suspend fun analytics(
+        businessId: String?,
+        branchId: String?,
+        resourceId: String?,
+        from: String?,
+        to: String?,
+    ): Result<ManagementAnalyticsSummary> = runCatching {
+        simulateNetworkDelay()
+        read { s ->
+            var appts = s.appointments
+            if (businessId != null) appts = appts.filter { it.businessId == businessId }
+            if (branchId != null) appts = appts.filter { it.branchId == branchId }
+            if (resourceId != null) appts = appts.filter { it.resourceId == resourceId }
+            if (from != null) appts = appts.filter { it.startsAt >= from }
+            if (to != null) appts = appts.filter { it.startsAt <= to }
+
+            val completed = appts.filter { it.status == "Completed" }
+            val totalRevenue = completed.sumOf { it.finalPrice.toLong() }
+            val totalWorkMinutes = completed.size * 45L
+
+            val byBiz = appts.groupBy { it.businessId to it.businessName }.map { (key, list) ->
+                val comp = list.filter { it.status == "Completed" }
+                ManagementBreakdownItem(
+                    id = key.first,
+                    name = key.second.ifBlank { "نامشخص" },
+                    totalAppointments = list.size,
+                    completedAppointments = comp.size,
+                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    workMinutes = comp.size * 45L,
+                )
+            }.sortedByDescending { it.revenue }
+
+            val byBr = appts.groupBy { it.branchId to it.branchName }.map { (key, list) ->
+                val comp = list.filter { it.status == "Completed" }
+                ManagementBreakdownItem(
+                    id = key.first,
+                    name = key.second.ifBlank { "نامشخص" },
+                    businessName = list.firstOrNull()?.businessName,
+                    totalAppointments = list.size,
+                    completedAppointments = comp.size,
+                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    workMinutes = comp.size * 45L,
+                )
+            }.sortedByDescending { it.revenue }
+
+            val bySt = appts.filter { !it.resourceId.isNullOrBlank() }.groupBy { (it.resourceId ?: "") to (it.resourceName ?: "نامشخص") }.map { (key, list) ->
+                val comp = list.filter { it.status == "Completed" }
+                ManagementBreakdownItem(
+                    id = key.first,
+                    name = key.second,
+                    branchName = list.firstOrNull()?.branchName,
+                    totalAppointments = list.size,
+                    completedAppointments = comp.size,
+                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    workMinutes = comp.size * 45L,
+                )
+            }.sortedByDescending { it.revenue }
+
+            val trendList = appts.groupBy { it.startsAt.take(10) }.map { (date, list) ->
+                val comp = list.filter { it.status == "Completed" }
+                ManagementDailyTrendItem(
+                    date = date,
+                    total = list.size,
+                    completed = comp.size,
+                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    workMinutes = comp.size * 45L,
+                )
+            }.sortedBy { it.date }
+
+            ManagementAnalyticsSummary(
+                totalAppointments = appts.size,
+                completedAppointments = completed.size,
+                pendingAppointments = appts.count { it.status == "Pending" },
+                confirmedAppointments = appts.count { it.status == "Confirmed" },
+                cancelledAppointments = appts.count { it.status == "Cancelled" },
+                noShowAppointments = appts.count { it.status == "NoShow" },
+                totalRevenue = totalRevenue,
+                totalWorkMinutes = totalWorkMinutes,
+                totalWorkHours = totalWorkMinutes / 60.0,
+                byBusiness = byBiz,
+                byBranch = byBr,
+                byStaff = bySt,
+                trend = trendList,
+            )
+        }
+    }
+
     override suspend fun context(): Result<ManagementContext> = runCatching {
         simulateNetworkDelay()
         val user = requireNotNull(tokenManager.currentSession()).user
@@ -80,6 +167,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun updateBusiness(id: String, input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
@@ -91,7 +179,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 category = input.category,
                 city = input.city,
                 description = input.description,
-                requiresApproval = input.requiresApproval
+                requiresApproval = input.requiresApproval,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes ?: old.cancellationNoticeMinutes
             )
             s.copy(businesses = s.businesses.map { if (it.id == id) value else it }) to value
         }
@@ -112,6 +201,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun createBranch(input: ManagementBranchInput): Result<ManagementBranch> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         input.weeklyHours?.let { require(WeeklyHours.validate(it) == null) }
@@ -138,6 +228,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 openHour = openHour,
                 closeHour = closeHour,
                 weeklyHours = input.weeklyHours ?: WeeklyHours.defaults(),
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 active = true,
                 isApproved = isPlatform,
                 businessName = bizName,
@@ -178,6 +269,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun updateBranch(id: String, input: ManagementBranchInput): Result<ManagementBranch> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         input.weeklyHours?.let { require(WeeklyHours.validate(it) == null) }
@@ -195,6 +287,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 openHour = openHour,
                 closeHour = closeHour,
                 weeklyHours = input.weeklyHours ?: old.weeklyHours,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 businessName = bizName,
             )
             s.copy(branches = s.branches.map { if (it.id == id) value else it }) to value
@@ -503,6 +596,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun createService(input: ManagementServiceInput): Result<ManagementService> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         val actor = requireNotNull(tokenManager.currentSession()).user
@@ -535,6 +629,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 durationMinutes = input.durationMinutes,
                 price = input.price,
                 currency = input.currency,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 catalogItemId = input.catalogItemId,
                 branchIds = resolvedBranchIds,
                 resourceIds = resolvedResourceIds,
@@ -548,7 +643,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     serviceId = id,
                     price = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.price,
                     effectivePrice = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.price ?: value.price,
-                    serviceName = value.name
+                    serviceName = value.name,
+                    cancellationNoticeMinutes = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.cancellationNoticeMinutes
                 )
             }
 
@@ -566,6 +662,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun updateService(id: String, input: ManagementServiceInput): Result<ManagementService> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
@@ -588,6 +685,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 durationMinutes = input.durationMinutes,
                 price = input.price,
                 currency = input.currency,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 catalogItemId = input.catalogItemId,
                 branchIds = resolvedBranchIds,
                 resourceIds = resolvedResourceIds
@@ -600,7 +698,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     serviceId = id,
                     price = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.price,
                     effectivePrice = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.price ?: value.price,
-                    serviceName = value.name
+                    serviceName = value.name,
+                    cancellationNoticeMinutes = s.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == id }?.cancellationNoticeMinutes
                 )
             }
 
@@ -649,6 +748,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     }
 
     override suspend fun upsertBranchService(branchId: String, serviceId: String, input: ManagementBranchServiceInput): Result<ManagementBranchService> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
@@ -661,7 +761,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 serviceId = serviceId,
                 price = input.price,
                 effectivePrice = input.price ?: service.price,
-                serviceName = service.name
+                serviceName = service.name,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes
             )
             s.copy(
                 branchServices = s.branchServices.filterNot { it.branchId == branchId && it.serviceId == serviceId } + value,

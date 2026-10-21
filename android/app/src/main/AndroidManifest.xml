@@ -3,6 +3,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <application
         android:name=".helpers.App"
         android:allowBackup="true"
@@ -23,6 +28,11 @@
                 android:name="autoStoreLocales"
                 android:value="true" />
         </service>
+
+        <service android:name=".notifications.AppointmentNotificationJob"
+            android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
+        <receiver android:name=".notifications.SmsSentReceiver" android:exported="false" />
+        <activity android:name=".ui.activities.AppointmentNotificationsActivity" android:exported="false" />
 
         <!-- Launcher -->
         <activity
@@ -72,6 +82,7 @@
 
         <!-- Admin surface -->
         <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
+        <activity android:name=".ui.activities.AdminAnalyticsActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminCalendarActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminBranchesActivity" android:exported="false" />
         <activity

@@ -16,7 +16,7 @@ data class AppointmentsUiState(
     val loading: Boolean = false,
     val items: List<Appointment> = emptyList(),
     val total: Int = 0,
-    val tab: AppointmentTab = AppointmentTab.Upcoming,
+    val tab: AppointmentTab = AppointmentTab.All,
     val error: String? = null,
     val reviewForAppointmentId: String? = null,
     val reviewRating: Int = 5,
@@ -25,7 +25,7 @@ data class AppointmentsUiState(
 )
 
 enum class AppointmentTab(val apiStatus: String?, @androidx.annotation.StringRes val labelRes: Int) {
-    Upcoming(null, com.leon.be_nobat.R.string.tab_upcoming),
+    All(null, com.leon.be_nobat.R.string.tab_all_appointments),
     Pending("Pending", com.leon.be_nobat.R.string.tab_pending),
     Confirmed("Confirmed", com.leon.be_nobat.R.string.tab_confirmed),
     Completed("Completed", com.leon.be_nobat.R.string.tab_completed),

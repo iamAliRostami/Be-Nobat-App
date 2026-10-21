@@ -52,4 +52,20 @@
     <!-- Favorite heart colors (Night) -->
     <color name="favorite_active">#FB7185</color>
     <color name="favorite_inactive">#64748B</color>
+
+    <!-- Bank Mehr-style Quick Shortcuts (Night) -->
+    <color name="shortcut_blue_bg">#0C2D48</color>
+    <color name="shortcut_blue_fg">#7DD3FC</color>
+    <color name="shortcut_green_bg">#113322</color>
+    <color name="shortcut_green_fg">#86EFAC</color>
+    <color name="shortcut_pink_bg">#3B1A28</color>
+    <color name="shortcut_pink_fg">#F472B6</color>
+    <color name="shortcut_purple_bg">#2E1B4E</color>
+    <color name="shortcut_purple_fg">#C084FC</color>
+
+    <!-- Category Chips (Night) -->
+    <color name="category_chip_bg">#1E293B</color>
+    <color name="category_chip_text">#CBD5E1</color>
+    <color name="category_chip_selected_bg">#76D6C3</color>
+    <color name="category_chip_selected_text">#00382F</color>
 </resources>

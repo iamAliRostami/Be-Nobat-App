@@ -1010,9 +1010,9 @@ html[data-theme="dark"] .action-info{--action-bg:#20383b;--action-fg:#b6e4e8;--a
 .action-complete{--action-bg:var(--action-complete-bg);--action-fg:var(--action-complete);--action-border:var(--action-complete-border)}
 :is(button,a)[class*="action-"]:hover:not(:disabled){filter:brightness(.96);transform:none}
 :is(.card-actions,.inline-actions,.row-actions,.appointment-actions,.access-actions,.availability-actions){flex-wrap:wrap;gap:8px;align-items:center}
-.content .schedule-row>.row-actions{flex-wrap:wrap;width:auto;max-width:100%;background:transparent;padding:0}
-.content .status,.appointment-card .status{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:0;border:0;border-radius:0;background:transparent;font:600 12px/1.7 Vazirmatn,system-ui,sans-serif;white-space:nowrap;box-shadow:none;cursor:default}
-.status::before{content:"";display:inline-block;width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:currentColor}
+.status{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+.content .status,.appointment-card .status{min-height:24px;padding:0;border:0;border-radius:0;background:transparent;font:600 12px/1.7 Vazirmatn,system-ui,sans-serif;box-shadow:none;cursor:default}
+.status::before{content:"";display:inline-block;width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:currentColor;margin-inline-end:3px}
 .content .status:is(.confirmed,.active),.appointment-card .status:is(.confirmed,.active){color:var(--action-success)}
 .content .status.pending,.appointment-card .status.pending{color:var(--action-warning)}
 .content .status.cancelled,.appointment-card .status.cancelled{color:var(--action-danger)}

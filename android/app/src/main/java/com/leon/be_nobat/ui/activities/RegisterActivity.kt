@@ -80,12 +80,11 @@ class RegisterActivity : BaseActivity() {
     }
 
     private fun routeAfterRegister(user: com.leon.be_nobat.domain.model.User) {
-        val intent = if (user.isStaff) {
-            Intent(this, AdminHomeActivity::class.java)
-        } else {
-            Intent(this, HomeActivity::class.java)
+        val intent = Intent(this, ProfileActivity::class.java).apply {
+            putExtra(ProfileActivity.EXTRA_JUST_REGISTERED, true)
+            putExtra(ProfileActivity.EXTRA_REGISTERED_NAME, user.displayName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finishAffinity()
     }

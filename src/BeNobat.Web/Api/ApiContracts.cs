@@ -105,4 +105,4 @@ public sealed record ProviderDto(Guid Id, Guid BranchId, string Name, string Kin
 public sealed record PublicReviewDto(Guid Id, int Rating, string Comment, string? ManagerReply, string CustomerName, DateTimeOffset CreatedAt);
 public sealed record AppointmentDto(Guid Id, Guid BusinessId, string BusinessName, Guid BranchId, string BranchName, string TimeZoneId,
     IReadOnlyList<string> ServiceNames, Guid? ResourceId, string? ResourceName, DateTimeOffset StartsAt, DateTimeOffset EndsAt,
-    string Status, decimal FinalPrice, string Currency, string CustomerNote, string TrackingCode, bool CanCancel, bool CanReview, Guid? ReviewId);
+    string Status, decimal FinalPrice, string Currency, string CustomerNote, string TrackingCode, bool CanCancel, bool CanReview, Guid? ReviewId, int CancellationNoticeMinutes = 120, DateTimeOffset? CancellationDeadline = null);

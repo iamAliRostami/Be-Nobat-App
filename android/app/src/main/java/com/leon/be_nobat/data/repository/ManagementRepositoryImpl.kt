@@ -56,6 +56,14 @@ class ManagementRepositoryImpl(
 
     // ---------- overview ----------
     override suspend fun dashboard(): Result<ManagementDashboard> = api.adminDashboard()
+    override suspend fun analytics(
+        businessId: String?,
+        branchId: String?,
+        resourceId: String?,
+        from: String?,
+        to: String?,
+    ): Result<com.leon.be_nobat.domain.model.ManagementAnalyticsSummary> =
+        api.adminAnalytics(businessId, branchId, resourceId, from, to)
     override suspend fun context(): Result<ManagementContext> = api.adminContext()
 
     // ---------- businesses ----------

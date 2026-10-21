@@ -78,16 +78,89 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- Welcome banner for newly registered user -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardWelcomeRegister"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorPrimary"
+            app:cardBackgroundColor="?attr/colorPrimaryContainer"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="14dp">
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_check"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Welcome" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvWelcomeTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/welcome_title"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvWelcomeMessage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Caption"
+                        android:textColor="?attr/colorOnPrimaryContainer"
+                        android:text="@string/welcome_register_message" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnCloseWelcome"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_close"
+                    app:tint="?attr/colorOnPrimaryContainer"
+                    android:contentDescription="@string/action_close" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Avatar + edit row -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/avatarCard"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            app:cardCornerRadius="40dp"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            app:cardCornerRadius="44dp"
             app:cardElevation="0dp"
-            app:strokeWidth="0dp"
+            app:strokeWidth="1.5dp"
+            app:strokeColor="?attr/colorOutlineVariant"
+            android:layout_marginTop="16dp"
+            app:layout_goneMarginTop="16dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/cardWelcomeRegister">
 
             <ImageView
                 android:id="@+id/ivAvatar"
@@ -99,44 +172,77 @@
                 android:src="@drawable/ic_person" />
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnUploadAvatar"
-            style="@style/Widget.BeNobat.Button.Outlined"
+        <LinearLayout
+            android:id="@+id/layoutAvatarButtons"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:layout_marginStart="16dp"
-            android:text="@string/upload_avatar"
-            app:cornerRadius="20dp"
             app:layout_constraintStart_toEndOf="@id/avatarCard"
-            app:layout_constraintTop_toTopOf="@id/avatarCard" />
+            app:layout_constraintTop_toTopOf="@id/avatarCard"
+            app:layout_constraintBottom_toBottomOf="@id/avatarCard">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRemoveAvatar"
-            style="@style/Widget.BeNobat.Button.Outlined"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUploadAvatar"
+                style="@style/Widget.BeNobat.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minWidth="120dp"
+                android:minHeight="38dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="@string/upload_avatar"
+                android:textSize="13sp"
+                app:cornerRadius="19dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRemoveAvatar"
+                style="@style/Widget.BeNobat.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minWidth="120dp"
+                android:minHeight="38dp"
+                android:layout_marginTop="6dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:paddingStart="14dp"
+                android:paddingEnd="16dp"
+                android:text="@string/remove_avatar"
+                android:textColor="@color/colorOnErrorContainer"
+                android:textSize="13sp"
+                app:strokeColor="@color/colorErrorBorder"
+                app:backgroundTint="@color/colorErrorContainer"
+                app:icon="@drawable/ic_delete"
+                app:iconTint="@color/colorOnErrorContainer"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
+                app:iconSize="16dp"
+                app:cornerRadius="19dp" />
+        </LinearLayout>
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/barrierAvatarRow"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="8dp"
-            android:text="@string/remove_avatar"
-            android:textColor="@color/colorOnErrorContainer"
-            app:strokeColor="@color/colorErrorBorder"
-            app:backgroundTint="@color/colorErrorContainer"
-            app:icon="@drawable/ic_delete"
-            app:iconTint="@color/colorOnErrorContainer"
-            app:iconGravity="textStart"
-            app:cornerRadius="20dp"
-            app:layout_constraintStart_toEndOf="@id/avatarCard"
-            app:layout_constraintTop_toBottomOf="@id/btnUploadAvatar" />
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="avatarCard,layoutAvatarButtons" />
 
         <TextView
             android:id="@+id/tvDisplayName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             android:textAppearance="@style/TextAppearance.BeNobat.Headline"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/avatarCard"
+            app:layout_constraintTop_toBottomOf="@id/barrierAvatarRow"
             tools:text="نام کاربر" />
 
         <TextView
@@ -238,9 +344,7 @@
                         android:layout_weight="1"
                         android:text="@string/business_upgrade_card_title"
                         android:textAppearance="@style/TextAppearance.BeNobat.Title"
-                        android:textSize="13sp"
-                        android:maxLines="1"
-                        android:ellipsize="end" />
+                        android:textSize="12sp" />
 
                     <TextView
                         android:id="@+id/tvBusinessCardBadge"

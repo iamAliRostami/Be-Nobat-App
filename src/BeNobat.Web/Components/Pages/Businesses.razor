@@ -46,6 +46,8 @@
             }
             <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
             <div class="service-form-row"><label>مدت (دقیقه)<input type="number" @bind="Form.DurationMinutes" /></label><label>قیمت خدمت (تومان)<input type="number" @bind="Form.Price" /></label></div>
+            <CancellationNoticeEditor Label="مهلت لغو خود خدمت (همهٔ شعب)" @bind-Value="Form.CancellationNoticeMinutes" />
+            <CancellationNoticeEditor Label="مهلت لغو این خدمت در شعبهٔ انتخاب‌شده" @bind-Value="Form.BranchCancellationNoticeMinutes" />
             <fieldset class="service-providers"><legend>کارکنان ارائه‌دهنده</legend>
                 @if (!FormResources.Any()) { <small>ابتدا در صفحه شعب، منبع «عضو تیم» تعریف کنید.</small> }
                 <div class="service-provider-list">@foreach (var resource in FormResources) { <label class="check-label"><input type="checkbox" checked="@SelectedResourceIds.Contains(resource.Id)" @onchange="() => ToggleResource(resource.Id)" /><span data-i18n-skip>@resource.Name</span></label> }</div>
@@ -170,10 +172,11 @@
         Error = null;
         ShowForm = true;
     }
-    private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, CatalogItemId = service.CatalogItemId, Source = service.CatalogItemId is null ? "custom" : "catalog", Name = service.Name, Description = service.Description, DurationMinutes = service.DurationMinutes, Price = assignment?.Price ?? service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).Where(r => Resources.Any(f => f.Id == r && f.BranchId == Form.BranchId)).ToHashSet(); Error = null; ShowForm = true; }
+    private void Edit(Service service) { EditingId = service.Id; var assignment = service.BranchServices.FirstOrDefault(); Form = new() { BusinessId = service.BusinessId, CatalogItemId = service.CatalogItemId, Source = service.CatalogItemId is null ? "custom" : "catalog", Name = service.Name, Description = service.Description, CancellationNoticeMinutes = service.CancellationNoticeMinutes, BranchCancellationNoticeMinutes = assignment?.CancellationNoticeMinutes, DurationMinutes = service.DurationMinutes, Price = assignment?.Price ?? service.Price, BranchId = assignment?.BranchId ?? Branches.FirstOrDefault(x => x.BusinessId == service.BusinessId)?.Id ?? Guid.Empty }; SelectedResourceIds = service.ServiceResources.Select(x => x.ResourceId).Where(r => Resources.Any(f => f.Id == r && f.BranchId == Form.BranchId)).ToHashSet(); Error = null; ShowForm = true; }
     private Task BusinessChanged() { Form.BranchId = FormBranches.FirstOrDefault()?.Id ?? Guid.Empty; SelectedResourceIds.Clear(); return Task.CompletedTask; }
     private Task BranchChanged()
     {
+        Form.BranchCancellationNoticeMinutes = Services.FirstOrDefault(x => x.Id == EditingId)?.BranchServices.FirstOrDefault(x => x.BranchId == Form.BranchId)?.CancellationNoticeMinutes;
         if (EditingId is Guid id && Services.FirstOrDefault(x => x.Id == id) is { } editing)
             SelectedResourceIds = editing.ServiceResources.Select(x => x.ResourceId).Where(r => FormResources.Any(f => f.Id == r)).ToHashSet();
         else
@@ -186,6 +189,7 @@
     {
         var branch = await Db.Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == Form.BranchId && x.BusinessId == Form.BusinessId);
         Error = null;
+        if (!CancellationPolicy.IsValid(Form.CancellationNoticeMinutes) || !CancellationPolicy.IsValid(Form.BranchCancellationNoticeMinutes)) { Error = "مهلت لغو باید بین صفر و ۱۲۹۶۰۰ دقیقه باشد."; return; }
         if (branch is not null && !await Access.CanManageBranchAsync(branch.Id)) { Error = T("اجازه‌ی مدیریت خدمات این شعبه را ندارید.", "ليس لديك صلاحية إدارة خدمات هذا الفرع.", "You are not allowed to manage services of this branch."); return; }
         if (Form.BusinessId == Guid.Empty) { Error = T("ابتدا یک کسب‌وکار انتخاب کنید.", "اختر نشاطًا تجاريًا أولًا.", "Select a business first."); return; }
         if (EditingId is null && Form.Source == CatalogSource && Form.CatalogItemId is null) { Error = T("یک خدمت را از فهرست کاتالوگ انتخاب کنید.", "اختر خدمة من قائمة الكتالوج.", "Select a service from the catalog list."); return; }
@@ -217,10 +221,11 @@
         service.BusinessId = Form.BusinessId; service.CatalogItemId = Form.Source == "catalog" ? Form.CatalogItemId : null; service.Name = Form.Name.Trim(); service.Description = Form.Description.Trim(); service.DurationMinutes = Form.DurationMinutes; service.Price = Form.Price;
         if (EditingId is null) Db.Services.Add(service);
         service.UpdatedAt = DateTimeOffset.UtcNow;
+        service.CancellationNoticeMinutes = Form.CancellationNoticeMinutes;
         // فقط اتصال‌های همین شعبه تغییر می‌کند؛ اتصال خدمت به شعبه‌های دیگر دست‌نخورده می‌ماند.
         var assignment = await Db.BranchServices.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.ServiceId == service.Id && x.BranchId == branch.Id);
-        if (assignment is null) Db.BranchServices.Add(new BranchService { BranchId = branch.Id, ServiceId = service.Id, Price = null });
-        else { assignment.DeletedAt = null; assignment.Price = Form.Price; assignment.UpdatedAt = DateTimeOffset.UtcNow; }
+        if (assignment is null) Db.BranchServices.Add(new BranchService { BranchId = branch.Id, ServiceId = service.Id, Price = null, CancellationNoticeMinutes = Form.BranchCancellationNoticeMinutes });
+        else { assignment.CancellationNoticeMinutes = Form.BranchCancellationNoticeMinutes; assignment.DeletedAt = null; assignment.Price = Form.Price; assignment.UpdatedAt = DateTimeOffset.UtcNow; }
         var branchResourceIds = (await Db.Resources.IgnoreQueryFilters().Where(r => r.BranchId == branch.Id).Select(r => r.Id).ToListAsync()).ToHashSet();
         var currentLinks = await Db.ServiceResources.IgnoreQueryFilters().Where(x => x.ServiceId == service.Id && branchResourceIds.Contains(x.ResourceId)).ToListAsync();
         Db.ServiceResources.RemoveRange(currentLinks.Where(x => !SelectedResourceIds.Contains(x.ResourceId)));
@@ -242,5 +247,5 @@
     }
     private void Close() { ShowForm = false; Error = null; }
     private string T(string fa, string ar, string en) => LocalizedDate.Choose(Language, fa, ar, en);
-    private sealed class ServiceInput { public Guid BusinessId { get; set; } public Guid BranchId { get; set; } public Guid? CatalogItemId { get; set; } public string Source { get; set; } = "catalog"; public string Name { get; set; } = ""; public string Description { get; set; } = ""; public int DurationMinutes { get; set; } = 30; public decimal Price { get; set; } }
+    private sealed class ServiceInput { public int? CancellationNoticeMinutes { get; set; } public int? BranchCancellationNoticeMinutes { get; set; } public Guid BusinessId { get; set; } public Guid BranchId { get; set; } public Guid? CatalogItemId { get; set; } public string Source { get; set; } = "catalog"; public string Name { get; set; } = ""; public string Description { get; set; } = ""; public int DurationMinutes { get; set; } = 30; public decimal Price { get; set; } }
 }

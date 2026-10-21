@@ -4,4 +4,5 @@
     <application
         android:label="@string/app_name"
         tools:replace="android:label" />
+    <uses-permission android:name="android.permission.SEND_SMS" tools:node="remove" />
 </manifest>

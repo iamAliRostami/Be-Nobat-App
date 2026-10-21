@@ -69,6 +69,11 @@ object ErrorFormatter {
             else -> null
         }
 
+        if ((throwable as? BeNobatApiException)?.code == "cancellation_unavailable" ||
+            message?.contains("The cancellation deadline has passed", ignoreCase = true) == true) {
+            return FormattedError(context.getString(R.string.error_generic), context.getString(R.string.error_cancellation_deadline))
+        }
+
         if (isConnectionIssue(throwable) || isConnectionIssue(message)) {
             return FormattedError(
                 title = context.getString(R.string.error_connection_title),

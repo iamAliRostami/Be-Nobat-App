@@ -5,6 +5,8 @@
     <string name="logo_content_description">نشان به نوبت</string>
 
     <!-- ============ Login / Auth ============ -->
+    <string name="welcome_title">خوش آمدید!</string>
+    <string name="welcome_register_message">به به‌نوبت خوش آمدید! حساب کاربری شما با موفقیت ایجاد شد.</string>
     <string name="welcome_message">خوش آمدید! برای رزرو نوبت وارد شوید</string>
     <string name="login_title">ورود به حساب</string>
     <string name="mobile_phone">شماره موبایل</string>
@@ -49,6 +51,56 @@
     <string name="nav_profile">پروفایل</string>
     <string name="nav_admin">پنل مدیریت</string>
 
+    <!-- ============ Home Screen Enhancements ============ -->
+    <string name="home_hero_tag">سامانه هوشمند نوبت‌دهی آنلاین</string>
+    <string name="home_hero_title">وقتت ارزشمنده؛ به‌نوبت رزرو کن</string>
+    <string name="home_hero_subtitle">رزرو آنلاین و لحظه‌ای بهترین مراکز زیبایی، درمانی و مشاوره</string>
+    <string name="home_hero_action">نوبت‌های آزاد امروز</string>
+    <string name="home_quick_access">دسترسی سریع</string>
+    <string name="home_shortcut_my_appointments">نوبت‌های من</string>
+    <string name="home_shortcut_my_appointments_sub">مشاهده و پیگیری</string>
+    <string name="home_shortcut_top_centers">مراکز برتر</string>
+    <string name="home_shortcut_top_centers_sub">برترین‌های هر دسته</string>
+    <string name="home_shortcut_free_slots">نوبت‌های خالی</string>
+    <string name="home_shortcut_free_slots_sub">رزرو بدون معطلی</string>
+    <string name="home_shortcut_how_it_works">چطور کار می‌کند؟</string>
+    <string name="home_shortcut_how_it_works_sub">راهنمای ۳ مرحله‌ای</string>
+    <string name="home_shortcut_upgrade">درخواست ارتقا</string>
+    <string name="home_shortcut_upgrade_sub">ثبت و مدیریت مرکز</string>
+    <string name="home_shortcut_favorites">نشان‌شده‌ها</string>
+    <string name="home_shortcut_favorites_sub">مراکز برگزیده</string>
+    <string name="home_shortcut_profile">پروفایل من</string>
+    <string name="home_shortcut_profile_sub">حساب و تنظیمات</string>
+    <string name="how_it_works_title">نوبت گرفتن به همین راحتیه</string>
+    <string name="how_it_works_subtitle">ساده، سریع و مطمئن در ۳ مرحله</string>
+    <string name="how_it_works_step1_title">۱. پیدا کن</string>
+    <string name="how_it_works_step1_desc">خدمت یا متخصص موردنظرت را در نزدیکی خودت پیدا کن.</string>
+    <string name="how_it_works_step2_title">۲. زمان را انتخاب کن</string>
+    <string name="how_it_works_step2_desc">زمان‌های خالی را لحظه‌ای ببین و مناسب‌ترین وقت را بردار.</string>
+    <string name="how_it_works_step3_title">۳. تمام!</string>
+    <string name="how_it_works_step3_desc">تأیید نوبت را بگیر؛ ما به‌موقع یادت می‌اندازیم.</string>
+    <string name="logout_confirm_title">خروج از حساب کاربری</string>
+    <string name="logout_confirm_message">آیا برای خروج از حساب کاربری خود اطمینان دارید؟</string>
+    <string name="logout_confirm_positive">بله، خروج</string>
+    <string name="business_request_activity_title">درخواست ارتقا به مدیر کسب‌وکار</string>
+    <string name="home_categories_title">دسته‌بندی‌ها</string>
+    <string name="home_categories_subtitle">دنبال چه خدمتی هستی؟</string>
+    <string name="home_top_centers">مراکز برتر و خدمات</string>
+    <string name="home_clear_category">پاک کردن فیلتر دسته</string>
+    <string name="cat_all">همه</string>
+    <string name="cat_beauty">زیبایی و آرایش</string>
+    <string name="cat_dental">دندانپزشکی</string>
+    <string name="cat_massage">ماساژ و تندرستی</string>
+    <string name="cat_counseling">مشاوره و روان‌شناسی</string>
+    <string name="cat_general_med">پزشکی عمومی</string>
+    <string name="cat_physiotherapy">فیزیوتراپی</string>
+    <string name="cat_fitness">ورزش و تناسب اندام</string>
+    <string name="cat_skin">پوست و زیبایی</string>
+    <string name="cat_hair">مو و آرایش</string>
+    <string name="cat_nails">ناخن</string>
+    <string name="cat_men">پیرایش آقایان</string>
+    <string name="cat_pets">دامپزشکی</string>
+
     <!-- ============ Admin Navigation Groups ============ -->
     <string name="nav_group_management">مدیریت</string>
     <string name="nav_group_business">مدیریت کسب‌وکار</string>
@@ -71,6 +123,29 @@
     <!-- ============ Admin drawer items ============ -->
     <string name="admin_dashboard">داشبورد</string>
     <string name="admin_calendar">تقویم نوبت‌ها</string>
+    <string name="drawer_analytics">آمار و گزارشات</string>
+    <string name="admin_analytics_title">آمار و گزارش فعالیت‌ها</string>
+    <string name="analytics_period_7d">۷ روز</string>
+    <string name="analytics_period_30d">۳۰ روز</string>
+    <string name="analytics_period_90d">۳ ماه</string>
+    <string name="analytics_period_all">همه</string>
+    <string name="analytics_total_revenue">درآمد کل</string>
+    <string name="analytics_work_hours">ساعت‌های کاری</string>
+    <string name="analytics_completed_appts">نوبت‌های انجام‌شده</string>
+    <string name="analytics_completion_rate">نرخ تکمیل</string>
+    <string name="analytics_tab_businesses">کسب‌وکارها</string>
+    <string name="analytics_tab_branches">شعب</string>
+    <string name="analytics_tab_staff">کارمندان و متخصصان</string>
+    <string name="analytics_trend_title">روند درآمد و نوبت‌های روزانه</string>
+    <string name="analytics_breakdown_title">تفکیک عملکرد و درآمد</string>
+    <string name="analytics_no_data">اطلاعاتی در این بازه زمانی یافت نشد.</string>
+    <string name="analytics_filter_title">فیلتر آمار</string>
+    <string name="analytics_all_businesses">همه کسب‌وکارها</string>
+    <string name="analytics_all_branches">همه شعب</string>
+    <string name="analytics_all_staff">همه کارمندان</string>
+    <string name="analytics_hours_suffix">ساعت</string>
+    <string name="analytics_toman_suffix">تومان</string>
+    <string name="analytics_appts_suffix">نوبت</string>
     <string name="admin_branches">شعب و منابع</string>
     <string name="admin_services">خدمات</string>
     <string name="admin_availability">زمان‌های خالی</string>
@@ -140,6 +215,7 @@
     <!-- ============ Appointments ============ -->
     <string name="orders_title">نوبت‌های من</string>
     <string name="tab_upcoming">آینده</string>
+    <string name="tab_all_appointments">همه نوبت‌ها</string>
     <string name="tab_pending">در انتظار</string>
     <string name="tab_confirmed">تأیید شده</string>
     <string name="tab_completed">انجام شده</string>
@@ -169,8 +245,9 @@
     <string name="current_password">گذرواژه فعلی</string>
     <string name="new_password">گذرواژه جدید</string>
     <string name="new_email">ایمیل جدید</string>
-    <string name="upload_avatar">بارگذاری عکس پروفایل</string>
-    <string name="remove_avatar">حذف عکس پروفایل</string>
+    <string name="upload_avatar">بارگذاری عکس</string>
+    <string name="change_avatar">تغییر عکس</string>
+    <string name="remove_avatar">حذف عکس</string>
     <string name="save">ذخیره</string>
     <string name="saving">در حال ذخیره…</string>
     <string name="saved">ذخیره شد</string>
@@ -478,4 +555,18 @@
     <string name="empty_customers_filtered">مشتری‌ای با این فیلترها پیدا نشد.</string>
     <string name="search_categories_hint">جست‌وجوی دسته‌بندی…</string>
     <string name="empty_categories_filtered">دسته‌بندی‌ای با این فیلترها پیدا نشد.</string>
+
+    <!-- Availability Filters (Matching Web AdminAvailability.razor) -->
+    <string name="filter_all_businesses">همه کسب‌وکارها</string>
+    <string name="filter_all_branches">همه شعب</string>
+    <string name="filter_all_providers">همه ارائه‌دهندگان</string>
+    <string name="filter_business_title">کسب‌وکار</string>
+    <string name="filter_branch_title">شعبه</string>
+    <string name="filter_provider_title">ارائه‌دهنده</string>
+    <string name="availability_periods_count">%s بازه</string>
+    <string name="availability_empty_filtered">در این بخش بازه‌ای وجود ندارد.</string>
+
+    <!-- Registration Welcome -->
+    <string name="welcome_registered_user">به به‌نوبت خوش آمدید، %s! حساب کاربری شما با موفقیت ایجاد شد.</string>
+    <string name="welcome_registered_default">به به‌نوبت خوش آمدید! حساب کاربری شما با موفقیت ایجاد شد.</string>
 </resources>

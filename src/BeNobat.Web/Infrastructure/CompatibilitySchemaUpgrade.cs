@@ -167,5 +167,21 @@ public static class CompatibilitySchemaUpgrade
                 WHEN duplicate_object THEN NULL;
                 WHEN OTHERS THEN RAISE NOTICE 'EX_Appointments_NoResourceOverlap skipped: %', SQLERRM;
             END $$;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "CancellationNoticeMinutes" integer NOT NULL DEFAULT 120;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Businesses" ADD CONSTRAINT "CK_Business_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "CancellationNoticeMinutes" integer NULL;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Branches" ADD CONSTRAINT "CK_Branch_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            ALTER TABLE benobat."Services" ADD COLUMN IF NOT EXISTS "CancellationNoticeMinutes" integer NULL;
+            DO $$ BEGIN
+                ALTER TABLE benobat."Services" ADD CONSTRAINT "CK_Service_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+            ALTER TABLE benobat."BranchServices" ADD COLUMN IF NOT EXISTS "CancellationNoticeMinutes" integer NULL;
+            DO $$ BEGIN
+                ALTER TABLE benobat."BranchServices" ADD CONSTRAINT "CK_BranchService_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
+            EXCEPTION WHEN duplicate_object THEN NULL; END $$;
             """, cancellationToken);
 }

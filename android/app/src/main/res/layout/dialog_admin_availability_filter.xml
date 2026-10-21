@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvFilterDialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.BeNobat.Brand"
+        android:textSize="18sp"
+        android:textColor="?attr/colorOnSurface"
+        android:text="@string/filter_and_sort" />
+
+    <TextView
+        android:id="@+id/tvFilterDialogSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="@style/TextAppearance.BeNobat.Caption"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:text="فیلتر زمان‌های خالی بر اساس کسب‌وکار، شعبه و ارائه‌دهنده" />
+
+    <!-- Business Selector -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutFilterBusiness"
+        style="@style/Widget.BeNobat.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="@string/filter_business_title"
+        app:endIconMode="custom"
+        app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etFilterBusiness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:cursorVisible="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            tools:text="همه کسب‌وکارها" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Branch Selector -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutFilterBranch"
+        style="@style/Widget.BeNobat.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/filter_branch_title"
+        app:endIconMode="custom"
+        app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etFilterBranch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:cursorVisible="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            tools:text="همه شعب" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Resource / Provider Selector -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/layoutFilterResource"
+        style="@style/Widget.BeNobat.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="@string/filter_provider_title"
+        app:endIconMode="custom"
+        app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etFilterResource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:cursorVisible="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            tools:text="همه ارائه‌دهندگان" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

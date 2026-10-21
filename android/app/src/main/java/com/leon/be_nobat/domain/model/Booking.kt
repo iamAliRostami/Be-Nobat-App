@@ -43,6 +43,8 @@ data class Appointment(
     val customerNote: String = "",
     val trackingCode: String = "",
     val canCancel: Boolean = false,
+    val cancellationNoticeMinutes: Int = 120,
+    val cancellationDeadline: String? = null,
     val canReview: Boolean = false,
     val reviewId: String? = null,
 ) {

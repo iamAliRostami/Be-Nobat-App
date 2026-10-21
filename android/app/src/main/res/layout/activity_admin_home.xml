@@ -403,6 +403,9 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
                             android:layout_weight="1"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="?attr/selectableItemBackground"
                             app:cardCornerRadius="16dp"
                             app:strokeColor="@color/colorOutline"
                             app:strokeWidth="1dp">
@@ -592,6 +595,22 @@
                     app:layout_constraintTop_toBottomOf="@id/tvQuickAccessTitle" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAnalytics"
+                    style="@style/Widget.BeNobat.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/admin_analytics_title"
+                    android:textAlignment="viewStart"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_dashboard"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btnCalendar" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnServices"
                     style="@style/Widget.BeNobat.Button.Outlined"
                     android:layout_width="0dp"
@@ -605,7 +624,7 @@
                     app:iconPadding="12dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/btnCalendar" />
+                    app:layout_constraintTop_toBottomOf="@id/btnAnalytics" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBranches"

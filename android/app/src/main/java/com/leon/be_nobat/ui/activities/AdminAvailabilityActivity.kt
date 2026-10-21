@@ -59,6 +59,36 @@ class AdminAvailabilityActivity : BaseActivity() {
         swipeRefresh = findViewById(R.id.swipeRefresh)
         swipeRefresh.setOnRefreshListener { viewModel.load() }
 
+        // Setup Search and Filter button
+        findViewById<TextInputLayout>(R.id.adminSearchLayout)?.apply {
+            isVisible = true
+            findViewById<TextInputEditText>(R.id.adminSearchInput)?.apply {
+                hint = getString(R.string.home_search_hint)
+                doAfterTextChanged { text -> viewModel.setSearchQuery(text?.toString().orEmpty()) }
+            }
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnAdminFilter)?.apply {
+            isVisible = true
+            setOnClickListener { showFilterDialog() }
+        }
+
+        // Setup Availability Filters Toolbar (Matching Web AdminAvailability.razor)
+        findViewById<android.view.View>(R.id.layoutAvailabilityToolbar)?.apply {
+            isVisible = true
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterBusiness)?.setOnClickListener {
+            showBusinessFilterPicker()
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterBranch)?.setOnClickListener {
+            showBranchFilterPicker()
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterResource)?.setOnClickListener {
+            showResourceFilterPicker()
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClearFilters)?.setOnClickListener {
+            viewModel.clearFilters()
+        }
+
         // Setup Tabs (Current & Future / Past)
         statusTabs = findViewById(R.id.statusTabs)
         statusTabs.isVisible = true
@@ -73,15 +103,6 @@ class AdminAvailabilityActivity : BaseActivity() {
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
-
-        // Setup Search
-        findViewById<TextInputLayout>(R.id.adminSearchLayout)?.apply {
-            isVisible = true
-            findViewById<TextInputEditText>(R.id.adminSearchInput)?.apply {
-                hint = getString(R.string.home_search_hint)
-                doAfterTextChanged { text -> viewModel.setSearchQuery(text?.toString().orEmpty()) }
-            }
-        }
 
         // Setup FAB for adding new availability
         findViewById<FloatingActionButton>(R.id.fabAdd)?.apply {
@@ -111,13 +132,268 @@ class AdminAvailabilityActivity : BaseActivity() {
     private fun render(state: AdminAvailabilityUiState) {
         swipeRefresh.isRefreshing = state.loading
         findViewById<android.widget.ProgressBar>(R.id.loadingProgress).isVisible = state.loading && state.filteredItems.isEmpty()
-        findViewById<android.widget.TextView>(R.id.emptyStateText).isVisible = !state.loading && state.filteredItems.isEmpty()
+        val emptyStateText = findViewById<android.widget.TextView>(R.id.emptyStateText)
+        val isEmpty = !state.loading && state.filteredItems.isEmpty()
+        emptyStateText.isVisible = isEmpty
+        if (isEmpty) {
+            emptyStateText.text = if (state.hasFilters || state.searchQuery.isNotBlank()) {
+                getString(R.string.availability_empty_filtered)
+            } else {
+                getString(R.string.empty_list)
+            }
+        }
         renderAdminError(state.error) { viewModel.load() }
         adapter.submitList(state.filteredItems)
+
+        renderFilterToolbar(state)
 
         state.message?.let {
             Snackbar.make(swipeRefresh, it, Snackbar.LENGTH_SHORT).show()
         }
+    }
+
+    private fun renderFilterToolbar(state: AdminAvailabilityUiState) {
+        val primaryColor = com.google.android.material.color.MaterialColors.getColor(
+            this,
+            androidx.appcompat.R.attr.colorPrimary,
+            android.graphics.Color.BLUE
+        )
+        val outlineColor = ContextCompat.getColor(this, R.color.colorOutline)
+        val onSurfaceVariant = com.google.android.material.color.MaterialColors.getColor(
+            this,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+            android.graphics.Color.GRAY
+        )
+
+        // Business filter button
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterBusiness)?.apply {
+            if (state.selectedBusinessId != null) {
+                text = "${getString(R.string.filter_business_title)}: ${state.selectedBusinessName ?: ""}"
+                strokeColor = ColorStateList.valueOf(primaryColor)
+                setTextColor(primaryColor)
+                iconTint = ColorStateList.valueOf(primaryColor)
+            } else {
+                text = getString(R.string.filter_all_businesses)
+                strokeColor = ColorStateList.valueOf(outlineColor)
+                setTextColor(onSurfaceVariant)
+                iconTint = ColorStateList.valueOf(onSurfaceVariant)
+            }
+        }
+
+        // Branch filter button
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterBranch)?.apply {
+            if (state.selectedBranchId != null) {
+                text = "${getString(R.string.filter_branch_title)}: ${state.selectedBranchName ?: ""}"
+                strokeColor = ColorStateList.valueOf(primaryColor)
+                setTextColor(primaryColor)
+                iconTint = ColorStateList.valueOf(primaryColor)
+            } else {
+                text = getString(R.string.filter_all_branches)
+                strokeColor = ColorStateList.valueOf(outlineColor)
+                setTextColor(onSurfaceVariant)
+                iconTint = ColorStateList.valueOf(onSurfaceVariant)
+            }
+        }
+
+        // Resource filter button
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterResource)?.apply {
+            if (state.selectedResourceId != null) {
+                text = "${getString(R.string.filter_provider_title)}: ${state.selectedResourceName ?: ""}"
+                strokeColor = ColorStateList.valueOf(primaryColor)
+                setTextColor(primaryColor)
+                iconTint = ColorStateList.valueOf(primaryColor)
+            } else {
+                text = getString(R.string.filter_all_providers)
+                strokeColor = ColorStateList.valueOf(outlineColor)
+                setTextColor(onSurfaceVariant)
+                iconTint = ColorStateList.valueOf(onSurfaceVariant)
+            }
+        }
+
+        // Clear Filters button
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnClearFilters)?.apply {
+            isVisible = state.hasFilters
+        }
+
+        // Filter Icon button in search bar
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnAdminFilter)?.apply {
+            if (state.hasFilters) {
+                strokeColor = ColorStateList.valueOf(primaryColor)
+                strokeWidth = 2
+                iconTint = ColorStateList.valueOf(primaryColor)
+            } else {
+                strokeColor = ColorStateList.valueOf(outlineColor)
+                strokeWidth = 1
+                iconTint = ColorStateList.valueOf(primaryColor)
+            }
+        }
+
+        // Periods count text: e.g. "۲۴ بازه"
+        findViewById<TextView>(R.id.tvAvailabilityCount)?.apply {
+            val countFormatted = PersianUtils.toPersianDigits(state.total.toString())
+            text = getString(R.string.availability_periods_count, countFormatted)
+        }
+
+        // Breadcrumb summary
+        findViewById<TextView>(R.id.tvAvailabilityFilterSummary)?.apply {
+            text = when {
+                state.selectedResourceId != null -> "${state.selectedBusinessName ?: ""} • ${state.selectedBranchName ?: ""} • ${state.selectedResourceName ?: ""}"
+                state.selectedBranchId != null -> "${state.selectedBusinessName ?: ""} • ${state.selectedBranchName ?: ""}"
+                state.selectedBusinessId != null -> state.selectedBusinessName ?: getString(R.string.filter_all_businesses)
+                else -> getString(R.string.filter_all_businesses)
+            }
+        }
+    }
+
+    private fun showBusinessFilterPicker() {
+        val s = viewModel.state.value
+        val options = listOf(null to getString(R.string.filter_all_businesses)) +
+                s.businesses.map { it.id to it.name }
+        val labels = options.map { it.second }.toTypedArray()
+        val currentIdx = options.indexOfFirst { it.first == s.selectedBusinessId }.coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.filter_business_title)
+            .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                viewModel.setBusinessFilter(options[which].first)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
+    }
+
+    private fun showBranchFilterPicker() {
+        val s = viewModel.state.value
+        val branches = s.filterBranches
+        val options = listOf(null to getString(R.string.filter_all_branches)) +
+                branches.map { it.id to it.name }
+        val labels = options.map { it.second }.toTypedArray()
+        val currentIdx = options.indexOfFirst { it.first == s.selectedBranchId }.coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.filter_branch_title)
+            .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                viewModel.setBranchFilter(options[which].first)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
+    }
+
+    private fun showResourceFilterPicker() {
+        val s = viewModel.state.value
+        val resources = s.filterResources
+        val options = listOf(null to getString(R.string.filter_all_providers)) +
+                resources.map { it.id to it.name }
+        val labels = options.map { it.second }.toTypedArray()
+        val currentIdx = options.indexOfFirst { it.first == s.selectedResourceId }.coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.filter_provider_title)
+            .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                viewModel.setResourceFilter(options[which].first)
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
+    }
+
+    private fun showFilterDialog() {
+        val s = viewModel.state.value
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_admin_availability_filter, null)
+        val etBusiness = view.findViewById<TextInputEditText>(R.id.etFilterBusiness)
+        val etBranch = view.findViewById<TextInputEditText>(R.id.etFilterBranch)
+        val etResource = view.findViewById<TextInputEditText>(R.id.etFilterResource)
+
+        var tempBusinessId = s.selectedBusinessId
+        var tempBranchId = s.selectedBranchId
+        var tempResourceId = s.selectedResourceId
+
+        fun updateFields() {
+            val bizName = s.businesses.firstOrNull { it.id == tempBusinessId }?.name
+            etBusiness.setText(bizName ?: getString(R.string.filter_all_businesses))
+
+            val availBranches = if (tempBusinessId == null) s.branches else s.branches.filter { it.businessId == tempBusinessId }
+            val branchName = availBranches.firstOrNull { it.id == tempBranchId }?.name
+            etBranch.setText(branchName ?: getString(R.string.filter_all_branches))
+
+            val availResources = s.resources.filter { res ->
+                (tempBranchId == null || res.branchId == tempBranchId) &&
+                (tempBusinessId == null || availBranches.any { b -> b.id == res.branchId })
+            }
+            val resName = availResources.firstOrNull { it.id == tempResourceId }?.name
+            etResource.setText(resName ?: getString(R.string.filter_all_providers))
+        }
+
+        updateFields()
+
+        etBusiness.setOnClickListener {
+            val options = listOf(null to getString(R.string.filter_all_businesses)) +
+                    s.businesses.map { it.id to it.name }
+            val labels = options.map { it.second }.toTypedArray()
+            val currentIdx = options.indexOfFirst { it.first == tempBusinessId }.coerceAtLeast(0)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.filter_business_title)
+                .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                    tempBusinessId = options[which].first
+                    tempBranchId = null
+                    tempResourceId = null
+                    updateFields()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.action_close, null)
+                .show()
+        }
+
+        etBranch.setOnClickListener {
+            val availBranches = if (tempBusinessId == null) s.branches else s.branches.filter { it.businessId == tempBusinessId }
+            val options = listOf(null to getString(R.string.filter_all_branches)) +
+                    availBranches.map { it.id to it.name }
+            val labels = options.map { it.second }.toTypedArray()
+            val currentIdx = options.indexOfFirst { it.first == tempBranchId }.coerceAtLeast(0)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.filter_branch_title)
+                .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                    tempBranchId = options[which].first
+                    tempResourceId = null
+                    updateFields()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.action_close, null)
+                .show()
+        }
+
+        etResource.setOnClickListener {
+            val availBranches = if (tempBusinessId == null) s.branches else s.branches.filter { it.businessId == tempBusinessId }
+            val availResources = s.resources.filter { res ->
+                (tempBranchId == null || res.branchId == tempBranchId) &&
+                (tempBusinessId == null || availBranches.any { b -> b.id == res.branchId })
+            }
+            val options = listOf(null to getString(R.string.filter_all_providers)) +
+                    availResources.map { it.id to it.name }
+            val labels = options.map { it.second }.toTypedArray()
+            val currentIdx = options.indexOfFirst { it.first == tempResourceId }.coerceAtLeast(0)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.filter_provider_title)
+                .setSingleChoiceItems(labels, currentIdx) { dialog, which ->
+                    tempResourceId = options[which].first
+                    updateFields()
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.action_close, null)
+                .show()
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setView(view)
+            .setPositiveButton(R.string.apply_filter) { _, _ ->
+                viewModel.setFilters(tempBusinessId, tempBranchId, tempResourceId)
+            }
+            .setNeutralButton(R.string.reset_filter) { _, _ ->
+                viewModel.clearFilters()
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
     }
 
     private fun confirmDelete(item: ManagementAvailability) {
@@ -138,6 +414,11 @@ class AdminAvailabilityActivity : BaseActivity() {
     }
 
     private fun loadDataAndShowDialog(item: ManagementAvailability?) {
+        val s = viewModel.state.value
+        if (s.businesses.isNotEmpty()) {
+            showAvailabilityForm(item, s.businesses, s.branches, s.resources)
+            return
+        }
         lifecycleScope.launch {
             val bizResult = management.listBusinesses(pageSize = 100)
             val branchResult = management.listBranches(pageSize = 100)
@@ -175,10 +456,17 @@ class AdminAvailabilityActivity : BaseActivity() {
 
         tvTitle.setText(if (item == null) R.string.form_create_availability_title else R.string.form_edit_availability_title)
 
-        // State variables
-        var selectedBusinessId = item?.businessId ?: businesses.first().id
-        var selectedBranchId: String? = item?.branchId
-        var selectedResourceId: String? = item?.resourceId
+        // State variables - prefill with current filter selection if creating new
+        val s = viewModel.state.value
+        var selectedBusinessId = item?.businessId ?: s.selectedBusinessId ?: businesses.first().id
+        var selectedBranchId: String? = item?.branchId ?: s.selectedBranchId
+        if (selectedBranchId != null && allBranches.none { it.id == selectedBranchId && it.businessId == selectedBusinessId }) {
+            selectedBranchId = null
+        }
+        var selectedResourceId: String? = item?.resourceId ?: s.selectedResourceId
+        if (selectedResourceId != null && allResources.none { it.id == selectedResourceId && (selectedBranchId == null || it.branchId == selectedBranchId) }) {
+            selectedResourceId = null
+        }
         var selectedIsoDate = item?.effectiveDate ?: JalaliDateHelper.getTodayIso()
         var selectedStartTime = item?.startsAt?.take(5) ?: "09:00"
         var selectedEndTime = item?.endsAt?.take(5) ?: "18:00"

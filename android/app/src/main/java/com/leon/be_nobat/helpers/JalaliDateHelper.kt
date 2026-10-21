@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 data class JalaliDate(
     val year: Int,
@@ -151,60 +152,88 @@ object JalaliDateHelper {
         return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
     }
 
+    private val TEHRAN_ZONE = java.util.TimeZone.getTimeZone("Asia/Tehran")
+
+    fun parseIsoToCalendar(iso: String?): Calendar? {
+        if (iso.isNullOrBlank()) return null
+        return try {
+            val clean = iso.trim()
+            val formats = arrayOf(
+                "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSX",
+                "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+                "yyyy-MM-dd'T'HH:mm:ssX",
+                "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd"
+            )
+            for (fmt in formats) {
+                try {
+                    val sdf = SimpleDateFormat(fmt, Locale.US)
+                    if (fmt.contains("X") || fmt.contains("'Z'")) {
+                        sdf.timeZone = TimeZone.getTimeZone("UTC")
+                    } else {
+                        sdf.timeZone = TEHRAN_ZONE
+                    }
+                    val date = sdf.parse(clean)
+                    if (date != null) {
+                        return Calendar.getInstance(TEHRAN_ZONE).apply { time = date }
+                    }
+                } catch (_: Exception) {}
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun formatIsoToJalali(isoDate: String?): String {
         if (isoDate.isNullOrBlank()) return ""
-        try {
-            val datePart = isoDate.substringBefore('T').trim()
-            val parts = datePart.split("-")
-            if (parts.size == 3) {
-                val gy = parts[0].toInt()
-                val gm = parts[1].toInt()
-                val gd = parts[2].toInt()
-                return gregorianToJalali(gy, gm, gd).toFormattedString()
-            }
-        } catch (_: Exception) {}
+        val cal = parseIsoToCalendar(isoDate)
+        if (cal != null) {
+            val j = gregorianToJalali(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+            return j.toFormattedString()
+        }
         return PersianUtils.toPersianDigits(isoDate)
     }
 
     fun formatIsoToJalaliDisplay(isoDate: String?): String {
         if (isoDate.isNullOrBlank()) return ""
-        try {
-            val datePart = isoDate.substringBefore('T').trim()
-            val parts = datePart.split("-")
-            if (parts.size == 3) {
-                val gy = parts[0].toInt()
-                val gm = parts[1].toInt()
-                val gd = parts[2].toInt()
-                val j = gregorianToJalali(gy, gm, gd)
-                val cal = Calendar.getInstance().apply { set(gy, gm - 1, gd) }
-                val weekdayIdx = when (cal.get(Calendar.DAY_OF_WEEK)) {
-                    Calendar.SATURDAY -> 0
-                    Calendar.SUNDAY -> 1
-                    Calendar.MONDAY -> 2
-                    Calendar.TUESDAY -> 3
-                    Calendar.WEDNESDAY -> 4
-                    Calendar.THURSDAY -> 5
-                    Calendar.FRIDAY -> 6
-                    else -> 0
-                }
-                val weekday = getWeekdayName(weekdayIdx)
-                return "$weekday ${j.toDisplayString()}"
+        val cal = parseIsoToCalendar(isoDate)
+        if (cal != null) {
+            val j = gregorianToJalali(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+            val weekdayIdx = when (cal.get(Calendar.DAY_OF_WEEK)) {
+                Calendar.SATURDAY -> 0
+                Calendar.SUNDAY -> 1
+                Calendar.MONDAY -> 2
+                Calendar.TUESDAY -> 3
+                Calendar.WEDNESDAY -> 4
+                Calendar.THURSDAY -> 5
+                Calendar.FRIDAY -> 6
+                else -> 0
             }
-        } catch (_: Exception) {}
+            val weekday = getWeekdayName(weekdayIdx)
+            return "$weekday ${j.toDisplayString()}"
+        }
         return PersianUtils.toPersianDigits(isoDate)
     }
 
     fun formatIsoTime(iso: String?): String {
         if (iso.isNullOrBlank()) return ""
-        try {
-            if (iso.contains("T")) {
-                val timePart = iso.substringAfter("T").substringBefore("+").substringBefore("Z").substringBefore(".")
-                val parts = timePart.split(":")
-                if (parts.size >= 2) {
-                    return PersianUtils.toPersianDigits("${parts[0]}:${parts[1]}")
-                }
-            }
-        } catch (_: Exception) {}
+        val cal = parseIsoToCalendar(iso)
+        if (cal != null) {
+            val h = "%02d".format(Locale.US, cal.get(Calendar.HOUR_OF_DAY))
+            val m = "%02d".format(Locale.US, cal.get(Calendar.MINUTE))
+            return PersianUtils.toPersianDigits("$h:$m")
+        }
         return PersianUtils.toPersianDigits(iso)
     }
 
@@ -218,26 +247,24 @@ object JalaliDateHelper {
 
     fun formatIsoDateTimeFull(iso: String?): String {
         if (iso.isNullOrBlank()) return ""
-        try {
-            val datePart = iso.substringBefore('T').trim()
-            val parts = datePart.split("-")
-            if (parts.size == 3) {
-                val gy = parts[0].toInt()
-                val gm = parts[1].toInt()
-                val gd = parts[2].toInt()
-                val j = gregorianToJalali(gy, gm, gd)
-                val time = formatIsoTime(iso)
-                val y = PersianUtils.toPersianDigits(j.year)
-                val d = PersianUtils.toPersianDigits(j.day)
-                val comma = if (PersianUtils.isEnglishLocale()) "," else "،"
-                val atSeparator = if (PersianUtils.isEnglishLocale()) "at" else "ساعت"
-                return if (time.isNotBlank()) {
-                    "$d ${j.monthName}$comma $y $atSeparator $time"
-                } else {
-                    "$d ${j.monthName}$comma $y"
-                }
+        val cal = parseIsoToCalendar(iso)
+        if (cal != null) {
+            val j = gregorianToJalali(
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH) + 1,
+                cal.get(Calendar.DAY_OF_MONTH)
+            )
+            val time = formatIsoTime(iso)
+            val y = PersianUtils.toPersianDigits(j.year)
+            val d = PersianUtils.toPersianDigits(j.day)
+            val comma = if (PersianUtils.isEnglishLocale()) "," else "،"
+            val atSeparator = if (PersianUtils.isEnglishLocale()) "at" else "ساعت"
+            return if (time.isNotBlank()) {
+                "$d ${j.monthName}$comma $y $atSeparator $time"
+            } else {
+                "$d ${j.monthName}$comma $y"
             }
-        } catch (_: Exception) {}
+        }
         return formatIsoDateTime(iso)
     }
 }

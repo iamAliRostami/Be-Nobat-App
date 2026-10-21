@@ -38,6 +38,7 @@ class App : Application() {
                 )
             )
         }
+        get<com.leon.be_nobat.notifications.AppointmentNotificationMonitor>().start(this)
         val preferences: ThemeManager = get()
         runBlocking {
             val savedTheme = preferences.themeMode.first()

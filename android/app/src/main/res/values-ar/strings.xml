@@ -3,6 +3,8 @@
     <string name="app_name">بي نوبات</string>
     <string name="logo_content_description">شعار بي نوبات</string>
 
+    <string name="welcome_title">أهلاً وسهلاً!</string>
+    <string name="welcome_register_message">مرحباً بك في به‌نوبت! تم إنشاء حسابك بنجاح.</string>
     <string name="welcome_message">مرحباً! سجّل الدخول لحجز موعد</string>
     <string name="login_title">تسجيل الدخول إلى حسابك</string>
     <string name="mobile_phone">رقم الهاتف</string>
@@ -45,6 +47,56 @@
     <string name="nav_profile">الملف</string>
     <string name="nav_admin">لوحة الإدارة</string>
 
+    <!-- ============ Home Screen Enhancements ============ -->
+    <string name="home_hero_tag">نظام حجز المواعيد الذكي</string>
+    <string name="home_hero_title">وقتك ثمين؛ احجز مع بي نوبات</string>
+    <string name="home_hero_subtitle">حجز فوري لأفضل مراكز التجميل والطب والاستشارات</string>
+    <string name="home_hero_action">المواعيد الشاغرة اليوم</string>
+    <string name="home_quick_access">الوصول السريع</string>
+    <string name="home_shortcut_my_appointments">مواعيدي</string>
+    <string name="home_shortcut_my_appointments_sub">متابعة وإدارة</string>
+    <string name="home_shortcut_top_centers">أفضل المراكز</string>
+    <string name="home_shortcut_top_centers_sub">الأعلى تقييماً</string>
+    <string name="home_shortcut_free_slots">المواعيد الشاغرة</string>
+    <string name="home_shortcut_free_slots_sub">حجز فوري</string>
+    <string name="home_shortcut_how_it_works">كيف يعمل؟</string>
+    <string name="home_shortcut_how_it_works_sub">دليل في ۳ خطوات</string>
+    <string name="home_shortcut_upgrade">طلب الترقية</string>
+    <string name="home_shortcut_upgrade_sub">تسجيل وإدارة النشاط</string>
+    <string name="home_shortcut_favorites">المفضلة</string>
+    <string name="home_shortcut_favorites_sub">المراكز المختارة</string>
+    <string name="home_shortcut_profile">ملفي الشخصي</string>
+    <string name="home_shortcut_profile_sub">الحساب والإعدادات</string>
+    <string name="how_it_works_title">حجز المواعيد بهذه السهولة</string>
+    <string name="how_it_works_subtitle">بسيط، سريع ومضمون في ۳ خطوات</string>
+    <string name="how_it_works_step1_title">۱. ابحث</string>
+    <string name="how_it_works_step1_desc">ابحث عن الخدمة أو المختص الأقرب إليك.</string>
+    <string name="how_it_works_step2_title">۲. اختر الموعد</string>
+    <string name="how_it_works_step2_desc">اطّلع على الأوقات المتاحة فوراً واختر الأنسب.</string>
+    <string name="how_it_works_step3_title">۳. تم!</string>
+    <string name="how_it_works_step3_desc">احصل على تأكيد حجزك؛ وسنذكرك في الوقت المحدد.</string>
+    <string name="logout_confirm_title">تسجيل الخروج</string>
+    <string name="logout_confirm_message">هل أنت متأكد من رغبتك في تسجيل الخروج؟</string>
+    <string name="logout_confirm_positive">تسجيل الخروج</string>
+    <string name="business_request_activity_title">طلب الترقية إلى مدير نشاط تجاري</string>
+    <string name="home_categories_title">الفئات</string>
+    <string name="home_categories_subtitle">ما الخدمة التي تبحث عنها؟</string>
+    <string name="home_top_centers">أفضل المراكز والخدمات</string>
+    <string name="home_clear_category">إلغاء تصفية الفئة</string>
+    <string name="cat_all">الكل</string>
+    <string name="cat_beauty">الجمال والمكياج</string>
+    <string name="cat_dental">طب الأسنان</string>
+    <string name="cat_massage">التدليك والعافية</string>
+    <string name="cat_counseling">الاستشارات النفسية</string>
+    <string name="cat_general_med">الطب العام</string>
+    <string name="cat_physiotherapy">العلاج الطبيعي</string>
+    <string name="cat_fitness">اللياقة البدنية</string>
+    <string name="cat_skin">العناية بالبشرة</string>
+    <string name="cat_hair">تصفيف الشعر</string>
+    <string name="cat_nails">الأظافر</string>
+    <string name="cat_men">حلاقة الرجال</string>
+    <string name="cat_pets">الطب البيطري</string>
+
     <!-- ============ Admin Navigation Groups ============ -->
     <string name="nav_group_management">الإدارة</string>
     <string name="nav_group_business">إدارة الأعمال</string>
@@ -66,6 +118,29 @@
 
     <string name="admin_dashboard">لوحة التحكم</string>
     <string name="admin_calendar">تقويم المواعيد</string>
+    <string name="drawer_analytics">الإحصائيات والتقارير</string>
+    <string name="admin_analytics_title">إحصائيات النشاط والإيرادات</string>
+    <string name="analytics_period_7d">٧ أيام</string>
+    <string name="analytics_period_30d">٣٠ يوماً</string>
+    <string name="analytics_period_90d">٣ أشهر</string>
+    <string name="analytics_period_all">الكل</string>
+    <string name="analytics_total_revenue">إجمالي الإيرادات</string>
+    <string name="analytics_work_hours">ساعات العمل</string>
+    <string name="analytics_completed_appts">المواعيد المكتملة</string>
+    <string name="analytics_completion_rate">نسبة الإكمال</string>
+    <string name="analytics_tab_businesses">الشركات</string>
+    <string name="analytics_tab_branches">الفروع</string>
+    <string name="analytics_tab_staff">الموظفون والمتخصصون</string>
+    <string name="analytics_trend_title">مسار الإيرادات والنشاط اليومي</string>
+    <string name="analytics_breakdown_title">تفصيل الأداء والإيرادات</string>
+    <string name="analytics_no_data">لا توجد بيانات متاحة في هذه الفترة.</string>
+    <string name="analytics_filter_title">تصفية الإحصائيات</string>
+    <string name="analytics_all_businesses">جميع الشركات</string>
+    <string name="analytics_all_branches">جميع الفروع</string>
+    <string name="analytics_all_staff">جميع الموظفين</string>
+    <string name="analytics_hours_suffix">ساعة</string>
+    <string name="analytics_toman_suffix">تومان</string>
+    <string name="analytics_appts_suffix">موعد</string>
     <string name="admin_branches">الفروع والموارد</string>
     <string name="admin_services">الخدمات</string>
     <string name="admin_availability">الأوقات المتاحة</string>
@@ -131,6 +206,7 @@
 
     <string name="orders_title">مواعيدي</string>
     <string name="tab_upcoming">القادمة</string>
+    <string name="tab_all_appointments">جميع المواعيد</string>
     <string name="tab_pending">قيد الانتظار</string>
     <string name="tab_confirmed">مؤكدة</string>
     <string name="tab_completed">منجزة</string>
@@ -158,8 +234,9 @@
     <string name="current_password">كلمة المرور الحالية</string>
     <string name="new_password">كلمة المرور الجديدة</string>
     <string name="new_email">البريد الإلكتروني الجديد</string>
-    <string name="upload_avatar">رفع صورة الملف</string>
-    <string name="remove_avatar">إزالة صورة الملف</string>
+    <string name="upload_avatar">رفع الصورة</string>
+    <string name="change_avatar">تغيير الصورة</string>
+    <string name="remove_avatar">حذف الصورة</string>
     <string name="save">حفظ</string>
     <string name="saving">جارٍ الحفظ…</string>
     <string name="saved">تم الحفظ</string>
@@ -427,4 +504,14 @@
     <string name="empty_customers_filtered">لم يتم العثور على أي عميل بهذا البحث.</string>
     <string name="search_categories_hint">البحث عن الفئات…</string>
     <string name="empty_categories_filtered">لم يتم العثور على فئات بهذه الفلاتر.</string>
+
+    <!-- Availability Filters (Matching Web AdminAvailability.razor) -->
+    <string name="filter_all_businesses">جميع الأعمال</string>
+    <string name="filter_all_branches">جميع الفروع</string>
+    <string name="filter_all_providers">جميع مقدمي الخدمة</string>
+    <string name="filter_business_title">العمل</string>
+    <string name="filter_branch_title">الفرع</string>
+    <string name="filter_provider_title">مقدم الخدمة</string>
+    <string name="availability_periods_count">%s فترة</string>
+    <string name="availability_empty_filtered">لا توجد فترات متاحة في هذا القسم.</string>
 </resources>

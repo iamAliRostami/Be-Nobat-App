@@ -39,6 +39,18 @@ class PlatformAccessViewModel(
     private val _state = MutableStateFlow(PlatformAccessUiState(loading = true))
     val state: StateFlow<PlatformAccessUiState> = _state.asStateFlow()
 
+    private var resettingPassword = false
+    private val _passwordSms = MutableStateFlow<com.leon.be_nobat.notifications.PasswordResetSms?>(null)
+    val passwordSms = _passwordSms.asStateFlow()
+    var smsPermissionPending = false
+
+    fun takePasswordSms(): com.leon.be_nobat.notifications.PasswordResetSms? {
+        val pending = _passwordSms.value ?: return null
+        _passwordSms.value = null
+        if (_state.value.message == "reset_done") clearMessage()
+        return pending
+    }
+
     init { load() }
 
     fun load() = viewModelScope.launch {
@@ -135,9 +147,23 @@ class PlatformAccessViewModel(
     }
 
     fun resetPassword(id: String) = viewModelScope.launch {
-        resetPasswordUseCase(id).onSuccess { res ->
-            _state.value = _state.value.copy(temporaryPassword = res.temporaryPassword, message = "reset_done")
-        }.onFailure { e -> _state.value = _state.value.copy(error = e.message) }
+        if (resettingPassword || _passwordSms.value != null) return@launch
+        val user = _state.value.items.firstOrNull { it.id == id } ?: return@launch
+        resettingPassword = true
+        try {
+            resetPasswordUseCase(id).onSuccess { res ->
+                if (res.userId != id || res.temporaryPassword.isBlank()) {
+                    _state.value = _state.value.copy(error = "پاسخ بازنشانی رمز معتبر نیست؛ پیامک ارسال نشد.")
+                    return@onSuccess
+                }
+                _state.value = _state.value.copy(temporaryPassword = res.temporaryPassword, message = "reset_done", error = null)
+                _passwordSms.value = com.leon.be_nobat.notifications.PasswordResetSms(
+                    user.id, user.displayName, user.phoneNumber, user.email, res.temporaryPassword)
+            }.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                _state.value = _state.value.copy(error = e.message)
+            }
+        } finally { resettingPassword = false }
     }
 
     fun clearMessage() { _state.value = _state.value.copy(message = null, temporaryPassword = null) }

@@ -31,6 +31,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         base.OnModelCreating(builder);
         builder.HasDefaultSchema("benobat");
         builder.Entity<Business>().HasIndex(x => x.Slug).IsUnique();
+        builder.Entity<Business>().Property(x => x.CancellationNoticeMinutes).HasDefaultValue(120).HasSentinel(-1);
+        builder.Entity<Business>().ToTable(t => t.HasCheckConstraint("CK_Business_CancellationNotice", "\"CancellationNoticeMinutes\" BETWEEN 0 AND 129600"));
+        builder.Entity<Branch>().ToTable(t => t.HasCheckConstraint("CK_Branch_CancellationNotice", "\"CancellationNoticeMinutes\" BETWEEN 0 AND 129600"));
+        builder.Entity<Service>().ToTable(t => t.HasCheckConstraint("CK_Service_CancellationNotice", "\"CancellationNoticeMinutes\" BETWEEN 0 AND 129600"));
+        builder.Entity<BranchService>().ToTable(t => t.HasCheckConstraint("CK_BranchService_CancellationNotice", "\"CancellationNoticeMinutes\" BETWEEN 0 AND 129600"));
         builder.Entity<CategoryDefinition>().Property(x => x.Kind).HasConversion<string>();
         builder.Entity<CategoryDefinition>().HasIndex(x => new { x.Kind, x.Name }).IsUnique();
         builder.Entity<FavoriteBusiness>().HasIndex(x => new { x.UserId, x.BusinessId }).IsUnique();

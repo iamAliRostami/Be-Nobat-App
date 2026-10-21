@@ -1,6 +1,7 @@
 @page "/appointments"
 @layout Layout.PublicLayout
 @rendermode InteractiveServer
+@using BeNobat.Web.Application
 @attribute [Authorize(Policy = Policies.ViewOwnAppointments)]
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject IJSRuntime JS
@@ -88,6 +89,7 @@
                         <small class="appointment-hint">توضیح شما: <span data-i18n-skip>@appointment.CustomerNote</span></small>
                     }
                 </div>
+                <small class="appointment-hint">مهلت لغو: @BranchClock.FormatDateTime(CancellationPolicy.Deadline(appointment), appointment.Branch.TimeZoneId, Language)</small>
                 <div class="appointment-actions">
                     @if (BookingPolicy.CanCustomerCancel(appointment, DateTimeOffset.UtcNow))
                     {
@@ -213,6 +215,7 @@
             .Include(a => a.Services).ThenInclude(x => x.Service)
             .Include(a => a.Resource)
             .Include(a => a.Branch).ThenInclude(b => b.Business)
+            .Include(a => a.Branch).ThenInclude(b => b.BranchServices)
             .Where(a => a.CustomerId == userId && a.DeletedAt == null)
             .OrderBy(a => a.StartsAt)
             .ToListAsync();
@@ -264,15 +267,13 @@
                 return;
             }
             var now = DateTimeOffset.UtcNow;
-            var cutoff = now.Add(BookingPolicy.CustomerCancellationNotice);
-            var changed = await db.Appointments.IgnoreQueryFilters()
-                .Where(a => a.Id == appointmentId && a.CustomerId == userId && a.DeletedAt == null && session.Any()
-                    && (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.StartsAt >= cutoff)
+            var changed = await CustomerCancellation.Eligible(db, db.Appointments.IgnoreQueryFilters()
+                .Where(a => a.Id == appointmentId && a.CustomerId == userId && a.DeletedAt == null && session.Any()), now)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.Status, AppointmentStatus.Cancelled)
                     .SetProperty(a => a.UpdatedAt, now));
             if (changed == 0)
             {
-                ActionError = "لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است؛ برای موارد فوری با شعبه تماس بگیرید.";
+                ActionError = "مهلت لغو اینترنتی این نوبت گذشته است یا وضعیت نوبت قابل لغو نیست؛ با شعبه تماس بگیرید.";
                 Cancelling = null;
                 await LoadAsync();
                 return;

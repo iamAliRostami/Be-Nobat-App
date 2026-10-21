@@ -2,8 +2,10 @@ package com.leon.be_nobat.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.OnBackPressedCallback
+import android.view.View
+import android.widget.TextView
 import androidx.core.view.isVisible
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -11,11 +13,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.adapters.BusinessAdapter
+import com.leon.be_nobat.ui.adapters.HomeCategoryAdapter
+import com.leon.be_nobat.ui.adapters.HomeCategoryItem
 import com.leon.be_nobat.ui.view_models.HomeUiState
 import com.leon.be_nobat.ui.view_models.HomeViewModel
 import kotlinx.coroutines.launch
@@ -29,12 +34,17 @@ class HomeActivity : BaseActivity() {
     private val viewModel: HomeViewModel by viewModel()
 
     private lateinit var adapter: BusinessAdapter
+    private lateinit var categoryAdapter: HomeCategoryAdapter
     private lateinit var businessList: RecyclerView
+    private lateinit var categoriesRecyclerView: RecyclerView
+    private lateinit var homeScrollView: NestedScrollView
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var loadingProgress: android.widget.ProgressBar
-    private lateinit var emptyStateText: android.widget.TextView
-    private lateinit var errorText: android.widget.TextView
+    private lateinit var emptyStateText: TextView
+    private lateinit var errorText: TextView
     private lateinit var searchInput: TextInputEditText
+    private lateinit var btnClearCategory: MaterialButton
+    private lateinit var tvActiveCategoryFilter: TextView
 
     private val tokenManager: TokenManager by inject()
 
@@ -42,14 +52,59 @@ class HomeActivity : BaseActivity() {
         setupMainHeader()
 
         businessList = findViewById(R.id.businessList)
+        categoriesRecyclerView = findViewById(R.id.categoriesRecyclerView)
+        homeScrollView = findViewById(R.id.homeScrollView)
         swipeRefresh = findViewById(R.id.swipeRefresh)
         loadingProgress = findViewById(R.id.loadingProgress)
         emptyStateText = findViewById(R.id.emptyStateText)
         errorText = findViewById(R.id.errorText)
         searchInput = findViewById(R.id.searchInput)
+        btnClearCategory = findViewById(R.id.btnClearCategory)
+        tvActiveCategoryFilter = findViewById(R.id.tvActiveCategoryFilter)
 
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnFilterSort).setOnClickListener {
+        findViewById<MaterialButton>(R.id.btnFilterSort).setOnClickListener {
             showFilterSortDialog()
+        }
+
+        // Setup Hero Banner quick action
+        findViewById<View>(R.id.btnHeroAction)?.setOnClickListener {
+            viewModel.setSortAndFilter(viewModel.state.value.sortOption, instantOnly = true)
+            val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
+            homeScrollView.smoothScrollTo(0, target.top)
+            target.requestFocus()
+        }
+
+        // Setup Bank Mehr Quick Shortcuts
+        findViewById<View>(R.id.btnShortcutAppointments)?.setOnClickListener {
+            checkAuthAndNavigate(AppointmentsActivity::class.java)
+        }
+        findViewById<View>(R.id.btnShortcutSlots)?.setOnClickListener {
+            viewModel.setSortAndFilter(viewModel.state.value.sortOption, instantOnly = true)
+            val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
+            homeScrollView.smoothScrollTo(0, target.top)
+            target.requestFocus()
+        }
+        findViewById<View>(R.id.btnShortcutFavorites)?.setOnClickListener {
+            checkAuthAndNavigate(FavoritesActivity::class.java)
+        }
+        findViewById<View>(R.id.btnShortcutProfile)?.setOnClickListener {
+            checkAuthAndNavigate(ProfileActivity::class.java)
+        }
+
+        // Setup Categories Horizontal List
+        categoryAdapter = HomeCategoryAdapter(getCategoryList(viewModel.state.value.category)) { clicked ->
+            val newCat = if (clicked.name.isNotEmpty() && clicked.name == viewModel.state.value.category) {
+                "" // toggle off if tapped again
+            } else {
+                clicked.name
+            }
+            selectCategory(newCat)
+        }
+        categoriesRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        categoriesRecyclerView.adapter = categoryAdapter
+
+        btnClearCategory.setOnClickListener {
+            selectCategory("")
         }
 
         adapter = BusinessAdapter(
@@ -77,19 +132,19 @@ class HomeActivity : BaseActivity() {
         businessList.layoutManager = LinearLayoutManager(this)
         businessList.adapter = adapter
 
-        businessList.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                val lm = rv.layoutManager as LinearLayoutManager
-                val last = lm.findLastVisibleItemPosition()
-                val total = lm.itemCount
-                if (last >= total - 3 && viewModel.state.value.hasMore && !viewModel.state.value.loading) {
-                    viewModel.loadMore()
-                }
+        // Pagination inside NestedScrollView
+        homeScrollView.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { v, _, scrollY, _, _ ->
+            val totalContentHeight = v.getChildAt(0).measuredHeight
+            val scrollViewHeight = v.measuredHeight
+            if (scrollY >= (totalContentHeight - scrollViewHeight - 400) && viewModel.state.value.hasMore && !viewModel.state.value.loading) {
+                viewModel.loadMore()
             }
         })
 
         searchInput.setOnEditorActionListener { v, _, _ ->
-            viewModel.updateQuery(v.text.toString()); viewModel.refresh(initial = true); true
+            viewModel.updateQuery(v.text.toString())
+            viewModel.refresh(initial = true)
+            true
         }
 
         swipeRefresh.setOnRefreshListener { viewModel.refresh(initial = false) }
@@ -116,6 +171,38 @@ class HomeActivity : BaseActivity() {
         bottomNav.selectedItemId = R.id.nav_home
 
         setupDoubleBackToExit()
+    }
+
+    private fun selectCategory(cat: String) {
+        viewModel.updateCategory(cat)
+        viewModel.refresh(initial = true)
+        categoryAdapter.submitList(getCategoryList(cat))
+    }
+
+    private fun getCategoryList(selectedCategory: String): List<HomeCategoryItem> {
+        val defs = listOf(
+            Triple("", getString(R.string.cat_all), "✦"),
+            Triple("زیبایی و آرایش", getString(R.string.cat_beauty), "✦"),
+            Triple("دندانپزشکی", getString(R.string.cat_dental), "♡"),
+            Triple("ماساژ و تندرستی", getString(R.string.cat_massage), "♙"),
+            Triple("مشاوره و روان‌شناسی", getString(R.string.cat_counseling), "⌁"),
+            Triple("پزشکی عمومی", getString(R.string.cat_general_med), "✚"),
+            Triple("فیزیوتراپی و توان‌بخشی", getString(R.string.cat_physiotherapy), "⚕"),
+            Triple("ورزش و تناسب اندام", getString(R.string.cat_fitness), "⚖"),
+            Triple("پوست و زیبایی", getString(R.string.cat_skin), "✦"),
+            Triple("مو و آرایش", getString(R.string.cat_hair), "✂"),
+            Triple("ناخن", getString(R.string.cat_nails), "✿"),
+            Triple("پیرایش آقایان", getString(R.string.cat_men), "✄"),
+            Triple("دامپزشکی", getString(R.string.cat_pets), "🐾"),
+        )
+        return defs.map { (name, label, icon) ->
+            HomeCategoryItem(
+                name = name,
+                label = label,
+                icon = icon,
+                isSelected = (name.isEmpty() && selectedCategory.isEmpty()) || (name.isNotEmpty() && name == selectedCategory),
+            )
+        }
     }
 
     private fun checkAuthAndNavigate(targetClass: Class<*>) {
@@ -193,6 +280,7 @@ class HomeActivity : BaseActivity() {
     }
 
     private var lastFavoriteSnapshot: Map<String, Boolean>? = null
+    private var lastCategory: String? = null
 
     private fun render(state: HomeUiState) {
         swipeRefresh.isRefreshing = state.refreshing
@@ -200,6 +288,21 @@ class HomeActivity : BaseActivity() {
         emptyStateText.isVisible = !state.loading && state.items.isEmpty() && state.error == null
         errorText.isVisible = state.error != null
         errorText.text = state.error?.let { com.leon.be_nobat.helpers.ErrorFormatter.format(this, it) }
+
+        if (state.category.isNotEmpty()) {
+            tvActiveCategoryFilter.isVisible = true
+            tvActiveCategoryFilter.text = "${getString(R.string.filter)}: ${state.category}"
+            btnClearCategory.isVisible = true
+        } else {
+            tvActiveCategoryFilter.isVisible = false
+            btnClearCategory.isVisible = false
+        }
+
+        if (lastCategory != state.category) {
+            lastCategory = state.category
+            categoryAdapter.submitList(getCategoryList(state.category))
+        }
+
         val favChanged = lastFavoriteSnapshot != null && lastFavoriteSnapshot != state.favoriteSnapshot
         lastFavoriteSnapshot = state.favoriteSnapshot
         adapter.submitList(state.items)

@@ -49,6 +49,7 @@ data class ManagementBusiness(
     val requiresApproval: Boolean = false,
     val active: Boolean = false,
     val firstBranchId: String? = null,
+    val cancellationNoticeMinutes: Int = 120,
 )
 
 @Serializable
@@ -64,6 +65,7 @@ data class ManagementBranch(
     val isApproved: Boolean = true,
     val weeklyHours: List<WeeklyTimeRange>? = null,
     val businessName: String? = null,
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
@@ -112,6 +114,7 @@ data class ManagementService(
     val branchIds: List<String> = emptyList(),
     val resourceIds: List<String> = emptyList(),
     val active: Boolean = false,
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
@@ -122,6 +125,7 @@ data class ManagementBranchService(
     val price: Double? = null,
     val effectivePrice: Double = 0.0,
     val serviceName: String = "",
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
@@ -146,6 +150,7 @@ data class ManagementAppointment(
     val branchId: String = "",
     val businessId: String = "",
     val serviceId: String = "",
+    val serviceIds: List<String> = emptyList(),
     val resourceId: String? = null,
     val customerId: String = "",
     val startsAt: String = "",
@@ -261,3 +266,42 @@ data class BusinessRequest(
     val userDisplayName: String? = null,
     val userPhoneNumber: String? = null,
 )
+
+@Serializable
+data class ManagementAnalyticsSummary(
+    val totalAppointments: Int = 0,
+    val completedAppointments: Int = 0,
+    val pendingAppointments: Int = 0,
+    val confirmedAppointments: Int = 0,
+    val cancelledAppointments: Int = 0,
+    val noShowAppointments: Int = 0,
+    val totalRevenue: Long = 0L,
+    val totalWorkMinutes: Long = 0L,
+    val totalWorkHours: Double = 0.0,
+    val byBusiness: List<ManagementBreakdownItem> = emptyList(),
+    val byBranch: List<ManagementBreakdownItem> = emptyList(),
+    val byStaff: List<ManagementBreakdownItem> = emptyList(),
+    val trend: List<ManagementDailyTrendItem> = emptyList(),
+)
+
+@Serializable
+data class ManagementBreakdownItem(
+    val id: String = "",
+    val name: String = "",
+    val businessName: String? = null,
+    val branchName: String? = null,
+    val totalAppointments: Int = 0,
+    val completedAppointments: Int = 0,
+    val revenue: Long = 0L,
+    val workMinutes: Long = 0L,
+)
+
+@Serializable
+data class ManagementDailyTrendItem(
+    val date: String = "",
+    val total: Int = 0,
+    val completed: Int = 0,
+    val revenue: Long = 0L,
+    val workMinutes: Long = 0L,
+)
+

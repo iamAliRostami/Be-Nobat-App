@@ -259,6 +259,21 @@ class BeNobatApiClient(
     /** GET /admin/dashboard — counts object. */
     suspend inline fun <reified T> adminDashboard(): Result<T> = get("/admin/dashboard")
 
+    /** GET /admin/analytics?businessId&branchId&resourceId&from&to — activity statistics. */
+    suspend inline fun <reified T> adminAnalytics(
+        businessId: String? = null,
+        branchId: String? = null,
+        resourceId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): Result<T> = get("/admin/analytics") {
+        businessId?.let { parameter("businessId", it) }
+        branchId?.let { parameter("branchId", it) }
+        resourceId?.let { parameter("resourceId", it) }
+        from?.let { parameter("from", it) }
+        to?.let { parameter("to", it) }
+    }
+
     /** GET /admin/context — current user's permissions/memberships. */
     suspend inline fun <reified T> adminContext(): Result<T> = get("/admin/context")
 

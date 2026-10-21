@@ -71,6 +71,7 @@ class DemoBookingRepository(
                 branchId = input.branchId,
                 businessId = input.businessId,
                 serviceId = input.serviceIds.firstOrNull().orEmpty(),
+                serviceIds = input.serviceIds,
                 serviceNames = services.map { it.name },
                 resourceId = res?.id,
                 resourceName = res?.name,
@@ -92,7 +93,7 @@ class DemoBookingRepository(
             )
 
             val updatedAppointments = listOf(managementAppt) + state.appointments
-            state.copy(appointments = updatedAppointments) to managementAppt.toDomainAppointment()
+            state.copy(appointments = updatedAppointments) to managementAppt.toDomainAppointment(state)
         }
     }
 
@@ -120,7 +121,7 @@ class DemoBookingRepository(
                 }
 
             val result = filtered.demoPage(page, pageSize)
-            ApiPage(items = result.items.map { it.toDomainAppointment(state.reviews.firstOrNull { r -> r.appointmentId == it.id }?.id) }, page = page, pageSize = pageSize, total = result.total)
+            ApiPage(items = result.items.map { it.toDomainAppointment(state, state.reviews.firstOrNull { r -> r.appointmentId == it.id }?.id) }, page = page, pageSize = pageSize, total = result.total)
         }
     }
 
@@ -131,7 +132,7 @@ class DemoBookingRepository(
             val appt = state.appointments.firstOrNull { it.id == id }
                 ?: error("نوبت با شناسه $id یافت نشد.")
             require(appt.customerId == currentId)
-            appt.toDomainAppointment(state.reviews.firstOrNull { it.appointmentId == id }?.id)
+            appt.toDomainAppointment(state, state.reviews.firstOrNull { it.appointmentId == id }?.id)
         }
     }
 
@@ -140,6 +141,10 @@ class DemoBookingRepository(
         val currentId = requireNotNull(tokenManager.currentSession()).user.id
         dataStore.update { state ->
             require(state.appointments.any { it.id == id && it.customerId == currentId && it.status in listOf("Pending", "Confirmed") })
+            val target = state.appointments.first { it.id == id && it.customerId == currentId }
+            require(com.leon.be_nobat.domain.CancellationPolicy.canCancel(target.status, target.startsAt, target.noticeMinutes(state))) {
+                "مهلت لغو این نوبت گذشته است؛ با شعبه تماس بگیرید."
+            }
             var managementAppointment: ManagementAppointment? = null
             val list = state.appointments.map { appt ->
                 if (appt.id == id) {
@@ -149,7 +154,7 @@ class DemoBookingRepository(
                 } else appt
             }
             if (managementAppointment == null) error("نوبت با شناسه $id یافت نشد.")
-            state.copy(appointments = list) to managementAppointment.toDomainAppointment()
+            state.copy(appointments = list) to managementAppointment.toDomainAppointment(state)
         }
     }
 
@@ -194,8 +199,19 @@ class DemoBookingRepository(
         }
     }
 
-    private fun ManagementAppointment.toDomainAppointment(existingReviewId: String? = null): Appointment {
-        val canCancel = status in listOf("Pending", "Confirmed")
+    private fun ManagementAppointment.noticeMinutes(state: DemoDatabaseState): Int {
+        val branch = state.branches.firstOrNull { it.id == branchId }
+        val business = state.businesses.firstOrNull { it.id == businessId }
+        val services = state.services.filter { it.id in serviceIds.ifEmpty { listOf(serviceId) } || (serviceIds.isEmpty() && it.businessId == businessId && it.name in serviceNames) }
+        return services.maxOfOrNull { service -> com.leon.be_nobat.domain.CancellationPolicy.resolve(
+            business?.cancellationNoticeMinutes ?: 120, branch?.cancellationNoticeMinutes, service.cancellationNoticeMinutes,
+            state.branchServices.firstOrNull { it.branchId == branchId && it.serviceId == service.id }?.cancellationNoticeMinutes)
+        } ?: com.leon.be_nobat.domain.CancellationPolicy.resolve(business?.cancellationNoticeMinutes ?: 120, branch?.cancellationNoticeMinutes)
+    }
+
+    private fun ManagementAppointment.toDomainAppointment(state: DemoDatabaseState, existingReviewId: String? = null): Appointment {
+        val notice = noticeMinutes(state)
+        val canCancel = com.leon.be_nobat.domain.CancellationPolicy.canCancel(status, startsAt, notice)
         val canReview = status == "Completed" && existingReviewId == null
         return Appointment(
             id = id,
@@ -215,6 +231,8 @@ class DemoBookingRepository(
             customerNote = customerNote,
             trackingCode = trackingCode,
             canCancel = canCancel,
+            cancellationNoticeMinutes = notice,
+            cancellationDeadline = com.leon.be_nobat.domain.CancellationPolicy.deadline(startsAt, notice),
             canReview = canReview,
             reviewId = existingReviewId,
         )

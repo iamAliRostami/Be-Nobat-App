@@ -48,6 +48,9 @@ class AdminHomeActivity : BaseActivity() {
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCalendar).setOnClickListener {
             startActivity(Intent(this, AdminCalendarActivity::class.java))
         }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnAnalytics)?.setOnClickListener {
+            startActivity(Intent(this, AdminAnalyticsActivity::class.java))
+        }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnServices)?.setOnClickListener {
             startActivity(Intent(this, AdminServicesActivity::class.java))
         }
@@ -56,6 +59,9 @@ class AdminHomeActivity : BaseActivity() {
         }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnReviews).setOnClickListener {
             startActivity(Intent(this, AdminReviewsActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.cardRevenue)?.setOnClickListener {
+            startActivity(Intent(this, AdminAnalyticsActivity::class.java))
         }
 
         findViewById<android.view.View>(R.id.btnViewCalendarHeader)?.setOnClickListener {

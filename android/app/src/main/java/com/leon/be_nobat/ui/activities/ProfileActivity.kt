@@ -13,6 +13,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.view.isVisible
 import coil.load
 import android.widget.ArrayAdapter
 import android.widget.Spinner
@@ -47,8 +48,28 @@ class ProfileActivity : BaseActivity() {
 
     private val tokenManager: TokenManager by inject()
 
+    companion object {
+        const val EXTRA_JUST_REGISTERED = "extra_just_registered"
+        const val EXTRA_REGISTERED_NAME = "extra_registered_name"
+    }
+
     override fun setupViews() {
         setupMainHeader(getString(R.string.profile_title))
+
+        if (intent.getBooleanExtra(EXTRA_JUST_REGISTERED, false)) {
+            val cardWelcome = findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardWelcomeRegister)
+            val tvWelcomeMessage = findViewById<android.widget.TextView>(R.id.tvWelcomeMessage)
+            val name = intent.getStringExtra(EXTRA_REGISTERED_NAME).orEmpty()
+            cardWelcome?.isVisible = true
+            tvWelcomeMessage?.text = if (name.isNotBlank()) {
+                getString(R.string.welcome_registered_user, name)
+            } else {
+                getString(R.string.welcome_registered_default)
+            }
+            findViewById<android.widget.ImageButton>(R.id.btnCloseWelcome)?.setOnClickListener {
+                cardWelcome?.isVisible = false
+            }
+        }
 
         lifecycleScope.launch {
             if (tokenManager.currentSession() == null) {
@@ -59,6 +80,10 @@ class ProfileActivity : BaseActivity() {
                 finish()
                 return@launch
             }
+        }
+
+        findViewById<View>(R.id.avatarCard)?.setOnClickListener {
+            pickImageLauncher.launch("image/*")
         }
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUploadAvatar).setOnClickListener {
@@ -172,14 +197,18 @@ class ProfileActivity : BaseActivity() {
             }
         }
         // Avatar upload/remove button states
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUploadAvatar).let {
-            it.isEnabled = !state.uploadingAvatar
-            it.text = if (state.uploadingAvatar) getString(R.string.saving) else getString(R.string.upload_avatar)
+        val btnUpload = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnUploadAvatar)
+        val btnRemove = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRemoveAvatar)
+
+        val hasAvatar = !state.avatarUrl.isNullOrBlank()
+        btnUpload.isEnabled = !state.uploadingAvatar
+        btnUpload.text = when {
+            state.uploadingAvatar -> getString(R.string.saving)
+            hasAvatar -> getString(R.string.change_avatar)
+            else -> getString(R.string.upload_avatar)
         }
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRemoveAvatar).let {
-            it.isEnabled = !state.uploadingAvatar
-            it.visibility = if (state.avatarUrl.isNullOrBlank()) View.GONE else View.VISIBLE
-        }
+        btnRemove.isEnabled = !state.uploadingAvatar
+        btnRemove.isVisible = hasAvatar
         // Save button state
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSaveProfile).let {
             it.text = if (state.savingProfile) getString(R.string.saving) else getString(R.string.save)

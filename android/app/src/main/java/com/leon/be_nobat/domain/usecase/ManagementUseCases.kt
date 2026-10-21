@@ -29,6 +29,17 @@ class AdminDashboardUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(): Result<ManagementDashboard> = repo.dashboard()
 }
 
+class AdminAnalyticsUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(
+        businessId: String? = null,
+        branchId: String? = null,
+        resourceId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): Result<com.leon.be_nobat.domain.model.ManagementAnalyticsSummary> =
+        repo.analytics(businessId, branchId, resourceId, from, to)
+}
+
 class AdminContextUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(): Result<ManagementContext> = repo.context()
 }

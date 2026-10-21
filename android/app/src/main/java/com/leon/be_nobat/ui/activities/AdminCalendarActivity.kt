@@ -36,6 +36,47 @@ class AdminCalendarActivity : BaseActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private var isSettingUp = true
     private var hasResumedOnce = false
+    private var smsDialogShowing = false
+    private val smsPermission = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
+        viewModel.smsPermissionPending = false
+        sendNextSms()
+    }
+
+    private fun sendNextSms() {
+        val appointment = viewModel.smsQueue.value.firstOrNull() ?: return
+        // Acknowledge before handing off to telephony so recreation cannot send the same SMS twice.
+        viewModel.acknowledgeSms(appointment.id)
+        showFeedback(com.leon.be_nobat.notifications.AppointmentSms.send(this, appointment))
+    }
+
+    private fun skipSms() {
+        smsDialogShowing = false
+        viewModel.smsQueue.value.firstOrNull()?.let { viewModel.acknowledgeSms(it.id) }
+        showFeedback("وضعیت ذخیره شد؛ پیامک ارسال نشد.")
+    }
+
+    private fun processSmsQueue() {
+        if (viewModel.smsQueue.value.isEmpty() || viewModel.smsPermissionPending || smsDialogShowing) return
+        if (com.leon.be_nobat.BuildConfig.DEMO_MODE ||
+            com.leon.be_nobat.notifications.AppointmentMessages.phone(viewModel.smsQueue.value.first().customerPhoneNumber) == null ||
+            !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY) ||
+            androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            sendNextSms()
+        } else {
+            smsDialogShowing = true
+            MaterialAlertDialogBuilder(this)
+                .setTitle("پیامک وضعیت نوبت")
+                .setMessage("وضعیت نوبت ذخیره شد. برای اطلاع‌رسانی از سیم‌کارت پیش‌فرض پیامک این گوشی به مشتری، مجوز ارسال پیامک لازم است. هزینهٔ پیامک طبق تعرفهٔ سیم‌کارت محاسبه می‌شود.")
+                .setPositiveButton("ادامه") { _, _ ->
+                    smsDialogShowing = false
+                    viewModel.smsPermissionPending = true
+                    smsPermission.launch(android.Manifest.permission.SEND_SMS)
+                }
+                .setNegativeButton("بدون پیامک") { _, _ -> skipSms() }
+                .setOnCancelListener { skipSms() }
+                .show()
+        }
+    }
 
     companion object {
         const val EXTRA_STATUS = "extra_status"
@@ -105,11 +146,9 @@ class AdminCalendarActivity : BaseActivity() {
             onItemClick = { appt -> showAppointmentDetails(appt) },
             onConfirm = { appt ->
                 viewModel.changeStatus(appt.id, "Confirmed")
-                showFeedback(getString(R.string.appointment_status_confirmed))
             },
             onComplete = { appt ->
                 viewModel.changeStatus(appt.id, "Completed")
-                showFeedback(getString(R.string.appointment_status_completed))
             },
             onCancel = { appt -> confirmCancel(appt) },
         )
@@ -225,7 +264,6 @@ class AdminCalendarActivity : BaseActivity() {
             .setMessage(getString(R.string.confirm_cancel_appointment_msg, customer))
             .setPositiveButton(R.string.confirm_cancel_positive) { _, _ ->
                 viewModel.changeStatus(appt.id, "Cancelled")
-                showFeedback(getString(R.string.appointment_status_cancelled))
             }
             .setNegativeButton(R.string.action_close, null)
             .show()
@@ -281,13 +319,11 @@ class AdminCalendarActivity : BaseActivity() {
             "Pending" -> {
                 builder.setPositiveButton(R.string.confirm_appointment) { _, _ ->
                     viewModel.changeStatus(item.id, "Confirmed")
-                    showFeedback(getString(R.string.appointment_status_confirmed))
                 }
             }
             "Confirmed" -> {
                 builder.setPositiveButton(R.string.complete_appointment) { _, _ ->
                     viewModel.changeStatus(item.id, "Completed")
-                    showFeedback(getString(R.string.appointment_status_completed))
                 }
             }
         }
@@ -298,6 +334,7 @@ class AdminCalendarActivity : BaseActivity() {
     override fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { viewModel.smsQueue.collect { processSmsQueue() } }
                 viewModel.state.collect { render(it) }
             }
         }

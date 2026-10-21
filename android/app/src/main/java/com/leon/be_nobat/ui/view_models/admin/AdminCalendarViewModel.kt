@@ -37,6 +37,12 @@ class AdminCalendarViewModel(
     private val _state = MutableStateFlow(AdminCalendarUiState(loading = true))
     val state: StateFlow<AdminCalendarUiState> = _state.asStateFlow()
 
+    private val changingIds = mutableSetOf<String>()
+    private val _smsQueue = MutableStateFlow<List<ManagementAppointment>>(emptyList())
+    val smsQueue = _smsQueue.asStateFlow()
+    var smsPermissionPending = false
+    fun acknowledgeSms(id: String) { if (_smsQueue.value.firstOrNull()?.id == id) _smsQueue.value = _smsQueue.value.drop(1) }
+
     private var loadJob: Job? = null
     private var isInitialized = false
 
@@ -114,12 +120,17 @@ class AdminCalendarViewModel(
     fun setSearchQuery(q: String) { _state.value = _state.value.copy(searchQuery = q) }
 
     fun changeStatus(id: String, newStatus: String) = viewModelScope.launch {
-        setStatus(id, newStatus).onSuccess { updated ->
-            val currentFilter = _state.value.statusFilter
-            if (!currentFilter.isNullOrBlank() && !currentFilter.equals(newStatus, ignoreCase = true)) {
-                _state.value = _state.value.copy(items = _state.value.items.filterNot { it.id == id })
+        val previous = _state.value.items.firstOrNull { it.id == id } ?: return@launch
+        if (previous.status == newStatus || !changingIds.add(id)) return@launch
+        try {
+            setStatus(id, newStatus).onSuccess { updated ->
+                if (updated.status != previous.status) _smsQueue.value = _smsQueue.value + updated
+                _state.value = _state.value.copy(items = _state.value.items.map { if (it.id == id) updated else it })
+                load()
+            }.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                _state.value = _state.value.copy(error = e.message)
             }
-            load()
-        }.onFailure { e -> _state.value = _state.value.copy(error = e.message) }
+        } finally { changingIds.remove(id) }
     }
 }

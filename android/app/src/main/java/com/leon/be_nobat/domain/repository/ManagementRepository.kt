@@ -2,6 +2,7 @@ package com.leon.be_nobat.domain.repository
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.data.remote.ApiItems
+import com.leon.be_nobat.domain.model.ManagementAnalyticsSummary
 import com.leon.be_nobat.domain.model.ManagementAppointment
 import com.leon.be_nobat.domain.model.ManagementAvailability
 import com.leon.be_nobat.domain.model.ManagementBranch
@@ -38,6 +39,13 @@ import com.leon.be_nobat.domain.model.ManagementCustomerInput
 interface ManagementRepository {
     // overview
     suspend fun dashboard(): Result<ManagementDashboard>
+    suspend fun analytics(
+        businessId: String? = null,
+        branchId: String? = null,
+        resourceId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): Result<ManagementAnalyticsSummary>
     suspend fun context(): Result<ManagementContext>
 
     // businesses (PUT only — creation is Platform-only)

@@ -3,6 +3,8 @@
     <string name="app_name">Be Nobat</string>
     <string name="logo_content_description">Be Nobat logo</string>
 
+    <string name="welcome_title">Welcome!</string>
+    <string name="welcome_register_message">Welcome to Be Nobat! Your account has been created successfully.</string>
     <string name="welcome_message">Welcome! Sign in to book an appointment</string>
     <string name="login_title">Sign in to your account</string>
     <string name="mobile_phone">Mobile number</string>
@@ -45,6 +47,56 @@
     <string name="nav_profile">Profile</string>
     <string name="nav_admin">Admin</string>
 
+    <!-- ============ Home Screen Enhancements ============ -->
+    <string name="home_hero_tag">Online Appointment Booking</string>
+    <string name="home_hero_title">Your time matters; Book with Be Nobat</string>
+    <string name="home_hero_subtitle">Instant online booking for top beauty, medical and wellness centers</string>
+    <string name="home_hero_action">Today\'s Free Slots</string>
+    <string name="home_quick_access">Quick Access</string>
+    <string name="home_shortcut_my_appointments">My Appointments</string>
+    <string name="home_shortcut_my_appointments_sub">Track &amp; Manage</string>
+    <string name="home_shortcut_top_centers">Top Centers</string>
+    <string name="home_shortcut_top_centers_sub">Best in Each Category</string>
+    <string name="home_shortcut_free_slots">Free Slots</string>
+    <string name="home_shortcut_free_slots_sub">Instant Booking</string>
+    <string name="home_shortcut_how_it_works">How It Works</string>
+    <string name="home_shortcut_how_it_works_sub">3 Simple Steps</string>
+    <string name="home_shortcut_upgrade">Upgrade Request</string>
+    <string name="home_shortcut_upgrade_sub">Register Business</string>
+    <string name="home_shortcut_favorites">Favorites</string>
+    <string name="home_shortcut_favorites_sub">Saved Centers</string>
+    <string name="home_shortcut_profile">My Profile</string>
+    <string name="home_shortcut_profile_sub">Account &amp; Info</string>
+    <string name="how_it_works_title">Booking Made Easy</string>
+    <string name="how_it_works_subtitle">Simple, fast &amp; reliable in 3 steps</string>
+    <string name="how_it_works_step1_title">1. Find</string>
+    <string name="how_it_works_step1_desc">Find the service or specialist near you.</string>
+    <string name="how_it_works_step2_title">2. Choose Time</string>
+    <string name="how_it_works_step2_desc">See available slots in real-time and pick your time.</string>
+    <string name="how_it_works_step3_title">3. Done!</string>
+    <string name="how_it_works_step3_desc">Get instant confirmation; we will remind you on time.</string>
+    <string name="logout_confirm_title">Sign out</string>
+    <string name="logout_confirm_message">Are you sure you want to sign out of your account?</string>
+    <string name="logout_confirm_positive">Sign out</string>
+    <string name="business_request_activity_title">Request Business Manager Role</string>
+    <string name="home_categories_title">Categories</string>
+    <string name="home_categories_subtitle">What service are you looking for?</string>
+    <string name="home_top_centers">Top Centers &amp; Services</string>
+    <string name="home_clear_category">Clear category filter</string>
+    <string name="cat_all">All</string>
+    <string name="cat_beauty">Beauty &amp; Makeup</string>
+    <string name="cat_dental">Dentistry</string>
+    <string name="cat_massage">Massage &amp; Wellness</string>
+    <string name="cat_counseling">Counseling</string>
+    <string name="cat_general_med">General Medicine</string>
+    <string name="cat_physiotherapy">Physiotherapy</string>
+    <string name="cat_fitness">Fitness &amp; Health</string>
+    <string name="cat_skin">Skin &amp; Beauty</string>
+    <string name="cat_hair">Hair Styling</string>
+    <string name="cat_nails">Nails</string>
+    <string name="cat_men">Men\'s Grooming</string>
+    <string name="cat_pets">Veterinary</string>
+
     <!-- ============ Admin Navigation Groups ============ -->
     <string name="nav_group_management">Management</string>
     <string name="nav_group_business">Business Management</string>
@@ -66,6 +118,29 @@
 
     <string name="admin_dashboard">Dashboard</string>
     <string name="admin_calendar">Appointment calendar</string>
+    <string name="drawer_analytics">Analytics &amp; Reports</string>
+    <string name="admin_analytics_title">Activity &amp; Revenue Analytics</string>
+    <string name="analytics_period_7d">7 Days</string>
+    <string name="analytics_period_30d">30 Days</string>
+    <string name="analytics_period_90d">3 Months</string>
+    <string name="analytics_period_all">All Time</string>
+    <string name="analytics_total_revenue">Total Revenue</string>
+    <string name="analytics_work_hours">Work Hours</string>
+    <string name="analytics_completed_appts">Completed Appts</string>
+    <string name="analytics_completion_rate">Completion Rate</string>
+    <string name="analytics_tab_businesses">Businesses</string>
+    <string name="analytics_tab_branches">Branches</string>
+    <string name="analytics_tab_staff">Staff Members</string>
+    <string name="analytics_trend_title">Daily Revenue &amp; Activity Trend</string>
+    <string name="analytics_breakdown_title">Performance &amp; Revenue Breakdown</string>
+    <string name="analytics_no_data">No data available for this period.</string>
+    <string name="analytics_filter_title">Filter Analytics</string>
+    <string name="analytics_all_businesses">All Businesses</string>
+    <string name="analytics_all_branches">All Branches</string>
+    <string name="analytics_all_staff">All Staff</string>
+    <string name="analytics_hours_suffix">hrs</string>
+    <string name="analytics_toman_suffix">Toman</string>
+    <string name="analytics_appts_suffix">appts</string>
     <string name="admin_branches">Branches &amp; resources</string>
     <string name="admin_services">Services</string>
     <string name="admin_availability">Working hours</string>
@@ -131,6 +206,7 @@
 
     <string name="orders_title">My appointments</string>
     <string name="tab_upcoming">Upcoming</string>
+    <string name="tab_all_appointments">All</string>
     <string name="tab_pending">Pending</string>
     <string name="tab_confirmed">Confirmed</string>
     <string name="tab_completed">Completed</string>
@@ -158,8 +234,9 @@
     <string name="current_password">Current password</string>
     <string name="new_password">New password</string>
     <string name="new_email">New email</string>
-    <string name="upload_avatar">Upload avatar</string>
-    <string name="remove_avatar">Remove avatar</string>
+    <string name="upload_avatar">Upload photo</string>
+    <string name="change_avatar">Change photo</string>
+    <string name="remove_avatar">Remove photo</string>
     <string name="save">Save</string>
     <string name="saving">Saving…</string>
     <string name="saved">Saved</string>
@@ -462,4 +539,18 @@
     <string name="empty_customers_filtered">No customer matches this filter.</string>
     <string name="search_categories_hint">Search categories…</string>
     <string name="empty_categories_filtered">No categories found with these filters.</string>
+
+    <!-- Availability Filters (Matching Web AdminAvailability.razor) -->
+    <string name="filter_all_businesses">All businesses</string>
+    <string name="filter_all_branches">All branches</string>
+    <string name="filter_all_providers">All providers</string>
+    <string name="filter_business_title">Business</string>
+    <string name="filter_branch_title">Branch</string>
+    <string name="filter_provider_title">Provider</string>
+    <string name="availability_periods_count">%s periods</string>
+    <string name="availability_empty_filtered">No availability periods in this section.</string>
+
+    <!-- Registration Welcome -->
+    <string name="welcome_registered_user">Welcome to Be Nobat, %s! Your account was created successfully.</string>
+    <string name="welcome_registered_default">Welcome to Be Nobat! Your account was created successfully.</string>
 </resources>

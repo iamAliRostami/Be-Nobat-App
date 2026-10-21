@@ -45,6 +45,37 @@ class PlatformAccessActivity : BaseActivity() {
         requirePlatformAdminPermission()
     }
 
+    private val smsPermission = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {
+        viewModel.smsPermissionPending = false
+        sendPasswordSms()
+    }
+
+    private fun processPasswordSms() {
+        val pending = viewModel.passwordSms.value ?: return
+        if (viewModel.smsPermissionPending) return
+        if (com.leon.be_nobat.BuildConfig.DEMO_MODE ||
+            com.leon.be_nobat.notifications.AppointmentMessages.phone(pending.phoneNumber) == null ||
+            !packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY) ||
+            androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            sendPasswordSms()
+        } else {
+            viewModel.smsPermissionPending = true
+            com.leon.be_nobat.helpers.AppToast.show(this, "برای ارسال رمز جدید با سیم‌کارت پیش‌فرض گوشی، مجوز پیامک لازم است؛ هزینه طبق تعرفهٔ سیم‌کارت است.")
+            smsPermission.launch(android.Manifest.permission.SEND_SMS)
+        }
+    }
+
+    private fun sendPasswordSms() {
+        // Consume before telephony handoff to avoid sending again after Activity recreation.
+        val pending = viewModel.takePasswordSms() ?: return
+        val result = com.leon.be_nobat.notifications.DeviceSms.send(this, pending.phoneNumber, pending.body(), "رمز بازنشانی شد")
+        MaterialAlertDialogBuilder(this)
+            .setTitle("رمز موقت کاربر")
+            .setMessage("$result\n\n${getString(R.string.temporary_password, pending.password)}")
+            .setPositiveButton(R.string.action_close, null)
+            .show()
+    }
+
     override fun setupViews() {
         setupAdminHeader(getString(R.string.platform_access), currentMenuItemId = R.id.drawer_platform_access)
 
@@ -159,6 +190,7 @@ class PlatformAccessActivity : BaseActivity() {
     override fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { viewModel.passwordSms.collect { processPasswordSms() } }
                 viewModel.state.collect { render(it) }
             }
         }
@@ -171,9 +203,9 @@ class PlatformAccessActivity : BaseActivity() {
         renderAdminError(state.error) { viewModel.load() }
         adapter.submitList(state.filteredItems)
 
-        state.temporaryPassword?.let { pwd ->
+        state.temporaryPassword?.takeIf { state.message != "reset_done" }?.let { pwd ->
             MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.temporary_password)
+                .setTitle("رمز موقت کاربر")
                 .setMessage(getString(R.string.temporary_password, pwd))
                 .setPositiveButton(R.string.action_close) { _, _ -> viewModel.clearMessage() }
                 .show()

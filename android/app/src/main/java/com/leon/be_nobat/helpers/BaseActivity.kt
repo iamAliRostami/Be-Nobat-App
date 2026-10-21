@@ -79,15 +79,34 @@ abstract class BaseActivity : AppCompatActivity() {
         observeViewModel()
     }
 
+    protected var currentAdminMenuItemId: Int? = null
+        private set
+
     override fun onResume() {
         super.onResume()
         AppLocaleManager.currentLanguage = getCurrentLanguage()
         refreshAdminDrawerHeader()
+        currentAdminMenuItemId?.let { menuItemId ->
+            findViewById<NavigationView>(R.id.navView)?.let { navView ->
+                syncAdminDrawerSelection(navView, menuItemId)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        currentAdminMenuItemId?.let { menuItemId ->
+            findViewById<NavigationView>(R.id.navView)?.let { navView ->
+                syncAdminDrawerSelection(navView, menuItemId)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         if (isMenuVisible) {
             menuInflater.inflate(R.menu.main_menu, menu)
+            menu.add(0, R.id.action_appointment_notifications, 10, "اعلان‌های نوبت").setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
             menu.findItem(R.id.action_language)?.isVisible = isHorizontalButtonsVisible
             menu.findItem(R.id.switchTheme)?.isVisible = isHorizontalButtonsVisible
             return true
@@ -97,6 +116,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_appointment_notifications -> startActivity(Intent(this, AppointmentNotificationsActivity::class.java))
             R.id.action_language -> {
                 val anchor = findViewById<View>(R.id.action_language) ?: toolbar
                 showLanguageMenu(anchor)
@@ -208,6 +228,23 @@ abstract class BaseActivity : AppCompatActivity() {
     protected fun setupMainHeader(title: CharSequence? = null) {
         setToolbarTitle(true) // Hide the legacy dull toolbar
 
+        val themeButton = findViewById<View>(R.id.btnThemeToggle)
+        val header = themeButton?.parent as? android.widget.LinearLayout
+        if (header != null && header.findViewById<View>(R.id.btnAppointmentNotifications) == null) {
+            val size = (48 * resources.displayMetrics.density).toInt()
+            val button = androidx.appcompat.widget.AppCompatImageButton(this).apply {
+                id = R.id.btnAppointmentNotifications
+                contentDescription = "اعلان‌های نوبت"
+                setImageResource(R.drawable.ic_appointment_notification)
+                imageTintList = android.content.res.ColorStateList.valueOf(
+                    com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
+                setBackgroundResource(android.R.drawable.list_selector_background)
+                val pad = (12 * resources.displayMetrics.density).toInt()
+                setPadding(pad, pad, pad, pad)
+                setOnClickListener { startActivity(Intent(this@BaseActivity, AppointmentNotificationsActivity::class.java)) }
+            }
+            header.addView(button, header.indexOfChild(themeButton), android.widget.LinearLayout.LayoutParams(size, size))
+        }
         val headerTitle = title ?: getString(R.string.app_name)
         findViewById<android.widget.TextView>(R.id.tvHeaderTitle)?.text = headerTitle
         findViewById<View>(R.id.btnThemeToggle)?.setOnClickListener {
@@ -306,13 +343,44 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     /**
+     * Synchronizes the single checked item across all groups and submenus of the admin navigation drawer.
+     */
+    protected fun syncAdminDrawerSelection(navView: NavigationView, targetItemId: Int) {
+        fun updateMenuCheckedState(menu: Menu) {
+            for (i in 0 until menu.size()) {
+                val item = menu.getItem(i)
+                if (item.hasSubMenu()) {
+                    item.subMenu?.let { updateMenuCheckedState(it) }
+                }
+                if (item.isCheckable) {
+                    item.isChecked = (item.itemId == targetItemId)
+                }
+            }
+        }
+        updateMenuCheckedState(navView.menu)
+        navView.setCheckedItem(targetItemId)
+    }
+
+    /**
      * Configures the shared navigation drawer for admin destinations with role-based permissions.
      */
     protected fun setupAdminDrawer(currentMenuItemId: Int) {
+        this.currentAdminMenuItemId = currentMenuItemId
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout) ?: return
         val navView = findViewById<NavigationView>(R.id.navView) ?: return
 
-        navView.setCheckedItem(currentMenuItemId)
+        syncAdminDrawerSelection(navView, currentMenuItemId)
+
+        drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: View) {
+                currentAdminMenuItemId?.let { syncAdminDrawerSelection(navView, it) }
+            }
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                if (slideOffset > 0f) {
+                    currentAdminMenuItemId?.let { syncAdminDrawerSelection(navView, it) }
+                }
+            }
+        })
 
         lifecycleScope.launch {
             val session = tokenManager.currentSession()
@@ -364,8 +432,12 @@ abstract class BaseActivity : AppCompatActivity() {
         navView.setNavigationItemSelectedListener { item ->
             drawerLayout.closeDrawer(GravityCompat.START)
             if (item.itemId == currentMenuItemId) {
+                syncAdminDrawerSelection(navView, currentMenuItemId)
                 return@setNavigationItemSelectedListener true
             }
+
+            // Immediately ensure this activity's drawer does not retain the clicked item as checked
+            syncAdminDrawerSelection(navView, currentMenuItemId)
 
             lifecycleScope.launch {
                 val canManage = canManageBusiness()
@@ -381,6 +453,7 @@ abstract class BaseActivity : AppCompatActivity() {
                         }
                     }
                     R.id.drawer_calendar -> navigateAdminDestination(AdminCalendarActivity::class.java)
+                    R.id.drawer_analytics -> navigateAdminDestination(com.leon.be_nobat.ui.activities.AdminAnalyticsActivity::class.java)
                     R.id.drawer_branches -> {
                         if (!canManage) showToast(R.string.error_access_denied)
                         else navigateAdminDestination(AdminBranchesActivity::class.java)
@@ -436,20 +509,22 @@ abstract class BaseActivity : AppCompatActivity() {
                     }
                 }
             }
-            true
+            false
         }
 
-        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                    isEnabled = true
+        if (this !is AdminHomeActivity) {
+            onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.closeDrawer(GravityCompat.START)
+                    } else {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
                 }
-            }
-        })
+            })
+        }
     }
 
     private fun navigateAdminDestination(targetActivity: Class<*>) {

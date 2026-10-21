@@ -65,7 +65,7 @@ public static class BookingPolicy
 
     public static bool CanCustomerCancel(Appointment appointment, DateTimeOffset now) =>
         (appointment.Status is AppointmentStatus.Pending or AppointmentStatus.Confirmed) &&
-        appointment.StartsAt >= now.Add(CustomerCancellationNotice);
+        appointment.StartsAt > now && appointment.StartsAt >= now.AddMinutes(CancellationPolicy.NoticeMinutes(appointment));
 
     public static bool CanCustomerReview(Appointment appointment, DateTimeOffset now) =>
         appointment.Status == AppointmentStatus.Completed ||

@@ -67,6 +67,7 @@ data class ManagementBusinessInput(
     val ownerId: String? = null,
     val firstBranchAddress: String? = null,
     val firstBranchWeeklyHours: List<WeeklyTimeRange>? = null,
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
@@ -78,6 +79,7 @@ data class ManagementBranchInput(
     val openHour: Int = 8,
     val closeHour: Int = 20,
     val weeklyHours: List<WeeklyTimeRange>? = null,
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
@@ -106,10 +108,13 @@ data class ManagementServiceInput(
     val catalogItemId: String? = null,
     val branchId: String? = null,
     val resourceIds: List<String>? = null,
+    val cancellationNoticeMinutes: Int? = null,
 )
 
 @Serializable
-data class ManagementBranchServiceInput(val price: Double? = null)
+data class ManagementBranchServiceInput(val price: Double? = null,
+    val cancellationNoticeMinutes: Int? = null,
+)
 
 @Serializable
 data class ManagementAvailabilityInput(

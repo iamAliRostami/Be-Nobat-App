@@ -99,6 +99,7 @@
                 </div>
 
                 <div class="weekly-schedule-wrapper">
+                    <CancellationNoticeEditor Label="مهلت لغو شعبه" @bind-Value="BranchForm.CancellationNoticeMinutes" />
                     <WeeklyHoursEditor Hours="BranchForm.WeeklyHours" />
                 </div>
 
@@ -381,7 +382,7 @@
             OpenHour = branch.OpenHour,
             CloseHour = branch.CloseHour,
             TimeZoneId = branch.TimeZoneId,
-            WeeklyHours = WeeklySchedule.Read(branch),
+            WeeklyHours = WeeklySchedule.Read(branch), CancellationNoticeMinutes = branch.CancellationNoticeMinutes,
         };
         Error = Message = null;
         ShowBranchForm = true;
@@ -389,7 +390,7 @@
 
     private async Task SaveBranch()
     {
-        Error = WeeklySchedule.Validate(BranchForm.WeeklyHours);
+        Error = !CancellationPolicy.IsValid(BranchForm.CancellationNoticeMinutes) ? "مهلت لغو باید بین صفر و ۱۲۹۶۰۰ دقیقه باشد." : WeeklySchedule.Validate(BranchForm.WeeklyHours);
         if (Error is not null) return;
         if (BranchForm.BusinessId == Guid.Empty || string.IsNullOrWhiteSpace(BranchForm.Name) || BranchForm.CloseHour <= BranchForm.OpenHour)
         {
@@ -419,6 +420,7 @@
         }
         if (EditingBranchId is not null) await Db.Entry(branch).Collection(x => x.AvailabilityRules).LoadAsync();
         branch.TimeZoneId = BranchForm.TimeZoneId;
+        branch.CancellationNoticeMinutes = BranchForm.CancellationNoticeMinutes;
 
         branch.BusinessId = BranchForm.BusinessId;
         branch.Name = BranchForm.Name.Trim();
@@ -698,6 +700,7 @@
 
     private sealed class BranchInput
     {
+        public int? CancellationNoticeMinutes { get; set; }
         public Guid BusinessId { get; set; }
         public string Name { get; set; } = "";
         public string Address { get; set; } = "";

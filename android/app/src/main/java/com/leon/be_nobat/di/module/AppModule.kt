@@ -32,6 +32,7 @@ import com.leon.be_nobat.domain.usecase.AdminCreateBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateCustomerReviewUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateMembershipUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateServiceUseCase
+import com.leon.be_nobat.domain.usecase.AdminAnalyticsUseCase
 import com.leon.be_nobat.domain.usecase.AdminDashboardUseCase
 import com.leon.be_nobat.domain.usecase.AdminDeleteBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminDeleteMembershipUseCase
@@ -117,6 +118,7 @@ import com.leon.be_nobat.ui.view_models.ProfileViewModel
 import com.leon.be_nobat.ui.view_models.RegisterViewModel
 import com.leon.be_nobat.ui.view_models.auth.AuthViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminBranchesViewModel
+import com.leon.be_nobat.ui.view_models.admin.AdminAnalyticsViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminCalendarViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminDashboardViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminReviewsViewModel
@@ -156,6 +158,7 @@ val localStorageModule = module {
 }
 
 val repositoryModule = module {
+    single { com.leon.be_nobat.notifications.AppointmentNotificationMonitor(androidContext(), get(), get()) }
     if (BuildConfig.DEMO_MODE) {
         single { DemoDataStore(androidContext(), get()) }
         single<AuthRepository> { DemoAuthRepository(get(), get()) }
@@ -211,6 +214,7 @@ val useCaseModule = module {
 
     // Admin
     factory { AdminDashboardUseCase(get()) }
+    factory { AdminAnalyticsUseCase(get()) }
     factory { AdminContextUseCase(get()) }
     factory { AdminListBusinessesUseCase(get()) }
     factory { AdminListBranchesUseCase(get()) }
@@ -283,13 +287,14 @@ val viewModelModule = module {
 
     // Admin
     viewModel { AdminDashboardViewModel(get(), get(), get()) }
+    viewModel { AdminAnalyticsViewModel(get(), get()) }
     viewModel { AdminCalendarViewModel(get(), get()) }
     viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { AdminReviewsViewModel(get(), get()) }
     viewModel { AdminCustomersViewModel(get(), get(), get()) }
     viewModel { AdminTeamViewModel(get(), get(), get(), get()) }
     viewModel { AdminServicesViewModel(get(), get(), get(), get()) }
-    viewModel { AdminAvailabilityViewModel(get(), get(), get(), get()) }
+    viewModel { AdminAvailabilityViewModel(get(), get(), get(), get(), get()) }
 
     // Platform
     viewModel { PlatformBusinessesViewModel(get(), get(), get(), get(), get()) }

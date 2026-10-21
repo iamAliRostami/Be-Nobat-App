@@ -420,5 +420,65 @@ class DemoWorkflowTest {
         val publicBranchesAfter = publicRepo.listBranches(bizId).getOrThrow().items
         assertTrue("Approved branch should now be visible to public", publicBranchesAfter.any { it.id == createdBranch.id })
     }
+    @Test fun `Cancellation defaults block late requests and four independent settings persist`() = runBlocking {
+        val db = store(); val token = tokens(); val auth = DemoAuthRepository(db, token)
+        auth.login("user@benobat.ir", "Demo1234!").getOrThrow()
+        val customerId = requireNotNull(token.currentSession()).user.id
+        val target = db.read { state -> state.appointments.first { a -> a.customerId == customerId && state.services.any { it.id == a.serviceId && it.active } } }
+        val time = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+        db.update { state -> state.copy(appointments = state.appointments.map {
+            if (it.id == target.id) it.copy(status = "Confirmed", startsAt = time.format(java.util.Date(System.currentTimeMillis() + 60 * 60_000L)),
+                serviceIds = listOf(it.serviceId), serviceNames = emptyList()) else it
+        }) to Unit }
+        val booking = DemoBookingRepository(db, token)
+        assertFalse(booking.getAppointment(target.id).getOrThrow().canCancel)
+        assertTrue(booking.cancelAppointment(target.id).isFailure)
+        auth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val management = DemoManagementRepository(db, token)
+        val business = management.getBusiness(target.businessId).getOrThrow()
+        DemoPlatformRepository(db, token).updateBusiness(business.id, ManagementBusinessInput(name = business.name, slug = business.slug,
+            cancellationNoticeMinutes = 180)).getOrThrow()
+        val branch = management.getBranch(target.branchId).getOrThrow()
+        management.updateBranch(branch.id, ManagementBranchInput(businessId = branch.businessId, name = branch.name, cancellationNoticeMinutes = 90)).getOrThrow()
+        val service = management.getService(target.serviceId).getOrThrow()
+        management.updateService(service.id, ManagementServiceInput(businessId = service.businessId, name = service.name,
+            price = service.price, cancellationNoticeMinutes = 60)).getOrThrow()
+        management.upsertBranchService(branch.id, service.id, ManagementBranchServiceInput(cancellationNoticeMinutes = 30)).getOrThrow()
+        assertTrue(management.upsertBranchService(branch.id, service.id, ManagementBranchServiceInput(cancellationNoticeMinutes = -1)).isFailure)
+        auth.login("user@benobat.ir", "Demo1234!").getOrThrow()
+        val reopened = store()
+        val reopenedBooking = DemoBookingRepository(reopened, token)
+        val allowed = reopenedBooking.getAppointment(target.id).getOrThrow()
+        assertTrue(allowed.canCancel); assertEquals(30, allowed.cancellationNoticeMinutes)
+        assertNotNull(allowed.cancellationDeadline)
+        assertEquals("Cancelled", reopenedBooking.cancelAppointment(target.id).getOrThrow().status)
+        assertTrue(reopenedBooking.cancelAppointment(target.id).isFailure)
+        val persisted = store().read { it }
+        assertEquals(180, persisted.businesses.first { it.id == business.id }.cancellationNoticeMinutes)
+        assertEquals(90, persisted.branches.first { it.id == branch.id }.cancellationNoticeMinutes)
+        assertEquals(60, persisted.services.first { it.id == service.id }.cancellationNoticeMinutes)
+        assertEquals(30, persisted.branchServices.first { it.branchId == branch.id && it.serviceId == service.id }.cancellationNoticeMinutes)
+    }
+
+    @Test fun `Cancellation multi service uses earliest deadline across selected service ids`() = runBlocking {
+        val db = store(); val token = tokens(); val auth = DemoAuthRepository(db, token)
+        auth.login("user@benobat.ir", "Demo1234!").getOrThrow()
+        val customerId = requireNotNull(token.currentSession()).user.id
+        val chosen = db.read { state -> state.appointments.first { a -> a.customerId == customerId && state.services.count { it.businessId == a.businessId } > 1 } }
+        val selected = db.read { state -> state.services.filter { it.businessId == chosen.businessId }.take(2) }
+        val start = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", java.util.Locale.US).apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+            .format(java.util.Date(System.currentTimeMillis() + 200 * 60_000L))
+        db.update { state -> state.copy(
+            appointments = state.appointments.map { if (it.id == chosen.id) it.copy(serviceId = selected.first().id, serviceIds = selected.map { x -> x.id }, status = "Confirmed", startsAt = start) else it },
+            services = state.services.map { if (it.id == selected.first().id) it.copy(cancellationNoticeMinutes = 0) else it },
+            branchServices = state.branchServices.filterNot { it.branchId == chosen.branchId && it.serviceId in selected.map { s -> s.id } } +
+                ManagementBranchService(id = "cancel-policy-test", branchId = chosen.branchId, serviceId = selected.last().id, cancellationNoticeMinutes = 240)
+        ) to Unit }
+        val booking = DemoBookingRepository(db, token)
+        assertEquals(240, booking.getAppointment(chosen.id).getOrThrow().cancellationNoticeMinutes)
+        assertFalse(booking.getAppointment(chosen.id).getOrThrow().canCancel)
+        assertTrue(booking.cancelAppointment(chosen.id).isFailure)
+    }
+
 }
 

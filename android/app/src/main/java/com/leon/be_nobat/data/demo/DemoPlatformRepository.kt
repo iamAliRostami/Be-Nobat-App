@@ -22,6 +22,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     }
 
     override suspend fun createBusiness(input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireAdmin()
         val actor = requireNotNull(tokenManager.currentSession()).user
@@ -36,6 +37,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 city = input.city,
                 description = input.description,
                 requiresApproval = input.requiresApproval,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes ?: 120,
                 active = true
             )
 
@@ -64,6 +66,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     }
 
     override suspend fun updateBusiness(id: String, input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
@@ -75,7 +78,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 category = input.category,
                 city = input.city,
                 description = input.description,
-                requiresApproval = input.requiresApproval
+                requiresApproval = input.requiresApproval,
+                cancellationNoticeMinutes = input.cancellationNoticeMinutes ?: old.cancellationNoticeMinutes
             )
             var branches = s.branches
             if (input.firstBranchWeeklyHours != null || input.firstBranchAddress != null) {

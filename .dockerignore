@@ -1,5 +1,10 @@
 .git
 pb_data
 workspace
+android
+tests
+docs
+*.dump
 **/bin
 **/obj
+

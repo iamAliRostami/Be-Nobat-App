@@ -26,6 +26,8 @@ public sealed class AppUser : IdentityUser<Guid>
 
 public sealed class Business : Entity
 {
+    public int CancellationNoticeMinutes { get; set; } = 120;
+
     public required string Name { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string Category { get; set; } = "عمومی";
@@ -64,6 +66,8 @@ public sealed class FavoriteBusiness : Entity
 
 public sealed class Branch : Entity
 {
+    public int? CancellationNoticeMinutes { get; set; }
+
     public Guid BusinessId { get; set; }
     public required string Name { get; set; }
     public string Address { get; set; } = string.Empty;
@@ -84,6 +88,8 @@ public sealed class Branch : Entity
 
 public sealed class Service : Entity
 {
+    public int? CancellationNoticeMinutes { get; set; }
+
     public Guid BusinessId { get; set; }
     public Guid? CatalogItemId { get; set; }
     public required string Name { get; set; }
@@ -112,6 +118,8 @@ public sealed class ServiceCatalogItem : Entity
 /// <summary>فعال‌بودن و قیمت یک خدمت در یک شعبه.</summary>
 public sealed class BranchService : Entity
 {
+    public int? CancellationNoticeMinutes { get; set; }
+
     public Guid BranchId { get; set; }
     public Guid ServiceId { get; set; }
     public decimal? Price { get; set; }
