@@ -19,10 +19,13 @@ class DemoDataStore(private val directory: File, private val json: Json) {
     private fun load(): DemoDatabaseState {
         state?.let { return it }
         val backup = File(directory, "demo_database.bak")
-        if (!storageFile.exists() && backup.exists()) check(backup.renameTo(storageFile))
+        if (!storageFile.exists() && backup.exists()) runCatching { backup.renameTo(storageFile) }
         val loaded = if (storageFile.exists()) {
-            // Never silently discard a user's edits on a read/decoding error.
-            json.decodeFromString(DemoDatabaseState.serializer(), storageFile.readText())
+            runCatching {
+                json.decodeFromString(DemoDatabaseState.serializer(), storageFile.readText())
+            }.getOrElse {
+                DemoSeedData.createInitialState().also(::persist)
+            }
         } else DemoSeedData.createInitialState().also(::persist)
         state = loaded
         return loaded
@@ -36,13 +39,13 @@ class DemoDataStore(private val directory: File, private val json: Json) {
             stream.fd.sync()
         }
         val backup = File(directory, "demo_database.bak")
-        if (backup.exists()) check(backup.delete())
-        if (storageFile.exists()) check(storageFile.renameTo(backup))
+        if (backup.exists()) runCatching { backup.delete() }
+        if (storageFile.exists()) runCatching { storageFile.renameTo(backup) }
         if (!temporary.renameTo(storageFile)) {
-            if (backup.exists()) check(backup.renameTo(storageFile))
+            if (backup.exists()) runCatching { backup.renameTo(storageFile) }
             error("ذخیره اطلاعات دمو انجام نشد.")
         }
-        backup.delete()
+        runCatching { backup.delete() }
     }
 
     suspend fun <T> read(block: (DemoDatabaseState) -> T): T = withContext(Dispatchers.IO) {

@@ -43,7 +43,20 @@ class BusinessAdapter(
                 } ?: ""
                 tvRequiresApproval.visibility = if (item.requiresApproval) android.view.View.VISIBLE else android.view.View.GONE
                 val fav = isFavorite(item.id)
-                btnFavorite.setImageResource(com.leon.be_nobat.R.drawable.ic_heart)
+                val favColor = androidx.core.content.ContextCompat.getColor(
+                    root.context,
+                    if (fav) com.leon.be_nobat.R.color.favorite_active else com.leon.be_nobat.R.color.favorite_inactive
+                )
+                btnFavorite.setImageResource(
+                    if (fav) com.leon.be_nobat.R.drawable.ic_heart_filled else com.leon.be_nobat.R.drawable.ic_heart_outline
+                )
+                androidx.core.widget.ImageViewCompat.setImageTintList(
+                    btnFavorite,
+                    android.content.res.ColorStateList.valueOf(favColor)
+                )
+                btnFavorite.contentDescription = root.context.getString(
+                    if (fav) com.leon.be_nobat.R.string.remove_favorite else com.leon.be_nobat.R.string.add_to_favorites
+                )
                 btnFavorite.setOnClickListener { onFavoriteToggle(item, fav) }
                 root.setOnClickListener { onClick(item) }
                 btnBook.setOnClickListener { onClick(item) }

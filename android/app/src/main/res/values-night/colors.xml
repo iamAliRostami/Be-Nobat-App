@@ -19,4 +19,37 @@
     <color name="colorErrorContainer">#2A1215</color>
     <color name="colorOnErrorContainer">#FCA5A5</color>
     <color name="colorErrorBorder">#5C1D24</color>
+
+    <!-- Status badge colors (Night) -->
+    <color name="status_pending_bg">#382A12</color>
+    <color name="status_pending_border">#5F4519</color>
+    <color name="status_pending_text">#FDE68A</color>
+
+    <color name="status_confirmed_bg">#0C2D48</color>
+    <color name="status_confirmed_border">#1A4B75</color>
+    <color name="status_confirmed_text">#7DD3FC</color>
+
+    <color name="status_completed_bg">#113322</color>
+    <color name="status_completed_border">#1F5938</color>
+    <color name="status_completed_text">#86EFAC</color>
+
+    <color name="status_cancelled_bg">#3B181B</color>
+    <color name="status_cancelled_border">#5C2328</color>
+    <color name="status_cancelled_text">#FCA5A5</color>
+
+    <color name="status_noshow_bg">#20292E</color>
+    <color name="status_noshow_border">#3B4A54</color>
+    <color name="status_noshow_text">#94A3B8</color>
+
+    <!-- Status indicator strip colors (Night) -->
+    <color name="status_indicator_confirmed">#34D399</color>
+    <color name="status_indicator_pending">#F59E0B</color>
+    <color name="status_indicator_completed">#9CA3AF</color>
+    <color name="status_indicator_cancelled">#F87171</color>
+    <color name="status_indicator_noshow">#64748B</color>
+    <color name="status_indicator_default">#374151</color>
+
+    <!-- Favorite heart colors (Night) -->
+    <color name="favorite_active">#FB7185</color>
+    <color name="favorite_inactive">#64748B</color>
 </resources>

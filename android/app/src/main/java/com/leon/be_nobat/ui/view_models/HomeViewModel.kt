@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.Business
 import com.leon.be_nobat.domain.usecase.ListBusinessesUseCase
+import com.leon.be_nobat.domain.usecase.ListFavoritesUseCase
 import com.leon.be_nobat.domain.usecase.ToggleFavoriteUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,7 @@ data class HomeUiState(
 class HomeViewModel(
     private val listBusinesses: ListBusinessesUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
+    private val listFavorites: ListFavoritesUseCase? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -65,6 +67,11 @@ class HomeViewModel(
                 .onFailure { e ->
                     _state.value = _state.value.copy(loading = false, refreshing = false, error = e.message)
                 }
+
+            listFavorites?.invoke()?.onSuccess { favPage ->
+                val favMap = favPage.items.associate { it.id to true }
+                _state.value = _state.value.copy(favoriteSnapshot = favMap)
+            }
         }
     }
 

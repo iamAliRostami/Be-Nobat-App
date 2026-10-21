@@ -9,7 +9,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     private suspend fun requireActor(manageBusiness: Boolean) {
         val id = requireNotNull(tokenManager.currentSession()).user.id
         dataStore.read { s ->
-            val u = s.users.first { it.id == id && it.active }
+            val u = s.users.firstOrNull { it.id == id && it.active } ?: error("کاربر یافت نشد یا غیرفعال است.")
             require(u.roles.any { it in if (manageBusiness) listOf("PlatformAdmin", "Owner", "Manager") else listOf("PlatformAdmin", "Owner", "Manager", "Staff") })
         }
     }
@@ -54,8 +54,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 isPlatformAdmin = user.isPlatformAdmin,
                 canManageBusiness = user.roles.any { it in listOf("PlatformAdmin", "Owner", "Manager") },
                 canManageAppointments = user.isStaff,
-                memberships = s.memberships.filter { it.userId == user.id }.map { m ->
-                    val b = s.branches.first { it.id == m.branchId }
+                memberships = s.memberships.filter { it.userId == user.id }.mapNotNull { m ->
+                    val b = s.branches.firstOrNull { it.id == m.branchId } ?: return@mapNotNull null
                     ManagementContextMembership(
                         branchId = b.id,
                         businessId = b.businessId,
@@ -76,14 +76,14 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
 
     override suspend fun getBusiness(id: String): Result<ManagementBusiness> = runCatching {
         simulateNetworkDelay()
-        read { s -> s.businesses.first { it.id == id } }
+        read { s -> s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.") }
     }
 
     override suspend fun updateBusiness(id: String, input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val old = s.businesses.first { it.id == id }
+            val old = s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.")
             require(input.name.isNotBlank())
             val value = old.copy(
                 name = input.name,
@@ -100,10 +100,13 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     override suspend fun listBranches(businessId: String?, q: String?, includeInactive: Boolean?, page: Int, pageSize: Int): Result<ApiPage<ManagementBranch>> = runCatching {
         simulateNetworkDelay()
         read { s ->
+            val bizMap = s.businesses.associate { it.id to it.name }
             s.branches.filter {
                 (businessId == null || it.businessId == businessId) &&
-                it.name.matchesQuery(q) &&
+                (it.name.matchesQuery(q) || (it.businessName ?: bizMap[it.businessId] ?: "").matchesQuery(q) || it.address.matchesQuery(q)) &&
                 (includeInactive == true || it.active)
+            }.map { b ->
+                if (b.businessName.isNullOrBlank()) b.copy(businessName = bizMap[b.businessId]) else b
             }.demoPage(page, pageSize)
         }
     }
@@ -111,6 +114,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     override suspend fun createBranch(input: ManagementBranchInput): Result<ManagementBranch> = runCatching {
         simulateNetworkDelay()
         requireActor(true)
+        input.weeklyHours?.let { require(WeeklyHours.validate(it) == null) }
         val actor = requireNotNull(tokenManager.currentSession()).user
         update { s ->
             val resolvedBusinessId = if (input.businessId.isNotBlank() && s.businesses.any { it.id == input.businessId }) {
@@ -120,20 +124,27 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     ?: s.businesses.firstOrNull()?.id
                     ?: throw IllegalArgumentException("کسب‌وکاری یافت نشد")
             }
-            require(input.openHour in 0..23 && input.closeHour in 1..24 && input.openHour < input.closeHour)
+            val openHour = if (input.openHour in 0..23) input.openHour else 8
+            val closeHour = if (input.closeHour in 1..24 && input.closeHour > openHour) input.closeHour else (openHour + 8).coerceAtMost(24)
             val id = demoId()
+            val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
+            val isPlatform = actor.roles.contains("PlatformAdmin")
             val value = ManagementBranch(
                 id = id,
                 businessId = resolvedBusinessId,
                 name = input.name,
                 address = input.address,
                 timeZoneId = input.timeZoneId,
-                openHour = input.openHour,
-                closeHour = input.closeHour,
-                active = true
+                openHour = openHour,
+                closeHour = closeHour,
+                weeklyHours = input.weeklyHours ?: WeeklyHours.defaults(),
+                active = true,
+                isApproved = isPlatform,
+                businessName = bizName,
             )
             s.copy(
                 branches = listOf(value) + s.branches,
+                businesses = s.businesses.map { business -> if (business.id == resolvedBusinessId && business.firstBranchId == null) business.copy(firstBranchId = s.branches.firstOrNull { it.businessId == resolvedBusinessId && it.active }?.id ?: value.id) else business },
                 memberships = s.memberships + ManagementMembership(
                     id = demoId(),
                     branchId = value.id,
@@ -146,25 +157,45 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         }
     }
 
+    override suspend fun approveBranch(id: String): Result<ManagementBranch> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            val branch = s.branches.firstOrNull { it.id == id } ?: error("شعبه یافت نشد.")
+            val approved = branch.copy(isApproved = true)
+            s.copy(branches = s.branches.map { if (it.id == id) approved else it }) to approved
+        }
+    }
+
     override suspend fun getBranch(id: String): Result<ManagementBranch> = runCatching {
         simulateNetworkDelay()
-        read { s -> s.branches.first { it.id == id } }
+        read { s ->
+            val b = s.branches.firstOrNull { it.id == id } ?: error("شعبه مورد نظر یافت نشد.")
+            if (b.businessName.isNullOrBlank()) {
+                b.copy(businessName = s.businesses.firstOrNull { it.id == b.businessId }?.name)
+            } else b
+        }
     }
 
     override suspend fun updateBranch(id: String, input: ManagementBranchInput): Result<ManagementBranch> = runCatching {
         simulateNetworkDelay()
         requireActor(true)
+        input.weeklyHours?.let { require(WeeklyHours.validate(it) == null) }
         update { s ->
-            val old = s.branches.first { it.id == id }
+            val old = s.branches.firstOrNull { it.id == id } ?: error("شعبه مورد نظر یافت نشد.")
             val resolvedBusinessId = if (input.businessId.isNotBlank() && s.businesses.any { it.id == input.businessId }) input.businessId else old.businessId
-            require(input.openHour in 0..23 && input.closeHour in 1..24 && input.openHour < input.closeHour)
+            val openHour = if (input.openHour in 0..23) input.openHour else old.openHour
+            val closeHour = if (input.closeHour in 1..24 && input.closeHour > openHour) input.closeHour else old.closeHour
+            val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name ?: old.businessName
             val value = old.copy(
                 businessId = resolvedBusinessId,
                 name = input.name,
                 address = input.address,
                 timeZoneId = input.timeZoneId,
-                openHour = input.openHour,
-                closeHour = input.closeHour
+                openHour = openHour,
+                closeHour = closeHour,
+                weeklyHours = input.weeklyHours ?: old.weeklyHours,
+                businessName = bizName,
             )
             s.copy(branches = s.branches.map { if (it.id == id) value else it }) to value
         }
@@ -174,7 +205,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val value = s.branches.first { it.id == id }.copy(active = active)
+            val old = s.branches.firstOrNull { it.id == id } ?: error("شعبه مورد نظر یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(branches = s.branches.map { if (it.id == id) value else it }) to value
         }
     }
@@ -231,7 +263,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val old = s.resources.first { it.id == id }
+            val old = s.resources.firstOrNull { it.id == id } ?: error("پرسنل یافت نشد.")
             require(s.branches.any { it.id == input.branchId })
             require(input.name.isNotBlank())
             val value = old.copy(branchId = input.branchId, name = input.name, kind = input.kind, userId = input.userId)
@@ -243,7 +275,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val value = s.resources.first { it.id == id }.copy(active = active)
+            val old = s.resources.firstOrNull { it.id == id } ?: error("پرسنل یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(resources = s.resources.map { if (it.id == id) value else it }) to value
         }
     }
@@ -328,20 +361,127 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     override suspend fun listTeam(q: String?, branchId: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementPerson>> = runCatching {
         simulateNetworkDelay()
         read { s ->
-            val ids = s.memberships.filter { branchId == null || it.branchId == branchId }.map { it.userId }
-            s.users.filter { it.id in ids && it.displayName.matchesQuery(q) }
-                .map { ManagementPerson(it.id, it.displayName, it.email, it.phoneNumber, it.active) }
+            val memberships = s.memberships.filter { branchId == null || it.branchId == branchId }
+            val ids = memberships.map { it.userId }
+            s.users.filter { it.id in ids && (it.displayName.matchesQuery(q) || it.email?.matchesQuery(q) == true || it.phoneNumber?.matchesQuery(q) == true) }
+                .map { u ->
+                    val m = memberships.firstOrNull { it.userId == u.id }
+                    val branch = s.branches.firstOrNull { it.id == m?.branchId }
+                    ManagementPerson(
+                        id = u.id,
+                        displayName = u.displayName,
+                        email = u.email,
+                        phoneNumber = u.phoneNumber,
+                        active = u.active,
+                        role = m?.role ?: "Staff",
+                        branchName = branch?.name
+                    )
+                }
                 .demoPage(page, pageSize)
+        }
+    }
+
+    override suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            val branch = s.branches.firstOrNull { it.id == input.branchId } ?: error("شعبه یافت نشد")
+            val existing = s.users.firstOrNull { it.email.equals(input.email, ignoreCase = true) }
+            val user = existing ?: com.leon.be_nobat.domain.model.ManagementUser(
+                id = "demo_user_${s.users.size + 1}",
+                displayName = input.name,
+                email = input.email,
+                phoneNumber = input.phone,
+                active = true,
+                roles = listOf(input.role)
+            )
+            val membership = com.leon.be_nobat.domain.model.ManagementMembership(
+                id = "mem_${s.memberships.size + 1}",
+                branchId = input.branchId,
+                userId = user.id,
+                role = input.role,
+                displayName = user.displayName,
+                email = user.email
+            )
+            val updatedUsers = if (existing == null) s.users + user else s.users
+            val updatedMemberships = s.memberships + membership
+            val person = ManagementPerson(
+                id = user.id,
+                displayName = user.displayName,
+                email = user.email,
+                phoneNumber = user.phoneNumber,
+                active = true,
+                role = input.role,
+                branchName = branch.name
+            )
+            s.copy(users = updatedUsers, memberships = updatedMemberships) to person
         }
     }
 
     override suspend fun listCustomers(q: String?, branchId: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementPerson>> = runCatching {
         simulateNetworkDelay()
         read { s ->
-            val ids = s.appointments.filter { branchId == null || it.branchId == branchId }.map { it.customerId }
-            s.users.filter { it.id in ids && it.displayName.matchesQuery(q) }
-                .map { ManagementPerson(it.id, it.displayName, it.email, it.phoneNumber, it.active) }
+            val appts = s.appointments.filter { branchId == null || it.branchId == branchId }
+            val ids = (appts.map { it.customerId } + s.users.filter { it.roles.contains("Customer") }.map { it.id }).distinct()
+            s.users.filter { it.id in ids && (it.displayName.matchesQuery(q) || it.email?.matchesQuery(q) == true || it.phoneNumber?.matchesQuery(q) == true) }
+                .map { u ->
+                    val visits = appts.count { it.customerId == u.id }
+                    val reviews = s.customerReviews.filter { it.customerId == u.id }
+                    val rating = if (reviews.isNotEmpty()) reviews.map { it.rating.toDouble() }.average() else null
+                    ManagementPerson(
+                        id = u.id,
+                        displayName = u.displayName,
+                        email = u.email,
+                        phoneNumber = u.phoneNumber,
+                        active = u.active,
+                        visits = visits,
+                        rating = rating
+                    )
+                }
                 .demoPage(page, pageSize)
+        }
+    }
+
+    override suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            require(s.users.none { it.email.equals(input.email, ignoreCase = true) }) { "کاربری با این ایمیل از قبل وجود دارد." }
+            val user = com.leon.be_nobat.domain.model.ManagementUser(
+                id = "demo_customer_${s.users.size + 1}",
+                displayName = input.name,
+                email = input.email,
+                phoneNumber = input.phone,
+                active = true,
+                roles = listOf("Customer")
+            )
+            val person = ManagementPerson(
+                id = user.id,
+                displayName = user.displayName,
+                email = user.email,
+                phoneNumber = user.phoneNumber,
+                active = true,
+                visits = 0,
+                rating = null
+            )
+            s.copy(users = s.users + user) to person
+        }
+    }
+
+    override suspend fun setPersonActive(id: String, active: Boolean): Result<ManagementPerson> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            val user = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد")
+            val updated = user.copy(active = active)
+            val person = ManagementPerson(
+                id = updated.id,
+                displayName = updated.displayName,
+                email = updated.email,
+                phoneNumber = updated.phoneNumber,
+                active = updated.active
+            )
+            s.copy(users = s.users.map { if (it.id == id) updated else it }) to person
         }
     }
 
@@ -359,7 +499,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
 
     override suspend fun getService(id: String): Result<ManagementService> = runCatching {
         simulateNetworkDelay()
-        read { s -> s.services.first { it.id == id } }
+        read { s -> s.services.firstOrNull { it.id == id } ?: error("خدمت مورد نظر یافت نشد.") }
     }
 
     override suspend fun createService(input: ManagementServiceInput): Result<ManagementService> = runCatching {
@@ -429,7 +569,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val old = s.services.first { it.id == id }
+            val old = s.services.firstOrNull { it.id == id } ?: error("خدمت مورد نظر یافت نشد.")
             val resolvedBusinessId = if (input.businessId.isNotBlank() && s.businesses.any { it.id == input.businessId }) input.businessId else old.businessId
             require(input.durationMinutes > 0 && input.price >= 0)
 
@@ -481,7 +621,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val value = s.services.first { it.id == id }.copy(active = active)
+            val old = s.services.firstOrNull { it.id == id } ?: error("خدمت مورد نظر یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(services = s.services.map { if (it.id == id) value else it }) to value
         }
     }
@@ -566,12 +707,21 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
     override suspend fun listAvailability(businessId: String?, branchId: String?, resourceId: String?, from: String?, to: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementAvailability>> = runCatching {
         simulateNetworkDelay()
         read { s ->
+            val bizMap = s.businesses.associate { it.id to it.name }
+            val branchMap = s.branches.associate { it.id to it.name }
+            val resMap = s.resources.associate { it.id to it.name }
             s.availabilities.filter {
                 (businessId == null || it.businessId == businessId) &&
                 (branchId == null || it.branchId == branchId) &&
                 (resourceId == null || it.resourceId == resourceId) &&
                 (from == null || (it.effectiveDate ?: "") >= from) &&
                 (to == null || (it.effectiveDate ?: "") <= to)
+            }.map { item ->
+                item.copy(
+                    businessName = item.businessName ?: bizMap[item.businessId],
+                    branchName = item.branchName ?: branchMap[item.branchId],
+                    resourceName = item.resourceName ?: resMap[item.resourceId]
+                )
             }.demoPage(page, pageSize)
         }
     }
@@ -590,6 +740,9 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             }
             require(input.startsAt < input.endsAt)
             require(input.branchId == null || s.branches.any { it.id == input.branchId && it.businessId == resolvedBusinessId })
+            val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
+            val brName = input.branchId?.let { bid -> s.branches.firstOrNull { it.id == bid }?.name }
+            val resName = input.resourceId?.let { rid -> s.resources.firstOrNull { it.id == rid }?.name }
             val value = ManagementAvailability(
                 id = id,
                 businessId = resolvedBusinessId,
@@ -598,7 +751,10 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 endsAt = input.endsAt,
                 branchId = input.branchId,
                 resourceId = input.resourceId,
-                isAvailable = input.isAvailable
+                isAvailable = input.isAvailable,
+                businessName = bizName,
+                branchName = brName,
+                resourceName = resName
             )
             s.copy(availabilities = listOf(value) + s.availabilities) to value
         }
@@ -608,10 +764,13 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val old = s.availabilities.first { it.id == id }
+            val old = s.availabilities.firstOrNull { it.id == id } ?: error("برنامه زمانی یافت نشد.")
             val resolvedBusinessId = if (input.businessId.isNotBlank() && s.businesses.any { it.id == input.businessId }) input.businessId else old.businessId
             require(input.startsAt < input.endsAt)
             require(input.branchId == null || s.branches.any { it.id == input.branchId && it.businessId == resolvedBusinessId })
+            val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
+            val brName = input.branchId?.let { bid -> s.branches.firstOrNull { it.id == bid }?.name }
+            val resName = input.resourceId?.let { rid -> s.resources.firstOrNull { it.id == rid }?.name }
             val value = old.copy(
                 businessId = resolvedBusinessId,
                 effectiveDate = input.effectiveDate,
@@ -619,7 +778,10 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 endsAt = input.endsAt,
                 branchId = input.branchId,
                 resourceId = input.resourceId,
-                isAvailable = input.isAvailable
+                isAvailable = input.isAvailable,
+                businessName = bizName,
+                branchName = brName,
+                resourceName = resName
             )
             s.copy(availabilities = s.availabilities.map { if (it.id == id) value else it }) to value
         }
@@ -650,7 +812,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
 
     override suspend fun getAppointment(id: String): Result<ManagementAppointment> = runCatching {
         simulateNetworkDelay()
-        read { s -> s.appointments.first { it.id == id } }
+        read { s -> s.appointments.firstOrNull { it.id == id } ?: error("نوبت یافت نشد.") }
     }
 
     override suspend fun setAppointmentStatus(id: String, input: ManagementStatusInput): Result<ManagementAppointment> = runCatching {
@@ -658,7 +820,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         requireActor(false)
         update { s ->
             require(input.status in listOf("Pending", "Confirmed", "Completed", "Cancelled", "NoShow"))
-            val old = s.appointments.first { it.id == id }
+            val old = s.appointments.firstOrNull { it.id == id } ?: error("نوبت یافت نشد.")
             val value = old.copy(status = input.status)
             s.copy(appointments = s.appointments.map { if (it.id == id) value else it }) to value
         }
@@ -684,7 +846,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         update { s ->
             require(input.status in listOf("Pending", "Approved", "Published", "Rejected"))
             val normalized = if (input.status == "Published") "Approved" else input.status
-            val value = s.reviews.first { it.id == id }.copy(status = normalized, managerReply = input.managerReply)
+            val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
+            val value = old.copy(status = normalized, managerReply = input.managerReply)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }
@@ -693,7 +856,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val value = s.reviews.first { it.id == id }.copy(managerReply = input.managerReply)
+            val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
+            val value = old.copy(managerReply = input.managerReply)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }
@@ -702,7 +866,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            val value = s.reviews.first { it.id == id }.copy(active = active)
+            val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }

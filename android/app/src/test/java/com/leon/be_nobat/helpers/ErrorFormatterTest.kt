@@ -39,6 +39,7 @@ class ErrorFormatterTest {
     fun `isConnectionIssue returns false for non-connection errors`() {
         assertFalse(ErrorFormatter.isConnectionIssue(IllegalArgumentException("Invalid input")))
         assertFalse(ErrorFormatter.isConnectionIssue("Email or password is incorrect"))
+        assertFalse(ErrorFormatter.isConnectionIssue("Sign in to continue."))
         assertFalse(ErrorFormatter.isConnectionIssue("404 Not Found"))
         assertFalse(ErrorFormatter.isConnectionIssue(null as Throwable?))
         assertFalse(ErrorFormatter.isConnectionIssue(null as String?))

@@ -32,10 +32,15 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // بدون ذخیره‌ی کلیدها، با هر ری‌استارت/دیپلوی کانتینر همه‌ی کوکی‌های ورود و توکن‌های
-// antiforgery باطل می‌شدند و کاربران بی‌دلیل از حساب بیرون می‌افتادند.
+// antiforgery و توکن‌های برر موبایل باطل می‌شدند و کاربران بی‌دلیل از حساب بیرون می‌افتادند.
 var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (string.IsNullOrWhiteSpace(dataProtectionKeysPath) && builder.Environment.IsDevelopment())
+{
+    dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtection-Keys");
+}
 if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 {
+    Directory.CreateDirectory(dataProtectionKeysPath);
     builder.Services.AddDataProtection()
         .SetApplicationName("BeNobat")
         .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));

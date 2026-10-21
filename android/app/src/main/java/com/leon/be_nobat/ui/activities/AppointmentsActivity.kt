@@ -191,14 +191,16 @@ class AppointmentsActivity : BaseActivity() {
                     tvPrice.text = com.leon.be_nobat.helpers.PersianUtils.formatPrice(item.finalPrice, item.currency)
                     val formattedCode = com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(item.trackingCode)
                     tvTrackingCode.text = root.context.getString(R.string.booking_tracking_code, "\u200E$formattedCode\u200E")
-                    tvStatus.text = when (item.status) {
-                        "Pending" -> root.context.getString(R.string.appointment_status_pending)
-                        "Confirmed" -> root.context.getString(R.string.appointment_status_confirmed)
-                        "Completed" -> root.context.getString(R.string.appointment_status_completed)
-                        "Cancelled" -> root.context.getString(R.string.appointment_status_cancelled)
-                        "NoShow" -> root.context.getString(R.string.appointment_status_no_show)
-                        else -> item.status
+                    val copyTrackingAction = {
+                        val clipboard = root.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("tracking_code", item.trackingCode)
+                        clipboard?.setPrimaryClip(clip)
+                        com.leon.be_nobat.helpers.AppToast.show(root.context, root.context.getString(R.string.tracking_code_copied))
                     }
+                    layoutTrackingCode.setOnClickListener { copyTrackingAction() }
+                    btnCopyTrackingCode.setOnClickListener { copyTrackingAction() }
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatus(tvStatus, item.status)
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, item.status)
                     btnCancel.isVisible = item.canCancel
                     btnReview.isVisible = item.canReview
                     btnCancel.setOnClickListener { onCancel(item) }

@@ -37,7 +37,7 @@ class AdminServicesViewModel(
     fun load() = viewModelScope.launch {
         val s = _state.value
         _state.value = s.copy(loading = true, error = null)
-        list(q = s.searchQuery.ifBlank { null })
+        list(q = s.searchQuery.ifBlank { null }, includeInactive = true)
             .onSuccess { page: ApiPage<ManagementService> ->
                 _state.value = _state.value.copy(loading = false, items = page.items, total = page.total)
             }

@@ -48,6 +48,7 @@ data class ManagementBusiness(
     val description: String = "",
     val requiresApproval: Boolean = false,
     val active: Boolean = false,
+    val firstBranchId: String? = null,
 )
 
 @Serializable
@@ -60,6 +61,9 @@ data class ManagementBranch(
     val openHour: Int = 9,
     val closeHour: Int = 18,
     val active: Boolean = false,
+    val isApproved: Boolean = true,
+    val weeklyHours: List<WeeklyTimeRange>? = null,
+    val businessName: String? = null,
 )
 
 @Serializable
@@ -89,6 +93,10 @@ data class ManagementPerson(
     val email: String? = null,
     val phoneNumber: String? = null,
     val active: Boolean = false,
+    val visits: Int = 0,
+    val rating: Double? = null,
+    val role: String? = null,
+    val branchName: String? = null,
 )
 
 @Serializable
@@ -127,6 +135,9 @@ data class ManagementAvailability(
     val startsAt: String = "09:00:00",
     val endsAt: String = "18:00:00",
     val isAvailable: Boolean = true,
+    val businessName: String? = null,
+    val branchName: String? = null,
+    val resourceName: String? = null,
 )
 
 @Serializable
@@ -230,4 +241,23 @@ data class ManagementCreatedUser(
 data class PlatformResetPasswordResponse(
     val userId: String = "",
     val temporaryPassword: String = "",
+)
+
+@Serializable
+data class BusinessRequest(
+    val id: String = "",
+    val userId: String = "",
+    val businessName: String = "",
+    val category: String = "عمومی",
+    val city: String = "تهران",
+    val description: String = "",
+    val contactPhone: String = "",
+    val firstBranchName: String = "شعبه مرکزی",
+    val firstBranchAddress: String = "",
+    val status: String = "Pending",
+    val reviewNote: String? = null,
+    val approvedBusinessId: String? = null,
+    val createdAt: String = "",
+    val userDisplayName: String? = null,
+    val userPhoneNumber: String? = null,
 )

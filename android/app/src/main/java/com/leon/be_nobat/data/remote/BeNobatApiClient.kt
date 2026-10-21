@@ -135,6 +135,12 @@ class BeNobatApiClient(
     /** DELETE /me/avatar — returns updated user with `avatarUrl:null`. */
     suspend inline fun <reified T> deleteAvatar(): Result<T> = deleteReturning("/me/avatar")
 
+    /** GET /business-request — gets user's current business request. */
+    suspend inline fun <reified T> getMyBusinessRequest(): Result<T> = get("/business-request")
+
+    /** POST /business-request — submits a business request for Platform Admin approval. */
+    suspend inline fun <reified T> submitBusinessRequest(body: JsonObject): Result<T> = post("/business-request", body)
+
     // ====================  PUBLIC DISCOVERY  ====================
 
     /** GET /categories — `{items: CategoryDto[]}`. */
@@ -299,6 +305,10 @@ class BeNobatApiClient(
     /** DELETE /admin/branches/{id}. */
     suspend fun adminDeleteBranch(id: String): Result<Unit> = delete("/admin/branches/$id")
 
+    /** POST /platform/branches/{id}/approve. */
+    suspend inline fun <reified T> platformApproveBranch(id: String): Result<T> =
+        postEmpty("/platform/branches/$id/approve")
+
     /** GET /admin/resources?branchId&businessId&includeInactive&page&pageSize. */
     suspend inline fun <reified T> adminListResources(
         branchId: String? = null, businessId: String? = null, includeInactive: Boolean? = null,
@@ -353,6 +363,9 @@ class BeNobatApiClient(
         parameter("page", page); parameter("pageSize", pageSize)
     }
 
+    /** POST /admin/team — `ManagementTeamMemberInput`. */
+    suspend inline fun <reified T> adminCreateTeamMember(body: JsonObject): Result<T> = post("/admin/team", body)
+
     /** GET /admin/customers?q&branchId&page&pageSize. */
     suspend inline fun <reified T> adminListCustomers(
         q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25,
@@ -361,6 +374,13 @@ class BeNobatApiClient(
         branchId?.let { parameter("branchId", it) }
         parameter("page", page); parameter("pageSize", pageSize)
     }
+
+    /** POST /admin/customers — `ManagementCustomerInput`. */
+    suspend inline fun <reified T> adminCreateCustomer(body: JsonObject): Result<T> = post("/admin/customers", body)
+
+    /** PUT /admin/people/{id}/active — `{active}`. */
+    suspend inline fun <reified T> adminSetPersonActive(id: String, body: JsonObject): Result<T> =
+        put("/admin/people/$id/active", body)
 
     /** GET /admin/services?businessId&branchId&q&includeInactive&page&pageSize. */
     suspend inline fun <reified T> adminListServices(
@@ -615,6 +635,23 @@ class BeNobatApiClient(
     /** POST /platform/users/{id}/reset-password → `{userId, temporaryPassword}`. */
     suspend inline fun <reified T> platformResetUserPassword(id: String): Result<T> =
         postEmpty("/platform/users/$id/reset-password")
+
+    /** GET /platform/business-requests. */
+    suspend inline fun <reified T> platformListBusinessRequests(
+        status: String? = null, q: String? = null, page: Int = 1, pageSize: Int = 25,
+    ): Result<T> = get("/platform/business-requests") {
+        status?.let { parameter("status", it) }
+        q?.let { parameter("q", it) }
+        parameter("page", page); parameter("pageSize", pageSize)
+    }
+
+    /** POST /platform/business-requests/{id}/approve. */
+    suspend inline fun <reified T> platformApproveBusinessRequest(id: String): Result<T> =
+        postEmpty("/platform/business-requests/$id/approve")
+
+    /** POST /platform/business-requests/{id}/reject. */
+    suspend inline fun <reified T> platformRejectBusinessRequest(id: String, body: JsonObject): Result<T> =
+        post("/platform/business-requests/$id/reject", body)
 
     // ====================  INTERNAL HELPERS  ====================
 

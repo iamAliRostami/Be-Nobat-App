@@ -13,8 +13,6 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.ManagementBranch
-import com.leon.be_nobat.domain.model.ManagementBranchInput
-import com.leon.be_nobat.helpers.AdminFormDialog
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.ui.adapters.BaseAdminAdapter
@@ -33,20 +31,9 @@ class AdminBranchesActivity : BaseActivity() {
     private lateinit var adapter: BranchesAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
-    private val openHourOptions by lazy {
-        (6..14).map { h ->
-            AdminFormDialog.DropdownOption(h.toString(), PersianUtils.toPersianDigits("%02d:00".format(Locale.US, h)))
-        }
-    }
-
-    private val closeHourOptions by lazy {
-        (12..24).map { h ->
-            AdminFormDialog.DropdownOption(h.toString(), PersianUtils.toPersianDigits("%02d:00".format(Locale.US, h)))
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requireBusinessManagementPermission()
         findViewById<TabLayout>(R.id.statusTabs).visibility = View.GONE
     }
 
@@ -60,10 +47,16 @@ class AdminBranchesActivity : BaseActivity() {
             onToggleActive = { branch -> viewModel.toggleActive(branch.id, !branch.active) },
             onEdit = { branch -> showEditBranchDialog(branch) },
             onDelete = { branch -> viewModel.delete(branch.id) },
+            onApprove = { branch -> viewModel.approveBranch(branch.id) },
         )
         findViewById<RecyclerView>(R.id.list).apply {
             layoutManager = LinearLayoutManager(this@AdminBranchesActivity)
             this.adapter = this@AdminBranchesActivity.adapter
+        }
+
+        lifecycleScope.launch {
+            adapter.isPlatformAdmin = isPlatformAdmin()
+            adapter.notifyDataSetChanged()
         }
 
         // Show FAB for branches (Owner/Manager/PlatformAdmin only)
@@ -73,59 +66,17 @@ class AdminBranchesActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.load()
+    }
+
     private fun showCreateBranchDialog() {
-        AdminFormDialog.Builder(this)
-            .setTitle(getString(R.string.form_create_branch_title))
-            .field(getString(R.string.form_label_name), "شعبه مرکزی")
-            .field(getString(R.string.form_label_address), "")
-            .dropdownField(getString(R.string.form_label_open_hour), openHourOptions, default = "9")
-            .dropdownField(getString(R.string.form_label_close_hour), closeHourOptions, default = "18")
-            .onSubmit { values ->
-                val businessId = "" // populated by admin context if needed
-                val name = values.getOrNull(0).orEmpty()
-                val address = values.getOrNull(1).orEmpty()
-                val openHour = values.getOrNull(2)?.toIntOrNull() ?: 9
-                val closeHour = values.getOrNull(3)?.toIntOrNull() ?: 18
-                if (name.isBlank()) {
-                    Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
-                    return@onSubmit
-                }
-                viewModel.create(ManagementBranchInput(
-                    businessId = businessId,
-                    name = name,
-                    address = address,
-                    openHour = openHour,
-                    closeHour = closeHour,
-                ))
-            }
-            .show()
+        startActivity(AdminBranchEditActivity.createIntent(this, null))
     }
 
     private fun showEditBranchDialog(item: ManagementBranch) {
-        AdminFormDialog.Builder(this)
-            .setTitle(getString(R.string.form_edit_branch_title))
-            .field(getString(R.string.form_label_name), default = item.name)
-            .field(getString(R.string.form_label_address), default = item.address)
-            .dropdownField(getString(R.string.form_label_open_hour), openHourOptions, default = item.openHour.toString())
-            .dropdownField(getString(R.string.form_label_close_hour), closeHourOptions, default = item.closeHour.toString())
-            .onSubmit { values ->
-                val name = values.getOrNull(0).orEmpty()
-                val address = values.getOrNull(1).orEmpty()
-                val openHour = values.getOrNull(2)?.toIntOrNull() ?: item.openHour
-                val closeHour = values.getOrNull(3)?.toIntOrNull() ?: item.closeHour
-                if (name.isBlank()) {
-                    Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
-                    return@onSubmit
-                }
-                viewModel.update(item.id, ManagementBranchInput(
-                    businessId = item.businessId,
-                    name = name,
-                    address = address,
-                    openHour = openHour,
-                    closeHour = closeHour,
-                ))
-            }
-            .show()
+        startActivity(AdminBranchEditActivity.createIntent(this, item.id))
     }
 
     override fun observeViewModel() {
@@ -142,6 +93,13 @@ class AdminBranchesActivity : BaseActivity() {
         findViewById<android.widget.TextView>(R.id.emptyStateText).isVisible = !state.loading && state.items.isEmpty()
         renderAdminError(state.error) { viewModel.load() }
         adapter.submitList(state.items)
+
+        state.message?.let { msg ->
+            if (msg == "branch_approved") {
+                Snackbar.make(swipeRefresh, R.string.branch_approved_success, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearMessage()
+            }
+        }
         state.error?.let { Snackbar.make(swipeRefresh, com.leon.be_nobat.helpers.ErrorFormatter.format(this, it), Snackbar.LENGTH_SHORT).show() }
     }
 
@@ -149,19 +107,54 @@ class AdminBranchesActivity : BaseActivity() {
         private val onToggleActive: (ManagementBranch) -> Unit,
         private val onEdit: (ManagementBranch) -> Unit,
         private val onDelete: (ManagementBranch) -> Unit,
+        private val onApprove: (ManagementBranch) -> Unit,
     ) : BaseAdminAdapter<ManagementBranch>(simpleDiff({ a, b -> a.id == b.id }, { a, b -> a == b })) {
+        var isPlatformAdmin: Boolean = false
+
         override fun bindHolder(holder: AdminViewHolder, item: ManagementBranch) {
             holder.binding.apply {
                 tvTitle.text = item.name
+
+                val bizName = item.businessName?.takeIf { it.isNotBlank() } ?: "کسب‌وکار"
+                val addr = item.address.trim()
+                tvSubtitle.isVisible = true
+                tvSubtitle.text = if (addr.isNotEmpty()) "$bizName · $addr" else bizName
+
                 val openStr = PersianUtils.toPersianDigits("%02d:00".format(Locale.US, item.openHour))
                 val closeStr = PersianUtils.toPersianDigits("%02d:00".format(Locale.US, item.closeHour))
-                tvBody.text = "$openStr - $closeStr"
-                tvStatus.text = if (item.active) root.context.getString(R.string.set_active) else root.context.getString(R.string.set_inactive)
-                btnAction1.text = if (item.active) root.context.getString(R.string.set_inactive) else root.context.getString(R.string.set_active)
-                btnAction2.isVisible = true
-                btnAction2.text = root.context.getString(R.string.action_edit)
-                btnAction1.setOnClickListener { onToggleActive(item) }
-                btnAction2.setOnClickListener { onEdit(item) }
+                val hoursText = item.weeklyHours?.let {
+                    val daysCount = it.map { range -> range.dayOfWeek }.distinct().size
+                    "${PersianUtils.toPersianDigits(daysCount.toString())} روز فعال، ${PersianUtils.toPersianDigits(it.size.toString())} بازه هفتگی"
+                } ?: "$openStr تا $closeStr"
+                tvBody.isVisible = true
+                tvBody.text = "ساعت کاری: $hoursText"
+
+                if (!item.isApproved) {
+                    tvStatus.text = root.context.getString(R.string.branch_pending_approval)
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvStatus, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.PENDING)
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, "Pending")
+
+                    if (isPlatformAdmin) {
+                        btnAction1.isVisible = true
+                        btnAction1.text = root.context.getString(R.string.branch_approve_action)
+                        btnAction1.setOnClickListener { onApprove(item) }
+                    } else {
+                        btnAction1.isVisible = false
+                    }
+                    btnAction2.isVisible = true
+                    btnAction2.text = root.context.getString(R.string.action_edit)
+                    btnAction2.setOnClickListener { onEdit(item) }
+                } else {
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)
+                    com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, if (item.active) "Confirmed" else "Cancelled")
+
+                    btnAction1.isVisible = true
+                    btnAction1.text = if (item.active) root.context.getString(R.string.set_inactive) else root.context.getString(R.string.set_active)
+                    btnAction1.setOnClickListener { onToggleActive(item) }
+                    btnAction2.isVisible = true
+                    btnAction2.text = root.context.getString(R.string.action_edit)
+                    btnAction2.setOnClickListener { onEdit(item) }
+                }
                 root.setOnClickListener { onEdit(item) }
             }
         }

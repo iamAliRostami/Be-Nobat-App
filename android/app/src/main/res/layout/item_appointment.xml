@@ -11,11 +11,31 @@
     android:layout_marginEnd="6dp"
     android:layout_marginBottom="6dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
+
+        <View
+            android:id="@+id/viewStatusIndicator"
+            android:layout_width="5dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:visibility="visible"
+            tools:background="@color/status_indicator_confirmed" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:paddingStart="18dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -28,6 +48,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginEnd="8dp"
                 android:textAppearance="@style/TextAppearance.BeNobat.Headline"
                 tools:text="کلینیک پارس" />
 
@@ -35,12 +56,18 @@
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:background="?attr/colorSecondaryContainer"
-                android:textColor="?attr/colorOnSecondaryContainer"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:gravity="center"
+                android:fontFamily="@font/app_font"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:singleLine="true"
+                android:background="@drawable/bg_status_badge_confirmed"
+                android:textColor="@color/status_confirmed_text"
                 tools:text="تأیید شده" />
         </LinearLayout>
 
@@ -84,13 +111,32 @@
             android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
             tools:text="15,000 تومان" />
 
-        <TextView
-            android:id="@+id/tvTrackingCode"
+        <LinearLayout
+            android:id="@+id/layoutTrackingCode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-            tools:text="کد پیگیری: ABC12345" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvTrackingCode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                tools:text="کد پیگیری: ABC12345" />
+
+            <ImageView
+                android:id="@+id/btnCopyTrackingCode"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/copy_tracking_code"
+                android:padding="5dp"
+                android:src="@drawable/ic_copy"
+                app:tint="?attr/colorPrimary" />
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -119,4 +165,5 @@
                 android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

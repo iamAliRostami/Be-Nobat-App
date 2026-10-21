@@ -99,6 +99,107 @@
             </div>
             <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">تغییر گذرواژه</button></div>
         </form>
+
+        @* بخش درخواست ارتقا به مدیر کسب‌وکار / ثبت کسب‌وکار *@
+        <article class="admin-panel profile-form profile-card profile-business-card" aria-labelledby="profile-business-heading">
+            <header class="profile-card-head"><h2 id="profile-business-heading">کسب‌وکار و مدیریت</h2></header>
+            @if (IsAlreadyManager)
+            {
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+                    <span class="status confirmed" style="font-size:0.9rem; padding:0.35rem 0.75rem;">مدیر فعال</span>
+                    <span style="color:var(--text-muted, #64748b); font-size:0.9rem;">شما دارای دسترسی مدیریت کسب‌وکار در سامانه هستید.</span>
+                </div>
+                <a class="primary-button action-primary" href="/admin" style="display:inline-block; text-align:center;">ورود به پنل مدیریت</a>
+            }
+            else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Pending)
+            {
+                <div style="background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; font-weight:600;">
+                        <span>⏳</span>
+                        <span>درخواست شما در انتظار بررسی مدیریت سامانه است</span>
+                    </div>
+                    <p style="margin:0.5rem 0 0; font-size:0.875rem; color:#b45309;">
+                        اطلاعات کسب‌وکار «@LatestRequest.BusinessName» ثبت شده و پس از بررسی و تأیید مدیر کل، حساب شما به «مدیر کسب‌وکار» ارتقا خواهد یافت.
+                    </p>
+                </div>
+                <dl style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; font-size:0.85rem; margin-bottom:0.5rem;">
+                    <div><dt style="color:#64748b;">نام کسب‌وکار:</dt><dd><b>@LatestRequest.BusinessName</b></dd></div>
+                    <div><dt style="color:#64748b;">دسته‌بندی:</dt><dd>@LatestRequest.Category</dd></div>
+                    <div><dt style="color:#64748b;">شهر:</dt><dd>@LatestRequest.City</dd></div>
+                    <div><dt style="color:#64748b;">شعبه اول:</dt><dd>@LatestRequest.FirstBranchName</dd></div>
+                </dl>
+            }
+            else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Rejected && !ShowRequestForm)
+            {
+                <div style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; font-weight:600;">
+                        <span>❌</span>
+                        <span>درخواست قبلی شما رد شد</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(LatestRequest.ReviewNote))
+                    {
+                        <p style="margin:0.5rem 0 0; font-size:0.875rem; color:#b91c1c;">
+                            توضیح مدیریت: @LatestRequest.ReviewNote
+                        </p>
+                    }
+                </div>
+                <button type="button" class="primary-button action-primary" @onclick="() => ShowRequestForm = true">ارسال مجدد درخواست</button>
+            }
+            else
+            {
+                <p style="font-size:0.875rem; color:#64748b; margin-bottom:1rem;">
+                    با ثبت درخواست کسب‌وکار و تأیید مدیر کل سامانه، حساب شما به «مدیر کسب‌وکار» ارتقا یافته و می‌توانید خدمات، نوبت‌ها و شعب خود را مدیریت کنید.
+                </p>
+                @if (RequestSuccessMessage is not null)
+                {
+                    <div class="success-notice" style="margin-bottom:0.75rem;">@RequestSuccessMessage</div>
+                }
+                @if (RequestErrorMessage is not null)
+                {
+                    <div class="auth-error" style="margin-bottom:0.75rem;">@RequestErrorMessage</div>
+                }
+                <EditForm Model="BusinessForm" OnValidSubmit="SubmitBusinessRequest">
+                    <div class="profile-fields">
+                        <label>نام کسب‌وکار <strong class="req">*</strong>
+                            <input required maxlength="100" placeholder="مثال: سالن زیبایی پروانه" @bind="BusinessForm.BusinessName" disabled="@IsSubmittingRequest" />
+                        </label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                            <label>دسته‌بندی <strong class="req">*</strong>
+                                <select @bind="BusinessForm.Category" disabled="@IsSubmittingRequest" required>
+                                    <option value="">— انتخاب دسته‌بندی —</option>
+                                    @foreach (var cat in Categories)
+                                    {
+                                        <option value="@cat">@cat</option>
+                                    }
+                                </select>
+                            </label>
+                            <label>شهر <strong class="req">*</strong>
+                                <input required maxlength="50" placeholder="مثال: تهران" @bind="BusinessForm.City" disabled="@IsSubmittingRequest" />
+                            </label>
+                        </div>
+                        <label>شماره تماس کسب‌وکار <strong class="req">*</strong>
+                            <input type="tel" required maxlength="14" dir="ltr" placeholder="مثلاً ۰۲۱۱۲۳۴۵۶۷۸ یا ۰۹۱۲..." @bind="BusinessForm.Phone" disabled="@IsSubmittingRequest" />
+                        </label>
+                        <label>نام اولین شعبه <strong class="req">*</strong>
+                            <input required maxlength="100" placeholder="مثال: شعبه مرکزی" @bind="BusinessForm.FirstBranchName" disabled="@IsSubmittingRequest" />
+                        </label>
+                        <label>نشانی اولین شعبه <strong class="req">*</strong>
+                            <input required maxlength="250" placeholder="مثال: خیابان ولیعصر، پلاک ۱۰" @bind="BusinessForm.Address" disabled="@IsSubmittingRequest" />
+                        </label>
+                        <label>توضیحات کسب‌وکار
+                            <textarea rows="3" maxlength="1000" placeholder="توضیح مختصری درباره خدمات و فعالیت کسب‌وکار..." @bind="BusinessForm.Description" disabled="@IsSubmittingRequest"></textarea>
+                        </label>
+                    </div>
+                    <div class="profile-card-actions" style="margin-top:1rem;">
+                        <button type="submit" disabled="@IsSubmittingRequest" class="primary-button action-primary">ارسال درخواست برای مدیریت</button>
+                        @if (LatestRequest is not null)
+                        {
+                            <button type="button" class="action-secondary" @onclick="() => ShowRequestForm = false">انصراف</button>
+                        }
+                    </div>
+                </EditForm>
+            }
+        </article>
         </div>
     </div>
 </section>
@@ -118,6 +219,15 @@
     private string? Message;
     private string? ErrorMessage;
     private bool IsSaving;
+
+    private bool IsAlreadyManager;
+    private BusinessRequest? LatestRequest;
+    private bool ShowRequestForm;
+    private bool IsSubmittingRequest;
+    private string? RequestSuccessMessage;
+    private string? RequestErrorMessage;
+    private List<string> Categories = [];
+    private BusinessUpgradeInput BusinessForm = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,6 +272,25 @@
             .Select(x => x.Rating).ToListAsync();
         ReceivedCount = ratings.Count;
         ReceivedRating = ratings.Count == 0 ? null : ratings.Average(x => (double)x);
+
+        IsAlreadyManager = await users.IsInRoleAsync(User, AppRoles.Owner) ||
+                           await users.IsInRoleAsync(User, AppRoles.Manager) ||
+                           await users.IsInRoleAsync(User, AppRoles.PlatformAdmin);
+
+        Categories = await db.CategoryDefinitions.AsNoTracking().Where(c => c.Kind == CategoryKind.Business && c.IsActive).OrderBy(c => c.SortOrder).ThenBy(c => c.Name).Select(c => c.Name).ToListAsync();
+        if (Categories.Count == 0) Categories = ["آرایشی و پیرایشی", "پزشکی و سلامت", "آموزش", "ورزش و تناسب اندام", "خدمات عمومی"];
+
+        if (!IsAlreadyManager)
+        {
+            LatestRequest = await db.BusinessRequests.AsNoTracking()
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (!string.IsNullOrWhiteSpace(User.PhoneNumber))
+            {
+                BusinessForm.Phone = User.PhoneNumber;
+            }
+        }
     }
 
     private async Task<AppUser?> FreshUserAsync(UserManager<AppUser> users)
@@ -310,5 +439,75 @@
         public string DisplayName { get; set; } = "";
         public string Email { get; set; } = "";
         public string Phone { get; set; } = "";
+    }
+
+    private sealed class BusinessUpgradeInput
+    {
+        public string BusinessName { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string City { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string FirstBranchName { get; set; } = "شعبه اصلی";
+        public string Address { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+
+    private async Task SubmitBusinessRequest()
+    {
+        if (User is null || IsSubmittingRequest) return;
+        RequestSuccessMessage = RequestErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(BusinessForm.BusinessName) ||
+            string.IsNullOrWhiteSpace(BusinessForm.Category) ||
+            string.IsNullOrWhiteSpace(BusinessForm.City) ||
+            string.IsNullOrWhiteSpace(BusinessForm.FirstBranchName) ||
+            string.IsNullOrWhiteSpace(BusinessForm.Address) ||
+            string.IsNullOrWhiteSpace(BusinessForm.Phone))
+        {
+            RequestErrorMessage = "لطفاً تمامی فیلدهای ستاره‌دار را تکمیل کنید.";
+            return;
+        }
+
+        IsSubmittingRequest = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var existingPending = await db.BusinessRequests.AnyAsync(r => r.UserId == User.Id && r.Status == BusinessRequestStatus.Pending);
+            if (existingPending)
+            {
+                RequestErrorMessage = "شما در حال حاضر یک درخواست در حال بررسی دارید.";
+                return;
+            }
+
+            var request = new BusinessRequest
+            {
+                UserId = User.Id,
+                BusinessName = BusinessForm.BusinessName.Trim(),
+                Category = BusinessForm.Category.Trim(),
+                City = BusinessForm.City.Trim(),
+                ContactPhone = BusinessForm.Phone.Trim(),
+                FirstBranchName = BusinessForm.FirstBranchName.Trim(),
+                FirstBranchAddress = BusinessForm.Address.Trim(),
+                Description = BusinessForm.Description.Trim(),
+                Status = BusinessRequestStatus.Pending,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            db.BusinessRequests.Add(request);
+            await db.SaveChangesAsync();
+
+            LatestRequest = request;
+            ShowRequestForm = false;
+            RequestSuccessMessage = "درخواست شما با موفقیت ثبت شد و به مدیریت سامانه ارسال گردید.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error submitting business request");
+            RequestErrorMessage = "خطایی در ثبت درخواست رخ داد. لطفاً مجدداً تلاش نمایید.";
+        }
+        finally
+        {
+            IsSubmittingRequest = false;
+        }
     }
 }

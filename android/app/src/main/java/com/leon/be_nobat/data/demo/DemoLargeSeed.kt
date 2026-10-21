@@ -75,6 +75,8 @@ internal fun DemoDatabaseState.expanded(): DemoDatabaseState {
                     startsAt = String.format(java.util.Locale.US, "%02d:00:00", branch.openHour),
                     endsAt = String.format(java.util.Locale.US, "%02d:00:00", branch.closeHour),
                     isAvailable = true,
+                    businessName = b.name,
+                    branchName = branch.name,
                 )
             }
         }

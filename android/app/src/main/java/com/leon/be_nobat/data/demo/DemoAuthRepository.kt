@@ -72,7 +72,7 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         simulateNetworkDelay(minMs = 100L, maxMs = 200L)
         val id = current().id
         val user = dataStore.read { s ->
-            val u = s.users.first { it.id == id }
+            val u = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
             check(u.active)
             u.toUser(s.avatars[id])
         }
@@ -83,9 +83,10 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         simulateNetworkDelay()
         val id = current().id
         val user = dataStore.update { s ->
-            val u = s.users.first { it.id == id }.copy(
-                displayName = input.displayName ?: s.users.first { it.id == id }.displayName,
-                phoneNumber = input.phoneNumber ?: s.users.first { it.id == id }.phoneNumber
+            val existing = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val u = existing.copy(
+                displayName = input.displayName ?: existing.displayName,
+                phoneNumber = input.phoneNumber ?: existing.phoneNumber
             )
             s.copy(
                 users = s.users.map { if (it.id == id) u else it },
@@ -114,7 +115,7 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
             if (input.currentPassword != (s.passwords[id] ?: "Demo1234!")) throw AuthException.InvalidCredentials
             require(!input.email.isNullOrBlank())
             if (s.users.any { it.id != id && it.email.equals(input.email, true) }) throw AuthException.DuplicateEmail
-            val u = s.users.first { it.id == id }.copy(email = input.email.trim())
+            val u = (s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")).copy(email = input.email.trim())
             s.copy(users = s.users.map { if (it.id == id) u else it }) to u.toUser(s.avatars[id])
         }
         save(user)
@@ -134,5 +135,39 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         val user = current()
         dataStore.update { s -> s.copy(avatars = s.avatars - user.id) to Unit }
         save(user.copy(avatarUrl = null)).user
+    }
+
+    override suspend fun getMyBusinessRequest(): Result<BusinessRequest?> = runCatching {
+        simulateNetworkDelay()
+        val actor = current()
+        dataStore.read { s ->
+            s.businessRequests.filter { it.userId == actor.id }.maxByOrNull { it.createdAt }
+        }
+    }
+
+    override suspend fun submitBusinessRequest(input: BusinessRequestInput): Result<BusinessRequest> = runCatching {
+        simulateNetworkDelay()
+        val actor = current()
+        require(input.businessName.isNotBlank() && input.city.isNotBlank() && input.contactPhone.isNotBlank())
+        dataStore.update { s ->
+            val pending = s.businessRequests.any { it.userId == actor.id && it.status == "Pending" }
+            require(!pending) { "شما در حال حاضر یک درخواست در حال بررسی دارید." }
+            val req = BusinessRequest(
+                id = demoId(),
+                userId = actor.id,
+                businessName = input.businessName.trim(),
+                category = input.category.trim().ifBlank { "عمومی" },
+                city = input.city.trim().ifBlank { "تهران" },
+                description = input.description.trim(),
+                contactPhone = input.contactPhone.trim(),
+                firstBranchName = input.firstBranchName.trim().ifBlank { "شعبه مرکزی" },
+                firstBranchAddress = input.firstBranchAddress.trim(),
+                status = "Pending",
+                createdAt = demoNow(),
+                userDisplayName = actor.displayName,
+                userPhoneNumber = actor.phoneNumber ?: input.contactPhone.trim()
+            )
+            s.copy(businessRequests = listOf(req) + s.businessRequests) to req
+        }
     }
 }

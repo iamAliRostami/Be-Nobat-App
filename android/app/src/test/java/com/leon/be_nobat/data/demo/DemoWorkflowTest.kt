@@ -226,4 +226,199 @@ class DemoWorkflowTest {
         assertTrue("Availabilities should be populated", s.availabilities.isNotEmpty())
         assertTrue("Customer reviews should be populated", s.customerReviews.isNotEmpty())
     }
+    @Test fun `business creates editable central branch and persists weekly hours`() = runBlocking {
+        val db = store(); val token = tokens()
+        DemoAuthRepository(db, token).login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val platform = DemoPlatformRepository(db, token)
+        val management = DemoManagementRepository(db, token)
+        val business = platform.createBusiness(ManagementBusinessInput(name = "برنامه هفتگی")).getOrThrow()
+        val central = management.listBranches(businessId = business.id).getOrThrow().items.single()
+        assertEquals("شعبه مرکزی", central.name)
+        assertEquals(WeeklyHours.defaults(), central.weeklyHours)
+        val custom = listOf(WeeklyTimeRange(6, "08:30:00", "12:00:00"), WeeklyTimeRange(6, "14:00:00", "20:00:00"))
+        management.createBranch(ManagementBranchInput(business.id, "شعبه دوم", weeklyHours = emptyList())).getOrThrow()
+        platform.updateBusiness(business.id, ManagementBusinessInput(name = business.name, firstBranchName = "مرکزی جدید", firstBranchAddress = "خیابان بهار", firstBranchWeeklyHours = custom)).getOrThrow()
+        val saved = store().read { it.branches.first { b -> b.id == central.id } }
+        assertEquals("مرکزی جدید", saved.name)
+        assertEquals(custom, saved.weeklyHours)
+        assertEquals(central.id, platform.listBusinesses(q = business.name).getOrThrow().items.single().firstBranchId)
+        assertEquals(emptyList<WeeklyTimeRange>(), management.listBranches(businessId = business.id).getOrThrow().items.first { it.id != central.id }.weeklyHours)
+    }
+
+    @Test fun `weekly booking respects days split intervals closed weeks and validation`() = runBlocking {
+        val db = store()
+        val custom = listOf(WeeklyTimeRange(6, "08:00:00", "12:00:00"), WeeklyTimeRange(6, "14:00:00", "20:00:00"))
+        db.update { s -> s.copy(branches = s.branches.map { if (it.id == "br_diplomat_1") it.copy(weeklyHours = custom) else it }, appointments = emptyList(), availabilities = emptyList()) to Unit }
+        val saturday = db.read { it.slots("biz_diplomat", "br_diplomat_1", listOf("srv_dip_1"), "2030-01-05", "res_dip_1", includePastSlots = true) }
+        assertTrue(saturday.slots.isNotEmpty())
+        assertTrue(saturday.slots.all { it.endsAt.substring(11) <= "12:00:00" || it.startsAt.substring(11) >= "14:00:00" })
+        assertTrue(db.read { it.slots("biz_diplomat", "br_diplomat_1", listOf("srv_dip_1"), "2030-01-04", "res_dip_1", includePastSlots = true).slots.isEmpty() })
+        assertNotNull(WeeklyHours.validate(listOf(WeeklyTimeRange(6, "12:00:00", "08:00:00"))))
+        assertNotNull(WeeklyHours.validate(custom + WeeklyTimeRange(6, "11:00:00", "15:00:00")))
+        db.update { s -> s.copy(branches = s.branches.map { if (it.id == "br_diplomat_1") it.copy(weeklyHours = emptyList()) else it }) to Unit }
+        assertTrue(db.read { it.slots("biz_diplomat", "br_diplomat_1", listOf("srv_dip_1"), "2030-01-05", "res_dip_1", includePastSlots = true).slots.isEmpty() })
+    }
+
+    @Test fun `demo datastore recovers gracefully from corrupted json`(): Unit = runBlocking {
+        val db = store()
+        // Initialize file
+        db.read { it.businesses.size }
+        val dbFile = File(temp.root, "demo_database.json")
+        assertTrue(dbFile.exists())
+        // Corrupt the json file
+        dbFile.writeText("{ corrupted_json: true, invalid !!!")
+        // Create new store instance pointing to same directory
+        val recoveredDb = store()
+        val count = recoveredDb.read { it.businesses.size }
+        assertTrue("Should cleanly recover and populate seed data", count > 0)
+    }
+
+    @Test fun `availability CRUD is durable and persists across sessions`(): Unit = runBlocking {
+        val db = store(); val token = tokens()
+        DemoAuthRepository(db, token).login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val mgmt = DemoManagementRepository(db, token)
+        val input = ManagementAvailabilityInput(
+            businessId = "biz_diplomat",
+            branchId = "br_diplomat_1",
+            resourceId = "res_dip_1",
+            effectiveDate = "2030-05-01",
+            startsAt = "08:00:00",
+            endsAt = "18:00:00",
+            isAvailable = true
+        )
+        val created = mgmt.createAvailability(input).getOrThrow()
+        assertEquals("2030-05-01", created.effectiveDate)
+
+        // Read in a new store instance (reopened from disk)
+        val reopened = store()
+        val reopenedMgmt = DemoManagementRepository(reopened, token)
+        val listed = reopenedMgmt.listAvailability(branchId = "br_diplomat_1", from = "2030-05-01", to = "2030-05-01").getOrThrow().items
+        assertTrue(listed.any { it.id == created.id })
+
+        // Update availability
+        val updated = reopenedMgmt.updateAvailability(created.id, input.copy(endsAt = "20:00:00")).getOrThrow()
+        assertEquals("20:00:00", updated.endsAt)
+
+        // Delete availability
+        reopenedMgmt.deleteAvailability(created.id).getOrThrow()
+        val afterDelete = store().read { s -> s.availabilities.none { it.id == created.id } }
+        assertTrue("Availability should be deleted from durable storage", afterDelete)
+    }
+
+    @Test fun `branch and business inactive filter behaves properly`(): Unit = runBlocking {
+        val db = store(); val token = tokens()
+        DemoAuthRepository(db, token).login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val mgmt = DemoManagementRepository(db, token)
+        val branches = mgmt.listBranches(includeInactive = true).getOrThrow().items
+        val targetBranch = branches.first { it.active }
+
+        // Deactivate branch
+        mgmt.setBranchActive(targetBranch.id, false).getOrThrow()
+
+        // includeInactive = true includes it
+        val withInactive = mgmt.listBranches(includeInactive = true).getOrThrow().items
+        assertTrue(withInactive.any { it.id == targetBranch.id && !it.active })
+
+        // includeInactive = false or default hides it
+        val withoutInactive = mgmt.listBranches(includeInactive = false).getOrThrow().items
+        assertFalse(withoutInactive.any { it.id == targetBranch.id })
+
+        // Re-activate
+        mgmt.setBranchActive(targetBranch.id, true).getOrThrow()
+        Unit
+    }
+
+    @Test fun `business request submission and platform approval promotes user to owner with business and branch`(): Unit = runBlocking {
+        val db = store(); val token = tokens()
+        val auth = DemoAuthRepository(db, token)
+
+        // 1. Normal user logs in
+        val userSession = auth.login("user@benobat.ir", "Demo1234!").getOrThrow()
+        val user = userSession.user
+        assertFalse(user.isStaff)
+
+        // 2. Submit business request
+        val input = BusinessRequestInput(
+            businessName = "کلینیک تخصصی نوین",
+            category = "پزشکی و سلامت",
+            city = "اصفهان",
+            description = "مرکز تخصصی پوست و مو",
+            contactPhone = "09130000000",
+            firstBranchName = "شعبه اصلی اصفهان",
+            firstBranchAddress = "خیابان چهارباغ بالا",
+        )
+        val submitted = auth.submitBusinessRequest(input).getOrThrow()
+        assertEquals("Pending", submitted.status)
+        assertEquals("کلینیک تخصصی نوین", submitted.businessName)
+
+        val myReq = auth.getMyBusinessRequest().getOrThrow()
+        assertNotNull(myReq)
+        assertEquals("Pending", myReq?.status)
+
+        // 3. Admin logs in and reviews requests
+        val adminAuth = DemoAuthRepository(db, token)
+        adminAuth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val platform = DemoPlatformRepository(db, token)
+
+        val pendingRequests = platform.listBusinessRequests(status = "Pending").getOrThrow().items
+        val targetReq = pendingRequests.firstOrNull { it.id == submitted.id }
+        assertNotNull("Submitted request should be listed under Pending", targetReq)
+
+        // 4. Admin approves request
+        val approved = platform.approveBusinessRequest(submitted.id).getOrThrow()
+        assertEquals("Approved", approved.status)
+        assertNotNull(approved.approvedBusinessId)
+
+        // 5. Verify database state
+        val updatedUser = db.read { s -> s.users.first { it.id == user.id } }
+        assertTrue("User should now have Owner role", updatedUser.roles.contains("Owner"))
+
+        val createdBiz = db.read { s -> s.businesses.first { it.id == approved.approvedBusinessId } }
+        assertEquals("کلینیک تخصصی نوین", createdBiz.name)
+
+        val createdBranch = db.read { s -> s.branches.first { it.businessId == createdBiz.id } }
+        assertEquals("شعبه اصلی اصفهان", createdBranch.name)
+        assertTrue("First branch from business approval should be approved", createdBranch.isApproved)
+
+        val membership = db.read { s -> s.memberships.first { it.branchId == createdBranch.id && it.userId == user.id } }
+        assertEquals("Owner", membership.role)
+    }
+
+    @Test fun `branch created by manager requires platform admin approval`(): Unit = runBlocking {
+        val db = store(); val token = tokens()
+        val auth = DemoAuthRepository(db, token)
+
+        // Manager logs in
+        auth.login("manager@benobat.ir", "Demo1234!").getOrThrow()
+        val mgmt = DemoManagementRepository(db, token)
+        val bizId = "biz_diplomat"
+
+        // Manager creates new branch
+        val branchInput = ManagementBranchInput(
+            businessId = bizId,
+            name = "شعبه دوم دیپلمات",
+            address = "ونک، خیابان ملاصدرا",
+            timeZoneId = "Asia/Tehran",
+            openHour = 9,
+            closeHour = 21,
+        )
+        val createdBranch = mgmt.createBranch(branchInput).getOrThrow()
+        assertFalse("Branch created by non-platform admin should have isApproved = false", createdBranch.isApproved)
+
+        // Public discovery should hide unapproved branch
+        val publicRepo = DemoBusinessRepository(db)
+        val publicBranchesBefore = publicRepo.listBranches(bizId).getOrThrow().items
+        assertFalse("Unapproved branch should not be visible to public", publicBranchesBefore.any { it.id == createdBranch.id })
+
+        // Platform admin logs in and approves branch
+        auth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val platform = DemoPlatformRepository(db, token)
+        val approvedBranch = platform.approveBranch(createdBranch.id).getOrThrow()
+        assertTrue("Branch should now be approved", approvedBranch.isApproved)
+
+        // Public discovery should now show the branch
+        val publicBranchesAfter = publicRepo.listBranches(bizId).getOrThrow().items
+        assertTrue("Approved branch should now be visible to public", publicBranchesAfter.any { it.id == createdBranch.id })
+    }
 }
+

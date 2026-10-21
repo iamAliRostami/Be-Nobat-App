@@ -48,27 +48,97 @@
 @if (ShowForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="Form" FormName="platform-business" OnValidSubmit="Save" class="form-modal" @onclick:stopPropagation>
-            <div><h2>@(EditingId is null ? "کسب‌وکار جدید" : "ویرایش کسب‌وکار")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-            <label>نام<input required @bind="Form.Name" /></label>
-            <label>شناسه URL (اختیاری؛ خالی بماند خودکار ساخته می‌شود)<input dir="ltr" @bind="Form.Slug" /></label>
-            <div class="form-columns">
-                <label>دسته‌بندی
-                    <select @bind="Form.Category">
-                        @foreach (var category in CategoryNames) { <option value="@category">@category</option> }
-                    </select>
-                </label>
-                <label>شهر<input @bind="Form.City" /></label>
+        <EditForm Model="Form" FormName="platform-business" OnValidSubmit="Save" class="form-modal business-form-modal" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>@(EditingId is null ? "کسب‌وکار جدید" : "ویرایش کسب‌وکار")</h2>
+                    <p class="modal-subtitle">@(EditingId is null ? "مشخصات کسب‌وکار، شعبه اولیه و ساعات کاری را وارد کنید." : "ویرایش مشخصات کسب‌وکار و شعبه مرکزی")</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
             </div>
-            <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
-            <label class="check-label"><input type="checkbox" @bind="Form.RequiresApproval" /><span>نوبت‌های جدید باید توسط مجموعه تأیید شوند</span></label>
-            @if (EditingId is null)
-            {
-                <label>نام شعبه‌ی اول<input @bind="Form.FirstBranchName" /></label>
-                <label>ایمیل مالک (اختیاری؛ باید قبلاً ثبت‌نام کرده باشد)<input type="email" dir="ltr" @bind="Form.OwnerEmail" /></label>
-            }
-            @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
-            <button class="primary-button" disabled="@Saving">ذخیره</button>
+
+            <div class="modal-body">
+                <div class="form-section">
+                    <h3 class="section-title"><span>🏢</span> مشخصات کسب‌وکار</h3>
+                    <div class="form-grid">
+                        <label class="field-full">
+                            <span>نام کسب‌وکار <strong class="req">*</strong></span>
+                            <input required placeholder="مثال: سالن زیبایی نیلوفر" @bind="Form.Name" />
+                        </label>
+                        <label class="field-full">
+                            <span>شناسه URL اینترنتی <small>(اختیاری؛ در صورت خالی بودن خودکار از روی نام ساخته می‌شود)</small></span>
+                            <div class="input-prefix-wrapper">
+                                <span class="input-prefix" dir="ltr">benobat.ir/</span>
+                                <input dir="ltr" placeholder="niloofar-beauty" @bind="Form.Slug" />
+                            </div>
+                        </label>
+                        <label>
+                            <span>دسته‌بندی <strong class="req">*</strong></span>
+                            <select @bind="Form.Category">
+                                @foreach (var category in CategoryNames) { <option value="@category">@category</option> }
+                            </select>
+                        </label>
+                        <label>
+                            <span>شهر <strong class="req">*</strong></span>
+                            <input placeholder="مثال: تهران" @bind="Form.City" />
+                        </label>
+                        <label class="field-full">
+                            <span>توضیحات معرفی مجموعه</span>
+                            <textarea rows="3" placeholder="توضیحاتی درباره تخصص، امکانات و خدمات این کسب‌وکار..." @bind="Form.Description"></textarea>
+                        </label>
+                        <div class="field-full">
+                            <label class="check-card">
+                                <input type="checkbox" @bind="Form.RequiresApproval" />
+                                <div>
+                                    <b>نوبت‌های جدید باید توسط مجموعه تأیید شوند</b>
+                                    <small>در صورت فعال بودن، رزروهای مشتریان ابتدا در وضعیت «در انتظار» ثبت شده و نیازمند تأیید منشی یا مدیر خواهند بود.</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title"><span>📍</span> مشخصات شعبه مرکزی</h3>
+                    <div class="form-grid">
+                        <label class="field-half">
+                            <span>نام شعبه <strong class="req">*</strong></span>
+                            <input required placeholder="مثال: شعبه مرکزی" @bind="Form.FirstBranchName" />
+                        </label>
+                        <label class="field-half">
+                            <span>نشانی شعبه</span>
+                            <input placeholder="مثال: خیابان ولیعصر، نرسیده به میدان ونک..." @bind="Form.FirstBranchAddress" />
+                        </label>
+                    </div>
+
+                    <div class="weekly-schedule-wrapper">
+                        <WeeklyHoursEditor Hours="Form.FirstBranchWeeklyHours" />
+                    </div>
+                </div>
+
+                @if (EditingId is null)
+                {
+                    <div class="form-section">
+                        <h3 class="section-title"><span>👤</span> اتصال مدیر یا مالک</h3>
+                        <label class="field-full">
+                            <span>ایمیل مالک <small>(اختیاری؛ کاربر باید قبلاً در سامانه ثبت‌نام کرده باشد)</small></span>
+                            <input type="email" dir="ltr" placeholder="owner@example.com" @bind="Form.OwnerEmail" />
+                        </label>
+                    </div>
+                }
+
+                @if (Error is not null)
+                {
+                    <div class="auth-error" role="alert">@Error</div>
+                }
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="Close">انصراف</button>
+                <button type="submit" class="primary-button" disabled="@Saving">
+                    @(Saving ? "در حال ذخیره..." : (EditingId is null ? "ثبت کسب‌وکار" : "ذخیره تغییرات"))
+                </button>
+            </div>
         </EditForm>
     </div>
 }
@@ -136,7 +206,7 @@
         if (!await EnsureAccess()) return;
         await using var db = await DbFactory.CreateDbContextAsync();
         Items = await db.Businesses.IgnoreQueryFilters().AsNoTracking()
-            .Include(x => x.Branches.Where(branch => branch.DeletedAt == null))
+            .Include(x => x.Branches.Where(branch => branch.DeletedAt == null)).ThenInclude(x => x.AvailabilityRules)
             .Include(x => x.Services.Where(service => service.DeletedAt == null))
             .OrderBy(x => x.Name).ToListAsync();
         CategoryNames = await db.CategoryDefinitions.AsNoTracking()
@@ -165,8 +235,12 @@
         EditingId = x.Id;
         Error = Message = null;
         EnsureCategory(x.Category);
+        var firstBranch = x.Branches.OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).FirstOrDefault();
         Form = new()
         {
+            FirstBranchName = firstBranch?.Name ?? "شعبه مرکزی",
+            FirstBranchAddress = firstBranch?.Address ?? "",
+            FirstBranchWeeklyHours = firstBranch is null ? WeeklySchedule.Default() : WeeklySchedule.Read(firstBranch),
             Name = x.Name, Slug = x.Slug, Category = x.Category, City = x.City,
             Description = x.Description, RequiresApproval = x.RequiresApproval,
         };
@@ -202,7 +276,8 @@
         if (form.Category.Length is 0 or > 200) return "یک دسته‌بندی معتبر انتخاب کنید.";
         if (form.City.Length > 100 || form.Description.Length > 5000 || form.FirstBranchName.Length > 200 || form.OwnerEmail.Length > 256)
             return "شهر، توضیحات، نام شعبه یا ایمیل بیش از حد طولانی است.";
-        return null;
+        if (form.FirstBranchName.Length == 0 || form.FirstBranchAddress.Length > 1000) return "نام و نشانی شعبه معتبر نیست.";
+        return WeeklySchedule.Validate(form.FirstBranchWeeklyHours);
     }
 
     private static IQueryable<Business> SlugConflicts(AppDbContext db, string slug, Guid? editingId) =>
@@ -257,17 +332,18 @@
             business.RequiresApproval = Form.RequiresApproval;
             business.UpdatedAt = DateTimeOffset.UtcNow;
 
-            if (EditingId is null)
+            if (EditingId is null) db.Businesses.Add(business);
+            var branch = EditingId is null ? null : await db.Branches.IgnoreQueryFilters().Include(b => b.AvailabilityRules)
+                .Where(b => b.BusinessId == business.Id && b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).FirstOrDefaultAsync();
+            if (branch is null)
             {
-                db.Businesses.Add(business);
-                var branch = new Branch
-                {
-                    Business = business,
-                    Name = string.IsNullOrWhiteSpace(Form.FirstBranchName) ? "شعبه مرکزی" : Form.FirstBranchName,
-                };
+                branch = new Branch { Business = business, BusinessId = business.Id, Name = Form.FirstBranchName, OpenHour = 8, CloseHour = 20 };
                 db.Branches.Add(branch);
-                if (owner is not null) db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
             }
+            branch.Name = Form.FirstBranchName.Trim();
+            branch.Address = Form.FirstBranchAddress.Trim();
+            WeeklySchedule.Replace(branch, Form.FirstBranchWeeklyHours);
+            if (owner is not null) db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
 
             await db.SaveChangesAsync();
             if (owner is not null)
@@ -319,6 +395,8 @@
         public string Description { get; set; } = "";
         public bool RequiresApproval { get; set; } = true;
         public string FirstBranchName { get; set; } = "شعبه مرکزی";
+        public string FirstBranchAddress { get; set; } = "";
+        public List<WeeklyTimeRange> FirstBranchWeeklyHours { get; set; } = WeeklySchedule.Default();
         public string OwnerEmail { get; set; } = "";
     }
 }

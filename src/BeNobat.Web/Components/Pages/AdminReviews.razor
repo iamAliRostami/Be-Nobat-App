@@ -57,7 +57,7 @@
         <div class="review-list">
             @foreach (var review in Filtered)
             {
-                <article>
+                <article class="@StatusClass(review.Status)" @key="review.Id">
                     <header>
                         <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", review.CustomerId)" data-i18n-skip>@DisplayNameOf(review.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(review.BusinessId)" data-i18n-skip>@review.Business.Name</a> @if (review.Branch is not null) { <text>· <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", review.Branch.Id)" data-i18n-skip>@review.Branch.Name</a></text> }</small></div>
                         <span class="stars">@Stars(review.Rating)</span>
@@ -99,7 +99,7 @@ else
         <div class="review-list">
             @foreach (var appointment in FilteredPending)
             {
-                <article @key="appointment.Id">
+                <article class="pending" @key="appointment.Id">
                     <header>
                         <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", appointment.CustomerId)" data-i18n-skip>@DisplayNameOf(appointment.Customer)</a></b><small><a class="entity-link" href="@EntityUrl("/businesses", "serviceId", appointment.ServiceId)" data-i18n-skip>@appointment.Service.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a> · @FormatDate(appointment.StartsAt, appointment.Branch.TimeZoneId)</small></div>
                     </header>
@@ -127,7 +127,7 @@ else
         <div class="review-list">
             @foreach (var item in FilteredCustomerReviews)
             {
-                <article @key="item.Id">
+                <article class="confirmed" @key="item.Id">
                     <header>
                         <div><b><a class="entity-link" href="@EntityUrl("/admin/customers", "customerId", item.CustomerId)" data-i18n-skip>@DisplayNameOf(item.Customer)</a></b><small><a class="entity-link" href="@BusinessUrl(item.BusinessId)" data-i18n-skip>@item.Business.Name</a> · <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", item.Appointment.BranchId)" data-i18n-skip>@item.Appointment.Branch.Name</a> · ثبت توسط <a class="entity-link" href="@EntityUrl("/admin/team", "userId", item.AuthorId)" data-i18n-skip>@DisplayNameOf(item.Author)</a> · @FormatDate(item.CreatedAt, item.Appointment.Branch.TimeZoneId)</small></div>
                         <span class="stars">@Stars(item.Rating)</span>

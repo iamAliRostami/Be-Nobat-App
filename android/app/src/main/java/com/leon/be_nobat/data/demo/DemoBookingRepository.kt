@@ -52,19 +52,7 @@ class DemoBookingRepository(
             )
             val primarySlot = slots.slots.firstOrNull { it.startsAt == input.startsAt }
                 ?: slots.slots.firstOrNull { it.startsAt.take(16) == input.startsAt.take(16) }
-            val fallbackSlot = if (primarySlot == null && input.resourceId != null) {
-                val fallback = state.slots(
-                    businessId = input.businessId,
-                    branchId = input.branchId,
-                    ids = input.serviceIds,
-                    date = input.startsAt.take(10),
-                    resourceId = null,
-                    includePastSlots = true,
-                )
-                fallback.slots.firstOrNull { it.startsAt == input.startsAt }
-                    ?: fallback.slots.firstOrNull { it.startsAt.take(16) == input.startsAt.take(16) }
-            } else null
-            val slot: Slot = primarySlot ?: fallbackSlot ?: error("این زمان دیگر قابل رزرو نیست.")
+            val slot: Slot = primarySlot ?: error("این زمان دیگر قابل رزرو نیست.")
             val biz = state.businesses.firstOrNull { it.id == input.businessId }
             val branch = state.branches.firstOrNull { it.id == input.branchId }
             val services = state.services.filter { input.serviceIds.contains(it.id) }

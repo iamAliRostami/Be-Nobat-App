@@ -1,43 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <group
-        android:id="@+id/group_main"
-        android:checkableBehavior="single">
-        <item
-            android:id="@+id/drawer_dashboard"
-            android:icon="@drawable/ic_dashboard"
-            android:title="@string/admin_dashboard" />
-        <item
-            android:id="@+id/drawer_calendar"
-            android:icon="@drawable/ic_calendar"
-            android:title="@string/admin_calendar" />
-        <item
-            android:id="@+id/drawer_branches"
-            android:icon="@drawable/ic_branch"
-            android:title="@string/admin_branches" />
-        <item
-            android:id="@+id/drawer_services"
-            android:icon="@drawable/ic_services"
-            android:title="@string/admin_services" />
-        <item
-            android:id="@+id/drawer_availability"
-            android:icon="@drawable/ic_calendar"
-            android:title="@string/admin_availability" />
-        <item
-            android:id="@+id/drawer_reviews"
-            android:icon="@drawable/ic_heart"
-            android:title="@string/admin_reviews" />
-        <item
-            android:id="@+id/drawer_customers"
-            android:icon="@drawable/ic_customers"
-            android:title="@string/admin_customers" />
-        <item
-            android:id="@+id/drawer_team"
-            android:icon="@drawable/ic_person"
-            android:title="@string/admin_team" />
-    </group>
+    <item
+        android:id="@+id/menu_group_management"
+        android:title="@string/nav_group_management">
+        <menu>
+            <group
+                android:id="@+id/group_management"
+                android:checkableBehavior="single">
+                <item
+                    android:id="@+id/drawer_dashboard"
+                    android:icon="@drawable/ic_dashboard"
+                    android:title="@string/admin_dashboard" />
+                <item
+                    android:id="@+id/drawer_calendar"
+                    android:icon="@drawable/ic_calendar"
+                    android:title="@string/admin_calendar" />
+            </group>
+        </menu>
+    </item>
 
-    <item android:title="@string/nav_admin">
+    <item
+        android:id="@+id/menu_group_business"
+        android:title="@string/nav_group_business"
+        android:visible="false">
+        <menu>
+            <group
+                android:id="@+id/group_business"
+                android:checkableBehavior="single">
+                <item
+                    android:id="@+id/drawer_services"
+                    android:icon="@drawable/ic_services"
+                    android:title="@string/admin_services" />
+                <item
+                    android:id="@+id/drawer_branches"
+                    android:icon="@drawable/ic_branch"
+                    android:title="@string/admin_branches" />
+                <item
+                    android:id="@+id/drawer_availability"
+                    android:icon="@drawable/ic_calendar"
+                    android:title="@string/admin_availability" />
+                <item
+                    android:id="@+id/drawer_reviews"
+                    android:icon="@drawable/ic_heart"
+                    android:title="@string/admin_reviews" />
+                <item
+                    android:id="@+id/drawer_customers"
+                    android:icon="@drawable/ic_customers"
+                    android:title="@string/admin_customers" />
+                <item
+                    android:id="@+id/drawer_team"
+                    android:icon="@drawable/ic_person"
+                    android:title="@string/admin_team" />
+            </group>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_group_platform"
+        android:title="@string/nav_group_platform"
+        android:visible="false">
         <menu>
             <group
                 android:id="@+id/group_platform"
@@ -58,20 +79,23 @@
                     android:id="@+id/drawer_platform_access"
                     android:icon="@drawable/ic_customers"
                     android:title="@string/platform_access" />
+                <item
+                    android:id="@+id/drawer_platform_requests"
+                    android:icon="@drawable/ic_document"
+                    android:title="@string/drawer_platform_requests" />
             </group>
         </menu>
     </item>
 
-    <item android:title="">
-        <menu>
-            <item
-                android:id="@+id/drawer_back_to_user_view"
-                android:icon="@drawable/ic_home"
-                android:title="@string/admin_back_to_user_view" />
-            <item
-                android:id="@+id/drawer_logout"
-                android:icon="@drawable/ic_person"
-                android:title="@string/logout" />
-        </menu>
-    </item>
+    <group
+        android:id="@+id/group_system">
+        <item
+            android:id="@+id/drawer_back_to_user_view"
+            android:icon="@drawable/ic_home"
+            android:title="@string/admin_back_to_user_view" />
+        <item
+            android:id="@+id/drawer_logout"
+            android:icon="@drawable/ic_person"
+            android:title="@string/logout" />
+    </group>
 </menu>

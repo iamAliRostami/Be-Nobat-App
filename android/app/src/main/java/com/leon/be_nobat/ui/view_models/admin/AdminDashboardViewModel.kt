@@ -21,6 +21,7 @@ data class AdminDashboardUiState(
 class AdminDashboardViewModel(
     private val dashboardUseCase: AdminDashboardUseCase,
     private val contextUseCase: AdminContextUseCase,
+    private val tokenManager: com.leon.be_nobat.data.local.TokenManager? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminDashboardUiState(loading = true))
@@ -31,7 +32,10 @@ class AdminDashboardViewModel(
     fun load() = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
         contextUseCase()
-            .onSuccess { ctx -> _state.value = _state.value.copy(context = ctx) }
+            .onSuccess { ctx ->
+                _state.value = _state.value.copy(context = ctx)
+                tokenManager?.saveManagementContext(ctx)
+            }
             .onFailure { e -> _state.value = _state.value.copy(error = e.message) }
         dashboardUseCase()
             .onSuccess { dash -> _state.value = _state.value.copy(loading = false, dashboard = dash) }

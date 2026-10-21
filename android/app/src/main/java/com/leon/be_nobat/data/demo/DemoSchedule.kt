@@ -28,8 +28,10 @@ internal fun DemoDatabaseState.slots(
     require(duration > 0)
     val price = selected.sumOf { service -> branchServices.firstOrNull { it.branchId == branchId && it.serviceId == service.id }?.effectivePrice ?: service.price }
     val midnight = demoMillis("${date}T00:00:00")
-    val open = midnight + branch.openHour * 3600000L
-    val close = midnight + branch.closeHour * 3600000L
+    val dayOfWeek = java.util.Calendar.getInstance(TimeZone.getTimeZone(branch.timeZoneId)).apply { timeInMillis = midnight }.get(java.util.Calendar.DAY_OF_WEEK) - 1
+    val windows = (branch.weeklyHours ?: WeeklyHours.legacy(branch.openHour, branch.closeHour)).filter { it.dayOfWeek == dayOfWeek }
+    val open = midnight
+    val close = midnight + 86400000L
     val available = resources.filter {
         it.active && it.branchId == branchId &&
         (resourceId.isNullOrBlank() || it.id == resourceId) &&
@@ -40,9 +42,10 @@ internal fun DemoDatabaseState.slots(
         val occupied = appointments.filter { it.resourceId == r.id && it.status in listOf("Pending", "Confirmed", "Completed") && it.startsAt.startsWith(date) }
         generateSequence(open) { it + 15 * 60000L }.takeWhile { it + duration * 60000L <= close }.mapNotNull { start ->
             val end = start + duration * 60000L
+            val branchOpen = windows.any { start >= midnight + WeeklyHours.seconds(it.startsAt) * 1000L && end <= midnight + WeeklyHours.seconds(it.endsAt) * 1000L }
             val within = rules.filter { it.isAvailable }.let { windows -> windows.isEmpty() || windows.any { start >= demoMillis("${date}T${it.startsAt}") && end <= demoMillis("${date}T${it.endsAt}") } }
             val blocked = rules.filterNot { it.isAvailable }.any { start < demoMillis("${date}T${it.endsAt}") && end > demoMillis("${date}T${it.startsAt}") }
-            if ((!includePastSlots && start <= System.currentTimeMillis()) || !within || blocked || occupied.any { start < demoMillis(it.endsAt) && end > demoMillis(it.startsAt) }) null
+            if ((!includePastSlots && start <= System.currentTimeMillis()) || !branchOpen || !within || blocked || occupied.any { start < demoMillis(it.endsAt) && end > demoMillis(it.startsAt) }) null
             else Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end))
         }.toList()
     }.let { list ->

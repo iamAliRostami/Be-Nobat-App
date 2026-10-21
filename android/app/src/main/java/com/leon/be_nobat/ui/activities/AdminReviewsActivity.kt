@@ -30,6 +30,11 @@ class AdminReviewsActivity : BaseActivity() {
     private lateinit var adapter: ReviewsAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireBusinessManagementPermission()
+    }
+
     override fun setupViews() {
         setupAdminHeader(getString(R.string.admin_reviews), currentMenuItemId = R.id.drawer_reviews)
 
@@ -105,13 +110,8 @@ class AdminReviewsActivity : BaseActivity() {
                     tvSubtitle.isVisible = false
                 }
                 tvBody.text = item.comment
-                val statusLabel = when (item.status) {
-                    "Pending" -> root.context.getString(R.string.review_status_pending)
-                    "Published" -> root.context.getString(R.string.review_status_published)
-                    "Rejected" -> root.context.getString(R.string.review_status_rejected)
-                    else -> item.status
-                }
-                tvStatus.text = statusLabel
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyReviewStatus(tvStatus, item.status)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyReviewStatusIndicator(viewStatusIndicator, item.status)
                 btnAction1.text = root.context.getString(R.string.publish_review)
                 btnAction2.text = root.context.getString(R.string.reject_review)
                 btnAction1.isVisible = item.status == "Pending"

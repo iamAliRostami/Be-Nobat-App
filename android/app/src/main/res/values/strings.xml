@@ -49,20 +49,39 @@
     <string name="nav_profile">پروفایل</string>
     <string name="nav_admin">پنل مدیریت</string>
 
+    <!-- ============ Admin Navigation Groups ============ -->
+    <string name="nav_group_management">مدیریت</string>
+    <string name="nav_group_business">مدیریت کسب‌وکار</string>
+    <string name="nav_group_platform">مدیریت سامانه</string>
+
+    <!-- ============ Role Labels ============ -->
+    <string name="role_platform_admin">مدیر کل سامانه</string>
+    <string name="role_owner">صاحب کسب‌وکار</string>
+    <string name="role_manager">مدیر شعبه</string>
+    <string name="role_staff">کارمند</string>
+    <string name="role_customer">مشتری</string>
+
+    <!-- ============ Dashboard Subtitles ============ -->
+    <string name="dashboard_subtitle_platform">نمای کلی مدیریت سامانه و وضعیت کلیه نوبت‌ها</string>
+    <string name="dashboard_subtitle_manager">امروز %1$s نوبت در شعب تحت مدیریت خود دارید.</string>
+    <string name="dashboard_subtitle_staff">امروز %1$s نوبت برای پیگیری دارید.</string>
+
+    <string name="error_access_denied">شما دسترسی مجاز به این بخش را ندارید.</string>
+
     <!-- ============ Admin drawer items ============ -->
     <string name="admin_dashboard">داشبورد</string>
     <string name="admin_calendar">تقویم نوبت‌ها</string>
     <string name="admin_branches">شعب و منابع</string>
     <string name="admin_services">خدمات</string>
-    <string name="admin_availability">ساعات کاری</string>
-    <string name="admin_reviews">نظرات</string>
+    <string name="admin_availability">زمان‌های خالی</string>
+    <string name="admin_reviews">امتیازها و نظرات</string>
     <string name="admin_customers">مشتریان</string>
     <string name="admin_team">اعضای تیم</string>
-    <string name="platform_businesses">کسب‌وکارها (پلتفرم)</string>
+    <string name="platform_businesses">کسب‌وکارها</string>
     <string name="platform_catalog">کاتالوگ خدمات</string>
     <string name="platform_categories">دسته‌بندی‌ها</string>
-    <string name="platform_access">کاربران و دسترسی</string>
-    <string name="admin_back_to_user_view">بازگشت به نمای مشتری</string>
+    <string name="platform_access">کاربران و دسترسی‌ها</string>
+    <string name="admin_back_to_user_view">مشاهده صفحه عمومی</string>
 
     <!-- ============ Home / business list ============ -->
     <string name="home_message">کسب‌وکار مورد نظر را جستجو کنید</string>
@@ -183,8 +202,6 @@
     <string name="set_active">فعال‌سازی</string>
     <string name="set_inactive">غیرفعال‌سازی</string>
     <string name="temporary_password">گذرواژه موقت: %1$s</string>
-    <string name="role_customer">مشتری</string>
-    <string name="role_platform_admin">مدیر پلتفرم</string>
 
     <!-- ============ Common UI ============ -->
     <string name="loading">در حال بارگذاری…</string>
@@ -204,6 +221,7 @@
     <string name="form_create_catalog_title">ایجاد آیتم کاتالوگ</string>
     <string name="form_create_category_title">ایجاد دسته‌بندی</string>
     <string name="form_create_user_title">ایجاد کاربر جدید</string>
+    <string name="form_create_availability_title">بازه زمانی جدید</string>
 
     <string name="form_edit_branch_title">ویرایش شعبه</string>
     <string name="form_edit_service_title">ویرایش خدمت</string>
@@ -211,7 +229,22 @@
     <string name="form_edit_catalog_title">ویرایش آیتم کاتالوگ</string>
     <string name="form_edit_category_title">ویرایش دسته‌بندی</string>
     <string name="form_edit_user_title">ویرایش کاربر</string>
+    <string name="form_edit_availability_title">ویرایش بازه زمانی</string>
     <string name="action_edit">ویرایش</string>
+    <string name="action_delete">حذف</string>
+
+    <string name="availability_tab_current_future">جاری و آینده</string>
+    <string name="availability_tab_past">گذشته</string>
+    <string name="availability_delete_confirm_title">حذف بازه زمانی</string>
+    <string name="availability_delete_confirm_message">آیا از حذف این بازه زمانی اطمینان دارید؟</string>
+    <string name="availability_all_staff">همه کارکنان شعبه</string>
+    <string name="availability_all_branches">کل مجموعه</string>
+    <string name="availability_start_time">از ساعت</string>
+    <string name="availability_end_time">تا ساعت</string>
+    <string name="availability_effective_date">تاریخ</string>
+    <string name="availability_is_available_switch">قابل رزرو باشد</string>
+    <string name="availability_available">قابل رزرو</string>
+    <string name="availability_blocked">مسدود</string>
 
     <string name="category_kind_business">کسب‌وکار</string>
     <string name="category_kind_service">خدمت</string>
@@ -256,6 +289,8 @@
     <string name="error_network_unavailable">اتصال اینترنت را بررسی کنید</string>
     <string name="error_request_timed_out">زمان درخواست به پایان رسید؛ دوباره تلاش کنید</string>
     <string name="error_unauthorized">برای دسترسی وارد شوید</string>
+    <string name="error_session_expired">نشست کاربری شما منقضی شده است. لطفاً برای ادامه مجدداً وارد شوید.</string>
+    <string name="action_login_again">ورود مجدد به حساب</string>
     <string name="error_forbidden">شما به این بخش دسترسی ندارید</string>
     <string name="error_not_found">موردی یافت نشد</string>
     <string name="error_conflict">تعارض اطلاعات — صفحه را به‌روز کنید</string>
@@ -331,11 +366,10 @@
     <string name="booking_business_label">کسب‌وکار</string>
     <string name="booking_price_label">مبلغ نهایی</string>
     <string name="tracking_code_copied">شماره پیگیری کپی شد</string>
+    <string name="copy_tracking_code">کپی شماره پیگیری</string>
     <string name="action_cancel">انصراف</string>
     <string name="tab_all">همه</string>
-    <string name="role_manager">مدیر کسب‌وکار</string>
     <string name="role_admin">مدیر سامانه</string>
-    <string name="role_staff">کارمند</string>
     <string name="status_available">در دسترس</string>
     <string name="status_unavailable">غیرفعال</string>
 
@@ -370,4 +404,78 @@
     <string name="demo_reset_success">داده‌های دمو بازنشانی شدند.</string>
     <string name="demo_accounts_hint">دمو: user@benobat.ir / manager@benobat.ir / admin@benobat.ir / staff@benobat.ir</string>
     <string name="demo_password_hint">رمز اولیه حساب‌های دمو: Demo1234!</string>
+
+    <!-- User Management Tabs & Search -->
+    <string name="status_active">فعال</string>
+    <string name="status_inactive">غیرفعال</string>
+    <string name="search_users_hint">جستجوی نام، ایمیل، موبایل یا نقش…</string>
+    <string name="tab_users_all">همه</string>
+    <string name="tab_users_customers">مشتریان</string>
+    <string name="tab_users_managers">مدیران</string>
+    <string name="tab_users_staff">پرسنل</string>
+
+    <!-- Business Request & Platform Requests -->
+    <string name="business_request_title">درخواست کسب‌وکار</string>
+    <string name="business_upgrade_card_title">ثبت کسب‌وکار و ارتقا به مدیر</string>
+    <string name="business_upgrade_card_desc">اگر صاحب سالن، کلینیک یا مجموعه‌ای هستید، با ارسال مشخصات کسب‌وکار خود می‌توانید پنل اختصاصی مدیریت نوبت‌ها را دریافت کنید.</string>
+    <string name="business_request_dialog_title">درخواست ثبت کسب‌وکار جدید</string>
+    <string name="business_request_name">نام کسب‌وکار</string>
+    <string name="business_request_category">دسته‌بندی</string>
+    <string name="business_request_city">شهر</string>
+    <string name="business_request_phone">شماره تماس کاری</string>
+    <string name="business_request_first_branch">نام اولین شعبه</string>
+    <string name="business_request_address">آدرس شعبه</string>
+    <string name="business_request_description">توضیحات (اختیاری)</string>
+    <string name="business_request_submit_btn">ارسال درخواست کسب‌وکار</string>
+    <string name="business_request_submitted_success">درخواست کسب‌وکار شما با موفقیت ثبت شد و در صف بررسی مدیر سامانه قرار گرفت.</string>
+    <string name="business_request_status_pending">درخواست ثبت کسب‌وکار شما («%1$s») در صف بررسی مدیر سامانه قرار دارد.</string>
+    <string name="business_request_status_approved">درخواست کسب‌وکار شما تأیید شد و به مدیر کسب‌وکار ارتقا یافتید.</string>
+    <string name="business_request_status_rejected">درخواست ثبت کسب‌وکار شما رد شد.</string>
+    <string name="business_request_review_note">علت رد: %1$s</string>
+    <string name="business_request_resubmit_btn">ارسال مجدد درخواست</string>
+    <string name="platform_requests_title">درخواست‌های کسب‌وکار</string>
+    <string name="platform_tab_all">همه</string>
+    <string name="platform_tab_pending">در انتظار بررسی</string>
+    <string name="platform_tab_approved">تأیید شده</string>
+    <string name="platform_tab_rejected">رد شده</string>
+    <string name="platform_request_approve">تأیید و ارتقا به مدیر</string>
+    <string name="platform_request_reject">رد درخواست</string>
+    <string name="platform_request_reject_dialog_title">رد درخواست کسب‌وکار</string>
+    <string name="platform_request_reject_note_hint">دلیل رد درخواست (اختیاری)</string>
+    <string name="platform_request_approved_success">درخواست تأیید شد و کسب‌وکار و دسترسی مدیر فعال گردید.</string>
+    <string name="platform_request_rejected_success">درخواست رد شد.</string>
+    <string name="drawer_platform_requests">درخواست‌های کسب‌وکار</string>
+    <string name="branch_pending_approval">در انتظار تأیید مدیر کل</string>
+    <string name="branch_approve_action">تأیید شعبه</string>
+    <string name="branch_approved_success">شعبه با موفقیت تأیید شد.</string>
+
+    <!-- People / Team & Customers -->
+    <string name="tab_team">اعضای تیم</string>
+    <string name="tab_customers">مشتریان</string>
+    <string name="search_people_hint">جست‌وجوی نام، ایمیل یا شماره تماس…</string>
+    <string name="add_team_member">افزودن عضو تیم</string>
+    <string name="add_customer">افزودن مشتری</string>
+    <string name="person_name_hint">نام و نام خانوادگی</string>
+    <string name="person_email_hint">ایمیل</string>
+    <string name="person_phone_hint">شماره تماس (مثلاً ۰۹۱۲۱۲۳۴۵۶۷)</string>
+    <string name="person_branch_hint">شعبه</string>
+    <string name="person_role_hint">نقش در شعبه</string>
+    <string name="person_visits_count">%1$s نوبت</string>
+    <string name="person_rating_format">★ %1$s</string>
+    <string name="action_view_appointments">نوبت‌ها</string>
+    <string name="action_call">تماس</string>
+    <string name="action_send_email">ارسال ایمیل</string>
+    <string name="action_view_customer_reviews">ارزیابی‌ها</string>
+    <string name="customer_details_title">اطلاعات مشتری</string>
+    <string name="team_details_title">اطلاعات عضو تیم</string>
+    <string name="team_member_created_success">عضو جدید با موفقیت اضافه شد.</string>
+    <string name="customer_created_success">مشتری جدید با موفقیت اضافه شد.</string>
+    <string name="person_status_updated">وضعیت کاربر به‌روزرسانی شد.</string>
+    <string name="error_phone_invalid">شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.</string>
+    <string name="error_name_email_required">نام و ایمیل معتبر الزامی است.</string>
+    <string name="error_branch_required">انتخاب شعبه الزامی است.</string>
+    <string name="empty_team_filtered">عضوی با این فیلترها پیدا نشد.</string>
+    <string name="empty_customers_filtered">مشتری‌ای با این فیلترها پیدا نشد.</string>
+    <string name="search_categories_hint">جست‌وجوی دسته‌بندی…</string>
+    <string name="empty_categories_filtered">دسته‌بندی‌ای با این فیلترها پیدا نشد.</string>
 </resources>

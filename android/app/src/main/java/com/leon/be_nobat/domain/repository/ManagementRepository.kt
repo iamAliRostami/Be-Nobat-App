@@ -27,6 +27,8 @@ import com.leon.be_nobat.domain.model.ManagementReplyInput
 import com.leon.be_nobat.domain.model.ManagementCustomerReviewInput
 import com.leon.be_nobat.domain.model.ManagementResourceServicesInput
 import com.leon.be_nobat.domain.model.ManagementBranchServiceInput
+import com.leon.be_nobat.domain.model.ManagementTeamMemberInput
+import com.leon.be_nobat.domain.model.ManagementCustomerInput
 
 /**
  * Admin/business-management endpoints (`api v1 admin`). Visible to
@@ -57,6 +59,7 @@ interface ManagementRepository {
     suspend fun updateBranch(id: String, input: ManagementBranchInput): Result<ManagementBranch>
     suspend fun setBranchActive(id: String, active: Boolean): Result<ManagementBranch>
     suspend fun deleteBranch(id: String): Result<Unit>
+    suspend fun approveBranch(id: String): Result<ManagementBranch>
 
     // resources
     suspend fun listResources(
@@ -87,6 +90,9 @@ interface ManagementRepository {
     // people
     suspend fun listTeam(q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25): Result<ApiPage<ManagementPerson>>
     suspend fun listCustomers(q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25): Result<ApiPage<ManagementPerson>>
+    suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson>
+    suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson>
+    suspend fun setPersonActive(id: String, active: Boolean): Result<ManagementPerson>
 
     // services
     suspend fun listServices(

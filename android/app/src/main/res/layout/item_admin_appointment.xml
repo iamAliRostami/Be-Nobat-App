@@ -15,11 +15,31 @@
     app:strokeColor="@color/colorOutline"
     app:strokeWidth="1dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
+
+        <View
+            android:id="@+id/viewStatusIndicator"
+            android:layout_width="5dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:visibility="visible"
+            tools:background="@color/status_indicator_confirmed" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:paddingStart="18dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -32,6 +52,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginEnd="8dp"
                 android:textAppearance="@style/TextAppearance.BeNobat.Headline"
                 android:textSize="16sp"
                 android:textColor="?attr/colorOnSurface"
@@ -41,15 +62,18 @@
                 android:id="@+id/tvStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:paddingTop="3dp"
-                android:paddingBottom="3dp"
-                android:background="@drawable/bg_badge_status"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:gravity="center"
+                android:background="@drawable/bg_status_badge_completed"
                 android:fontFamily="@font/app_font"
-                android:textColor="?attr/colorOnSecondaryContainer"
-                android:textSize="12sp"
+                android:textColor="@color/status_completed_text"
+                android:textSize="11.5sp"
                 android:textStyle="bold"
+                android:includeFontPadding="false"
+                android:singleLine="true"
                 tools:text="فعال" />
         </LinearLayout>
 
@@ -104,4 +128,5 @@
                 tools:text="ویرایش" />
         </LinearLayout>
     </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

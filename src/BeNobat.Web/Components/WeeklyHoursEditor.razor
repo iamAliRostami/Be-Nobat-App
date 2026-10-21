@@ -1,0 +1,203 @@
+<div class="weekly-schedule-box">
+    <div class="weekly-schedule-header">
+        <div class="weekly-title-wrap">
+            <span class="weekly-main-title">ساعات کاری و بازه‌های هفتگی</span>
+            <span class="weekly-sub-title">روز مورد نظر را از نوار زیر انتخاب کرده و ساعت شروع و پایان پذیرش نوبت را تنظیم کنید.</span>
+        </div>
+    </div>
+
+    <!-- نوار افقی روزهای هفته (Horizontal Day Tabs) -->
+    <div class="days-tab-bar" role="tablist" aria-label="روزهای هفته">
+        @foreach (var day in Days)
+        {
+            var ranges = Hours.Where(x => x.DayOfWeek == day.Id).ToList();
+            var isDayActive = ranges.Count > 0;
+            var isSelected = SelectedDayId == day.Id;
+            <button type="button"
+                    class="day-tab @(isSelected ? "is-selected" : "") @(isDayActive ? "is-active" : "is-off")"
+                    role="tab"
+                    aria-selected="@isSelected"
+                    @onclick="() => SelectDay(day.Id)">
+                <span class="day-tab-name">@day.Name</span>
+                <span class="day-tab-badge">
+                    @if (isDayActive)
+                    {
+                        <span class="badge-dot active-dot" title="فعال"></span>
+                        <span class="badge-text">@(ranges.Count == 1 ? "فعال" : $"{ranges.Count} بازه")</span>
+                    }
+                    else
+                    {
+                        <span class="badge-dot off-dot" title="تعطیل"></span>
+                        <span class="badge-text">تعطیل</span>
+                    }
+                </span>
+            </button>
+        }
+    </div>
+
+    <!-- پنل تنظیم روز انتخاب‌شده (Selected Day Panel) -->
+    @{
+        var selectedDay = Days.First(d => d.Id == SelectedDayId);
+        var selectedRanges = Hours.Where(x => x.DayOfWeek == SelectedDayId).OrderBy(x => x.StartsAt).ToList();
+        var isCurrentDayActive = selectedRanges.Count > 0;
+    }
+
+    <div class="selected-day-panel" role="tabpanel">
+        <div class="day-panel-header">
+            <div class="day-info">
+                <span class="current-day-label">تنظیم برنامه: <strong>@selectedDay.Name</strong></span>
+                <span class="day-state-tag @(isCurrentDayActive ? "state-open" : "state-closed")">
+                    @(isCurrentDayActive ? $"روز کاری ({selectedRanges.Count} بازه)" : "تعطیل")
+                </span>
+            </div>
+
+            <!-- دکمه سوئیچ فعال/تعطیل روز -->
+            <label class="day-toggle-switch">
+                <input type="checkbox"
+                       checked="@isCurrentDayActive"
+                       @onchange="e => ToggleDay(SelectedDayId, (bool)(e.Value ?? false))" />
+                <span class="switch-slider"></span>
+                <span class="switch-text">@(isCurrentDayActive ? "روز کاری فعال" : "تعطیل اعلام کردن این روز")</span>
+            </label>
+        </div>
+
+        @if (!isCurrentDayActive)
+        {
+            <div class="day-off-card">
+                <div class="day-off-icon">☕</div>
+                <div class="day-off-content">
+                    <b>شعبه در روز @selectedDay.Name تعطیل است.</b>
+                    <p>در این روز هیچ نوبتی برای رزرو در دسترس مشتریان نخواهد بود.</p>
+                </div>
+                <button type="button" class="btn-enable-day" @onclick="() => ToggleDay(SelectedDayId, true)">
+                    + فعال‌سازی و ثبت ساعت کاری
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="ranges-card-list">
+                @for (var i = 0; i < selectedRanges.Count; i++)
+                {
+                    var range = selectedRanges[i];
+                    var rangeIndex = i + 1;
+                    <div class="range-item-row" @key="range">
+                        <span class="range-num-badge">بازه @rangeIndex</span>
+
+                        <div class="time-picker-group">
+                            <label class="time-input-field">
+                                <span class="time-field-label">از</span>
+                                <input type="time"
+                                       step="60"
+                                       class="hours-time-control"
+                                       aria-label="@($"شروع بازه {rangeIndex} {selectedDay.Name}")"
+                                       @bind="range.StartsAt" />
+                            </label>
+
+                            <span class="time-arrow-icon">←</span>
+
+                            <label class="time-input-field">
+                                <span class="time-field-label">تا</span>
+                                <input type="time"
+                                       step="60"
+                                       class="hours-time-control"
+                                       aria-label="@($"پایان بازه {rangeIndex} {selectedDay.Name}")"
+                                       @bind="range.EndsAt" />
+                            </label>
+                        </div>
+
+                        <button type="button"
+                                class="btn-remove-range"
+                                aria-label="@($"حذف بازه {rangeIndex} {selectedDay.Name}")"
+                                title="حذف این بازه"
+                                @onclick="() => Hours.Remove(range)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+                            </svg>
+                            <span>حذف</span>
+                        </button>
+                    </div>
+                }
+
+                <div class="day-actions-footer">
+                    <button type="button" class="btn-add-more-range" @onclick="() => AddRange(SelectedDayId)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>+ افزودن بازه زمانی دیگر</span>
+                    </button>
+
+                    <button type="button" class="btn-copy-to-all" title="کپی همین ساعت‌ها در سایر روزهای هفته" @onclick="() => CopyToAllDays(SelectedDayId)">
+                        <span>کپی این ساعات در همه روزها</span>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (WeeklySchedule.Validate(Hours) is { } error)
+    {
+        <div class="weekly-error-alert" role="alert">
+            <span>⚠️</span> @error
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<WeeklyTimeRange> Hours { get; set; } = [];
+    private static readonly (int Id, string Name)[] Days = [
+        (6, "شنبه"),
+        (0, "یکشنبه"),
+        (1, "دوشنبه"),
+        (2, "سه‌شنبه"),
+        (3, "چهارشنبه"),
+        (4, "پنجشنبه"),
+        (5, "جمعه")
+    ];
+
+    private int SelectedDayId = 6;
+
+    private void SelectDay(int dayId)
+    {
+        SelectedDayId = dayId;
+    }
+
+    private void ToggleDay(int dayId, bool enabled)
+    {
+        Hours.RemoveAll(x => x.DayOfWeek == dayId);
+        if (enabled)
+        {
+            Hours.Add(new WeeklyTimeRange { DayOfWeek = dayId, StartsAt = new TimeOnly(8, 0), EndsAt = new TimeOnly(20, 0) });
+        }
+    }
+
+    private void AddRange(int dayId)
+    {
+        var existing = Hours.Where(x => x.DayOfWeek == dayId).ToList();
+        if (existing.Count == 0)
+        {
+            Hours.Add(new WeeklyTimeRange { DayOfWeek = dayId, StartsAt = new TimeOnly(8, 0), EndsAt = new TimeOnly(20, 0) });
+            return;
+        }
+        var end = existing.Max(x => x.EndsAt);
+        var start = end < new TimeOnly(23, 0) ? end : new TimeOnly(8, 0);
+        var newEnd = start.AddHours(2) > start ? start.AddHours(2) : new TimeOnly(23, 0);
+        Hours.Add(new WeeklyTimeRange { DayOfWeek = dayId, StartsAt = start, EndsAt = newEnd });
+    }
+
+    private void CopyToAllDays(int sourceDayId)
+    {
+        var sourceRanges = Hours.Where(x => x.DayOfWeek == sourceDayId).ToList();
+        if (sourceRanges.Count == 0) return;
+
+        foreach (var day in Days)
+        {
+            if (day.Id == sourceDayId) continue;
+            Hours.RemoveAll(x => x.DayOfWeek == day.Id);
+            foreach (var r in sourceRanges)
+            {
+                Hours.Add(new WeeklyTimeRange { DayOfWeek = day.Id, StartsAt = r.StartsAt, EndsAt = r.EndsAt });
+            }
+        }
+    }
+}

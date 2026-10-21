@@ -4,7 +4,7 @@ The ASP.NET application serves JSON at `/api/v1`. Native clients use this API an
 
 Send `Content-Type: application/json` on JSON writes and `Authorization: Bearer <accessToken>` on protected requests. DTO properties use camel case; IDs are UUID strings; instants use ISO 8601 UTC; branch-local dates use Gregorian `YYYY-MM-DD`. The client may display those dates in Persian, Arabic or English without changing their wire representation. Prices are decimal values in the accompanying currency; do not convert or silently relabel stored values.
 
-Successful list responses use `{items, page, pageSize, total}` unless the list is a small options collection, which uses `{items}`. Customer pagination defaults to page 1 and 20 items, with a maximum size of 100. Management pagination defaults to page 1 and 25 items and rejects invalid limits. Lists order consistently before pagination.
+Successful list responses use `{items, page, pageSize, total}` unless the list is a small options collection, which uses `{items}`. Customer pagination defaults to page 1 and 20 items, with a maximum size of 100. Management pagination defaults to page 1 and 25 items, allows up to 1000, and rejects invalid limits. Lists order consistently before pagination.
 
 Errors use `{code, message, fields?}`. Handle the stable code in client translations; the English message is a diagnostic fallback. Common HTTP statuses are 400 for invalid input, 401 for missing/expired/revoked sign-in, 403 for denied operations, 404 for unavailable or out-of-scope records, 409 for conflicting state and 429 for rate-limited sign-in/registration. Unsupported JSON content types return 415 and oversized request bodies return 413. Do not show a success state when an API call fails.
 

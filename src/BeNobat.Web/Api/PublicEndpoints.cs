@@ -42,8 +42,8 @@ public static class PublicEndpoints
         {
             var business = await db.Businesses.AsNoTracking().Where(b => b.Id == businessId).Select(BusinessProjection).FirstOrDefaultAsync(ct);
             if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
-            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct);
-            var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == businessId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct);
+            var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == businessId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
             var reviews = await PublicReviews(db, businessId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
             return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews));
         }).AllowAnonymous();
@@ -56,16 +56,16 @@ public static class PublicEndpoints
         root.MapGet("/businesses/{businessId:guid}/branches", async (Guid businessId, AppDbContext db, CancellationToken ct) =>
         {
             if (!await db.Businesses.AnyAsync(b => b.Id == businessId, ct)) return ApiResults.Error("not_found", "Business was not found.", 404);
-            return Results.Ok(new { items = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct) });
+            return Results.Ok(new { items = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct) });
         }).AllowAnonymous();
         root.MapGet("/businesses/{businessId:guid}/branches/{branchId:guid}/services", async (Guid businessId, Guid branchId, AppDbContext db, CancellationToken ct) =>
         {
-            if (!await db.Branches.AnyAsync(b => b.Id == branchId && b.BusinessId == businessId && b.Business.DeletedAt == null, ct)) return ApiResults.Error("not_found", "Branch was not found.", 404);
+            if (!await db.Branches.AnyAsync(b => b.Id == branchId && b.BusinessId == businessId && b.IsApproved && b.Business.DeletedAt == null, ct)) return ApiResults.Error("not_found", "Branch was not found.", 404);
             return Results.Ok(new { items = await db.BranchServices.AsNoTracking().Where(bs => bs.BranchId == branchId && bs.Service.BusinessId == businessId && bs.Service.DeletedAt == null).OrderBy(bs => bs.Service.Name).Select(bs => new ServiceDto(bs.Service.Id, businessId, bs.Service.Name, bs.Service.Description, bs.Service.DurationMinutes, bs.Price ?? bs.Service.Price, bs.Service.Currency)).ToListAsync(ct) });
         }).AllowAnonymous();
         root.MapGet("/businesses/{businessId:guid}/branches/{branchId:guid}/providers", async (Guid businessId, Guid branchId, string? serviceIds, AppDbContext db, CancellationToken ct) =>
         {
-            if (!await db.Branches.AnyAsync(b => b.Id == branchId && b.BusinessId == businessId && b.Business.DeletedAt == null, ct)) return ApiResults.Error("not_found", "Branch was not found.", 404);
+            if (!await db.Branches.AnyAsync(b => b.Id == branchId && b.BusinessId == businessId && b.IsApproved && b.Business.DeletedAt == null, ct)) return ApiResults.Error("not_found", "Branch was not found.", 404);
             var ids = ApiResults.ServiceIds(serviceIds);
             if (ids is null) return ApiResults.Error("invalid_input", "Select at least one service.");
             if (await db.BranchServices.CountAsync(s => s.BranchId == branchId && ids.Contains(s.ServiceId) && s.Service.BusinessId == businessId && s.Service.DeletedAt == null, ct) != ids.Length) return ApiResults.Error("service_unavailable", "A selected service is unavailable.", 409);

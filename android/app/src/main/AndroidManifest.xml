@@ -74,6 +74,10 @@
         <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminCalendarActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminBranchesActivity" android:exported="false" />
+        <activity
+            android:name=".ui.activities.AdminBranchEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.activities.AdminReviewsActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminServicesActivity" android:exported="false" />
         <activity android:name=".ui.activities.AdminAvailabilityActivity" android:exported="false" />
@@ -82,9 +86,14 @@
 
         <!-- Platform surface -->
         <activity android:name=".ui.activities.PlatformBusinessesActivity" android:exported="false" />
+        <activity
+            android:name=".ui.activities.PlatformBusinessEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.activities.PlatformCatalogActivity" android:exported="false" />
         <activity android:name=".ui.activities.PlatformCategoriesActivity" android:exported="false" />
         <activity android:name=".ui.activities.PlatformAccessActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformRequestsActivity" android:exported="false" />
 
         <!-- Legacy example activity (kept for back-compat) -->
         <activity

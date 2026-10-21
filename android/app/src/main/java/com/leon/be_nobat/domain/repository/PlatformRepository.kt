@@ -71,4 +71,18 @@ interface PlatformRepository {
     suspend fun setUserRoles(id: String, input: ManagementRolesInput): Result<ManagementUser>
     suspend fun setUserActive(id: String, active: Boolean): Result<ManagementUser>
     suspend fun resetUserPassword(id: String): Result<PlatformResetPasswordResponse>
+
+    // business requests
+    suspend fun listBusinessRequests(
+        status: String? = null,
+        q: String? = null,
+        page: Int = 1,
+        pageSize: Int = 25,
+    ): Result<ApiPage<com.leon.be_nobat.domain.model.BusinessRequest>>
+
+    suspend fun approveBusinessRequest(id: String): Result<com.leon.be_nobat.domain.model.BusinessRequest>
+    suspend fun rejectBusinessRequest(id: String, input: com.leon.be_nobat.domain.model.ReviewBusinessRequestInput): Result<com.leon.be_nobat.domain.model.BusinessRequest>
+
+    // branch approval
+    suspend fun approveBranch(id: String): Result<com.leon.be_nobat.domain.model.ManagementBranch>
 }

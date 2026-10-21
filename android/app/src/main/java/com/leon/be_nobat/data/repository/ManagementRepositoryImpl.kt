@@ -27,6 +27,8 @@ import com.leon.be_nobat.domain.model.ManagementReview
 import com.leon.be_nobat.domain.model.ManagementService
 import com.leon.be_nobat.domain.model.ManagementServiceInput
 import com.leon.be_nobat.domain.model.ManagementStatusInput
+import com.leon.be_nobat.domain.model.ManagementTeamMemberInput
+import com.leon.be_nobat.domain.model.ManagementCustomerInput
 import com.leon.be_nobat.domain.repository.ManagementRepository
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -82,6 +84,7 @@ class ManagementRepositoryImpl(
         api.adminSetBranchActive(id, encodeActive(active))
 
     override suspend fun deleteBranch(id: String): Result<Unit> = api.adminDeleteBranch(id)
+    override suspend fun approveBranch(id: String): Result<ManagementBranch> = api.platformApproveBranch(id)
 
     // ---------- resources ----------
     override suspend fun listResources(
@@ -119,6 +122,15 @@ class ManagementRepositoryImpl(
 
     override suspend fun listCustomers(q: String?, branchId: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementPerson>> =
         api.adminListCustomers(q, branchId, page, pageSize)
+
+    override suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson> =
+        api.adminCreateTeamMember(encode(input))
+
+    override suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson> =
+        api.adminCreateCustomer(encode(input))
+
+    override suspend fun setPersonActive(id: String, active: Boolean): Result<ManagementPerson> =
+        api.adminSetPersonActive(id, encodeActive(active))
 
     // ---------- services ----------
     override suspend fun listServices(

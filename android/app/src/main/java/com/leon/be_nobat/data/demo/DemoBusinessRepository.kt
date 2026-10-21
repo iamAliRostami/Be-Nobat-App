@@ -42,7 +42,7 @@ class DemoBusinessRepository(
             val paged = if (start < total) filtered.drop(start).take(pageSize) else emptyList()
 
             val mapped = paged.map { mb ->
-                val branchCount = state.branches.count { it.businessId == mb.id && it.active }
+                val branchCount = state.branches.count { it.businessId == mb.id && it.active && it.isApproved }
                 val serviceCount = state.services.count { it.businessId == mb.id && it.active }
                 val bizReviews = state.reviews.filter { it.businessId == mb.id && it.active && it.status in listOf("Approved", "Published") }
                 val rating = if (bizReviews.isNotEmpty()) bizReviews.map { it.rating }.average() else null
@@ -76,7 +76,7 @@ class DemoBusinessRepository(
             val mb = state.businesses.firstOrNull { it.id == id }
                 ?: error("کسب‌وکار با شناسه $id یافت نشد.")
 
-            val branches = state.branches.filter { it.businessId == id && it.active }.map { b ->
+            val branches = state.branches.filter { it.businessId == id && it.active && it.isApproved }.map { b ->
                 Branch(
                     id = b.id,
                     businessId = b.businessId,
@@ -160,7 +160,7 @@ class DemoBusinessRepository(
     override suspend fun listBranches(businessId: String): Result<ApiItems<Branch>> = runCatching {
         simulateNetworkDelay(120, 250)
         dataStore.read { state ->
-            val branches = state.branches.filter { it.businessId == businessId && it.active }.map { b ->
+            val branches = state.branches.filter { it.businessId == businessId && it.active && it.isApproved }.map { b ->
                 Branch(
                     id = b.id,
                     businessId = b.businessId,

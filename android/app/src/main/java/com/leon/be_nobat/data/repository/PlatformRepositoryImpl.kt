@@ -93,6 +93,22 @@ class PlatformRepositoryImpl(
     override suspend fun resetUserPassword(id: String): Result<PlatformResetPasswordResponse> =
         api.platformResetUserPassword(id)
 
+    override suspend fun listBusinessRequests(
+        status: String?, q: String?, page: Int, pageSize: Int,
+    ): Result<ApiPage<com.leon.be_nobat.domain.model.BusinessRequest>> =
+        api.platformListBusinessRequests(status, q, page, pageSize)
+
+    override suspend fun approveBusinessRequest(id: String): Result<com.leon.be_nobat.domain.model.BusinessRequest> =
+        api.platformApproveBusinessRequest(id)
+
+    override suspend fun rejectBusinessRequest(
+        id: String, input: com.leon.be_nobat.domain.model.ReviewBusinessRequestInput,
+    ): Result<com.leon.be_nobat.domain.model.BusinessRequest> =
+        api.platformRejectBusinessRequest(id, encode(input))
+
+    override suspend fun approveBranch(id: String): Result<com.leon.be_nobat.domain.model.ManagementBranch> =
+        api.platformApproveBranch(id)
+
     private fun encodeActive(active: Boolean): JsonObject = buildJsonObject { put("active", active) }
 
     private inline fun <reified T> encode(value: T): JsonObject =

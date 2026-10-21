@@ -70,6 +70,7 @@ public sealed class Branch : Entity
     public string TimeZoneId { get; set; } = "Asia/Tehran";
     public int OpenHour { get; set; } = 9;
     public int CloseHour { get; set; } = 18;
+    public bool IsApproved { get; set; } = true;
     public Business Business { get; set; } = null!;
     public ICollection<Resource> Resources { get; } = [];
 
@@ -257,3 +258,27 @@ public sealed class CustomerReview : Entity
 }
 
 public enum ReviewStatus { Pending, Published, Rejected }
+
+public enum BusinessRequestStatus { Pending, Approved, Rejected }
+
+/// <summary>
+/// درخواست ارتقا و ثبت کسب‌وکار توسط کاربر؛ پس از تأیید مدیر کل،
+/// کسب‌وکار و شعبه ایجاد شده و کاربر به عنوان مالک (Owner) منتسب می‌شود.
+/// </summary>
+public sealed class BusinessRequest : Entity
+{
+    public Guid UserId { get; set; }
+    public required string BusinessName { get; set; }
+    public string Category { get; set; } = "عمومی";
+    public string City { get; set; } = "تهران";
+    public string Description { get; set; } = string.Empty;
+    public string ContactPhone { get; set; } = string.Empty;
+    public string FirstBranchName { get; set; } = "شعبه مرکزی";
+    public string FirstBranchAddress { get; set; } = string.Empty;
+    public BusinessRequestStatus Status { get; set; } = BusinessRequestStatus.Pending;
+    public string? ReviewNote { get; set; }
+    public Guid? ApprovedBusinessId { get; set; }
+
+    public AppUser User { get; set; } = null!;
+    public Business? ApprovedBusiness { get; set; }
+}

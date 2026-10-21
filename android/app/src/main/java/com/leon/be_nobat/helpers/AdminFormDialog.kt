@@ -32,6 +32,10 @@ class AdminFormDialog private constructor() {
 
     class Builder(private val context: Context) {
         private var title: String = ""
+        private var extraView: View? = null
+        private var validator: ((List<String>) -> String?)? = null
+        fun customView(view: View) = apply { extraView = view }
+        fun validate(block: (List<String>) -> String?) = apply { validator = block }
         private val fields = mutableListOf<Field>()
         private var onSubmit: ((List<String>) -> Unit)? = null
 
@@ -147,9 +151,17 @@ class AdminFormDialog private constructor() {
                 view.findViewById<TextInputLayout>(layouts[i].first).visibility = View.GONE
             }
 
-            MaterialAlertDialogBuilder(context)
+            val container = view.findViewById<TextInputLayout>(R.id.field0Layout).parent as android.view.ViewGroup
+            extraView?.let { container.addView(it) }
+            val validationError = TextView(context).apply { visibility = View.GONE; setTextColor(android.graphics.Color.RED) }
+            container.addView(validationError)
+            val dialog = MaterialAlertDialogBuilder(context)
                 .setView(view)
-                .setPositiveButton(R.string.save) { _, _ ->
+                .setPositiveButton(R.string.save, null)
+                .setNegativeButton(R.string.action_close, null)
+                .create()
+            dialog.setOnShowListener {
+                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                     val values = fields.indices.map { idx ->
                         if (fields[idx].options != null) {
                             selectedDropdownValues[idx] ?: ""
@@ -158,10 +170,17 @@ class AdminFormDialog private constructor() {
                             view.findViewById<TextInputEditText>(editId).text?.toString()?.trim() ?: ""
                         }
                     }
-                    onSubmit?.invoke(values)
+                    val error = validator?.invoke(values)
+                    if (error != null) {
+                        validationError.text = error
+                        validationError.visibility = View.VISIBLE
+                    } else {
+                        onSubmit?.invoke(values)
+                        dialog.dismiss()
+                    }
                 }
-                .setNegativeButton(R.string.action_close, null)
-                .show()
+            }
+            dialog.show()
         }
     }
 }

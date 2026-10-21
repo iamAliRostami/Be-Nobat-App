@@ -180,7 +180,7 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             return new() { Failure = BookingFailure.InvalidRequest };
         var business = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == businessId, cancellationToken);
         if (business is null) return new() { Failure = BookingFailure.BusinessUnavailable };
-        var branch = await db.Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == branchId && x.BusinessId == businessId, cancellationToken);
+        var branch = await db.Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == branchId && x.BusinessId == businessId && x.IsApproved, cancellationToken);
         if (branch is null) return new() { Failure = BookingFailure.BranchUnavailable };
         var ids = serviceIds.Distinct().ToList();
         var services = await db.Services.AsNoTracking().Where(x => x.BusinessId == businessId && ids.Contains(x.Id)).OrderBy(x => x.Id).ToListAsync(cancellationToken);

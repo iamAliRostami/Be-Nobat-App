@@ -92,6 +92,21 @@ class AdminListCustomersUseCase(private val repo: ManagementRepository) {
         repo.listCustomers(q, branchId, page, pageSize)
 }
 
+class AdminCreateTeamMemberUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(input: com.leon.be_nobat.domain.model.ManagementTeamMemberInput): Result<ManagementPerson> =
+        repo.createTeamMember(input)
+}
+
+class AdminCreateCustomerUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(input: com.leon.be_nobat.domain.model.ManagementCustomerInput): Result<ManagementPerson> =
+        repo.createCustomer(input)
+}
+
+class AdminTogglePersonActiveUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(id: String, active: Boolean): Result<ManagementPerson> =
+        repo.setPersonActive(id, active)
+}
+
 class AdminListServicesUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(
         businessId: String? = null, branchId: String? = null, q: String? = null, includeInactive: Boolean? = null,
@@ -147,6 +162,14 @@ class AdminCreateAvailabilityUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(input: ManagementAvailabilityInput): Result<ManagementAvailability> = repo.createAvailability(input)
 }
 
+class AdminUpdateAvailabilityUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(id: String, input: ManagementAvailabilityInput): Result<ManagementAvailability> = repo.updateAvailability(id, input)
+}
+
+class AdminDeleteAvailabilityUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(id: String): Result<Unit> = repo.deleteAvailability(id)
+}
+
 class AdminListResourceServicesUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(resourceId: String): Result<ManagementResourceServicesInput> = repo.listResourceServices(resourceId)
 }
@@ -165,4 +188,9 @@ class AdminCreateCustomerReviewUseCase(private val repo: ManagementRepository) {
 class AdminListPendingCustomerReviewsUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(page: Int = 1, pageSize: Int = 25): Result<ApiPage<ManagementAppointment>> =
         repo.listPendingCustomerReviews(page, pageSize)
+}
+
+class AdminApproveBranchUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(id: String): Result<com.leon.be_nobat.domain.model.ManagementBranch> =
+        repo.approveBranch(id)
 }

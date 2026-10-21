@@ -98,3 +98,22 @@ class PlatformToggleUserActiveUseCase(private val repo: PlatformRepository) {
 class PlatformResetPasswordUseCase(private val repo: PlatformRepository) {
     suspend operator fun invoke(id: String): Result<PlatformResetPasswordResponse> = repo.resetUserPassword(id)
 }
+
+class PlatformListBusinessRequestsUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(
+        status: String? = null, q: String? = null, page: Int = 1, pageSize: Int = 25,
+    ): Result<ApiPage<com.leon.be_nobat.domain.model.BusinessRequest>> = repo.listBusinessRequests(status, q, page, pageSize)
+}
+
+class PlatformApproveBusinessRequestUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(id: String) = repo.approveBusinessRequest(id)
+}
+
+class PlatformRejectBusinessRequestUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(id: String, note: String?) =
+        repo.rejectBusinessRequest(id, com.leon.be_nobat.domain.model.ReviewBusinessRequestInput(note))
+}
+
+class PlatformApproveBranchUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(id: String) = repo.approveBranch(id)
+}

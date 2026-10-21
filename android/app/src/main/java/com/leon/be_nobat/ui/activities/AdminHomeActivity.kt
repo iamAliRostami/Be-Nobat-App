@@ -48,6 +48,9 @@ class AdminHomeActivity : BaseActivity() {
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnCalendar).setOnClickListener {
             startActivity(Intent(this, AdminCalendarActivity::class.java))
         }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnServices)?.setOnClickListener {
+            startActivity(Intent(this, AdminServicesActivity::class.java))
+        }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnBranches).setOnClickListener {
             startActivity(Intent(this, AdminBranchesActivity::class.java))
         }
@@ -74,7 +77,13 @@ class AdminHomeActivity : BaseActivity() {
             startActivity(Intent(this, AdminReviewsActivity::class.java))
         }
         findViewById<android.view.View>(R.id.cardBusinesses)?.setOnClickListener {
-            startActivity(Intent(this, PlatformBusinessesActivity::class.java))
+            lifecycleScope.launch {
+                if (isPlatformAdmin()) {
+                    startActivity(Intent(this@AdminHomeActivity, PlatformBusinessesActivity::class.java))
+                } else {
+                    startActivity(Intent(this@AdminHomeActivity, AdminServicesActivity::class.java))
+                }
+            }
         }
         findViewById<android.view.View>(R.id.cardBranches)?.setOnClickListener {
             startActivity(Intent(this, AdminBranchesActivity::class.java))
@@ -125,6 +134,36 @@ class AdminHomeActivity : BaseActivity() {
         } else {
             cardError.isVisible = false
         }
+
+        lifecycleScope.launch {
+            val canManage = state.context?.canManageBusiness ?: canManageBusiness()
+            val isPlatform = state.context?.isPlatformAdmin ?: isPlatformAdmin()
+
+            val subtitleView = findViewById<android.widget.TextView>(R.id.tvDashboardSubtitle)
+            if (subtitleView != null) {
+                val apptCount = state.dashboard?.appointments ?: 0
+                subtitleView.text = when {
+                    isPlatform -> getString(R.string.dashboard_subtitle_platform)
+                    canManage -> getString(
+                        R.string.dashboard_subtitle_manager,
+                        com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(apptCount)
+                    )
+                    else -> getString(
+                        R.string.dashboard_subtitle_staff,
+                        com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(apptCount)
+                    )
+                }
+                subtitleView.isVisible = true
+            }
+
+            // Role-based visibility
+            findViewById<android.view.View>(R.id.rowBusinessesAndBranches)?.isVisible = canManage
+            findViewById<android.view.View>(R.id.cardPendingReviews)?.isVisible = canManage
+            findViewById<android.view.View>(R.id.btnServices)?.isVisible = canManage
+            findViewById<android.view.View>(R.id.btnBranches)?.isVisible = canManage
+            findViewById<android.view.View>(R.id.btnReviews)?.isVisible = canManage
+        }
+
         state.dashboard?.let { d ->
             findViewById<android.widget.TextView>(R.id.tvBusinessesValue).text =
                 com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(d.businesses)

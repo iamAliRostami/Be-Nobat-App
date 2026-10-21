@@ -44,6 +44,7 @@ class AdminServicesActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requireBusinessManagementPermission()
         findViewById<TabLayout>(R.id.statusTabs).visibility = View.GONE
     }
 
@@ -149,7 +150,7 @@ class AdminServicesActivity : BaseActivity() {
                 tvTitle.text = item.name
                 tvSubtitle.text = "${PersianUtils.formatDuration(item.durationMinutes)} • ${PersianUtils.formatPrice(item.price, item.currency)}"
                 tvBody.text = item.description
-                tvStatus.text = if (item.active) root.context.getString(R.string.set_active) else root.context.getString(R.string.set_inactive)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)
                 btnAction1.text = if (item.active) root.context.getString(R.string.set_inactive) else root.context.getString(R.string.set_active)
                 btnAction2.isVisible = true
                 btnAction2.text = root.context.getString(R.string.action_edit)

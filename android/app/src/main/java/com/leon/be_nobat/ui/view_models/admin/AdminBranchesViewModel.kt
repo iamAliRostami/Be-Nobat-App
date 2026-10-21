@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.ManagementBranch
+import com.leon.be_nobat.domain.usecase.AdminApproveBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminDeleteBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminListBranchesUseCase
@@ -28,6 +29,7 @@ class AdminBranchesViewModel(
     private val updateUseCase: AdminUpdateBranchUseCase,
     private val toggleUseCase: AdminToggleBranchActiveUseCase,
     private val deleteUseCase: AdminDeleteBranchUseCase,
+    private val approveBranchUseCase: AdminApproveBranchUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminBranchesUiState(loading = true))
@@ -37,7 +39,7 @@ class AdminBranchesViewModel(
 
     fun load() = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
-        listUseCase()
+        listUseCase(includeInactive = true)
             .onSuccess { page: ApiPage<ManagementBranch> ->
                 _state.value = _state.value.copy(loading = false, items = page.items, total = page.total)
             }
@@ -72,5 +74,19 @@ class AdminBranchesViewModel(
         deleteUseCase(id).onSuccess {
             _state.value = _state.value.copy(items = _state.value.items.filterNot { it.id == id }, message = "deleted")
         }.onFailure { e -> _state.value = _state.value.copy(error = e.message) }
+    }
+
+    fun approveBranch(id: String) = viewModelScope.launch {
+        _state.value = _state.value.copy(loading = true, error = null, message = null)
+        approveBranchUseCase(id).onSuccess { updated ->
+            val items = _state.value.items.map { if (it.id == id) updated else it }
+            _state.value = _state.value.copy(loading = false, items = items, message = "branch_approved")
+        }.onFailure { e ->
+            _state.value = _state.value.copy(loading = false, error = e.message)
+        }
+    }
+
+    fun clearMessage() {
+        _state.value = _state.value.copy(message = null, error = null)
     }
 }

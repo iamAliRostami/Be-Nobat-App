@@ -45,19 +45,38 @@
     <string name="nav_profile">الملف</string>
     <string name="nav_admin">لوحة الإدارة</string>
 
+    <!-- ============ Admin Navigation Groups ============ -->
+    <string name="nav_group_management">الإدارة</string>
+    <string name="nav_group_business">إدارة الأعمال</string>
+    <string name="nav_group_platform">إدارة النظام</string>
+
+    <!-- ============ Role Labels ============ -->
+    <string name="role_platform_admin">مدير عام النظام</string>
+    <string name="role_owner">مدير العمل</string>
+    <string name="role_manager">مدير الفرع</string>
+    <string name="role_staff">موظف</string>
+    <string name="role_customer">مستخدم</string>
+
+    <!-- ============ Dashboard Subtitles ============ -->
+    <string name="dashboard_subtitle_platform">نظرة عامة على النظام وحالة جميع المواعيد</string>
+    <string name="dashboard_subtitle_manager">لديك اليوم %1$s موعد في الفروع الخاضعة للإدارة.</string>
+    <string name="dashboard_subtitle_staff">لديك اليوم %1$s موعد للمتابعة.</string>
+
+    <string name="error_access_denied">ليس لديك صلاحية الوصول إلى هذا القسم.</string>
+
     <string name="admin_dashboard">لوحة التحكم</string>
     <string name="admin_calendar">تقويم المواعيد</string>
     <string name="admin_branches">الفروع والموارد</string>
     <string name="admin_services">الخدمات</string>
-    <string name="admin_availability">ساعات العمل</string>
-    <string name="admin_reviews">المراجعات</string>
+    <string name="admin_availability">الأوقات المتاحة</string>
+    <string name="admin_reviews">التقييمات والمراجعات</string>
     <string name="admin_customers">العملاء</string>
     <string name="admin_team">أعضاء الفريق</string>
-    <string name="platform_businesses">الشركات (المنصة)</string>
+    <string name="platform_businesses">الشركات</string>
     <string name="platform_catalog">كتالوج الخدمات</string>
     <string name="platform_categories">التصنيفات</string>
     <string name="platform_access">المستخدمون والصلاحيات</string>
-    <string name="admin_back_to_user_view">العودة لعرض العميل</string>
+    <string name="admin_back_to_user_view">الصفحة العامة</string>
 
     <string name="home_message">ابحث عن شركة لحجز موعد</string>
     <string name="home_search_hint">بحث بالشركة أو المدينة أو التصنيف…</string>
@@ -170,8 +189,6 @@
     <string name="set_active">تفعيل</string>
     <string name="set_inactive">إلغاء التفعيل</string>
     <string name="temporary_password">كلمة مرور مؤقتة: %1$s</string>
-    <string name="role_customer">عميل</string>
-    <string name="role_platform_admin">مدير المنصة</string>
     <string name="view_calendar">عرض التقويم ←</string>
 
     <string name="loading">جارٍ التحميل…</string>
@@ -191,6 +208,7 @@
     <string name="form_create_catalog_title">إنشاء عنصر دليل</string>
     <string name="form_create_category_title">إنشاء فئة</string>
     <string name="form_create_user_title">إنشاء مستخدم جديد</string>
+    <string name="form_create_availability_title">فترة إتاحة جديدة</string>
 
     <string name="form_edit_branch_title">تعديل الفرع</string>
     <string name="form_edit_service_title">تعديل الخدمة</string>
@@ -198,7 +216,22 @@
     <string name="form_edit_catalog_title">تعديل عنصر الدليل</string>
     <string name="form_edit_category_title">تعديل الفئة</string>
     <string name="form_edit_user_title">تعديل المستخدم</string>
+    <string name="form_edit_availability_title">تعديل فترة الإتاحة</string>
     <string name="action_edit">تعديل</string>
+    <string name="action_delete">حذف</string>
+
+    <string name="availability_tab_current_future">الحالية والقادمة</string>
+    <string name="availability_tab_past">السابقة</string>
+    <string name="availability_delete_confirm_title">حذف فترة الإتاحة</string>
+    <string name="availability_delete_confirm_message">هل أنت متأكد من رغبتك في حذف هذه الفترة؟</string>
+    <string name="availability_all_staff">جميع موظفي الفرع</string>
+    <string name="availability_all_branches">كامل المنشأة</string>
+    <string name="availability_start_time">من الساعة</string>
+    <string name="availability_end_time">إلى الساعة</string>
+    <string name="availability_effective_date">التاريخ</string>
+    <string name="availability_is_available_switch">متاحة للحجز</string>
+    <string name="availability_available">متاح</string>
+    <string name="availability_blocked">محظور</string>
 
     <string name="category_kind_business">نشاط تجاري</string>
     <string name="category_kind_service">خدمة</string>
@@ -242,6 +275,8 @@
     <string name="error_network_unavailable">تحقق من اتصالك بالإنترنت</string>
     <string name="error_request_timed_out">انتهت مهلة الطلب. حاول مرة أخرى</string>
     <string name="error_unauthorized">سجّل الدخول للمتابعة</string>
+    <string name="error_session_expired">انتهت جلستك. يرجى تسجيل الدخول مرة أخرى للمتابعة.</string>
+    <string name="action_login_again">تسجيل الدخول مجدداً</string>
     <string name="error_forbidden">لا تملك صلاحية الوصول لهذا القسم</string>
     <string name="error_not_found">غير موجود</string>
     <string name="error_conflict">تعارض — حدث وأعد المحاولة</string>
@@ -315,9 +350,8 @@
     <string name="booking_business_label">النشاط التجاري</string>
     <string name="booking_price_label">المبلغ الإجمالي</string>
     <string name="tracking_code_copied">تم نسخ رقم التتبع</string>
-    <string name="role_manager">مدير النشاط التجاري</string>
+    <string name="copy_tracking_code">نسخ رقم التتبع</string>
     <string name="role_admin">مدير النظام</string>
-    <string name="role_staff">موظف</string>
     <string name="action_cancel">إلغاء</string>
     <string name="tab_all">الكل</string>
     <string name="status_available">متاح</string>
@@ -354,4 +388,43 @@
     <string name="demo_reset_success">تمت إعادة ضبط البيانات التجريبية بنجاح.</string>
     <string name="demo_accounts_hint">تجريبي: user@benobat.ir / manager@benobat.ir / admin@benobat.ir / staff@benobat.ir</string>
     <string name="demo_password_hint">كلمة المرور الأولية: Demo1234!</string>
+
+    <!-- User Management Tabs & Search -->
+    <string name="status_active">نشط</string>
+    <string name="status_inactive">غير نشط</string>
+    <string name="search_users_hint">البحث بالاسم، البريد، الهاتف أو الدور…</string>
+    <string name="tab_users_all">الكل</string>
+    <string name="tab_users_customers">العملاء</string>
+    <string name="tab_users_managers">المدراء</string>
+    <string name="tab_users_staff">الموظفون</string>
+
+    <!-- People / Team & Customers -->
+    <string name="tab_team">أعضاء الفريق</string>
+    <string name="tab_customers">العملاء</string>
+    <string name="search_people_hint">البحث بالاسم، البريد أو الهاتف…</string>
+    <string name="add_team_member">إضافة عضو فريق</string>
+    <string name="add_customer">إضافة عميل</string>
+    <string name="person_name_hint">الاسم الكامل</string>
+    <string name="person_email_hint">البريد الإلكتروني</string>
+    <string name="person_phone_hint">رقم الهاتف (مثلاً 09121234567)</string>
+    <string name="person_branch_hint">الفرع</string>
+    <string name="person_role_hint">الدور في الفرع</string>
+    <string name="person_visits_count">%1$s موعد</string>
+    <string name="person_rating_format">★ %1$s</string>
+    <string name="action_view_appointments">المواعيد</string>
+    <string name="action_call">اتصال</string>
+    <string name="action_send_email">إرسال بريد</string>
+    <string name="action_view_customer_reviews">التقييمات</string>
+    <string name="customer_details_title">بيانات العميل</string>
+    <string name="team_details_title">بيانات عضو الفريق</string>
+    <string name="team_member_created_success">تمت إضافة عضو الفريق بنجاح.</string>
+    <string name="customer_created_success">تمت إضافة العميل بنجاح.</string>
+    <string name="person_status_updated">تم تحديث حالة المستخدم.</string>
+    <string name="error_phone_invalid">يجب أن يتكون رقم الهاتف من 11 رقماً ويبدأ بـ 09.</string>
+    <string name="error_name_email_required">الاسم والبريد الإلكتروني مطلوبان.</string>
+    <string name="error_branch_required">يرجى تحديد الفرع.</string>
+    <string name="empty_team_filtered">لم يتم العثور على أي عضو بهذا البحث.</string>
+    <string name="empty_customers_filtered">لم يتم العثور على أي عميل بهذا البحث.</string>
+    <string name="search_categories_hint">البحث عن الفئات…</string>
+    <string name="empty_categories_filtered">لم يتم العثور على فئات بهذه الفلاتر.</string>
 </resources>

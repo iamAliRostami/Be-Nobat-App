@@ -45,19 +45,38 @@
     <string name="nav_profile">Profile</string>
     <string name="nav_admin">Admin</string>
 
+    <!-- ============ Admin Navigation Groups ============ -->
+    <string name="nav_group_management">Management</string>
+    <string name="nav_group_business">Business Management</string>
+    <string name="nav_group_platform">Platform Management</string>
+
+    <!-- ============ Role Labels ============ -->
+    <string name="role_platform_admin">Platform Admin</string>
+    <string name="role_owner">Business Owner</string>
+    <string name="role_manager">Branch Manager</string>
+    <string name="role_staff">Staff</string>
+    <string name="role_customer">User</string>
+
+    <!-- ============ Dashboard Subtitles ============ -->
+    <string name="dashboard_subtitle_platform">System-wide management overview and appointment statuses</string>
+    <string name="dashboard_subtitle_manager">You have %1$s appointments today across managed branches.</string>
+    <string name="dashboard_subtitle_staff">You have %1$s appointments to follow up today.</string>
+
+    <string name="error_access_denied">You do not have permission to access this section.</string>
+
     <string name="admin_dashboard">Dashboard</string>
     <string name="admin_calendar">Appointment calendar</string>
     <string name="admin_branches">Branches &amp; resources</string>
     <string name="admin_services">Services</string>
     <string name="admin_availability">Working hours</string>
-    <string name="admin_reviews">Reviews</string>
+    <string name="admin_reviews">Reviews &amp; ratings</string>
     <string name="admin_customers">Customers</string>
     <string name="admin_team">Team members</string>
-    <string name="platform_businesses">Businesses (platform)</string>
+    <string name="platform_businesses">Businesses</string>
     <string name="platform_catalog">Service catalog</string>
     <string name="platform_categories">Categories</string>
     <string name="platform_access">Users &amp; access</string>
-    <string name="admin_back_to_user_view">Back to customer view</string>
+    <string name="admin_back_to_user_view">Public view</string>
 
     <string name="home_message">Search for a business to book</string>
     <string name="home_search_hint">Search by business, city, category…</string>
@@ -170,8 +189,6 @@
     <string name="set_active">Activate</string>
     <string name="set_inactive">Deactivate</string>
     <string name="temporary_password">Temporary password: %1$s</string>
-    <string name="role_customer">Customer</string>
-    <string name="role_platform_admin">Platform admin</string>
     <string name="view_calendar">View Calendar →</string>
 
     <string name="loading">Loading…</string>
@@ -191,6 +208,7 @@
     <string name="form_create_catalog_title">Create Catalog Item</string>
     <string name="form_create_category_title">Create Category</string>
     <string name="form_create_user_title">Create New User</string>
+    <string name="form_create_availability_title">New Availability Interval</string>
 
     <string name="form_edit_branch_title">Edit Branch</string>
     <string name="form_edit_service_title">Edit Service</string>
@@ -198,7 +216,22 @@
     <string name="form_edit_catalog_title">Edit Catalog Item</string>
     <string name="form_edit_category_title">Edit Category</string>
     <string name="form_edit_user_title">Edit User</string>
+    <string name="form_edit_availability_title">Edit Availability</string>
     <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+
+    <string name="availability_tab_current_future">Current &amp; Future</string>
+    <string name="availability_tab_past">Past</string>
+    <string name="availability_delete_confirm_title">Delete Availability</string>
+    <string name="availability_delete_confirm_message">Are you sure you want to delete this availability interval?</string>
+    <string name="availability_all_staff">All branch staff</string>
+    <string name="availability_all_branches">Entire business</string>
+    <string name="availability_start_time">From</string>
+    <string name="availability_end_time">To</string>
+    <string name="availability_effective_date">Date</string>
+    <string name="availability_is_available_switch">Available for booking</string>
+    <string name="availability_available">Available</string>
+    <string name="availability_blocked">Blocked</string>
 
     <string name="category_kind_business">Business</string>
     <string name="category_kind_service">Service</string>
@@ -242,6 +275,8 @@
     <string name="error_network_unavailable">Check your internet connection</string>
     <string name="error_request_timed_out">The request timed out. Please try again</string>
     <string name="error_unauthorized">Sign in to continue</string>
+    <string name="error_session_expired">Your session has expired. Please sign in again to continue.</string>
+    <string name="action_login_again">Sign In Again</string>
     <string name="error_forbidden">You don\'t have access to this section</string>
     <string name="error_not_found">Not found</string>
     <string name="error_conflict">Conflict — refresh and try again</string>
@@ -315,9 +350,8 @@
     <string name="booking_business_label">Business</string>
     <string name="booking_price_label">Total Price</string>
     <string name="tracking_code_copied">Tracking number copied to clipboard</string>
-    <string name="role_manager">Business Manager</string>
+    <string name="copy_tracking_code">Copy tracking number</string>
     <string name="role_admin">System Admin</string>
-    <string name="role_staff">Staff</string>
     <string name="action_cancel">Cancel</string>
     <string name="tab_all">All</string>
     <string name="status_available">Available</string>
@@ -354,4 +388,78 @@
     <string name="demo_reset_success">Demo data has been reset.</string>
     <string name="demo_accounts_hint">Demo: user@benobat.ir / manager@benobat.ir / admin@benobat.ir / staff@benobat.ir</string>
     <string name="demo_password_hint">Default password for demo accounts: Demo1234!</string>
+
+    <!-- User Management Tabs & Search -->
+    <string name="status_active">Active</string>
+    <string name="status_inactive">Inactive</string>
+    <string name="search_users_hint">Search by name, email, phone or role…</string>
+    <string name="tab_users_all">All</string>
+    <string name="tab_users_customers">Customers</string>
+    <string name="tab_users_managers">Managers</string>
+    <string name="tab_users_staff">Staff</string>
+
+    <!-- Business Request & Platform Requests -->
+    <string name="business_request_title">Business Request</string>
+    <string name="business_upgrade_card_title">Register Business &amp; Upgrade to Manager</string>
+    <string name="business_upgrade_card_desc">If you own a salon, clinic, or service center, submit your business details to unlock the dedicated appointment &amp; branch management panel.</string>
+    <string name="business_request_dialog_title">Register New Business</string>
+    <string name="business_request_name">Business Name</string>
+    <string name="business_request_category">Category</string>
+    <string name="business_request_city">City</string>
+    <string name="business_request_phone">Business Phone</string>
+    <string name="business_request_first_branch">First Branch Name</string>
+    <string name="business_request_address">Branch Address</string>
+    <string name="business_request_description">Description (optional)</string>
+    <string name="business_request_submit_btn">Submit Business Request</string>
+    <string name="business_request_submitted_success">Your business request has been submitted and is pending platform administrator review.</string>
+    <string name="business_request_status_pending">Your business registration request (\"%1$s\") is currently pending admin review.</string>
+    <string name="business_request_status_approved">Your request was approved and your account upgraded to business manager.</string>
+    <string name="business_request_status_rejected">Your business registration request was rejected.</string>
+    <string name="business_request_review_note">Reason: %1$s</string>
+    <string name="business_request_resubmit_btn">Submit New Request</string>
+    <string name="platform_requests_title">Business Requests</string>
+    <string name="platform_tab_all">All</string>
+    <string name="platform_tab_pending">Pending</string>
+    <string name="platform_tab_approved">Approved</string>
+    <string name="platform_tab_rejected">Rejected</string>
+    <string name="platform_request_approve">Approve &amp; Upgrade to Manager</string>
+    <string name="platform_request_reject">Reject</string>
+    <string name="platform_request_reject_dialog_title">Reject Business Request</string>
+    <string name="platform_request_reject_note_hint">Reason for rejection (optional)</string>
+    <string name="platform_request_approved_success">Request approved, business and owner access activated.</string>
+    <string name="platform_request_rejected_success">Request rejected.</string>
+    <string name="drawer_platform_requests">Business Requests</string>
+    <string name="branch_pending_approval">Pending Platform Approval</string>
+    <string name="branch_approve_action">Approve Branch</string>
+    <string name="branch_approved_success">Branch successfully approved.</string>
+
+    <!-- People / Team & Customers -->
+    <string name="tab_team">Team Members</string>
+    <string name="tab_customers">Customers</string>
+    <string name="search_people_hint">Search name, email, or phone…</string>
+    <string name="add_team_member">Add Team Member</string>
+    <string name="add_customer">Add Customer</string>
+    <string name="person_name_hint">Full Name</string>
+    <string name="person_email_hint">Email</string>
+    <string name="person_phone_hint">Phone Number (e.g. 09121234567)</string>
+    <string name="person_branch_hint">Branch</string>
+    <string name="person_role_hint">Branch Role</string>
+    <string name="person_visits_count">%1$s visits</string>
+    <string name="person_rating_format">★ %1$s</string>
+    <string name="action_view_appointments">Appointments</string>
+    <string name="action_call">Call</string>
+    <string name="action_send_email">Send Email</string>
+    <string name="action_view_customer_reviews">Evaluations</string>
+    <string name="customer_details_title">Customer Details</string>
+    <string name="team_details_title">Team Member Details</string>
+    <string name="team_member_created_success">Team member created successfully.</string>
+    <string name="customer_created_success">Customer created successfully.</string>
+    <string name="person_status_updated">User status updated.</string>
+    <string name="error_phone_invalid">Mobile number must be 11 digits starting with 09.</string>
+    <string name="error_name_email_required">Valid name and email are required.</string>
+    <string name="error_branch_required">Please select a branch.</string>
+    <string name="empty_team_filtered">No team member matches this filter.</string>
+    <string name="empty_customers_filtered">No customer matches this filter.</string>
+    <string name="search_categories_hint">Search categories…</string>
+    <string name="empty_categories_filtered">No categories found with these filters.</string>
 </resources>

@@ -132,19 +132,19 @@
         var item = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (item is null) { NotFound = true; return; }
         Title = item.Name; SubtitleCategory = item.Category; Subtitle = item.City; Description = item.Description; KindLabel = "کسب‌وکار"; Icon = "ب"; BusinessIdForBooking = id; CurrentPath = $"/business/{id}";
-        Branches = (await db.Branches.AsNoTracking().Where(x => x.BusinessId == id).OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Address, $"/branch/{x.Id}")).ToList();
+        Branches = (await db.Branches.AsNoTracking().Where(x => x.BusinessId == id && x.IsApproved).OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Address, $"/branch/{x.Id}")).ToList();
         // فقط خدماتی که حداقل به یک شعبه متصل‌اند قابل رزروند.
         var services = await db.BranchServices.AsNoTracking().Include(x => x.Service)
-            .Where(x => x.Service.BusinessId == id && x.Branch.DeletedAt == null)
+            .Where(x => x.Service.BusinessId == id && x.Branch.DeletedAt == null && x.Branch.IsApproved)
             .Select(x => x.Service).Distinct().OrderBy(x => x.Name).ToListAsync();
         Services = services.Select(x => new LinkItem(x.Name, ServiceMetadata(x.DurationMinutes, x.Price), $"/service/{x.Id}")).ToList();
-        Providers = (await db.Resources.AsNoTracking().Include(x => x.Branch).Where(x => x.Branch.BusinessId == id && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Branch.Name, $"/provider/{x.Id}")).ToList();
+        Providers = (await db.Resources.AsNoTracking().Include(x => x.Branch).Where(x => x.Branch.BusinessId == id && x.Branch.IsApproved && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Branch.Name, $"/provider/{x.Id}")).ToList();
         Reviews = await LoadReviews(db, q => q.Where(x => x.BusinessId == id));
     }
 
     private async Task LoadBranch(AppDbContext db, Guid id)
     {
-        var item = await db.Branches.AsNoTracking().Include(x => x.Business).FirstOrDefaultAsync(x => x.Id == id);
+        var item = await db.Branches.AsNoTracking().Include(x => x.Business).FirstOrDefaultAsync(x => x.Id == id && x.IsApproved);
         if (item is null) { NotFound = true; return; }
         var hours = $"ساعت کاری {LocalizedDate.FormatNumber(item.OpenHour, UiLocale.Language)}:۰۰ تا {LocalizedDate.FormatNumber(item.CloseHour, UiLocale.Language)}:۰۰";
         Title = item.Name; Subtitle = string.IsNullOrWhiteSpace(item.Address) ? item.Business.Name : item.Address; Metadata = [hours]; KindLabel = "شعبه"; Icon = "⌖"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/branch/{id}";

@@ -15,15 +15,29 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 class TokenManagerTest {
-    @get:Rule
-    val temporaryFolder = TemporaryFolder()
+
+    private fun createDataStore(): androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> =
+        object : androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {
+            private val state = kotlinx.coroutines.flow.MutableStateFlow<androidx.datastore.preferences.core.Preferences>(
+                androidx.datastore.preferences.core.emptyPreferences()
+            )
+            private val mutex = kotlinx.coroutines.sync.Mutex()
+            override val data: kotlinx.coroutines.flow.Flow<androidx.datastore.preferences.core.Preferences> = state
+            override suspend fun updateData(
+                transform: suspend (androidx.datastore.preferences.core.Preferences) -> androidx.datastore.preferences.core.Preferences
+            ): androidx.datastore.preferences.core.Preferences {
+                mutex.lock()
+                return try {
+                    transform(state.value).also { state.value = it }
+                } finally {
+                    mutex.unlock()
+                }
+            }
+        }
 
     @Test
     fun `save persists session and deleteToken clears it`() = runBlocking {
-        val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(temporaryFolder.root, "session.preferences_pb") },
-        )
-        val manager = TokenManager(dataStore, Json, FakeCryptoManager)
+        val manager = TokenManager(createDataStore(), Json, FakeCryptoManager)
         val user = User(
             id = "u-1",
             displayName = "Test User",
@@ -59,10 +73,7 @@ class TokenManagerTest {
 
     @Test
     fun `saveUser updates the user without touching the token`() = runBlocking {
-        val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(temporaryFolder.root, "session.preferences_pb") },
-        )
-        val manager = TokenManager(dataStore, Json, FakeCryptoManager)
+        val manager = TokenManager(createDataStore(), Json, FakeCryptoManager)
         val original = MobileSession(
             accessToken = "tok-1",
             user = User(id = "u-1", displayName = "Old Name"),
@@ -78,10 +89,7 @@ class TokenManagerTest {
 
     @Test
     fun `replaceSession overwrites token user and expiresAt`() = runBlocking {
-        val dataStore = PreferenceDataStoreFactory.create(
-            produceFile = { File(temporaryFolder.root, "session.preferences_pb") },
-        )
-        val manager = TokenManager(dataStore, Json, FakeCryptoManager)
+        val manager = TokenManager(createDataStore(), Json, FakeCryptoManager)
         val first = MobileSession(accessToken = "tok-1", user = User(id = "u-1", displayName = "First"))
         manager.save(first)
 
@@ -95,6 +103,36 @@ class TokenManagerTest {
         assertEquals("tok-2", manager.userToken.first())
         assertEquals("Second", manager.user.first()?.displayName)
         assertEquals("2027-01-01T00:00:00+00:00", manager.expiresAt.first())
+    }
+
+    @Test
+    fun `saveManagementContext persists and clear removes it`() = runBlocking {
+        val manager = TokenManager(createDataStore(), Json, FakeCryptoManager)
+        val ctx = com.leon.be_nobat.domain.model.ManagementContext(
+            userId = "u-1",
+            roles = listOf("Manager"),
+            isPlatformAdmin = false,
+            canManageBusiness = true,
+            canManageAppointments = true,
+            memberships = listOf(
+                com.leon.be_nobat.domain.model.ManagementContextMembership(
+                    branchId = "br-1",
+                    businessId = "biz-1",
+                    branchName = "شعبه مرکزی",
+                    role = "Manager",
+                    canManageBusiness = true,
+                    canManageAppointments = true,
+                )
+            ),
+        )
+        manager.saveManagementContext(ctx)
+
+        assertEquals(ctx, manager.currentManagementContext())
+        assertEquals(ctx, manager.managementContext.first())
+
+        manager.clear()
+        assertNull(manager.currentManagementContext())
+        assertNull(manager.managementContext.first())
     }
 
     private object FakeCryptoManager : ICryptoManager {

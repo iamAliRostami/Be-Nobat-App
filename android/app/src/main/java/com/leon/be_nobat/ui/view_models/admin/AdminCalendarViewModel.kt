@@ -23,6 +23,8 @@ data class AdminCalendarUiState(
     val statusFilter: String? = null,
     val dateFilter: String = JalaliDateHelper.getTodayIso(),
     val allDates: Boolean = false,
+    val customerId: String? = null,
+    val customerName: String? = null,
     val searchQuery: String = "",
     val error: String? = null,
 )
@@ -38,13 +40,16 @@ class AdminCalendarViewModel(
     private var loadJob: Job? = null
     private var isInitialized = false
 
-    fun initFilters(initialStatus: String?, initialDate: String?) {
+    fun initFilters(initialStatus: String?, initialDate: String?, customerId: String? = null, customerName: String? = null) {
+        val hasCustomer = !customerId.isNullOrBlank()
         val resolvedDate = if (!initialDate.isNullOrBlank()) initialDate else JalaliDateHelper.getTodayIso()
         val resolvedStatus = initialStatus?.ifBlank { null }
         _state.value = _state.value.copy(
             statusFilter = resolvedStatus,
             dateFilter = resolvedDate,
-            allDates = false
+            allDates = hasCustomer, // show all dates for customer by default
+            customerId = customerId?.ifBlank { null },
+            customerName = customerName?.ifBlank { null },
         )
         load()
     }
@@ -58,6 +63,7 @@ class AdminCalendarViewModel(
             listAppointments(
                 date = queryDate,
                 status = s.statusFilter,
+                customerId = s.customerId,
             ).onSuccess { page: ApiPage<ManagementAppointment> ->
                 _state.value = _state.value.copy(loading = false, items = page.items, total = page.total, error = null)
             }.onFailure { e ->

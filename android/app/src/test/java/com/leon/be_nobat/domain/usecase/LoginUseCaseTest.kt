@@ -4,6 +4,7 @@ import com.leon.be_nobat.domain.model.AuthException
 import com.leon.be_nobat.domain.model.MobileSession
 import com.leon.be_nobat.domain.model.RegisterInput
 import com.leon.be_nobat.domain.model.User
+import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.domain.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -67,6 +68,9 @@ class LoginUseCaseTest {
         override suspend fun changeEmail(input: com.leon.be_nobat.domain.model.EmailInput): Result<MobileSession> = Result.success(MobileSession(accessToken = "tok2", user = User(id = "u-1")))
         override suspend fun uploadAvatar(input: com.leon.be_nobat.domain.model.AvatarInput): Result<User> = Result.success(User(id = "u-1"))
         override suspend fun deleteAvatar(): Result<User> = Result.success(User(id = "u-1"))
+        override suspend fun getMyBusinessRequest(): Result<BusinessRequest?> = Result.success(null)
+        override suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<BusinessRequest> =
+            Result.success(BusinessRequest(id = "req-1", businessName = input.businessName))
         override val cachedSession: MobileSession? = null
     }
 }
@@ -120,6 +124,9 @@ class RegisterUseCaseTest {
             Result.success(MobileSession(accessToken = "tok2", user = User(id = "u-1")))
         override suspend fun uploadAvatar(input: com.leon.be_nobat.domain.model.AvatarInput) = Result.success(User(id = "u-1"))
         override suspend fun deleteAvatar() = Result.success(User(id = "u-1"))
+        override suspend fun getMyBusinessRequest(): Result<BusinessRequest?> = Result.success(null)
+        override suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<BusinessRequest> =
+            Result.success(BusinessRequest(id = "req-1", businessName = input.businessName))
         override val cachedSession: MobileSession? = null
     }
 }

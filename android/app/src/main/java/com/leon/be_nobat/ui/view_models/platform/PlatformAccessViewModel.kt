@@ -18,7 +18,9 @@ import kotlinx.coroutines.launch
 data class PlatformAccessUiState(
     val loading: Boolean = false,
     val items: List<ManagementUser> = emptyList(),
+    val filteredItems: List<ManagementUser> = emptyList(),
     val total: Int = 0,
+    val selectedTab: String = "",
     val searchQuery: String = "",
     val error: String? = null,
     val message: String? = null,
@@ -40,28 +42,95 @@ class PlatformAccessViewModel(
     init { load() }
 
     fun load() = viewModelScope.launch {
-        val s = _state.value
-        _state.value = s.copy(loading = true, error = null)
-        listUseCase(q = s.searchQuery.ifBlank { null })
+        _state.value = _state.value.copy(loading = true, error = null)
+        listUseCase(page = 1, pageSize = 100)
             .onSuccess { page: ApiPage<ManagementUser> ->
-                _state.value = _state.value.copy(loading = false, items = page.items, total = page.total)
+                val currentTab = _state.value.selectedTab
+                val currentQuery = _state.value.searchQuery
+                val filtered = filterUsers(page.items, currentTab, currentQuery)
+                _state.value = _state.value.copy(
+                    loading = false,
+                    items = page.items,
+                    filteredItems = filtered,
+                    total = filtered.size,
+                )
             }
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
     }
 
-    fun setQuery(q: String) { _state.value = _state.value.copy(searchQuery = q) }
+    fun setSelectedTab(tab: String) {
+        if (_state.value.selectedTab == tab) return
+        val currentItems = _state.value.items
+        val currentQuery = _state.value.searchQuery
+        val filtered = filterUsers(currentItems, tab, currentQuery)
+        _state.value = _state.value.copy(
+            selectedTab = tab,
+            filteredItems = filtered,
+            total = filtered.size,
+        )
+    }
+
+    fun setQuery(q: String) {
+        val currentItems = _state.value.items
+        val currentTab = _state.value.selectedTab
+        val filtered = filterUsers(currentItems, currentTab, q)
+        _state.value = _state.value.copy(
+            searchQuery = q,
+            filteredItems = filtered,
+            total = filtered.size,
+        )
+    }
+
+    private fun filterUsers(items: List<ManagementUser>, tab: String, query: String): List<ManagementUser> {
+        val trimmed = query.trim()
+        return items.filter { user ->
+            val matchesTab = when (tab) {
+                "" -> true
+                "Customer" -> (user.roles.isEmpty() || user.roles.contains("Customer")) &&
+                    !user.roles.any { it in listOf("PlatformAdmin", "Owner", "Manager", "Staff") }
+                "Manager" -> user.roles.any { it.equals("Owner", ignoreCase = true) || it.equals("Manager", ignoreCase = true) }
+                "Staff" -> user.roles.any { it.equals("Staff", ignoreCase = true) }
+                "PlatformAdmin" -> user.roles.any { it.equals("PlatformAdmin", ignoreCase = true) }
+                "Inactive" -> !user.active
+                else -> true
+            }
+
+            val matchesQuery = if (trimmed.isEmpty()) {
+                true
+            } else {
+                user.displayName.contains(trimmed, ignoreCase = true) ||
+                    (user.email?.contains(trimmed, ignoreCase = true) == true) ||
+                    (user.phoneNumber?.contains(trimmed, ignoreCase = true) == true) ||
+                    user.roles.any { it.contains(trimmed, ignoreCase = true) }
+            }
+
+            matchesTab && matchesQuery
+        }
+    }
 
     fun toggleActive(id: String, active: Boolean) = viewModelScope.launch {
         toggleActiveUseCase(id, active).onSuccess { updated ->
             val items = _state.value.items.map { if (it.id == id) updated else it }
-            _state.value = _state.value.copy(items = items, message = "updated")
+            val filtered = filterUsers(items, _state.value.selectedTab, _state.value.searchQuery)
+            _state.value = _state.value.copy(
+                items = items,
+                filteredItems = filtered,
+                total = filtered.size,
+                message = "updated",
+            )
         }.onFailure { e -> _state.value = _state.value.copy(error = e.message) }
     }
 
     fun setRole(id: String, role: String) = viewModelScope.launch {
         setRolesUseCase(id, listOf(role)).onSuccess { updated ->
             val items = _state.value.items.map { if (it.id == id) updated else it }
-            _state.value = _state.value.copy(items = items, message = "updated")
+            val filtered = filterUsers(items, _state.value.selectedTab, _state.value.searchQuery)
+            _state.value = _state.value.copy(
+                items = items,
+                filteredItems = filtered,
+                total = filtered.size,
+                message = "updated",
+            )
         }.onFailure { e -> _state.value = _state.value.copy(error = e.message) }
     }
 

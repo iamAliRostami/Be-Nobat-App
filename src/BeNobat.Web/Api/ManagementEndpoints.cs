@@ -41,7 +41,10 @@ public static class ManagementEndpoints
         admin.MapPut("/memberships/{id:guid}", UpdateMembership);
         admin.MapDelete("/memberships/{id:guid}", DeleteMembership);
         admin.MapGet("/team", ListTeam);
+        admin.MapPost("/team", CreateTeamMember);
         admin.MapGet("/customers", ListCustomers);
+        admin.MapPost("/customers", CreateCustomer);
+        admin.MapPut("/people/{id:guid}/active", SetPersonActive);
         admin.MapGet("/services", ListServices);
         admin.MapGet("/services/{id:guid}", GetService);
         admin.MapPost("/services", CreateService);
@@ -99,6 +102,10 @@ public static class ManagementEndpoints
         platform.MapPut("/users/{id:guid}/roles", SetUserRoles);
         platform.MapPut("/users/{id:guid}/active", SetUserActive);
         platform.MapPost("/users/{id:guid}/reset-password", ResetUserPassword);
+        platform.MapGet("/business-requests", ListBusinessRequests);
+        platform.MapPost("/business-requests/{id:guid}/approve", ApproveBusinessRequest);
+        platform.MapPost("/business-requests/{id:guid}/reject", RejectBusinessRequest);
+        platform.MapPost("/branches/{id:guid}/approve", ApproveBranch);
         return root;
     }
 
@@ -144,8 +151,9 @@ public static class ManagementEndpoints
 
     private static async Task<IResult> Page<T>(IQueryable<T> query, int page, int pageSize, CancellationToken ct)
     {
-        if (page < 1 || page > 100000 || pageSize < 1 || pageSize > 100)
-            return Invalid("page must be positive and pageSize must be between 1 and 100.");
+        if (page < 1 || page > 100000 || pageSize < 1)
+            return Invalid("page must be positive and pageSize must be at least 1.");
+        pageSize = Math.Min(pageSize, 1000);
         var total = await query.CountAsync(ct);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
         return Results.Ok(new ApiPage<T>(items, page, pageSize, total));
@@ -194,8 +202,8 @@ public static class ManagementEndpoints
     }
 
     private static IQueryable<ManagementBusinessDto> BusinessDtos(IQueryable<Business> query) => query.Select(x =>
-        new ManagementBusinessDto(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null));
-    private static ManagementBusinessDto BusinessDto(Business x) => new(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null);
+        new ManagementBusinessDto(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null, x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault()));
+    private static ManagementBusinessDto BusinessDto(Business x) => new(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null, x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault());
 
     private static Task<IResult> ListBusinesses(ApiScope scope, CancellationToken ct, string? q = null, int page = 1, int pageSize = 25)
     {
@@ -225,7 +233,7 @@ public static class ManagementEndpoints
 
     private static bool ValidBusiness(ManagementBusinessInput input) => Text(input.Name, 200, true) && Text(input.Slug, 100) &&
         Text(input.Category, 100, true) && Text(input.City, 100, true) && Text(input.Description, 5000) &&
-        Text(input.FirstBranchName, 200) && (string.IsNullOrWhiteSpace(input.Slug) || Regex.IsMatch(input.Slug.Trim(), "^[a-z0-9]+(-[a-z0-9]+)*$"));
+        Text(input.FirstBranchName, 200) && Text(input.FirstBranchAddress, 1000) && WeeklySchedule.Validate(input.FirstBranchWeeklyHours) == null && (string.IsNullOrWhiteSpace(input.Slug) || Regex.IsMatch(input.Slug.Trim(), "^[a-z0-9]+(-[a-z0-9]+)*$"));
 
     private static void ApplyBusiness(Business x, ManagementBusinessInput input, string slug)
     {
@@ -248,7 +256,8 @@ public static class ManagementEndpoints
             }
             var business = new Business { Name = Clean(input.Name) };
             ApplyBusiness(business, input, slug);
-            var branch = new Branch { Business = business, Name = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : Clean(input.FirstBranchName) };
+            var branch = new Branch { Business = business, BusinessId = business.Id, Name = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : Clean(input.FirstBranchName), Address = Clean(input.FirstBranchAddress), OpenHour = 8, CloseHour = 20 };
+            WeeklySchedule.Replace(branch, input.FirstBranchWeeklyHours ?? WeeklySchedule.Default());
             db.Businesses.Add(business); db.Branches.Add(branch);
             if (owner is not null) db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = owner.Id, Role = AppRoles.Owner });
             await db.SaveChangesAsync(ct);
@@ -260,6 +269,11 @@ public static class ManagementEndpoints
     private static async Task<IResult> UpdateBusiness(Guid id, ManagementBusinessInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
     {
         if (!await scope.CanManageBusiness(id)) return Missing();
+        if (input.FirstBranchWeeklyHours is not null || input.FirstBranchAddress is not null)
+        {
+            var branchId = await db.Branches.Where(b => b.BusinessId == id).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefaultAsync(ct);
+            if (branchId is Guid first && !await scope.Branches(true).AnyAsync(b => b.Id == first, ct)) return Missing();
+        }
         return await SaveBusiness(id, input, db, false, ct);
     }
 
@@ -272,6 +286,19 @@ public static class ManagementEndpoints
         if (item is null) return Missing();
         var slug = string.IsNullOrWhiteSpace(input.Slug) ? item.Slug : Clean(input.Slug);
         if (await db.Businesses.IgnoreQueryFilters().AnyAsync(x => x.Slug == slug && x.Id != id, ct)) return Conflict("The slug is already in use.");
+        if (input.FirstBranchWeeklyHours is not null || input.FirstBranchAddress is not null)
+        {
+            var branch = await db.Branches.IgnoreQueryFilters().Include(x => x.AvailabilityRules)
+                .Where(x => x.BusinessId == id && x.DeletedAt == null).OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).FirstOrDefaultAsync(ct);
+            if (branch is null)
+            {
+                branch = new Branch { Business = item, BusinessId = item.Id, Name = "شعبه مرکزی", OpenHour = 8, CloseHour = 20 };
+                db.Branches.Add(branch);
+            }
+            branch.Name = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : Clean(input.FirstBranchName);
+            if (input.FirstBranchAddress is not null) branch.Address = Clean(input.FirstBranchAddress);
+            if (input.FirstBranchWeeklyHours is not null) WeeklySchedule.Replace(branch, input.FirstBranchWeeklyHours);
+        }
         ApplyBusiness(item, input, slug); await db.SaveChangesAsync(ct); return Results.Ok(BusinessDto(item));
     }
 
@@ -297,8 +324,13 @@ public static class ManagementEndpoints
                 ((m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) || (!managed && m.Role == AppRoles.Staff)))));
 
     private static IQueryable<ManagementBranchDto> BranchDtos(IQueryable<Branch> query) => query.Select(x =>
-        new ManagementBranchDto(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null));
-    private static ManagementBranchDto BranchDto(Branch x) => new(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null);
+        new ManagementBranchDto(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null,
+            x.AvailabilityRules.Any(r => r.DeletedAt == null && r.ResourceId == null && r.EffectiveDate == null)
+                ? x.AvailabilityRules.Where(r => r.DeletedAt == null && r.ResourceId == null && r.EffectiveDate == null && r.IsAvailable)
+                    .Select(r => new WeeklyTimeRange { DayOfWeek = (int)r.DayOfWeek, StartsAt = r.StartsAt, EndsAt = r.EndsAt }).ToList() : null,
+            x.Business.Name,
+            x.IsApproved));
+    private static ManagementBranchDto BranchDto(Branch x) => new(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null, WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved);
 
     private static Task<IResult> ListBranches(AppDbContext db, ApiScope scope, CancellationToken ct, Guid? businessId = null, string? q = null, bool includeInactive = false, int page = 1, int pageSize = 25)
     {
@@ -316,6 +348,7 @@ public static class ManagementEndpoints
 
     private static bool ValidBranch(ManagementBranchInput input)
     {
+        if (WeeklySchedule.Validate(input.WeeklyHours) is not null) return false;
         if (!Text(input.Name, 200, true) || !Text(input.Address, 1000) || !Text(input.TimeZoneId, 100, true) ||
             input.OpenHour is < 0 or > 23 || input.CloseHour is < 1 or > 24 || input.CloseHour <= input.OpenHour) return false;
         try { _ = TimeZoneInfo.FindSystemTimeZoneById(input.TimeZoneId); return true; }
@@ -335,7 +368,7 @@ public static class ManagementEndpoints
         {
             if (!ValidBranch(input)) return Invalid("Provide a name, valid time zone and opening hours between 0 and 24.");
             if (!await scope.CanOwnBusiness(input.BusinessId)) return Missing();
-            var item = new Branch { BusinessId = input.BusinessId, Name = Clean(input.Name) }; ApplyBranch(item, input); db.Branches.Add(item);
+            var item = new Branch { BusinessId = input.BusinessId, Name = Clean(input.Name), IsApproved = scope.IsPlatform }; ApplyBranch(item, input); WeeklySchedule.Replace(item, input.WeeklyHours ?? WeeklySchedule.Default()); db.Branches.Add(item);
             if (!scope.IsPlatform) db.BranchMemberships.Add(new BranchMembership { Branch = item, UserId = scope.UserId, Role = AppRoles.Owner });
             await db.SaveChangesAsync(ct);
             if (!scope.IsPlatform && await users.FindByIdAsync(scope.UserId.ToString()) is { } user) await TeamRoleSync.SyncAsync(users, db, user);
@@ -346,15 +379,15 @@ public static class ManagementEndpoints
     private static async Task<IResult> UpdateBranch(Guid id, ManagementBranchInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
     {
         if (!ValidBranch(input)) return Invalid("Provide a name, valid time zone and opening hours between 0 and 24.");
-        var item = await StoredBranches(db, scope, true).SingleOrDefaultAsync(x => x.Id == id, ct);
+        var item = await StoredBranches(db, scope, true).Include(x => x.AvailabilityRules).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (item is null) return Missing();
         if (item.BusinessId != input.BusinessId) return Invalid("A branch cannot be moved to another business.");
-        ApplyBranch(item, input); await db.SaveChangesAsync(ct); return Results.Ok(BranchDto(item));
+        ApplyBranch(item, input); if (input.WeeklyHours is not null) WeeklySchedule.Replace(item, input.WeeklyHours); await db.SaveChangesAsync(ct); return Results.Ok(BranchDto(item));
     }
 
     private static async Task<IResult> SetBranchActive(Guid id, ManagementActiveInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
     {
-        var item = await StoredBranches(db, scope, true).SingleOrDefaultAsync(x => x.Id == id, ct);
+        var item = await StoredBranches(db, scope, true).Include(x => x.AvailabilityRules).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (item is null) return Missing();
         var now = DateTimeOffset.UtcNow;
         if (!input.Active && await db.Appointments.IgnoreQueryFilters().AnyAsync(a => a.DeletedAt == null && a.BranchId == id &&
@@ -521,24 +554,167 @@ public static class ManagementEndpoints
         }, ct);
     }
 
-    private static Task<IResult> ListTeam(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
+    private static async Task<IResult> ListTeam(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
     {
-        var memberships = ScopedMemberships(db, scope);
+        var memberships = ScopedMemberships(db, scope).Include(m => m.Branch).AsQueryable();
         if (branchId is Guid branch) memberships = memberships.Where(m => m.BranchId == branch);
-        var query = db.Users.Where(u => memberships.Any(m => m.UserId == u.Id));
+        var memberUsers = await memberships
+            .Select(m => new { m.UserId, m.Role, BranchName = m.Branch.Name })
+            .ToListAsync(ct);
+        var userIds = memberUsers.Select(m => m.UserId).Distinct().ToList();
+        var query = db.Users.Where(u => userIds.Contains(u.Id));
         if (!string.IsNullOrWhiteSpace(q)) query = query.Where(u => u.DisplayName.Contains(q) || (u.Email != null && u.Email.Contains(q)) || (u.PhoneNumber != null && u.PhoneNumber.Contains(q)));
         var now = DateTimeOffset.UtcNow;
-        return Page(query.OrderBy(u => u.DisplayName).ThenBy(u => u.Id).Select(u => new ManagementPersonDto(u.Id, u.DisplayName, u.Email, u.PhoneNumber, !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= now)), page, pageSize, ct);
+        var total = await query.CountAsync(ct);
+        pageSize = Math.Clamp(pageSize, 1, 1000);
+        var users = await query.OrderBy(u => u.DisplayName).ThenBy(u => u.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        var dtos = users.Select(u =>
+        {
+            var m = memberUsers.FirstOrDefault(x => x.UserId == u.Id);
+            return new ManagementPersonDto(
+                u.Id,
+                u.DisplayName,
+                u.Email,
+                u.PhoneNumber,
+                !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= now,
+                Role: m?.Role ?? AppRoles.Staff,
+                BranchName: m?.BranchName
+            );
+        }).ToList();
+        return Results.Ok(new ApiPage<ManagementPersonDto>(dtos, page, pageSize, total));
     }
 
-    private static Task<IResult> ListCustomers(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
+    private static async Task<IResult> CreateTeamMember(ManagementTeamMemberInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200 ||
+            string.IsNullOrWhiteSpace(input.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
+            return Invalid("Provide a valid name and email address.");
+        if (!UserInputValidation.TryNormalizeIranianMobile(input.Phone, out var phone))
+            return Invalid("Mobile number must be 11 digits starting with 09.");
+        if (!TeamRoles.Contains(input.Role))
+            return Invalid("Role must be Owner, Manager or Staff.");
+        if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(input.Role, input.BranchId))
+            return Denied();
+
+        var email = Clean(input.Email);
+        var user = await users.FindByEmailAsync(email);
+        var password = TemporaryPassword();
+        if (user is null)
+        {
+            user = new AppUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                DisplayName = Clean(input.Name),
+                PhoneNumber = phone,
+            };
+            var createRes = await users.CreateAsync(user, password);
+            if (!createRes.Succeeded) return IdentityError(createRes);
+        }
+
+        var existingMembership = await db.BranchMemberships.IgnoreQueryFilters().SingleOrDefaultAsync(m => m.BranchId == input.BranchId && m.UserId == user.Id, ct);
+        if (existingMembership is { DeletedAt: null }) return Conflict("The user is already a member of this branch.");
+        if (existingMembership is null)
+        {
+            existingMembership = new BranchMembership { BranchId = input.BranchId, UserId = user.Id, Role = input.Role };
+            db.BranchMemberships.Add(existingMembership);
+        }
+        else
+        {
+            existingMembership.Role = input.Role;
+            existingMembership.DeletedAt = null;
+            existingMembership.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+        await db.SaveChangesAsync(ct);
+        await TeamRoleSync.SyncAsync(users, db, user);
+
+        var branchName = await db.Branches.Where(b => b.Id == input.BranchId).Select(b => b.Name).FirstOrDefaultAsync(ct) ?? "";
+        return Results.Created($"/api/v1/admin/team/{user.Id}", new ManagementPersonDto(user.Id, user.DisplayName, user.Email, user.PhoneNumber, true, Role: input.Role, BranchName: branchName));
+    }
+
+    private static async Task<IResult> ListCustomers(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
     {
         var appointments = scope.Appointments();
         if (branchId is Guid branch) appointments = appointments.Where(a => a.BranchId == branch);
-        var query = db.Users.Where(u => appointments.Any(a => a.CustomerId == u.Id));
+        var customerIds = appointments.Select(a => a.CustomerId).Distinct();
+        var query = db.Users.Where(u => customerIds.Contains(u.Id));
         if (!string.IsNullOrWhiteSpace(q)) query = query.Where(u => u.DisplayName.Contains(q) || (u.Email != null && u.Email.Contains(q)) || (u.PhoneNumber != null && u.PhoneNumber.Contains(q)));
         var now = DateTimeOffset.UtcNow;
-        return Page(query.OrderBy(u => u.DisplayName).ThenBy(u => u.Id).Select(u => new ManagementPersonDto(u.Id, u.DisplayName, u.Email, u.PhoneNumber, !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= now)), page, pageSize, ct);
+        var total = await query.CountAsync(ct);
+        pageSize = Math.Clamp(pageSize, 1, 1000);
+        var users = await query.OrderBy(u => u.DisplayName).ThenBy(u => u.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+        var pageUserIds = users.Select(u => u.Id).ToList();
+
+        var visits = await appointments
+            .Where(a => pageUserIds.Contains(a.CustomerId))
+            .GroupBy(a => a.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.CustomerId, g => g.Count, ct);
+
+        var reviews = await scope.CustomerReviews()
+            .Where(r => pageUserIds.Contains(r.CustomerId))
+            .GroupBy(r => r.CustomerId)
+            .Select(g => new { CustomerId = g.Key, Avg = g.Average(r => (double)r.Rating) })
+            .ToDictionaryAsync(g => g.CustomerId, g => g.Avg, ct);
+
+        var dtos = users.Select(u => new ManagementPersonDto(
+            u.Id,
+            u.DisplayName,
+            u.Email,
+            u.PhoneNumber,
+            !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= now,
+            Visits: visits.GetValueOrDefault(u.Id, 0),
+            Rating: reviews.TryGetValue(u.Id, out var avg) ? avg : null
+        )).ToList();
+
+        return Results.Ok(new ApiPage<ManagementPersonDto>(dtos, page, pageSize, total));
+    }
+
+    private static async Task<IResult> CreateCustomer(ManagementCustomerInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200 ||
+            string.IsNullOrWhiteSpace(input.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
+            return Invalid("Provide a valid name and email address.");
+        if (!UserInputValidation.TryNormalizeIranianMobile(input.Phone, out var phone))
+            return Invalid("Mobile number must be 11 digits starting with 09.");
+        if (!scope.IsPlatform && !await scope.Branches(true).AnyAsync(ct))
+            return Denied();
+
+        var email = Clean(input.Email);
+        var user = await users.FindByEmailAsync(email);
+        if (user is not null) return Conflict("A user with this email already exists.");
+        var password = TemporaryPassword();
+        user = new AppUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            DisplayName = Clean(input.Name),
+            PhoneNumber = phone,
+        };
+        var createRes = await users.CreateAsync(user, password);
+        if (!createRes.Succeeded) return IdentityError(createRes);
+        var roleRes = await users.AddToRoleAsync(user, AppRoles.Customer);
+        if (!roleRes.Succeeded) return IdentityError(roleRes);
+
+        return Results.Created($"/api/v1/admin/customers/{user.Id}", new ManagementPersonDto(user.Id, user.DisplayName, user.Email, user.PhoneNumber, true));
+    }
+
+    private static async Task<IResult> SetPersonActive(Guid id, ManagementActiveInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(id.ToString());
+        if (user is null) return Missing();
+        if (user.Id == scope.UserId) return Invalid("Cannot modify your own active status.");
+        if (!scope.IsPlatform && !await scope.Branches(true).AnyAsync(ct)) return Denied();
+        if (await users.IsInRoleAsync(user, AppRoles.PlatformAdmin)) return Denied();
+
+        user.LockoutEnabled = true;
+        user.LockoutEnd = input.Active ? null : DateTimeOffset.MaxValue;
+        var updateRes = await users.UpdateAsync(user);
+        if (!updateRes.Succeeded) return IdentityError(updateRes);
+        await users.UpdateSecurityStampAsync(user);
+        return Results.Ok(new ManagementPersonDto(user.Id, user.DisplayName, user.Email, user.PhoneNumber, input.Active));
     }
 
     private static IQueryable<Service> ScopedServices(AppDbContext db, ApiScope scope, bool managed = false, bool includeInactive = false) =>
@@ -716,7 +892,8 @@ public static class ManagementEndpoints
         (r.BranchId == null || scope.Branches().Any(b => b.Id == r.BranchId)) &&
         (r.ResourceId == null || db.Resources.Any(resource => resource.Id == r.ResourceId && resource.BranchId == r.BranchId)));
     private static IQueryable<ManagementAvailabilityDto> AvailabilityDtos(IQueryable<AvailabilityRule> query) => query.Select(r =>
-        new ManagementAvailabilityDto(r.Id, r.BusinessId, r.BranchId, r.ResourceId, r.EffectiveDate, r.DayOfWeek.ToString(), r.StartsAt, r.EndsAt, r.IsAvailable));
+        new ManagementAvailabilityDto(r.Id, r.BusinessId, r.BranchId, r.ResourceId, r.EffectiveDate, r.DayOfWeek.ToString(), r.StartsAt, r.EndsAt, r.IsAvailable,
+            r.Business.Name, r.Branch != null ? r.Branch.Name : null, r.Resource != null ? r.Resource.Name : null));
 
     private static Task<IResult> ListAvailability(AppDbContext db, ApiScope scope, CancellationToken ct, Guid? businessId = null, Guid? branchId = null,
         Guid? resourceId = null, DateOnly? from = null, DateOnly? to = null, int page = 1, int pageSize = 25)
@@ -766,7 +943,8 @@ public static class ManagementEndpoints
         item.EndsAt = input.EndsAt; item.IsAvailable = input.IsAvailable; item.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    private static ManagementAvailabilityDto AvailabilityDto(AvailabilityRule r) => new(r.Id, r.BusinessId, r.BranchId, r.ResourceId, r.EffectiveDate, r.DayOfWeek.ToString(), r.StartsAt, r.EndsAt, r.IsAvailable);
+    private static ManagementAvailabilityDto AvailabilityDto(AvailabilityRule r) => new(r.Id, r.BusinessId, r.BranchId, r.ResourceId, r.EffectiveDate, r.DayOfWeek.ToString(), r.StartsAt, r.EndsAt, r.IsAvailable,
+        r.Business?.Name, r.Branch?.Name, r.Resource?.Name);
 
     private static async Task<IResult> CreateAvailability(ManagementAvailabilityInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
     {
@@ -1199,18 +1377,113 @@ public static class ManagementEndpoints
         if (!result.Succeeded) return IdentityError(result);
         return Results.Ok(new { userId = user.Id, temporaryPassword = password });
     }
+
+    public static BusinessRequestDto ToBusinessRequestDto(BusinessRequest r, string? userName = null, string? userEmail = null, string? userPhone = null) =>
+        new(r.Id, r.UserId, userName ?? r.User?.DisplayName ?? "", userEmail ?? r.User?.Email, userPhone ?? r.User?.PhoneNumber ?? r.ContactPhone,
+            r.BusinessName, r.Category, r.City, r.Description, r.ContactPhone, r.FirstBranchName, r.FirstBranchAddress,
+            r.Status.ToString(), r.ReviewNote, r.ApprovedBusinessId, r.CreatedAt);
+
+    private static async Task<IResult> ApproveBranch(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var item = await db.Branches.IgnoreQueryFilters().Include(b => b.Business).SingleOrDefaultAsync(b => b.Id == id, ct);
+        if (item is null) return Missing();
+        item.IsApproved = true;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(BranchDto(item));
+    }
+
+    private static async Task<IResult> ListBusinessRequests(AppDbContext db, CancellationToken ct, string? status = null, string? q = null, int page = 1, int pageSize = 25)
+    {
+        var query = db.BusinessRequests.Include(r => r.User).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<BusinessRequestStatus>(status, true, out var st))
+            query = query.Where(r => r.Status == st);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(r => r.BusinessName.Contains(q) || r.User.DisplayName.Contains(q) || (r.User.Email != null && r.User.Email.Contains(q)) || r.ContactPhone.Contains(q));
+        var (p, size) = ApiResults.Pagination(page, pageSize);
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderByDescending(r => r.CreatedAt).Skip((p - 1) * size).Take(size).Select(r => ToBusinessRequestDto(r, null, null, null)).ToListAsync(ct);
+        return Results.Ok(new ApiPage<BusinessRequestDto>(items, p, size, total));
+    }
+
+    private static async Task<IResult> ApproveBusinessRequest(Guid id, AppDbContext db, UserManager<AppUser> users, CancellationToken ct)
+    {
+        return await Atomic(db, async () =>
+        {
+            var req = await db.BusinessRequests.Include(r => r.User).SingleOrDefaultAsync(r => r.Id == id, ct);
+            if (req is null) return Missing();
+            if (req.Status != BusinessRequestStatus.Pending) return Conflict("این درخواست قبلاً تعیین وضعیت شده است.");
+
+            var slug = "biz-" + Guid.NewGuid().ToString("N")[..12];
+            var business = new Business
+            {
+                Name = req.BusinessName,
+                Category = req.Category,
+                City = req.City,
+                Description = req.Description,
+                Slug = slug,
+                RequiresApproval = true,
+            };
+            var branch = new Branch
+            {
+                Business = business,
+                BusinessId = business.Id,
+                Name = req.FirstBranchName,
+                Address = req.FirstBranchAddress,
+                OpenHour = 8,
+                CloseHour = 20,
+                IsApproved = true,
+            };
+            WeeklySchedule.Replace(branch, WeeklySchedule.Default());
+            db.Businesses.Add(business);
+            db.Branches.Add(branch);
+            db.BranchMemberships.Add(new BranchMembership
+            {
+                Branch = branch,
+                UserId = req.UserId,
+                Role = AppRoles.Owner,
+            });
+
+            req.Status = BusinessRequestStatus.Approved;
+            req.ApprovedBusinessId = business.Id;
+            req.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync(ct);
+            if (req.User is not null)
+            {
+                await TeamRoleSync.SyncAsync(users, db, req.User);
+            }
+
+            return Results.Ok(ToBusinessRequestDto(req, null, null, null));
+        }, ct);
+    }
+
+    private static async Task<IResult> RejectBusinessRequest(Guid id, ReviewBusinessRequestInput input, AppDbContext db, CancellationToken ct)
+    {
+        var req = await db.BusinessRequests.Include(r => r.User).SingleOrDefaultAsync(r => r.Id == id, ct);
+        if (req is null) return Missing();
+        if (req.Status != BusinessRequestStatus.Pending) return Conflict("این درخواست قبلاً تعیین وضعیت شده است.");
+
+        req.Status = BusinessRequestStatus.Rejected;
+        req.ReviewNote = input?.Note?.Trim();
+        req.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(ToBusinessRequestDto(req, null, null, null));
+    }
 }
 
 public sealed record ManagementActiveInput(bool Active);
-public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null);
-public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active);
-public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 9, int CloseHour = 18);
-public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active);
+public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null);
+public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null);
+public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null);
+public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true);
 public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null);
 public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active);
 public sealed record ManagementMembershipInput(Guid BranchId, Guid UserId, string Role = AppRoles.Staff);
 public sealed record ManagementMembershipDto(Guid Id, Guid BranchId, Guid UserId, string Role, string DisplayName, string? Email);
-public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active);
+public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, int Visits = 0, double? Rating = null, string? Role = null, string? BranchName = null);
+public sealed record ManagementTeamMemberInput(string Name, string Email, string? Phone, Guid BranchId, string Role = AppRoles.Staff);
+public sealed record ManagementCustomerInput(string Name, string Email, string? Phone);
 public sealed record ManagementServiceInput(Guid BusinessId, string Name, string Description = "", int DurationMinutes = 30, decimal Price = 0, string Currency = "IRR", Guid? CatalogItemId = null, Guid? BranchId = null, Guid[]? ResourceIds = null);
 public sealed record ManagementServiceDto(Guid Id, Guid BusinessId, Guid? CatalogItemId, string Name, string Description, int DurationMinutes, decimal Price, string Currency, Guid[] BranchIds, Guid[] ResourceIds, bool Active);
 public sealed record ManagementBranchServiceInput(decimal? Price = null);
@@ -1219,7 +1492,7 @@ public sealed record ManagementResourceServicesInput(Guid[] ServiceIds);
 public sealed record ManagementAccountDto(Guid Id, string DisplayName, string? Email);
 public sealed record ManagementContextMembership(Guid BranchId, Guid BusinessId, string BranchName, string Role, bool CanManageBusiness, bool CanManageAppointments);
 public sealed record ManagementAvailabilityInput(Guid BusinessId, DateOnly EffectiveDate, TimeOnly StartsAt, TimeOnly EndsAt, Guid? BranchId = null, Guid? ResourceId = null, bool IsAvailable = true);
-public sealed record ManagementAvailabilityDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid? ResourceId, DateOnly? EffectiveDate, string DayOfWeek, TimeOnly StartsAt, TimeOnly EndsAt, bool IsAvailable);
+public sealed record ManagementAvailabilityDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid? ResourceId, DateOnly? EffectiveDate, string DayOfWeek, TimeOnly StartsAt, TimeOnly EndsAt, bool IsAvailable, string? BusinessName = null, string? BranchName = null, string? ResourceName = null);
 public sealed record ManagementStatusInput(string Status);
 public sealed record ManagementAppointmentDto(Guid Id, Guid BranchId, Guid BusinessId, Guid ServiceId, Guid? ResourceId, Guid CustomerId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, decimal FinalPrice, string Currency, string CustomerNote, string BranchName, string ServiceName, string? ResourceName, string CustomerName, string? CustomerEmail, string? CustomerPhoneNumber, string BusinessName, string TimeZoneId, string[] ServiceNames, string TrackingCode)
 {
@@ -1238,3 +1511,6 @@ public sealed record ManagementUserInput(string DisplayName, string Email, strin
 public sealed record ManagementUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, string[] Roles);
 public sealed record ManagementCreatedUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string TemporaryPassword);
 public sealed record ManagementRolesInput(string[] Roles);
+public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "");
+public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt);
+public sealed record ReviewBusinessRequestInput(string? Note = null);

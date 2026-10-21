@@ -13,6 +13,7 @@ import com.leon.be_nobat.domain.model.ManagementResource
 import com.leon.be_nobat.domain.model.ManagementReview
 import com.leon.be_nobat.domain.model.ManagementService
 import com.leon.be_nobat.domain.model.ManagementUser
+import com.leon.be_nobat.domain.model.BusinessRequest
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -35,6 +36,7 @@ data class DemoDatabaseState(
     val userFavorites: Map<String, List<String>> = emptyMap(),
     val favorites: List<String> = emptyList(),
     val resourceServices: Map<String, List<String>> = emptyMap(),
+    val businessRequests: List<BusinessRequest> = emptyList(),
 )
 
 object DemoSeedData {
@@ -716,7 +718,10 @@ object DemoSeedData {
         return DemoDatabaseState(
             users = users,
             businesses = businesses,
-            branches = branches,
+            branches = run {
+                val bizMap = businesses.associate { it.id to it.name }
+                branches.map { b -> b.copy(businessName = bizMap[b.businessId]) }
+            },
             services = services,
             branchServices = services.flatMap { srv -> srv.branchIds.map { bid -> ManagementBranchService(id = "${bid}_${srv.id}", branchId = bid, serviceId = srv.id, effectivePrice = srv.price, serviceName = srv.name) } },
             resources = resources,

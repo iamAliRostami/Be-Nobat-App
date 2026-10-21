@@ -28,6 +28,7 @@ class TokenManager(
         private val KEY_TOKEN = stringPreferencesKey("encrypted_token")
         private val KEY_USER = stringPreferencesKey("encrypted_user")
         private val KEY_EXPIRES_AT = stringPreferencesKey("encrypted_expires_at")
+        private val KEY_MANAGEMENT_CONTEXT = stringPreferencesKey("encrypted_management_context")
     }
 
     /** Plain bearer token (decrypted). */
@@ -37,6 +38,13 @@ class TokenManager(
     val user: Flow<User?> = dataStore.data.map { prefs ->
         prefs.decrypt(KEY_USER)?.let { serialized ->
             runCatching { json.decodeFromString(User.serializer(), serialized) }.getOrNull()
+        }
+    }
+
+    /** The persisted management context (decoded from JSON). */
+    val managementContext: Flow<com.leon.be_nobat.domain.model.ManagementContext?> = dataStore.data.map { prefs ->
+        prefs.decrypt(KEY_MANAGEMENT_CONTEXT)?.let { serialized ->
+            runCatching { json.decodeFromString(com.leon.be_nobat.domain.model.ManagementContext.serializer(), serialized) }.getOrNull()
         }
     }
 
@@ -77,11 +85,19 @@ class TokenManager(
     /** Replace the whole session (used after `/me/password` or `/me/email` reissue). */
     suspend fun replaceSession(session: MobileSession) = save(session)
 
+    suspend fun currentManagementContext(): com.leon.be_nobat.domain.model.ManagementContext? = managementContext.first()
+
+    suspend fun saveManagementContext(context: com.leon.be_nobat.domain.model.ManagementContext) {
+        val encContext = cryptoManager.encrypt(json.encodeToString(com.leon.be_nobat.domain.model.ManagementContext.serializer(), context))
+        dataStore.edit { prefs -> prefs[KEY_MANAGEMENT_CONTEXT] = encContext }
+    }
+
     suspend fun clear() {
         dataStore.edit { prefs ->
             prefs.remove(KEY_TOKEN)
             prefs.remove(KEY_USER)
             prefs.remove(KEY_EXPIRES_AT)
+            prefs.remove(KEY_MANAGEMENT_CONTEXT)
         }
     }
 

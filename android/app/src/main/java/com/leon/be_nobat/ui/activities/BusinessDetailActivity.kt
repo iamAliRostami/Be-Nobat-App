@@ -101,6 +101,16 @@ class BusinessDetailActivity : BaseActivity() {
             findViewById<android.widget.TextView>(R.id.tvEmptyReviewsTitle).text = getString(R.string.no_reviews_user_title)
             findViewById<android.widget.TextView>(R.id.tvEmptyReviewsDesc).text = getString(R.string.no_reviews_user_desc)
         }
-        findViewById<android.widget.ImageButton>(R.id.btnFavorite).setColorFilter(if (state.isFavorite) getColor(R.color.error_red) else getColor(R.color.brand_accent))
+        val btnFav = findViewById<android.widget.ImageButton>(R.id.btnFavorite)
+        val favColor = androidx.core.content.ContextCompat.getColor(
+            this,
+            if (state.isFavorite) R.color.favorite_active else R.color.favorite_inactive
+        )
+        btnFav.setImageResource(if (state.isFavorite) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline)
+        androidx.core.widget.ImageViewCompat.setImageTintList(
+            btnFav,
+            android.content.res.ColorStateList.valueOf(favColor)
+        )
+        btnFav.contentDescription = getString(if (state.isFavorite) R.string.remove_favorite else R.string.add_to_favorites)
     }
 }

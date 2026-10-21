@@ -66,4 +66,19 @@ class UserRolesTest {
         // "isCustomer" returns true if any role is Customer OR roles is empty.
         assertTrue(user.isCustomer)
     }
+
+    @Test fun `user initials returns first letters of first two words`() {
+        val user = User(id = "u", displayName = "علی رستمی")
+        assertEquals("عر", user.initials())
+    }
+
+    @Test fun `user initials handles single word`() {
+        val user = User(id = "u", displayName = "Ali")
+        assertEquals("Al", user.initials())
+    }
+
+    @Test fun `user initials handles blank name`() {
+        val user = User(id = "u", displayName = "   ")
+        assertEquals("?", user.initials())
+    }
 }

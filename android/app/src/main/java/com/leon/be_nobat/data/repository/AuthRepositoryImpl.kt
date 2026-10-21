@@ -111,6 +111,23 @@ class AuthRepositoryImpl(
         user
     }.recoverCatching { throw AuthException.fromApi(it) }
 
+    override suspend fun getMyBusinessRequest(): Result<com.leon.be_nobat.domain.model.BusinessRequest?> = runCatching {
+        api.getMyBusinessRequest<com.leon.be_nobat.domain.model.BusinessRequest?>().getOrThrow()
+    }.recoverCatching { throw AuthException.fromApi(it) }
+
+    override suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<com.leon.be_nobat.domain.model.BusinessRequest> = runCatching {
+        val body = encodeJsonObject {
+            put("businessName", input.businessName)
+            put("category", input.category)
+            put("city", input.city)
+            put("description", input.description)
+            put("contactPhone", input.contactPhone)
+            put("firstBranchName", input.firstBranchName)
+            put("firstBranchAddress", input.firstBranchAddress)
+        }
+        api.submitBusinessRequest<com.leon.be_nobat.domain.model.BusinessRequest>(body).getOrThrow()
+    }.recoverCatching { throw AuthException.fromApi(it) }
+
     private fun encodeJsonObject(block: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit): JsonObject =
         buildJsonObject(block)
 }

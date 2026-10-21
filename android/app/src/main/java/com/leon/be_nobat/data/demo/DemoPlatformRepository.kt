@@ -17,7 +17,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         dataStore.read { s ->
             s.businesses.filter {
                 it.name.matchesQuery(q) && (includeInactive == true || it.active)
-            }.demoPage(page, pageSize)
+            }.map { it.copy(firstBranchId = it.firstBranchId ?: s.branches.firstOrNull { b -> b.businessId == it.id && b.active }?.id) }.demoPage(page, pageSize)
         }
     }
 
@@ -39,7 +39,9 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 active = true
             )
 
-            val branch = ManagementBranch(id = demoId(), businessId = id, name = input.firstBranchName, active = true)
+            val weeklyHours = input.firstBranchWeeklyHours ?: WeeklyHours.defaults()
+            require(WeeklyHours.validate(weeklyHours) == null)
+            val branch = ManagementBranch(id = demoId(), businessId = id, name = input.firstBranchName.ifBlank { "شعبه مرکزی" }, address = input.firstBranchAddress.orEmpty(), openHour = 8, closeHour = 20, weeklyHours = weeklyHours, active = true, businessName = input.name)
             val ownerId = input.ownerId ?: actor.id
             val ownerUser = s.users.firstOrNull { it.id == ownerId }
             val ownerDisplayName = ownerUser?.displayName ?: actor.displayName
@@ -54,10 +56,10 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
             )
 
             s.copy(
-                businesses = listOf(value) + s.businesses,
+                businesses = listOf(value.copy(firstBranchId = branch.id)) + s.businesses,
                 branches = s.branches + branch,
                 memberships = s.memberships + membership
-            ) to value
+            ) to value.copy(firstBranchId = branch.id)
         }
     }
 
@@ -65,7 +67,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.businesses.first { it.id == id }
+            val old = s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.")
             require(input.name.isNotBlank())
             val value = old.copy(
                 name = input.name,
@@ -75,7 +77,16 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 description = input.description,
                 requiresApproval = input.requiresApproval
             )
-            s.copy(businesses = s.businesses.map { if (it.id == id) value else it }) to value
+            var branches = s.branches
+            if (input.firstBranchWeeklyHours != null || input.firstBranchAddress != null) {
+                input.firstBranchWeeklyHours?.let { require(WeeklyHours.validate(it) == null) }
+                val branch = branches.firstOrNull { it.id == old.firstBranchId && it.active } ?: branches.firstOrNull { it.businessId == id && it.active }
+                    ?: ManagementBranch(id = demoId(), businessId = id, name = "شعبه مرکزی", openHour = 8, closeHour = 20, active = true, businessName = input.name)
+                val updated = branch.copy(name = input.firstBranchName.ifBlank { "شعبه مرکزی" }, address = input.firstBranchAddress ?: branch.address,
+                    weeklyHours = input.firstBranchWeeklyHours ?: branch.weeklyHours, businessName = input.name)
+                branches = if (branches.any { it.id == branch.id }) branches.map { if (it.id == branch.id) updated else it } else branches + updated
+            }
+            s.copy(businesses = s.businesses.map { if (it.id == id) value else it }, branches = branches) to value.copy(firstBranchId = old.firstBranchId ?: branches.firstOrNull { it.businessId == id && it.active }?.id)
         }
     }
 
@@ -83,7 +94,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val value = s.businesses.first { it.id == id }.copy(active = active)
+            val old = s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(businesses = s.businesses.map { if (it.id == id) value else it }) to value
         }
     }
@@ -136,7 +148,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.catalog.first { it.id == id }
+            val old = s.catalog.firstOrNull { it.id == id } ?: error("آیتم کاتالوگ یافت نشد.")
             require(input.name.isNotBlank() && input.suggestedDurationMinutes > 0)
             val value = old.copy(
                 name = input.name,
@@ -191,7 +203,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.categories.first { it.id == id }
+            val old = s.categories.firstOrNull { it.id == id } ?: error("دسته‌بندی یافت نشد.")
             require(input.name.isNotBlank())
             val value = old.copy(
                 name = input.name,
@@ -217,7 +229,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         requireAdmin()
         dataStore.read { s ->
             s.users.filter {
-                it.displayName.matchesQuery(q) &&
+                (it.displayName.matchesQuery(q) || it.email?.matchesQuery(q) == true || it.phoneNumber?.matchesQuery(q) == true) &&
                 (role == null || role in it.roles) &&
                 (active == null || it.active == active)
             }.demoPage(page, pageSize)
@@ -227,7 +239,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     override suspend fun getUser(id: String): Result<ManagementUser> = runCatching {
         simulateNetworkDelay()
         requireAdmin()
-        dataStore.read { s -> s.users.first { it.id == id } }
+        dataStore.read { s -> s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.") }
     }
 
     override suspend fun createUser(input: ManagementUserInput): Result<ManagementCreatedUser> = runCatching {
@@ -263,7 +275,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.users.first { it.id == id }
+            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
             require(input.displayName.isNotBlank())
             require(s.users.none { it.id != id && it.email.equals(input.email, true) })
             val value = old.copy(
@@ -280,7 +292,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val value = s.users.first { it.id == id }.copy(roles = input.roles)
+            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val value = old.copy(roles = input.roles)
             s.copy(users = s.users.map { if (it.id == id) value else it }) to value
         }
     }
@@ -289,7 +302,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val value = s.users.first { it.id == id }.copy(active = active)
+            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val value = old.copy(active = active)
             s.copy(users = s.users.map { if (it.id == id) value else it }) to value
         }
     }
@@ -303,6 +317,125 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 userId = id,
                 temporaryPassword = "Demo1234!"
             )
+        }
+    }
+
+    override suspend fun listBusinessRequests(
+        status: String?,
+        q: String?,
+        page: Int,
+        pageSize: Int,
+    ): Result<ApiPage<BusinessRequest>> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        dataStore.read { s ->
+            val userMap = s.users.associate { it.id to it }
+            s.businessRequests.filter { r ->
+                (status.isNullOrBlank() || r.status.equals(status, ignoreCase = true)) &&
+                (q.isNullOrBlank() || r.businessName.matchesQuery(q) || r.category.matchesQuery(q) || r.city.matchesQuery(q) || r.contactPhone.matchesQuery(q) || (r.userDisplayName ?: userMap[r.userId]?.displayName ?: "").matchesQuery(q))
+            }.map { r ->
+                val u = userMap[r.userId]
+                r.copy(
+                    userDisplayName = r.userDisplayName ?: u?.displayName,
+                    userPhoneNumber = r.userPhoneNumber ?: u?.phoneNumber ?: r.contactPhone
+                )
+            }.sortedByDescending { it.createdAt }.demoPage(page, pageSize)
+        }
+    }
+
+    override suspend fun approveBusinessRequest(id: String): Result<BusinessRequest> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        dataStore.update { s ->
+            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("درخواست یافت نشد.")
+            require(req.status == "Pending") { "درخواست قبلاً بررسی شده است." }
+
+            val bizId = demoId()
+            val branchId = demoId()
+            val user = s.users.firstOrNull { it.id == req.userId }
+
+            val business = ManagementBusiness(
+                id = bizId,
+                name = req.businessName,
+                slug = req.businessName.lowercase().replace(" ", "-"),
+                category = req.category,
+                city = req.city,
+                description = req.description,
+                requiresApproval = false,
+                active = true,
+                firstBranchId = branchId,
+            )
+
+            val branch = ManagementBranch(
+                id = branchId,
+                businessId = bizId,
+                name = req.firstBranchName.ifBlank { "شعبه مرکزی" },
+                address = req.firstBranchAddress,
+                timeZoneId = "Asia/Tehran",
+                openHour = 9,
+                closeHour = 18,
+                weeklyHours = WeeklyHours.defaults(),
+                active = true,
+                isApproved = true,
+                businessName = req.businessName,
+            )
+
+            val membership = ManagementMembership(
+                id = demoId(),
+                branchId = branchId,
+                userId = req.userId,
+                role = "Owner",
+                displayName = user?.displayName ?: req.userDisplayName ?: "کاربر",
+                email = user?.email,
+            )
+
+            val updatedUsers = s.users.map { u ->
+                if (u.id == req.userId) {
+                    val newRoles = if ("Owner" !in u.roles) u.roles + "Owner" else u.roles
+                    u.copy(roles = newRoles)
+                } else u
+            }
+
+            val approvedReq = req.copy(
+                status = "Approved",
+                approvedBusinessId = bizId,
+            )
+
+            s.copy(
+                businesses = listOf(business) + s.businesses,
+                branches = listOf(branch) + s.branches,
+                memberships = s.memberships + membership,
+                users = updatedUsers,
+                businessRequests = s.businessRequests.map { if (it.id == id) approvedReq else it }
+            ) to approvedReq
+        }
+    }
+
+    override suspend fun rejectBusinessRequest(id: String, input: ReviewBusinessRequestInput): Result<BusinessRequest> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        dataStore.update { s ->
+            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("درخواست یافت نشد.")
+            require(req.status == "Pending") { "درخواست قبلاً بررسی شده است." }
+
+            val rejectedReq = req.copy(
+                status = "Rejected",
+                reviewNote = input.note?.ifBlank { "درخواست توسط مدیریت سامانه رد شد." } ?: "درخواست توسط مدیریت سامانه رد شد."
+            )
+
+            s.copy(
+                businessRequests = s.businessRequests.map { if (it.id == id) rejectedReq else it }
+            ) to rejectedReq
+        }
+    }
+
+    override suspend fun approveBranch(id: String): Result<ManagementBranch> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        dataStore.update { s ->
+            val branch = s.branches.firstOrNull { it.id == id } ?: error("شعبه یافت نشد.")
+            val approved = branch.copy(isApproved = true)
+            s.copy(branches = s.branches.map { if (it.id == id) approved else it }) to approved
         }
     }
 }

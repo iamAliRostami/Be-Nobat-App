@@ -40,20 +40,37 @@ class AdminCalendarActivity : BaseActivity() {
     companion object {
         const val EXTRA_STATUS = "extra_status"
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_CUSTOMER_ID = "extra_customer_id"
+        const val EXTRA_CUSTOMER_NAME = "extra_customer_name"
 
-        fun createIntent(context: Context, status: String? = null, date: String? = null): Intent {
+        fun createIntent(
+            context: Context,
+            status: String? = null,
+            date: String? = null,
+            customerId: String? = null,
+            customerName: String? = null,
+        ): Intent {
             return Intent(context, AdminCalendarActivity::class.java).apply {
                 status?.let { putExtra(EXTRA_STATUS, it) }
                 date?.let { putExtra(EXTRA_DATE, it) }
+                customerId?.let { putExtra(EXTRA_CUSTOMER_ID, it) }
+                customerName?.let { putExtra(EXTRA_CUSTOMER_NAME, it) }
             }
         }
     }
 
     override fun setupViews() {
-        setupAdminHeader(getString(R.string.admin_calendar), currentMenuItemId = R.id.drawer_calendar)
-
         val initialStatus = intent.getStringExtra(EXTRA_STATUS)
         val initialDate = intent.getStringExtra(EXTRA_DATE)
+        val initialCustomerId = intent.getStringExtra(EXTRA_CUSTOMER_ID)
+        val initialCustomerName = intent.getStringExtra(EXTRA_CUSTOMER_NAME)
+
+        val headerTitle = if (!initialCustomerName.isNullOrBlank()) {
+            "نوبت‌های $initialCustomerName"
+        } else {
+            getString(R.string.admin_calendar)
+        }
+        setupAdminHeader(headerTitle, currentMenuItemId = R.id.drawer_calendar)
 
         swipeRefresh = findViewById(R.id.swipeRefresh)
         swipeRefresh.setOnRefreshListener { viewModel.load() }
@@ -135,7 +152,7 @@ class AdminCalendarActivity : BaseActivity() {
         })
 
         // Initialize ViewModel filters cleanly in one single batch
-        viewModel.initFilters(initialStatus, initialDate)
+        viewModel.initFilters(initialStatus, initialDate, initialCustomerId, initialCustomerName)
         isSettingUp = false
     }
 
@@ -152,6 +169,12 @@ class AdminCalendarActivity : BaseActivity() {
         setIntent(intent)
         val newStatus = intent.getStringExtra(EXTRA_STATUS)
         val newDate = intent.getStringExtra(EXTRA_DATE)
+        val newCustomerId = intent.getStringExtra(EXTRA_CUSTOMER_ID)
+        val newCustomerName = intent.getStringExtra(EXTRA_CUSTOMER_NAME)
+
+        if (!newCustomerName.isNullOrBlank()) {
+            setupAdminHeader("نوبت‌های $newCustomerName", currentMenuItemId = R.id.drawer_calendar)
+        }
 
         isSettingUp = true
         val tabs = findViewById<TabLayout>(R.id.statusTabs)
@@ -163,7 +186,7 @@ class AdminCalendarActivity : BaseActivity() {
             }
         }
         isSettingUp = false
-        viewModel.initFilters(newStatus, newDate)
+        viewModel.initFilters(newStatus, newDate, newCustomerId, newCustomerName)
     }
 
     private fun showDatePickerDialog() {
@@ -244,6 +267,13 @@ class AdminCalendarActivity : BaseActivity() {
                     val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${item.customerPhoneNumber}"))
                     startActivity(dialIntent)
                 } catch (_: Exception) { }
+            }
+        } else if (item.trackingCode.isNotBlank()) {
+            builder.setNeutralButton(R.string.copy_tracking_code) { _, _ ->
+                val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("tracking_code", item.trackingCode)
+                clipboard?.setPrimaryClip(clip)
+                com.leon.be_nobat.helpers.AppToast.show(this, getString(R.string.tracking_code_copied))
             }
         }
 
@@ -351,15 +381,22 @@ class AdminCalendarActivity : BaseActivity() {
                 val priceLabel = if (isEn) "Price:" else "مبلغ:"
                 val codeLabel = if (isEn) "Tracking:" else "کد پیگیری:"
                 tvBody.text = "$dateStr • $priceLabel $priceStr • $codeLabel $codeStr"
-
-                tvStatus.text = when (item.status) {
-                    "Pending" -> root.context.getString(R.string.appointment_status_pending)
-                    "Confirmed" -> root.context.getString(R.string.appointment_status_confirmed)
-                    "Completed" -> root.context.getString(R.string.appointment_status_completed)
-                    "Cancelled" -> root.context.getString(R.string.appointment_status_cancelled)
-                    "NoShow" -> root.context.getString(R.string.appointment_status_no_show)
-                    else -> item.status
+                val copyTrackingCodeAction = {
+                    if (item.trackingCode.isNotBlank()) {
+                        val clipboard = root.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                        val clip = android.content.ClipData.newPlainText("tracking_code", item.trackingCode)
+                        clipboard?.setPrimaryClip(clip)
+                        com.leon.be_nobat.helpers.AppToast.show(root.context, root.context.getString(R.string.tracking_code_copied))
+                    }
                 }
+                tvBody.setOnClickListener { copyTrackingCodeAction() }
+                root.setOnLongClickListener {
+                    copyTrackingCodeAction()
+                    true
+                }
+
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatus(tvStatus, item.status)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, item.status)
 
                 btnAction1.isVisible = item.status == "Pending" || item.status == "Confirmed"
                 btnAction2.isVisible = item.status == "Pending" || item.status == "Confirmed"

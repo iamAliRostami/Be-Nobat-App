@@ -12,7 +12,7 @@ public static class ApiResults
     public static IResult Error(string code, string message, int status = 400, object? fields = null) =>
         Results.Json(new ApiError(code, message, fields), statusCode: status);
     public static (int Page, int PageSize) Pagination(int? page, int? pageSize) =>
-        (Math.Clamp(page ?? 1, 1, 100000), Math.Clamp(pageSize ?? 20, 1, 100));
+        (Math.Clamp(page ?? 1, 1, 100000), Math.Clamp(pageSize ?? 20, 1, 1000));
     public static Guid[]? ServiceIds(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;

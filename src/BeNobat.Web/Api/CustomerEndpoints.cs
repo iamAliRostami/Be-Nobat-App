@@ -93,6 +93,34 @@ public static class CustomerEndpoints
             db.Reviews.Add(review); await db.SaveChangesAsync(ct);
             return Results.Created($"/api/v1/appointments/{appointmentId}", new { review.Id, review.Rating, review.Comment, status = review.Status.ToString(), review.CreatedAt });
         });
+        customer.MapGet("/business-request", async (ApiScope scope, AppDbContext db, CancellationToken ct) =>
+        {
+            var req = await db.BusinessRequests.Include(r => r.User).AsNoTracking().Where(x => x.UserId == scope.UserId).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(ct);
+            return req is null ? Results.Ok((BusinessRequestDto?)null) : Results.Ok(ManagementEndpoints.ToBusinessRequestDto(req));
+        });
+        customer.MapPost("/business-request", async (BusinessRequestInput input, ApiScope scope, AppDbContext db, Microsoft.AspNetCore.Identity.UserManager<AppUser> users, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.BusinessName)) return ApiResults.Error("invalid_input", "نام کسب‌وکار الزامی است.");
+            var hasPending = await db.BusinessRequests.AnyAsync(x => x.UserId == scope.UserId && x.Status == BusinessRequestStatus.Pending, ct);
+            if (hasPending) return ApiResults.Error("conflict", "شما یک درخواست در حال بررسی دارید.", 409);
+            var user = await users.FindByIdAsync(scope.UserId.ToString());
+            if (user is null) return ApiResults.Error("unauthorized", "کاربر یافت نشد.", 401);
+            var req = new BusinessRequest
+            {
+                UserId = scope.UserId,
+                BusinessName = input.BusinessName.Trim(),
+                Category = string.IsNullOrWhiteSpace(input.Category) ? "عمومی" : input.Category.Trim(),
+                City = string.IsNullOrWhiteSpace(input.City) ? "تهران" : input.City.Trim(),
+                Description = input.Description?.Trim() ?? "",
+                ContactPhone = string.IsNullOrWhiteSpace(input.ContactPhone) ? (user.PhoneNumber ?? "") : input.ContactPhone.Trim(),
+                FirstBranchName = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : input.FirstBranchName.Trim(),
+                FirstBranchAddress = input.FirstBranchAddress?.Trim() ?? "",
+                Status = BusinessRequestStatus.Pending,
+            };
+            db.BusinessRequests.Add(req);
+            await db.SaveChangesAsync(ct);
+            return Results.Created($"/api/v1/business-request/{req.Id}", ManagementEndpoints.ToBusinessRequestDto(req, user.DisplayName, user.Email, user.PhoneNumber));
+        });
         return root;
     }
     public static IResult Failure(BookingFailure failure)

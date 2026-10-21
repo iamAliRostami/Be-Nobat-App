@@ -1,0 +1,324 @@
+@page "/platform/requests"
+@attribute [Authorize(Policy = Policies.ManagePlatform)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IServiceScopeFactory ScopeFactory
+@inject AdminAccessScope Access
+@inject NavigationManager Navigation
+@inject ILogger<PlatformRequests> Logger
+
+<PageTitle>درخواست‌های کسب‌وکار | به‌نوبت</PageTitle>
+<div class="page-title">
+    <div>
+        <h1>درخواست‌های کسب‌وکار و ارتقا</h1>
+        <p>بررسی و تعیین تکلیف درخواست‌های ارتقای کاربران به مدیر کسب‌وکار و ایجاد مجموعه جدید.</p>
+    </div>
+</div>
+
+@if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
+@if (Error is not null && RejectingRequest is null) { <div class="auth-error" role="alert">@Error</div> }
+
+<div class="stat-cards">
+    <article @onclick='() => StatusFilter = ""' style="cursor:pointer;"><i class="purple">✉</i><div><small>همه درخواست‌ها</small><strong>@Items.Count</strong></div></article>
+    <article @onclick='() => StatusFilter = "pending"' style="cursor:pointer;"><i class="orange">⏳</i><div><small>در انتظار بررسی</small><strong>@Items.Count(x => x.Status == BusinessRequestStatus.Pending)</strong></div></article>
+    <article @onclick='() => StatusFilter = "approved"' style="cursor:pointer;"><i class="green">✓</i><div><small>تأیید شده</small><strong>@Items.Count(x => x.Status == BusinessRequestStatus.Approved)</strong></div></article>
+    <article @onclick='() => StatusFilter = "rejected"' style="cursor:pointer;"><i class="blue">✕</i><div><small>رد شده</small><strong>@Items.Count(x => x.Status == BusinessRequestStatus.Rejected)</strong></div></article>
+</div>
+
+<article class="admin-panel">
+    <div class="tabs">
+        <button type="button" class="@(StatusFilter == "" ? "active" : "")" @onclick='() => StatusFilter = ""'>همه <b>@Items.Count</b></button>
+        <button type="button" class="@(StatusFilter == "pending" ? "active" : "")" @onclick='() => StatusFilter = "pending"'>در انتظار بررسی <b>@Items.Count(x => x.Status == BusinessRequestStatus.Pending)</b></button>
+        <button type="button" class="@(StatusFilter == "approved" ? "active" : "")" @onclick='() => StatusFilter = "approved"'>تأیید شده <b>@Items.Count(x => x.Status == BusinessRequestStatus.Approved)</b></button>
+        <button type="button" class="@(StatusFilter == "rejected" ? "active" : "")" @onclick='() => StatusFilter = "rejected"'>رد شده <b>@Items.Count(x => x.Status == BusinessRequestStatus.Rejected)</b></button>
+    </div>
+
+    <div class="toolbar filter-toolbar">
+        <input aria-label="جست‌وجوی درخواست‌ها" placeholder="جست‌وجوی نام کسب‌وکار، متقاضی، تلفن یا شهر..." @bind="Query" @bind:event="oninput" />
+        @if (!string.IsNullOrWhiteSpace(Query) || !string.IsNullOrEmpty(StatusFilter))
+        {
+            <button type="button" class="action-secondary" @onclick="ClearFilters">پاک‌کردن فیلترها</button>
+        }
+        <span>@Filtered.Count() مورد</span>
+    </div>
+
+    @if (!Filtered.Any())
+    {
+        <p class="empty-state">درخواستی پیدا نشد.</p>
+    }
+    else
+    {
+        <div class="management-grid">
+            @foreach (var req in Filtered)
+            {
+                <article class="management-card">
+                    <div class="panel-head">
+                        <div>
+                            <h2 data-i18n-skip>@req.BusinessName</h2>
+                            <p>متقاضی: <b data-i18n-skip>@(req.User?.DisplayName ?? "کاربر")</b> · <span dir="ltr">@(req.User?.PhoneNumber ?? req.ContactPhone)</span></p>
+                        </div>
+                        <em class="status @(req.Status == BusinessRequestStatus.Approved ? "confirmed" : req.Status == BusinessRequestStatus.Pending ? "pending" : "cancelled")"
+                            style="@(req.Status == BusinessRequestStatus.Pending ? "background:#fef3c7; color:#b45309; border:1px solid #fcd34d;" : "")">
+                            @(req.Status == BusinessRequestStatus.Approved ? "تأیید شده" : req.Status == BusinessRequestStatus.Pending ? "در انتظار بررسی" : "رد شده")
+                        </em>
+                    </div>
+                    <dl>
+                        <div><dt>دسته‌بندی</dt><dd>@req.Category</dd></div>
+                        <div><dt>شهر</dt><dd>@req.City</dd></div>
+                        <div><dt>تلفن کسب‌وکار</dt><dd dir="ltr">@req.ContactPhone</dd></div>
+                        <div><dt>شعبه اول</dt><dd>@req.FirstBranchName</dd></div>
+                        <div><dt>نشانی</dt><dd>@req.FirstBranchAddress</dd></div>
+                        <div><dt>تاریخ ثبت</dt><dd>@LocalizedDate.Format(DateOnly.FromDateTime(req.CreatedAt.DateTime), UiLocale.Language)</dd></div>
+                    </dl>
+                    @if (!string.IsNullOrWhiteSpace(req.Description))
+                    {
+                        <p style="font-size:0.85rem; color:#64748b; margin:0.5rem 0; line-height:1.5;">@req.Description</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(req.ReviewNote))
+                    {
+                        <div style="background:#fee2e2; color:#991b1b; padding:0.5rem 0.75rem; border-radius:6px; font-size:0.85rem; margin-top:0.5rem;">
+                            توضیح رد: @req.ReviewNote
+                        </div>
+                    }
+                    @if (req.Status == BusinessRequestStatus.Pending)
+                    {
+                        <div class="card-actions" style="margin-top:0.75rem;">
+                            <button type="button" class="action-success" disabled="@IsProcessing" @onclick="() => ApproveRequest(req)">تأیید و ارتقا به مدیر</button>
+                            <button type="button" class="action-danger" disabled="@IsProcessing" @onclick="() => PromptReject(req)">رد درخواست</button>
+                        </div>
+                    }
+                </article>
+            }
+        </div>
+    }
+</article>
+
+@if (RejectingRequest is not null)
+{
+    <div class="modal-backdrop" @onclick="CancelReject">
+        <div class="form-modal" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>رد درخواست کسب‌وکار</h2>
+                    <p class="modal-subtitle">علت رد درخواست برای کاربر نمایش داده خواهد شد.</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="CancelReject">×</button>
+            </div>
+            <div class="modal-body">
+                <label>توضیحات و دلیل رد
+                    <textarea rows="3" maxlength="500" placeholder="مثال: اطلاعات تماس ناقص است یا کسب‌وکار شرایط لازم را ندارد..." @bind="RejectNote"></textarea>
+                </label>
+                @if (Error is not null) { <div class="auth-error">@Error</div> }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="CancelReject">انصراف</button>
+                <button type="button" class="action-danger" disabled="@IsProcessing" @onclick="ConfirmReject">رد درخواست</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BusinessRequest> Items = [];
+    private string Query = "";
+    private string StatusFilter = "";
+    private string? Message;
+    private string? Error;
+    private bool IsProcessing;
+
+    private BusinessRequest? RejectingRequest;
+    private string RejectNote = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        Items = await db.BusinessRequests.AsNoTracking()
+            .Include(r => r.User)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
+    private IEnumerable<BusinessRequest> Filtered => Items.Where(r =>
+    {
+        if (StatusFilter == "pending" && r.Status != BusinessRequestStatus.Pending) return false;
+        if (StatusFilter == "approved" && r.Status != BusinessRequestStatus.Approved) return false;
+        if (StatusFilter == "rejected" && r.Status != BusinessRequestStatus.Rejected) return false;
+
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            var q = Query.Trim();
+            var matches = r.BusinessName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                          r.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                          r.City.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                          r.ContactPhone.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                          (r.User?.DisplayName?.Contains(q, StringComparison.OrdinalIgnoreCase) == true) ||
+                          (r.User?.PhoneNumber?.Contains(q, StringComparison.OrdinalIgnoreCase) == true);
+            if (!matches) return false;
+        }
+
+        return true;
+    });
+
+    private void ClearFilters()
+    {
+        Query = "";
+        StatusFilter = "";
+    }
+
+    private void PromptReject(BusinessRequest req)
+    {
+        RejectingRequest = req;
+        RejectNote = "";
+        Error = null;
+    }
+
+    private void CancelReject()
+    {
+        RejectingRequest = null;
+        RejectNote = "";
+        Error = null;
+    }
+
+    private async Task ApproveRequest(BusinessRequest req)
+    {
+        if (IsProcessing) return;
+        IsProcessing = true;
+        Message = Error = null;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+            var request = await db.BusinessRequests.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == req.Id);
+            if (request is null || request.Status != BusinessRequestStatus.Pending)
+            {
+                Error = "درخواست معتبر نیست یا قبلاً بررسی شده است.";
+                return;
+            }
+
+            var user = request.User ?? await users.FindByIdAsync(request.UserId.ToString());
+            if (user is null)
+            {
+                Error = "کاربر متقاضی پیدا نشد.";
+                return;
+            }
+
+            var slug = CleanSlug(request.BusinessName);
+            var uniqueSlug = slug;
+            var counter = 1;
+            while (await db.Businesses.AnyAsync(b => b.Slug == uniqueSlug))
+            {
+                uniqueSlug = $"{slug}-{counter++}";
+            }
+
+            var business = new Business
+            {
+                Name = request.BusinessName,
+                Slug = uniqueSlug,
+                Category = request.Category,
+                City = request.City,
+                Description = request.Description,
+                RequiresApproval = false,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            db.Businesses.Add(business);
+
+            var branch = new Branch
+            {
+                Business = business,
+                Name = string.IsNullOrWhiteSpace(request.FirstBranchName) ? "شعبه مرکزی" : request.FirstBranchName,
+                Address = request.FirstBranchAddress,
+                TimeZoneId = "Asia/Tehran",
+                OpenHour = 9,
+                CloseHour = 18,
+                IsApproved = true,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            WeeklySchedule.Replace(branch, WeeklySchedule.Default());
+            db.Branches.Add(branch);
+
+            db.BranchMemberships.Add(new BranchMembership
+            {
+                Branch = branch,
+                UserId = request.UserId,
+                Role = AppRoles.Owner,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            request.Status = BusinessRequestStatus.Approved;
+            request.ApprovedBusinessId = business.Id;
+            request.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync();
+            await TeamRoleSync.SyncAsync(users, db, user);
+
+            Message = $"درخواست کسب‌وکار «{request.BusinessName}» تأیید شد و کاربر «{user.DisplayName}» به عنوان مدیر ارتقا یافت.";
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to approve business request {Id}", req.Id);
+            Error = "خطایی در تأیید درخواست رخ داد.";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private async Task ConfirmReject()
+    {
+        if (RejectingRequest is null || IsProcessing) return;
+        IsProcessing = true;
+        Message = Error = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var request = await db.BusinessRequests.FirstOrDefaultAsync(r => r.Id == RejectingRequest.Id);
+            if (request is null || request.Status != BusinessRequestStatus.Pending)
+            {
+                Error = "درخواست معتبر نیست یا قبلاً بررسی شده است.";
+                return;
+            }
+
+            request.Status = BusinessRequestStatus.Rejected;
+            request.ReviewNote = string.IsNullOrWhiteSpace(RejectNote) ? "درخواست شما توسط مدیریت سامانه رد شد." : RejectNote.Trim();
+            request.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync();
+            Message = $"درخواست کسب‌وکار «{request.BusinessName}» رد شد.";
+            CancelReject();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to reject business request {Id}", RejectingRequest.Id);
+            Error = "خطایی در رد درخواست رخ داد.";
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private static string CleanSlug(string name)
+    {
+        var raw = name.Trim().ToLowerInvariant().Replace(' ', '-');
+        var sb = new System.Text.StringBuilder();
+        foreach (var ch in raw)
+        {
+            if (char.IsLetterOrDigit(ch) || ch == '-') sb.Append(ch);
+        }
+        var s = sb.ToString().Trim('-');
+        return string.IsNullOrWhiteSpace(s) ? Guid.NewGuid().ToString("N")[..8] : s;
+    }
+}

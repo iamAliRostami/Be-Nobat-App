@@ -24,6 +24,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AppointmentService> AppointmentServices => Set<AppointmentService>();
     public DbSet<CategoryDefinition> CategoryDefinitions => Set<CategoryDefinition>();
     public DbSet<FavoriteBusiness> FavoriteBusinesses => Set<FavoriteBusiness>();
+    public DbSet<BusinessRequest> BusinessRequests => Set<BusinessRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -123,6 +124,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
         builder.Entity<CustomerReview>()
             .ToTable(t => t.HasCheckConstraint("CK_CustomerReviews_Rating", "\"Rating\" BETWEEN 1 AND 5"));
+
+        // [feature] درخواست‌های ارتقا و ثبت کسب‌وکار.
+        builder.Entity<BusinessRequest>().Property(x => x.Status).HasConversion<string>();
+        builder.Entity<BusinessRequest>().HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<BusinessRequest>().HasOne(x => x.ApprovedBusiness).WithMany()
+            .HasForeignKey(x => x.ApprovedBusinessId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<BusinessRequest>().HasIndex(x => new { x.UserId, x.Status });
+        builder.Entity<BusinessRequest>().HasIndex(x => new { x.Status, x.CreatedAt });
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

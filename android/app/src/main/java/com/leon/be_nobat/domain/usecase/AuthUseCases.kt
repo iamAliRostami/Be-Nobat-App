@@ -93,3 +93,16 @@ class DeleteAvatarUseCase(
 ) {
     suspend operator fun invoke() = repository.deleteAvatar()
 }
+
+class GetMyBusinessRequestUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke() = repository.getMyBusinessRequest()
+}
+
+class SubmitBusinessRequestUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke(input: com.leon.be_nobat.domain.model.BusinessRequestInput) =
+        repository.submitBusinessRequest(input)
+}

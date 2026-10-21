@@ -192,12 +192,19 @@ class HomeActivity : BaseActivity() {
         }
     }
 
+    private var lastFavoriteSnapshot: Map<String, Boolean>? = null
+
     private fun render(state: HomeUiState) {
         swipeRefresh.isRefreshing = state.refreshing
         loadingProgress.isVisible = state.loading && !state.refreshing && state.items.isEmpty()
         emptyStateText.isVisible = !state.loading && state.items.isEmpty() && state.error == null
         errorText.isVisible = state.error != null
         errorText.text = state.error?.let { com.leon.be_nobat.helpers.ErrorFormatter.format(this, it) }
+        val favChanged = lastFavoriteSnapshot != null && lastFavoriteSnapshot != state.favoriteSnapshot
+        lastFavoriteSnapshot = state.favoriteSnapshot
         adapter.submitList(state.items)
+        if (favChanged) {
+            adapter.notifyDataSetChanged()
+        }
     }
 }

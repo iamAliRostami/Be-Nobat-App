@@ -141,6 +141,20 @@ public static class CompatibilitySchemaUpgrade
             CREATE INDEX IF NOT EXISTS "IX_Appointments_ResourceId_StartsAt" ON benobat."Appointments" ("ResourceId", "StartsAt");
             CREATE INDEX IF NOT EXISTS "IX_Appointments_CustomerId_StartsAt" ON benobat."Appointments" ("CustomerId", "StartsAt");
 
+            -- [feature] تایید شعبه توسط مدیر کل و درخواست‌های ارتقا به کسب‌وکار.
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "IsApproved" boolean NOT NULL DEFAULT TRUE;
+
+            CREATE TABLE IF NOT EXISTS benobat."BusinessRequests" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "UserId" uuid NOT NULL, "BusinessName" text NOT NULL,
+                "Category" text NOT NULL, "City" text NOT NULL, "Description" text NOT NULL,
+                "ContactPhone" text NOT NULL, "FirstBranchName" text NOT NULL, "FirstBranchAddress" text NOT NULL,
+                "Status" text NOT NULL, "ReviewNote" text NULL, "ApprovedBusinessId" uuid NULL,
+                CONSTRAINT "FK_BusinessRequests_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_BusinessRequests_Businesses_ApprovedBusinessId" FOREIGN KEY ("ApprovedBusinessId") REFERENCES benobat."Businesses" ("Id") ON DELETE SET NULL);
+            CREATE INDEX IF NOT EXISTS "IX_BusinessRequests_UserId_Status" ON benobat."BusinessRequests" ("UserId", "Status");
+            CREATE INDEX IF NOT EXISTS "IX_BusinessRequests_Status_CreatedAt" ON benobat."BusinessRequests" ("Status", "CreatedAt");
+
             -- لایه‌ی دفاعی دوم در برابر double-booking: حتی اگر قفل برنامه دور زده شود، دیتابیس دو نوبت
             -- هم‌پوشان فعال را برای یک ارائه‌دهنده نمی‌پذیرد. اگر داده‌ی موجود تداخل داشته باشد یا
             -- اکستنشن در دسترس نباشد فقط یک NOTICE ثبت می‌شود و برنامه بالا می‌آید.

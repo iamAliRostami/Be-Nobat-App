@@ -13,9 +13,8 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.ManagementBusiness
-import com.leon.be_nobat.domain.model.ManagementBusinessInput
-import com.leon.be_nobat.helpers.AdminFormDialog
 import com.leon.be_nobat.helpers.BaseActivity
+import com.leon.be_nobat.helpers.StatusBadgeHelper
 import com.leon.be_nobat.ui.adapters.BaseAdminAdapter
 import com.leon.be_nobat.ui.adapters.simpleDiff
 import com.leon.be_nobat.ui.adapters.AdminViewHolder
@@ -31,16 +30,9 @@ class PlatformBusinessesActivity : BaseActivity() {
     private lateinit var adapter: BusinessesAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
-    private val categoryOptions = listOf(
-        "عمومی", "پزشکی و سلامت", "زیبایی و سلامت", "آموزش", "خدمات فنی", "ورزش", "مشاوره", "فروشگاهی", "رستوران و کافه", "سایر"
-    )
-
-    private val cityOptions = listOf(
-        "تهران", "مشهد", "اصفهان", "شیراز", "تبریز", "کرج", "قم", "اهواز", "رشت", "کرمانشاه", "یزد", "سایر"
-    )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requirePlatformAdminPermission()
         findViewById<TabLayout>(R.id.statusTabs).visibility = View.GONE
     }
 
@@ -66,56 +58,17 @@ class PlatformBusinessesActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.load()
+    }
+
     private fun showCreateBusinessDialog() {
-        AdminFormDialog.Builder(this)
-            .setTitle(getString(R.string.form_create_business_title))
-            .field(getString(R.string.form_label_name))
-            .field(getString(R.string.form_label_slug))
-            .dropdownField(getString(R.string.form_label_category), categoryOptions, default = "عمومی")
-            .dropdownField(getString(R.string.form_label_city), cityOptions, default = "تهران")
-            .onSubmit { values ->
-                val name = values.getOrNull(0).orEmpty()
-                val slug = values.getOrNull(1).orEmpty()
-                val category = values.getOrNull(2).orEmpty().ifBlank { "عمومی" }
-                val city = values.getOrNull(3).orEmpty().ifBlank { "تهران" }
-                if (name.isBlank()) {
-                    Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
-                    return@onSubmit
-                }
-                viewModel.create(ManagementBusinessInput(
-                    name = name,
-                    slug = slug,
-                    category = category,
-                    city = city,
-                ))
-            }
-            .show()
+        startActivity(PlatformBusinessEditActivity.createIntent(this, null))
     }
 
     private fun showEditBusinessDialog(item: ManagementBusiness) {
-        AdminFormDialog.Builder(this)
-            .setTitle(getString(R.string.form_edit_business_title))
-            .field(getString(R.string.form_label_name), default = item.name)
-            .field(getString(R.string.form_label_slug), default = item.slug)
-            .dropdownField(getString(R.string.form_label_category), categoryOptions, default = item.category)
-            .dropdownField(getString(R.string.form_label_city), cityOptions, default = item.city)
-            .onSubmit { values ->
-                val name = values.getOrNull(0).orEmpty()
-                val slug = values.getOrNull(1).orEmpty()
-                val category = values.getOrNull(2).orEmpty().ifBlank { item.category }
-                val city = values.getOrNull(3).orEmpty().ifBlank { item.city }
-                if (name.isBlank()) {
-                    Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
-                    return@onSubmit
-                }
-                viewModel.update(item.id, ManagementBusinessInput(
-                    name = name,
-                    slug = slug,
-                    category = category,
-                    city = city,
-                ))
-            }
-            .show()
+        startActivity(PlatformBusinessEditActivity.createIntent(this, item.id))
     }
 
     override fun observeViewModel() {
@@ -143,9 +96,12 @@ class PlatformBusinessesActivity : BaseActivity() {
         override fun bindHolder(holder: AdminViewHolder, item: ManagementBusiness) {
             holder.binding.apply {
                 tvTitle.text = item.name
+                tvSubtitle.isVisible = true
                 tvSubtitle.text = "${item.category} • ${item.city}"
+                tvBody.isVisible = item.description.isNotBlank()
                 tvBody.text = item.description
-                tvStatus.text = if (item.active) root.context.getString(R.string.set_active) else root.context.getString(R.string.set_inactive)
+                StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)
+                StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, if (item.active) "Confirmed" else "Cancelled")
                 btnAction1.text = if (item.active) root.context.getString(R.string.set_inactive) else root.context.getString(R.string.set_active)
                 btnAction2.isVisible = true
                 btnAction2.text = root.context.getString(R.string.action_edit)

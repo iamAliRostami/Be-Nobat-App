@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_range_row"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/tvRangeIndex"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="8dp"
+        android:fontFamily="@font/app_font"
+        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        tools:text="بازه ۱" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStartTime"
+        style="@style/Widget.BeNobat.Button.Outlined"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="40dp"
+        android:textSize="12.5sp"
+        app:cornerRadius="8dp"
+        tools:text="از ۰۹:۰۰" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="6dp"
+        android:text="←"
+        android:textSize="14sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEndTime"
+        style="@style/Widget.BeNobat.Button.Outlined"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="40dp"
+        android:textSize="12.5sp"
+        app:cornerRadius="8dp"
+        tools:text="تا ۱۹:۰۰" />
+
+    <ImageButton
+        android:id="@+id/btnDeleteRange"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_marginStart="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="حذف بازه"
+        android:src="@drawable/ic_close"
+        app:tint="@color/error_red" />
+</LinearLayout>

@@ -65,6 +65,8 @@ data class ManagementBusinessInput(
     val requiresApproval: Boolean = true,
     val firstBranchName: String = "شعبه مرکزی",
     val ownerId: String? = null,
+    val firstBranchAddress: String? = null,
+    val firstBranchWeeklyHours: List<WeeklyTimeRange>? = null,
 )
 
 @Serializable
@@ -73,8 +75,9 @@ data class ManagementBranchInput(
     val name: String,
     val address: String = "",
     val timeZoneId: String = "Asia/Tehran",
-    val openHour: Int = 9,
-    val closeHour: Int = 18,
+    val openHour: Int = 8,
+    val closeHour: Int = 20,
+    val weeklyHours: List<WeeklyTimeRange>? = null,
 )
 
 @Serializable
@@ -168,4 +171,36 @@ data class ManagementUserInput(
 data class ManagementRolesInput(val roles: List<String>)
 
 @Serializable
+data class ManagementTeamMemberInput(
+    val name: String,
+    val email: String,
+    val phone: String? = null,
+    val branchId: String,
+    val role: String = "Staff",
+)
+
+@Serializable
+data class ManagementCustomerInput(
+    val name: String,
+    val email: String,
+    val phone: String? = null,
+)
+
+@Serializable
 data class ManagementResourceServicesInput(val serviceIds: List<String>)
+
+@Serializable
+data class BusinessRequestInput(
+    val businessName: String,
+    val category: String = "عمومی",
+    val city: String = "تهران",
+    val description: String = "",
+    val contactPhone: String = "",
+    val firstBranchName: String = "شعبه مرکزی",
+    val firstBranchAddress: String = "",
+)
+
+@Serializable
+data class ReviewBusinessRequestInput(
+    val note: String? = null,
+)

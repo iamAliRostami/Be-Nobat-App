@@ -30,15 +30,24 @@
             <article class="management-card">
                 <div class="panel-head">
                     <div><h2 data-i18n-skip>@branch.Name</h2><p><a class="entity-link" href="@BusinessUrl(branch.BusinessId)" data-i18n-skip>@branch.Business.Name</a> · <span data-i18n-skip>@branch.Address</span></p></div>
-                    <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
+                    <div style="display:inline-flex; gap:0.4rem; align-items:center;">
+                        @if (!branch.IsApproved)
+                        {
+                            <em class="status" style="background:#fef3c7; color:#b45309; border:1px solid #fcd34d;">در انتظار تأیید مدیر کل</em>
+                        }
+                        <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
+                    </div>
                 </div>
                 <dl>
-                    <div><dt>ساعت کاری</dt><dd>@($"{branch.OpenHour}:00 تا {branch.CloseHour}:00")</dd></div>
-                    <div><dt>منطقه زمانی</dt><dd>@branch.TimeZoneId</dd></div>
+                    <div><dt>ساعت کاری</dt><dd>@(branch.AvailabilityRules.Any(WeeklySchedule.IsWeeklyBranchRule) ? $"{WeeklySchedule.Read(branch).Select(x => x.DayOfWeek).Distinct().Count()} روز فعال، {WeeklySchedule.Read(branch).Count} بازه هفتگی" : $"{branch.OpenHour}:00 تا {branch.CloseHour}:00")</dd></div>
                     <div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div>
                     <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
                 </dl>
                 <div class="card-actions">
+                    @if (IsPlatformAdmin && !branch.IsApproved)
+                    {
+                        <button type="button" class="action-success" @onclick="() => ApproveBranch(branch)">تأیید شعبه</button>
+                    }
                     <button type="button" class="action-secondary" @onclick="() => EditBranch(branch)">ویرایش</button>
                     <button type="button" class="action-primary" @onclick="() => AddResource(branch)">+ منبع</button>
                     <button type="button" class="action-info" @onclick="() => OpenMembers(branch)">اعضا</button>
@@ -61,19 +70,44 @@
 @if (ShowBranchForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="BranchForm" FormName="admin-branch" OnValidSubmit="SaveBranch" class="form-modal" @onclick:stopPropagation>
+        <EditForm Model="BranchForm" FormName="admin-branch" OnValidSubmit="SaveBranch" class="form-modal business-form-modal" @onclick:stopPropagation>
             <DataAnnotationsValidator />
-            <div><h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-            <label>کسب‌وکار<select disabled="@(EditingBranchId is not null)" @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id" data-i18n-skip>@b.Name</option> }</select></label>
-            <label>نام شعبه<input required @bind="BranchForm.Name" /></label>
-            <label>نشانی<input @bind="BranchForm.Address" /></label>
-            <label>منطقه زمانی<select @bind="BranchForm.TimeZoneId">@foreach (var zone in TimeZones) { <option value="@zone.Id">@zone.Label</option> }</select></label>
-            <div class="form-columns">
-                <label>شروع کار<input type="number" min="0" max="23" @bind="BranchForm.OpenHour" /></label>
-                <label>پایان کار<input type="number" min="1" max="24" @bind="BranchForm.CloseHour" /></label>
+            <div class="modal-header">
+                <div>
+                    <h2>@(EditingBranchId is null ? "شعبه جدید" : "ویرایش شعبه")</h2>
+                    <p class="modal-subtitle">مشخصات شعبه و ساعات کاری هفتگی</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
             </div>
-            @if (Error is not null) { <div class="auth-error">@Error</div> }
-            <button class="primary-button">ذخیره</button>
+            <div class="modal-body">
+                <div class="form-section">
+                    <h3 class="section-title"><span>📍</span> اطلاعات پایه شعبه</h3>
+                    <div class="form-grid">
+                        <label class="field-full">
+                            <span>کسب‌وکار</span>
+                            <select disabled="@(EditingBranchId is not null)" @bind="BranchForm.BusinessId">@foreach (var b in Businesses) { <option value="@b.Id" data-i18n-skip>@b.Name</option> }</select>
+                        </label>
+                        <label class="field-full">
+                            <span>نام شعبه <strong class="req">*</strong></span>
+                            <input required @bind="BranchForm.Name" placeholder="مثال: شعبه مرکزی" />
+                        </label>
+                        <label class="field-full">
+                            <span>نشانی</span>
+                            <input @bind="BranchForm.Address" placeholder="نشانی دقیق شعبه..." />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="weekly-schedule-wrapper">
+                    <WeeklyHoursEditor Hours="BranchForm.WeeklyHours" />
+                </div>
+
+                @if (Error is not null) { <div class="auth-error">@Error</div> }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="Close">انصراف</button>
+                <button type="submit" class="primary-button">ذخیره شعبه</button>
+            </div>
         </EditForm>
     </div>
 }
@@ -321,6 +355,7 @@
         var query = await Access.ManagedBranchesAsync(includeArchived: true);
         Branches = await query.IgnoreQueryFilters().AsNoTracking()
             .Include(x => x.Business)
+            .Include(x => x.AvailabilityRules)
             .Include(x => x.Resources.Where(r => r.DeletedAt == null))
             .Include(x => x.Memberships.Where(m => m.DeletedAt == null))
             .OrderBy(x => x.Name)
@@ -346,6 +381,7 @@
             OpenHour = branch.OpenHour,
             CloseHour = branch.CloseHour,
             TimeZoneId = branch.TimeZoneId,
+            WeeklyHours = WeeklySchedule.Read(branch),
         };
         Error = Message = null;
         ShowBranchForm = true;
@@ -353,6 +389,8 @@
 
     private async Task SaveBranch()
     {
+        Error = WeeklySchedule.Validate(BranchForm.WeeklyHours);
+        if (Error is not null) return;
         if (BranchForm.BusinessId == Guid.Empty || string.IsNullOrWhiteSpace(BranchForm.Name) || BranchForm.CloseHour <= BranchForm.OpenHour)
         {
             Error = "نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";
@@ -379,6 +417,7 @@
             await Db.Entry(branch).ReloadAsync();
             if (branch.BusinessId != BranchForm.BusinessId) { Error = "کسب‌وکار شعبه را نمی‌توان تغییر داد."; return; }
         }
+        if (EditingBranchId is not null) await Db.Entry(branch).Collection(x => x.AvailabilityRules).LoadAsync();
         branch.TimeZoneId = BranchForm.TimeZoneId;
 
         branch.BusinessId = BranchForm.BusinessId;
@@ -390,16 +429,31 @@
 
         if (EditingBranchId is null)
         {
+            branch.IsApproved = IsPlatformAdmin;
             Db.Branches.Add(branch);
             // سازنده‌ی شعبه (اگر مدیر سامانه نیست) باید خودش به آن دسترسی داشته باشد.
-            if (!await Access.IsPlatformAdminAsync())
+            if (!IsPlatformAdmin)
             {
                 var me = await Access.UserIdAsync();
                 Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = me, Role = AppRoles.Owner });
+                Message = "شعبه با موفقیت ثبت شد و پس از تأیید مدیر کل سامانه فعال خواهد شد.";
             }
         }
+        WeeklySchedule.Replace(branch, BranchForm.WeeklyHours);
         await Db.SaveChangesAsync();
         Close();
+        await Load();
+    }
+
+    private async Task ApproveBranch(Branch branch)
+    {
+        if (!IsPlatformAdmin) return;
+        var item = await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == branch.Id);
+        if (item is null) return;
+        item.IsApproved = true;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await Db.SaveChangesAsync();
+        Message = $"شعبه «{item.Name}» با موفقیت تأیید شد.";
         await Load();
     }
 
@@ -647,8 +701,9 @@
         public Guid BusinessId { get; set; }
         public string Name { get; set; } = "";
         public string Address { get; set; } = "";
-        public int OpenHour { get; set; } = 9;
-        public int CloseHour { get; set; } = 18;
+        public int OpenHour { get; set; } = 8;
+        public int CloseHour { get; set; } = 20;
+        public List<WeeklyTimeRange> WeeklyHours { get; set; } = WeeklySchedule.Default();
         public string TimeZoneId { get; set; } = "Asia/Tehran";
     }
 

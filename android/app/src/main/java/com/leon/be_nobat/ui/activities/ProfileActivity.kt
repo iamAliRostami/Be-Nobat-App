@@ -14,11 +14,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.data.remote.BeNobatApiConfig
+import com.leon.be_nobat.domain.model.BusinessRequest
+import com.leon.be_nobat.domain.model.BusinessRequestInput
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.view_models.ProfileUiState
 import com.leon.be_nobat.ui.view_models.ProfileViewModel
@@ -92,6 +98,31 @@ class ProfileActivity : BaseActivity() {
             finishAffinity()
         }
 
+        val btnResetDemo = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnResetDemo)
+        if (com.leon.be_nobat.BuildConfig.DEMO_MODE) {
+            btnResetDemo?.visibility = View.VISIBLE
+            btnResetDemo?.setOnClickListener {
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle(R.string.demo_reset_positive)
+                    .setMessage(R.string.demo_reset_confirm_msg)
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setPositiveButton(R.string.demo_reset_positive) { _, _ ->
+                        lifecycleScope.launch {
+                            runCatching {
+                                org.koin.java.KoinJavaComponent.get<com.leon.be_nobat.data.demo.DemoDataStore>(com.leon.be_nobat.data.demo.DemoDataStore::class.java).resetToSeed()
+                            }.onSuccess {
+                                showToast(getString(R.string.demo_reset_success), isLong = true)
+                                viewModel.load()
+                            }.onFailure { err ->
+                                showToast(err.message ?: "", isLong = true)
+                            }
+                        }
+                    }.show()
+            }
+        } else {
+            btnResetDemo?.visibility = View.GONE
+        }
+
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
         bottomNav.setOnItemSelectedListener(BottomNavigationView.OnNavigationItemSelectedListener { item ->
             when (item.itemId) {
@@ -162,6 +193,9 @@ class ProfileActivity : BaseActivity() {
             it.text = if (state.changingEmail) getString(R.string.saving) else getString(R.string.change_email)
             it.isEnabled = !state.changingEmail
         }
+        // Business Upgrade / Request card
+        renderBusinessCard(state)
+
         // Messages
         state.message?.let { msg ->
             val resId = when (msg) {
@@ -170,15 +204,166 @@ class ProfileActivity : BaseActivity() {
                 "email_changed" -> R.string.email_changed
                 "avatar_updated" -> R.string.avatar_updated
                 "avatar_removed" -> R.string.avatar_removed
+                "business_request_submitted" -> R.string.business_request_submitted_success
                 else -> null
             }
-            resId?.let { Snackbar.make(findViewById(R.id.scrollView), getString(it), Snackbar.LENGTH_SHORT).show() }
+            resId?.let { Snackbar.make(findViewById(R.id.scrollView), getString(it), Snackbar.LENGTH_LONG).show() }
             viewModel.clearMessages()
         }
         state.error?.let { err ->
             Snackbar.make(findViewById(R.id.scrollView), err, Snackbar.LENGTH_LONG).show()
             viewModel.clearMessages()
         }
+    }
+
+    private fun renderBusinessCard(state: ProfileUiState) {
+        val user = state.user
+        val ivIcon = findViewById<android.widget.ImageView>(R.id.ivBusinessStatusIcon) ?: return
+        val tvTitle = findViewById<android.widget.TextView>(R.id.tvBusinessCardTitle) ?: return
+        val tvBadge = findViewById<android.widget.TextView>(R.id.tvBusinessCardBadge) ?: return
+        val tvDesc = findViewById<android.widget.TextView>(R.id.tvBusinessCardDesc) ?: return
+        val tvNote = findViewById<android.widget.TextView>(R.id.tvBusinessCardNote) ?: return
+        val btnRequest = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRequestBusiness) ?: return
+        val btnGoAdmin = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnGoToAdminPanel) ?: return
+
+        btnRequest.isEnabled = !state.submittingBusinessRequest
+
+        val isStaff = user?.isStaff == true
+        val req = state.businessRequest
+
+        when {
+            isStaff -> {
+                ivIcon.setImageResource(R.drawable.ic_dashboard)
+                tvTitle.text = getString(R.string.business_request_status_approved)
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.status_active)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
+                tvDesc.text = "شما به عنوان مدیر کسب‌وکار فعال هستید و به پنل مدیریت نوبت‌ها، شعب و پرسنل دسترسی دارید."
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.GONE
+                btnGoAdmin.visibility = View.VISIBLE
+                btnGoAdmin.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+            }
+            req?.status.equals("Pending", ignoreCase = true) -> {
+                ivIcon.setImageResource(R.drawable.ic_calendar)
+                tvTitle.text = "درخواست ثبت ${req?.businessName}"
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.platform_tab_pending)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.PENDING)
+                tvDesc.text = getString(R.string.business_request_status_pending, req?.businessName ?: "") +
+                        "\nدسته‌بندی: ${req?.category}  •  شهر: ${req?.city}  •  شعبه: ${req?.firstBranchName}"
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.GONE
+                btnGoAdmin.visibility = View.GONE
+            }
+            req?.status.equals("Rejected", ignoreCase = true) -> {
+                ivIcon.setImageResource(R.drawable.ic_platform)
+                tvTitle.text = getString(R.string.business_request_status_rejected)
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.platform_tab_rejected)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.CANCELLED)
+                tvDesc.text = "درخواست قبلی شما برای کسب‌وکار «${req?.businessName}» مورد تأیید قرار نگرفت."
+                if (!req?.reviewNote.isNullOrBlank()) {
+                    tvNote.visibility = View.VISIBLE
+                    tvNote.text = getString(R.string.business_request_review_note, req?.reviewNote)
+                } else {
+                    tvNote.visibility = View.GONE
+                }
+                btnRequest.visibility = View.VISIBLE
+                btnRequest.text = getString(R.string.business_request_resubmit_btn)
+                btnRequest.setOnClickListener { showBusinessRequestDialog(req) }
+                btnGoAdmin.visibility = View.GONE
+            }
+            else -> {
+                ivIcon.setImageResource(R.drawable.ic_platform)
+                tvTitle.text = getString(R.string.business_upgrade_card_title)
+                tvBadge.visibility = View.GONE
+                tvDesc.text = getString(R.string.business_upgrade_card_desc)
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.VISIBLE
+                btnRequest.text = getString(R.string.business_request_submit_btn)
+                btnRequest.setOnClickListener { showBusinessRequestDialog(null) }
+                btnGoAdmin.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun showBusinessRequestDialog(existing: BusinessRequest?) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_business_request, null)
+        val etName = dialogView.findViewById<TextInputEditText>(R.id.etReqBusinessName)
+        val spCategory = dialogView.findViewById<Spinner>(R.id.spReqCategory)
+        val etCity = dialogView.findViewById<TextInputEditText>(R.id.etReqCity)
+        val etPhone = dialogView.findViewById<TextInputEditText>(R.id.etReqContactPhone)
+        val etBranch = dialogView.findViewById<TextInputEditText>(R.id.etReqFirstBranchName)
+        val etAddress = dialogView.findViewById<TextInputEditText>(R.id.etReqFirstBranchAddress)
+        val etDesc = dialogView.findViewById<TextInputEditText>(R.id.etReqDescription)
+        val btnCancel = dialogView.findViewById<View>(R.id.btnCancelReq)
+        val btnSubmit = dialogView.findViewById<View>(R.id.btnSubmitReq)
+
+        val categories = listOf("عمومی", "آرایشی و بهداشتی", "پزشکی و سلامت", "خدمات خودرو", "ورزشی و تفریحی", "آموزشی")
+        val catAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spCategory.adapter = catAdapter
+
+        if (existing != null) {
+            etName.setText(existing.businessName)
+            val catIdx = categories.indexOf(existing.category).takeIf { it >= 0 } ?: 0
+            spCategory.setSelection(catIdx)
+            etCity.setText(existing.city)
+            etPhone.setText(existing.contactPhone)
+            etBranch.setText(existing.firstBranchName)
+            etAddress.setText(existing.firstBranchAddress)
+            etDesc.setText(existing.description)
+        } else {
+            val userPhone = viewModel.state.value.phoneNumber
+            if (userPhone.isNotBlank()) etPhone.setText(userPhone)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnSubmit.setOnClickListener {
+            val name = etName.text?.toString()?.trim().orEmpty()
+            val cat = categories.getOrElse(spCategory.selectedItemPosition) { "عمومی" }
+            val city = etCity.text?.toString()?.trim().orEmpty().ifBlank { "تهران" }
+            val phone = etPhone.text?.toString()?.trim().orEmpty()
+            val branch = etBranch.text?.toString()?.trim().orEmpty().ifBlank { "شعبه مرکزی" }
+            val address = etAddress.text?.toString()?.trim().orEmpty()
+            val desc = etDesc.text?.toString()?.trim().orEmpty()
+
+            if (name.isBlank()) {
+                etName.error = getString(R.string.msg_invalid_input)
+                return@setOnClickListener
+            }
+            if (phone.isBlank()) {
+                etPhone.error = getString(R.string.msg_invalid_input)
+                return@setOnClickListener
+            }
+            if (address.isBlank()) {
+                etAddress.error = getString(R.string.msg_invalid_input)
+                return@setOnClickListener
+            }
+
+            viewModel.submitBusinessRequest(
+                BusinessRequestInput(
+                    businessName = name,
+                    category = cat,
+                    city = city,
+                    description = desc,
+                    contactPhone = phone,
+                    firstBranchName = branch,
+                    firstBranchAddress = address,
+                )
+            )
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun uploadAvatarFromUri(uri: Uri) {

@@ -86,6 +86,20 @@
                         app:icon="@drawable/ic_home" />
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/tvDashboardSubtitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    tools:text="امروز ۱۲ نوبت برای پیگیری دارید."
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/adminHeaderBar" />
+
                 <ProgressBar
                     android:id="@+id/loadingProgress"
                     style="?android:attr/progressBarStyle"
@@ -95,7 +109,7 @@
                     android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/adminHeaderBar" />
+                    app:layout_constraintTop_toBottomOf="@id/tvDashboardSubtitle" />
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardError"
@@ -110,7 +124,7 @@
                     app:strokeWidth="1dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/adminHeaderBar">
+                    app:layout_constraintTop_toBottomOf="@id/tvDashboardSubtitle">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -376,12 +390,14 @@
 
                     <!-- Row 3: Total Revenue & Pending Reviews -->
                     <LinearLayout
+                        android:id="@+id/rowRevenueAndReviews"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
                         android:orientation="horizontal">
 
                         <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardRevenue"
                             style="@style/Widget.BeNobat.Card"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -458,6 +474,7 @@
 
                     <!-- Row 4: Businesses Count & Branches Count -->
                     <LinearLayout
+                        android:id="@+id/rowBusinessesAndBranches"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
@@ -575,6 +592,22 @@
                     app:layout_constraintTop_toBottomOf="@id/tvQuickAccessTitle" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnServices"
+                    style="@style/Widget.BeNobat.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/admin_services"
+                    android:textAlignment="viewStart"
+                    app:cornerRadius="16dp"
+                    app:icon="@drawable/ic_services"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/btnCalendar" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBranches"
                     style="@style/Widget.BeNobat.Button.Outlined"
                     android:layout_width="0dp"
@@ -588,7 +621,7 @@
                     app:iconPadding="12dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/btnCalendar" />
+                    app:layout_constraintTop_toBottomOf="@id/btnServices" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnReviews"
@@ -615,7 +648,9 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:itemTextAppearance="@style/TextAppearance.BeNobat.Body"
+        app:headerLayout="@layout/nav_header_admin"
+        app:itemTextAppearance="@style/TextAppearance.BeNobat.NavDrawer.Item"
+        app:subheaderTextAppearance="@style/TextAppearance.BeNobat.NavDrawer.Subheader"
         app:itemIconTint="@color/nav_item_icon_tint"
         app:itemTextColor="@color/nav_item_text_color"
         app:menu="@menu/admin_drawer_menu" />

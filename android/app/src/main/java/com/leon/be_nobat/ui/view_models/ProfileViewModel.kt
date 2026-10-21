@@ -12,6 +12,10 @@ import com.leon.be_nobat.domain.usecase.UpdateProfileUseCase
 import com.leon.be_nobat.domain.usecase.UploadAvatarUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.leon.be_nobat.domain.model.BusinessRequest
+import com.leon.be_nobat.domain.model.BusinessRequestInput
+import com.leon.be_nobat.domain.usecase.GetMyBusinessRequestUseCase
+import com.leon.be_nobat.domain.usecase.SubmitBusinessRequestUseCase
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -22,6 +26,9 @@ data class ProfileUiState(
     val phoneNumber: String = "",
     val email: String = "",
     val avatarUrl: String? = null,
+    val businessRequest: BusinessRequest? = null,
+    val loadingBusinessRequest: Boolean = false,
+    val submittingBusinessRequest: Boolean = false,
     val savingProfile: Boolean = false,
     val changingPassword: Boolean = false,
     val changingEmail: Boolean = false,
@@ -38,6 +45,8 @@ class ProfileViewModel(
     private val uploadAvatarUseCase: UploadAvatarUseCase,
     private val deleteAvatarUseCase: DeleteAvatarUseCase,
     private val logoutUseCase: LogoutUseCase,
+    private val getMyBusinessRequestUseCase: GetMyBusinessRequestUseCase,
+    private val submitBusinessRequestUseCase: SubmitBusinessRequestUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileUiState(loading = true))
@@ -58,6 +67,34 @@ class ProfileViewModel(
                 )
             }
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
+
+        loadBusinessRequest()
+    }
+
+    fun loadBusinessRequest() = viewModelScope.launch {
+        _state.value = _state.value.copy(loadingBusinessRequest = true)
+        getMyBusinessRequestUseCase()
+            .onSuccess { req ->
+                _state.value = _state.value.copy(loadingBusinessRequest = false, businessRequest = req)
+            }
+            .onFailure {
+                _state.value = _state.value.copy(loadingBusinessRequest = false)
+            }
+    }
+
+    fun submitBusinessRequest(input: BusinessRequestInput) = viewModelScope.launch {
+        _state.value = _state.value.copy(submittingBusinessRequest = true, error = null, message = null)
+        submitBusinessRequestUseCase(input)
+            .onSuccess { req ->
+                _state.value = _state.value.copy(
+                    submittingBusinessRequest = false,
+                    businessRequest = req,
+                    message = "business_request_submitted"
+                )
+            }
+            .onFailure { e ->
+                _state.value = _state.value.copy(submittingBusinessRequest = false, error = e.message)
+            }
     }
 
     fun setDisplayName(v: String) { _state.value = _state.value.copy(displayName = v) }

@@ -20,6 +20,8 @@ interface AuthRepository {
     suspend fun changeEmail(input: EmailInput): Result<MobileSession>
     suspend fun uploadAvatar(input: AvatarInput): Result<User>
     suspend fun deleteAvatar(): Result<User>
+    suspend fun getMyBusinessRequest(): Result<com.leon.be_nobat.domain.model.BusinessRequest?>
+    suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<com.leon.be_nobat.domain.model.BusinessRequest>
     /** Persisted current session; used by StartActivity to decide the launcher target. */
     val cachedSession: MobileSession?
 }

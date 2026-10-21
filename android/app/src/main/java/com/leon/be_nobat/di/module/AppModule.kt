@@ -23,8 +23,11 @@ import com.leon.be_nobat.domain.repository.BusinessRepository
 import com.leon.be_nobat.domain.repository.FavoriteRepository
 import com.leon.be_nobat.domain.repository.ManagementRepository
 import com.leon.be_nobat.domain.repository.PlatformRepository
+import com.leon.be_nobat.domain.usecase.AdminApproveBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminContextUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateAvailabilityUseCase
+import com.leon.be_nobat.domain.usecase.AdminUpdateAvailabilityUseCase
+import com.leon.be_nobat.domain.usecase.AdminDeleteAvailabilityUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateBranchUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateCustomerReviewUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateMembershipUseCase
@@ -45,6 +48,9 @@ import com.leon.be_nobat.domain.usecase.AdminListResourcesUseCase
 import com.leon.be_nobat.domain.usecase.AdminListServicesUseCase
 import com.leon.be_nobat.domain.usecase.AdminListTeamUseCase
 import com.leon.be_nobat.domain.usecase.AdminListCustomersUseCase
+import com.leon.be_nobat.domain.usecase.AdminCreateTeamMemberUseCase
+import com.leon.be_nobat.domain.usecase.AdminCreateCustomerUseCase
+import com.leon.be_nobat.domain.usecase.AdminTogglePersonActiveUseCase
 import com.leon.be_nobat.domain.usecase.AdminModerateReviewUseCase
 import com.leon.be_nobat.domain.usecase.AdminSetAppointmentStatusUseCase
 import com.leon.be_nobat.domain.usecase.AdminToggleBranchActiveUseCase
@@ -61,6 +67,7 @@ import com.leon.be_nobat.domain.usecase.GetBusinessUseCase
 import com.leon.be_nobat.domain.usecase.GetCatalogUseCase
 import com.leon.be_nobat.domain.usecase.GetCategoriesUseCase
 import com.leon.be_nobat.domain.usecase.GetMeUseCase
+import com.leon.be_nobat.domain.usecase.GetMyBusinessRequestUseCase
 import com.leon.be_nobat.domain.usecase.GetSlotsUseCase
 import com.leon.be_nobat.domain.usecase.ListAppointmentsUseCase
 import com.leon.be_nobat.domain.usecase.ListBranchesUseCase
@@ -90,7 +97,12 @@ import com.leon.be_nobat.domain.usecase.PlatformToggleBusinessActiveUseCase
 import com.leon.be_nobat.domain.usecase.PlatformToggleUserActiveUseCase
 import com.leon.be_nobat.domain.usecase.PlatformUpdateBusinessUseCase
 import com.leon.be_nobat.domain.usecase.PlatformUpdateUserUseCase
+import com.leon.be_nobat.domain.usecase.PlatformListBusinessRequestsUseCase
+import com.leon.be_nobat.domain.usecase.PlatformApproveBusinessRequestUseCase
+import com.leon.be_nobat.domain.usecase.PlatformRejectBusinessRequestUseCase
+import com.leon.be_nobat.domain.usecase.PlatformApproveBranchUseCase
 import com.leon.be_nobat.domain.usecase.RegisterUseCase
+import com.leon.be_nobat.domain.usecase.SubmitBusinessRequestUseCase
 import com.leon.be_nobat.domain.usecase.ToggleFavoriteUseCase
 import com.leon.be_nobat.domain.usecase.UpdateProfileUseCase
 import com.leon.be_nobat.domain.usecase.UploadAvatarUseCase
@@ -116,6 +128,7 @@ import com.leon.be_nobat.ui.view_models.platform.PlatformBusinessesViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformCatalogViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformCategoriesViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformAccessViewModel
+import com.leon.be_nobat.ui.view_models.platform.PlatformRequestsViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
@@ -172,6 +185,8 @@ val useCaseModule = module {
     factory { ChangeEmailUseCase(get()) }
     factory { UploadAvatarUseCase(get()) }
     factory { DeleteAvatarUseCase(get()) }
+    factory { GetMyBusinessRequestUseCase(get()) }
+    factory { SubmitBusinessRequestUseCase(get()) }
 
     // Customer - discovery
     factory { ListBusinessesUseCase(get()) }
@@ -203,12 +218,16 @@ val useCaseModule = module {
     factory { AdminUpdateBranchUseCase(get()) }
     factory { AdminToggleBranchActiveUseCase(get()) }
     factory { AdminDeleteBranchUseCase(get()) }
+    factory { AdminApproveBranchUseCase(get()) }
     factory { AdminListResourcesUseCase(get()) }
     factory { AdminListMembershipsUseCase(get()) }
     factory { AdminCreateMembershipUseCase(get()) }
     factory { AdminDeleteMembershipUseCase(get()) }
     factory { AdminListTeamUseCase(get()) }
+    factory { AdminCreateTeamMemberUseCase(get()) }
     factory { AdminListCustomersUseCase(get()) }
+    factory { AdminCreateCustomerUseCase(get()) }
+    factory { AdminTogglePersonActiveUseCase(get()) }
     factory { AdminListServicesUseCase(get()) }
     factory { AdminCreateServiceUseCase(get()) }
     factory { AdminUpdateServiceUseCase(get()) }
@@ -219,6 +238,8 @@ val useCaseModule = module {
     factory { AdminModerateReviewUseCase(get()) }
     factory { AdminListAvailabilityUseCase(get()) }
     factory { AdminCreateAvailabilityUseCase(get()) }
+    factory { AdminUpdateAvailabilityUseCase(get()) }
+    factory { AdminDeleteAvailabilityUseCase(get()) }
     factory { AdminListResourceServicesUseCase(get()) }
     factory { AdminListCustomerReviewsUseCase(get()) }
     factory { AdminListPendingCustomerReviewsUseCase(get()) }
@@ -244,33 +265,38 @@ val useCaseModule = module {
     factory { PlatformSetUserRolesUseCase(get()) }
     factory { PlatformToggleUserActiveUseCase(get()) }
     factory { PlatformResetPasswordUseCase(get()) }
+    factory { PlatformListBusinessRequestsUseCase(get()) }
+    factory { PlatformApproveBusinessRequestUseCase(get()) }
+    factory { PlatformRejectBusinessRequestUseCase(get()) }
+    factory { PlatformApproveBranchUseCase(get()) }
 }
 
 val viewModelModule = module {
     viewModel { AuthViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
-    viewModel { HomeViewModel(get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get()) }
     viewModel { BusinessDetailViewModel(get(), get()) }
     viewModel { BookingViewModel(get(), get(), get(), get(), get()) }
     viewModel { AppointmentsViewModel(get(), get(), get()) }
     viewModel { FavoritesViewModel(get(), get()) }
-    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin
-    viewModel { AdminDashboardViewModel(get(), get()) }
+    viewModel { AdminDashboardViewModel(get(), get(), get()) }
     viewModel { AdminCalendarViewModel(get(), get()) }
-    viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get()) }
+    viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { AdminReviewsViewModel(get(), get()) }
-    viewModel { AdminCustomersViewModel(get()) }
-    viewModel { AdminTeamViewModel(get()) }
+    viewModel { AdminCustomersViewModel(get(), get(), get()) }
+    viewModel { AdminTeamViewModel(get(), get(), get(), get()) }
     viewModel { AdminServicesViewModel(get(), get(), get(), get()) }
-    viewModel { AdminAvailabilityViewModel(get(), get()) }
+    viewModel { AdminAvailabilityViewModel(get(), get(), get(), get()) }
 
     // Platform
     viewModel { PlatformBusinessesViewModel(get(), get(), get(), get(), get()) }
     viewModel { PlatformCatalogViewModel(get(), get(), get(), get()) }
     viewModel { PlatformCategoriesViewModel(get(), get(), get(), get()) }
     viewModel { PlatformAccessViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { PlatformRequestsViewModel(get(), get(), get()) }
 }
 
 val networkModule = module {

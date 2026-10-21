@@ -20,10 +20,21 @@ import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.ThemeManager
 import com.leon.be_nobat.data.local.TokenManager
 import androidx.core.view.GravityCompat
+import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
+import com.leon.be_nobat.data.remote.BeNobatApiConfig
+import com.leon.be_nobat.domain.model.User
+import com.leon.be_nobat.domain.repository.AuthRepository
 import com.leon.be_nobat.ui.activities.*
 import com.leon.be_nobat.ui.view_models.base.MainViewModel
+import android.content.res.ColorStateList
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.widget.ImageView
+import android.widget.TextView
+import coil.load
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -32,6 +43,7 @@ abstract class BaseActivity : AppCompatActivity() {
     private lateinit var toolbar: MaterialToolbar
     private val themePreferences: ThemeManager by inject()
     private val tokenManager: TokenManager by inject()
+    private val authRepository: AuthRepository by inject()
     private val viewModel = MainViewModel(themePreferences)
     private var isMenuVisible = false
     private var isHorizontalButtonsVisible = true
@@ -70,6 +82,7 @@ abstract class BaseActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         AppLocaleManager.currentLanguage = getCurrentLanguage()
+        refreshAdminDrawerHeader()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -262,14 +275,70 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
 
+    suspend fun canManageBusiness(): Boolean {
+        val session = tokenManager.currentSession()
+        val mgmt = tokenManager.currentManagementContext()
+        return mgmt?.canManageBusiness ?: session?.user?.canManageBusiness ?: false
+    }
+
+    suspend fun isPlatformAdmin(): Boolean {
+        val session = tokenManager.currentSession()
+        val mgmt = tokenManager.currentManagementContext()
+        return mgmt?.isPlatformAdmin ?: session?.user?.isPlatformAdmin ?: false
+    }
+
+    protected fun requireBusinessManagementPermission() {
+        lifecycleScope.launch {
+            if (!canManageBusiness()) {
+                showToast(R.string.error_access_denied)
+                finish()
+            }
+        }
+    }
+
+    protected fun requirePlatformAdminPermission() {
+        lifecycleScope.launch {
+            if (!isPlatformAdmin()) {
+                showToast(R.string.error_access_denied)
+                finish()
+            }
+        }
+    }
+
     /**
-     * Configures the shared navigation drawer for admin destinations.
+     * Configures the shared navigation drawer for admin destinations with role-based permissions.
      */
     protected fun setupAdminDrawer(currentMenuItemId: Int) {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout) ?: return
         val navView = findViewById<NavigationView>(R.id.navView) ?: return
 
         navView.setCheckedItem(currentMenuItemId)
+
+        lifecycleScope.launch {
+            val session = tokenManager.currentSession()
+            val user = session?.user
+            val mgmt = tokenManager.currentManagementContext()
+            val canManage = mgmt?.canManageBusiness ?: user?.canManageBusiness ?: false
+            val isPlatform = mgmt?.isPlatformAdmin ?: user?.isPlatformAdmin ?: false
+
+            // Bind drawer header if present
+            val headerView = if (navView.headerCount > 0) navView.getHeaderView(0) else null
+            if (headerView != null && user != null) {
+                bindDrawerHeader(headerView, user)
+                headerView.setOnClickListener {
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                    startActivity(Intent(this@BaseActivity, ProfileActivity::class.java))
+                }
+            }
+
+            // Role-based menu visibility
+            val menu = navView.menu
+            menu.findItem(R.id.menu_group_business)?.isVisible = canManage
+            menu.setGroupVisible(R.id.group_business, canManage)
+
+            menu.findItem(R.id.menu_group_platform)?.isVisible = isPlatform
+            menu.setGroupVisible(R.id.group_platform, isPlatform)
+        }
 
         findViewById<View>(R.id.btnToggleDrawer)?.setOnClickListener {
             if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -298,34 +367,73 @@ abstract class BaseActivity : AppCompatActivity() {
                 return@setNavigationItemSelectedListener true
             }
 
-            when (item.itemId) {
-                R.id.drawer_dashboard -> {
-                    startActivity(Intent(this, AdminHomeActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    })
-                    if (this !is AdminHomeActivity) {
-                        finish()
+            lifecycleScope.launch {
+                val canManage = canManageBusiness()
+                val isPlatform = isPlatformAdmin()
+
+                when (item.itemId) {
+                    R.id.drawer_dashboard -> {
+                        startActivity(Intent(this@BaseActivity, AdminHomeActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        })
+                        if (this@BaseActivity !is AdminHomeActivity) {
+                            finish()
+                        }
                     }
-                }
-                R.id.drawer_calendar -> navigateAdminDestination(AdminCalendarActivity::class.java)
-                R.id.drawer_branches -> navigateAdminDestination(AdminBranchesActivity::class.java)
-                R.id.drawer_services -> navigateAdminDestination(AdminServicesActivity::class.java)
-                R.id.drawer_availability -> navigateAdminDestination(AdminAvailabilityActivity::class.java)
-                R.id.drawer_reviews -> navigateAdminDestination(AdminReviewsActivity::class.java)
-                R.id.drawer_customers -> navigateAdminDestination(AdminCustomersActivity::class.java)
-                R.id.drawer_team -> navigateAdminDestination(AdminTeamActivity::class.java)
-                R.id.drawer_platform_businesses -> navigateAdminDestination(PlatformBusinessesActivity::class.java)
-                R.id.drawer_platform_catalog -> navigateAdminDestination(PlatformCatalogActivity::class.java)
-                R.id.drawer_platform_categories -> navigateAdminDestination(PlatformCategoriesActivity::class.java)
-                R.id.drawer_platform_access -> navigateAdminDestination(PlatformAccessActivity::class.java)
-                R.id.drawer_back_to_user_view -> {
-                    startActivity(Intent(this, HomeActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    })
-                    finishAffinity()
-                }
-                R.id.drawer_logout -> {
-                    com.leon.be_nobat.ui.activities.auth.LogoutHelper.logoutAndRestart(this)
+                    R.id.drawer_calendar -> navigateAdminDestination(AdminCalendarActivity::class.java)
+                    R.id.drawer_branches -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminBranchesActivity::class.java)
+                    }
+                    R.id.drawer_services -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminServicesActivity::class.java)
+                    }
+                    R.id.drawer_availability -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminAvailabilityActivity::class.java)
+                    }
+                    R.id.drawer_reviews -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminReviewsActivity::class.java)
+                    }
+                    R.id.drawer_customers -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminCustomersActivity::class.java)
+                    }
+                    R.id.drawer_team -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(AdminTeamActivity::class.java)
+                    }
+                    R.id.drawer_platform_businesses -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformBusinessesActivity::class.java)
+                    }
+                    R.id.drawer_platform_catalog -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformCatalogActivity::class.java)
+                    }
+                    R.id.drawer_platform_categories -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformCategoriesActivity::class.java)
+                    }
+                    R.id.drawer_platform_access -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformAccessActivity::class.java)
+                    }
+                    R.id.drawer_platform_requests -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformRequestsActivity::class.java)
+                    }
+                    R.id.drawer_back_to_user_view -> {
+                        startActivity(Intent(this@BaseActivity, HomeActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        finishAffinity()
+                    }
+                    R.id.drawer_logout -> {
+                        com.leon.be_nobat.ui.activities.auth.LogoutHelper.logoutAndRestart(this@BaseActivity)
+                    }
                 }
             }
             true
@@ -354,6 +462,100 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
 
+    protected fun refreshAdminDrawerHeader() {
+        val navView = findViewById<NavigationView>(R.id.navView) ?: return
+        if (navView.headerCount == 0) return
+        val headerView = navView.getHeaderView(0) ?: return
+
+        lifecycleScope.launch {
+            val session = tokenManager.currentSession()
+            val user = session?.user
+            if (user != null) {
+                bindDrawerHeader(headerView, user)
+            }
+            runCatching {
+                authRepository.getMe().onSuccess { freshUser ->
+                    bindDrawerHeader(headerView, freshUser)
+                }
+            }
+        }
+    }
+
+    private fun bindDrawerHeader(headerView: View, user: User) {
+        val tvInitial = headerView.findViewById<TextView>(R.id.tvDrawerAvatarInitial)
+        val ivAvatar = headerView.findViewById<ImageView>(R.id.ivDrawerAvatar)
+        val cardAvatar = headerView.findViewById<View>(R.id.cardDrawerAvatar)
+        val tvName = headerView.findViewById<TextView>(R.id.tvDrawerUserName)
+        val tvRole = headerView.findViewById<TextView>(R.id.tvDrawerUserRole)
+        val tvEmail = headerView.findViewById<TextView>(R.id.tvDrawerUserEmail)
+
+        tvName?.text = user.displayName
+        tvRole?.text = user.roleLabel(this@BaseActivity)
+        tvEmail?.text = user.email ?: user.phoneNumber.orEmpty()
+
+        cardAvatar?.setOnClickListener {
+            startActivity(Intent(this@BaseActivity, ProfileActivity::class.java))
+        }
+
+        val avatarUrl = user.avatarUrl
+        if (ivAvatar != null) {
+            tvInitial?.isVisible = false
+            ivAvatar.isVisible = true
+
+            fun showDefaultAvatar() {
+                ivAvatar.setImageResource(R.drawable.ic_person)
+                ivAvatar.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                val pad = (9 * resources.displayMetrics.density).toInt()
+                ivAvatar.setPadding(pad, pad, pad, pad)
+                ivAvatar.imageTintList = ColorStateList.valueOf(
+                    MaterialColors.getColor(ivAvatar, com.google.android.material.R.attr.colorOnPrimaryContainer)
+                )
+            }
+
+            if (avatarUrl.isNullOrBlank()) {
+                showDefaultAvatar()
+            } else if (avatarUrl.startsWith("data:image/")) {
+                val bitmap = runCatching {
+                    val encoded = avatarUrl.substringAfter("base64,")
+                    val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                }.getOrNull()
+                if (bitmap != null) {
+                    ivAvatar.setPadding(0, 0, 0, 0)
+                    ivAvatar.imageTintList = null
+                    ivAvatar.scaleType = ImageView.ScaleType.CENTER_CROP
+                    ivAvatar.setImageBitmap(bitmap)
+                } else {
+                    showDefaultAvatar()
+                }
+            } else {
+                val fullUrl = BeNobatApiConfig.resolveMediaUrl(avatarUrl)
+                if (!fullUrl.isNullOrBlank()) {
+                    ivAvatar.setPadding(0, 0, 0, 0)
+                    ivAvatar.imageTintList = null
+                    ivAvatar.scaleType = ImageView.ScaleType.CENTER_CROP
+                    ivAvatar.load(fullUrl) {
+                        crossfade(true)
+                        placeholder(R.drawable.ic_person)
+                        error(R.drawable.ic_person)
+                        listener(
+                            onSuccess = { _, _ ->
+                                ivAvatar.setPadding(0, 0, 0, 0)
+                                ivAvatar.imageTintList = null
+                                ivAvatar.scaleType = ImageView.ScaleType.CENTER_CROP
+                            },
+                            onError = { _, _ ->
+                                showDefaultAvatar()
+                            }
+                        )
+                    }
+                } else {
+                    showDefaultAvatar()
+                }
+            }
+        }
+    }
+
     /**
      * Updates the admin cardError state with formatted, localized error message.
      */
@@ -361,6 +563,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val cardError = findViewById<View>(R.id.cardError) ?: return
         val tvErrorTitle = findViewById<android.widget.TextView>(R.id.tvErrorTitle)
         val tvError = findViewById<android.widget.TextView>(R.id.tvError)
+        val ivErrorIcon = findViewById<android.widget.ImageView>(R.id.ivErrorIcon)
 
         val errorMsg = when (error) {
             is Throwable -> error.message
@@ -373,8 +576,22 @@ abstract class BaseActivity : AppCompatActivity() {
             tvErrorTitle?.text = formatted.title
             tvError?.text = formatted.description
             cardError.visibility = View.VISIBLE
-            if (onRetry != null) {
-                cardError.setOnClickListener { onRetry() }
+
+            if (formatted.isAuthError) {
+                ivErrorIcon?.setImageResource(R.drawable.ic_person)
+                cardError.setOnClickListener {
+                    val intent = Intent(this, LoginActivity::class.java).apply {
+                        putExtra(LoginActivity.EXTRA_RETURN_TARGET, this@BaseActivity::class.java.name)
+                    }
+                    startActivity(intent)
+                }
+            } else {
+                ivErrorIcon?.setImageResource(if (formatted.isConnectionError) R.drawable.ic_wifi_off else R.drawable.ic_refresh)
+                if (onRetry != null) {
+                    cardError.setOnClickListener { onRetry() }
+                } else {
+                    cardError.setOnClickListener(null)
+                }
             }
         } else {
             cardError.visibility = View.GONE

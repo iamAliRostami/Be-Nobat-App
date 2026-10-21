@@ -47,6 +47,7 @@ class PlatformCatalogActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requirePlatformAdminPermission()
         findViewById<TabLayout>(R.id.statusTabs).visibility = View.GONE
     }
 
@@ -156,7 +157,7 @@ class PlatformCatalogActivity : BaseActivity() {
                 val durationStr = "${PersianUtils.toPersianDigits(item.suggestedDurationMinutes)} دقیقه"
                 tvSubtitle.text = "${item.category} • $durationStr"
                 tvBody.text = item.description
-                tvStatus.text = if (item.active) root.context.getString(R.string.set_active) else root.context.getString(R.string.set_inactive)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)
                 btnAction1.isVisible = false
                 btnAction2.isVisible = true
                 btnAction2.text = root.context.getString(R.string.action_edit)
