@@ -33,3 +33,9 @@ TestResults/
 *.aab
 *.jks
 *.keystore
+**/.gradle-codex/
+/.gradle-codex
+/.gradle-user-codex
+/.gradle-codex/
+/.gradle-user-codex/
+src.zip
