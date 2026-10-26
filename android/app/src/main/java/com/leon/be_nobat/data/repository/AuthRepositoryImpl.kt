@@ -32,6 +32,7 @@ class AuthRepositoryImpl(
 
     override suspend fun login(email: String, password: String): Result<MobileSession> = runCatching {
         val body = encodeJsonObject {
+            put("identifier", email)
             put("email", email)
             put("password", password)
         }

@@ -2,7 +2,9 @@
 @layout Layout.PublicLayout
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using BeNobat.Web.Domain
+@using BeNobat.Web.Security
 @inject SignInManager<AppUser> SignInManager
 @inject UserManager<AppUser> UserManager
 @inject NavigationManager NavigationManager
@@ -26,10 +28,10 @@
             <div class="auth-error" role="alert">@ErrorMessage</div>
         }
 
-        <label>ایمیل
-            <InputText @bind-Value="Input!.Email" type="email" autocomplete="username" dir="ltr" />
+        <label>ایمیل یا شماره موبایل
+            <InputText @bind-Value="Input!.Identifier" autocomplete="username" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷ یا ایمیل" dir="ltr" />
         </label>
-        <ValidationMessage For="() => Input!.Email" />
+        <ValidationMessage For="() => Input!.Identifier" />
 
         <label>رمز عبور
             <InputText @bind-Value="Input!.Password" type="password" autocomplete="current-password" dir="ltr" />
@@ -67,22 +69,47 @@
     private async Task LoginUser()
     {
         ErrorMessage = null;
-        var email = Input!.Email.Trim();
+        var identifier = (Input!.Identifier ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            ErrorMessage = "ایمیل یا شماره موبایل الزامی است.";
+            return;
+        }
+
+        AppUser? user = null;
+        if (UserInputValidation.TryNormalizeIranianMobile(identifier, out var phone))
+        {
+            user = await UserManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone);
+        }
+        else if (new EmailAddressAttribute().IsValid(identifier))
+        {
+            user = await UserManager.FindByEmailAsync(identifier)
+                ?? await UserManager.Users.FirstOrDefaultAsync(u => u.UserName == identifier);
+        }
+        else
+        {
+            user = await UserManager.FindByNameAsync(identifier);
+        }
+
+        if (user is null)
+        {
+            ErrorMessage = "ایمیل، شماره موبایل یا رمز عبور اشتباه است.";
+            return;
+        }
+
         var result = await SignInManager.PasswordSignInAsync(
-            email,
+            user.UserName!,
             Input!.Password,
             Input!.RememberMe,
             lockoutOnFailure: true);
 
         if (result.Succeeded)
         {
-            Logger.LogInformation("کاربر {Email} با موفقیت وارد شد.", email);
+            Logger.LogInformation("کاربر {User} با موفقیت وارد شد.", user.UserName);
             var target = SafeReturnUrl;
             if (target.Length == 0)
             {
-                // مدیران و پرسنل مستقیم به پنل می‌روند، مشتری‌ها به صفحه‌ی اصلی.
-                var user = await UserManager.FindByEmailAsync(email);
-                var roles = user is null ? new List<string>() : (await UserManager.GetRolesAsync(user)).ToList();
+                var roles = await UserManager.GetRolesAsync(user);
                 target = roles.Any(role => AppRoles.AppointmentManagers.Contains(role)) ? "/admin" : "/";
             }
 
@@ -93,21 +120,19 @@
         if (result.IsLockedOut)
         {
             // حساب غیرفعال‌شده توسط مدیر تا ابد قفل است؛ قفل ناشی از تلاش ناموفق چند دقیقه‌ای است.
-            var user = await UserManager.FindByEmailAsync(email);
-            ErrorMessage = user?.LockoutEnd > DateTimeOffset.UtcNow.AddYears(1)
+            ErrorMessage = user.LockoutEnd > DateTimeOffset.UtcNow.AddYears(1)
                 ? "این حساب توسط مدیر غیرفعال شده است. برای فعال‌سازی با پشتیبانی تماس بگیرید."
                 : "حساب شما موقتاً به دلیل تلاش‌های ناموفق متعدد قفل شده است؛ چند دقیقه بعد دوباره تلاش کنید.";
             return;
         }
 
-        ErrorMessage = "ایمیل یا رمز عبور اشتباه است.";
+        ErrorMessage = "ایمیل، شماره موبایل یا رمز عبور اشتباه است.";
     }
 
     private sealed class InputModel
     {
-        [Required(ErrorMessage = "ایمیل الزامی است.")]
-        [EmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
-        public string Email { get; set; } = "";
+        [Required(ErrorMessage = "ایمیل یا شماره موبایل الزامی است.")]
+        public string Identifier { get; set; } = "";
 
         [Required(ErrorMessage = "رمز عبور الزامی است.")]
         public string Password { get; set; } = "";

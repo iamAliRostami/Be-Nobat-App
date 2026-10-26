@@ -60,6 +60,21 @@ class AdminHomeActivity : BaseActivity() {
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnReviews).setOnClickListener {
             startActivity(Intent(this, AdminReviewsActivity::class.java))
         }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnShareBusiness)?.setOnClickListener {
+            val ctx = viewModel.state.value.context
+            val membership = ctx?.memberships?.firstOrNull()
+            val bizId = membership?.businessId ?: ""
+            val bizName = membership?.branchName?.takeIf { it.isNotBlank() } ?: getString(R.string.my_business)
+            if (bizId.isNotBlank()) {
+                com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                    context = this,
+                    businessId = bizId,
+                    businessName = bizName,
+                )
+            } else {
+                showToast(getString(R.string.no_business_found))
+            }
+        }
         findViewById<android.view.View>(R.id.cardRevenue)?.setOnClickListener {
             startActivity(Intent(this, AdminAnalyticsActivity::class.java))
         }
@@ -168,6 +183,7 @@ class AdminHomeActivity : BaseActivity() {
             findViewById<android.view.View>(R.id.btnServices)?.isVisible = canManage
             findViewById<android.view.View>(R.id.btnBranches)?.isVisible = canManage
             findViewById<android.view.View>(R.id.btnReviews)?.isVisible = canManage
+            findViewById<android.view.View>(R.id.btnShareBusiness)?.isVisible = canManage
         }
 
         state.dashboard?.let { d ->

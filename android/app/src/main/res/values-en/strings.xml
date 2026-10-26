@@ -8,7 +8,9 @@
     <string name="welcome_message">Welcome! Sign in to book an appointment</string>
     <string name="login_title">Sign in to your account</string>
     <string name="mobile_phone">Mobile number</string>
-    <string name="email_or_mobile">Email (mobile login not yet supported)</string>
+    <string name="email_or_mobile">Email or mobile number</string>
+    <string name="email_optional">Email (optional)</string>
+    <string name="phone_number_required">Mobile number (required)</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="login">Sign in</string>
@@ -191,6 +193,14 @@
     <string name="phone_for_booking">Contact phone for this appointment</string>
     <string name="note_for_booking">Note (optional)</string>
     <string name="accept_terms">I accept the booking terms</string>
+    <string name="accept_terms_with_link"><![CDATA[I agree to the <font color="#00838F"><u>booking terms</u></font> (View Rules)]]></string>
+    <string name="booking_rules_title">Booking Terms and Conditions</string>
+    <string name="booking_rule_1">1. Please arrive at the branch at least 10 minutes prior to your appointment time.</string>
+    <string name="booking_rule_2">2. Online cancellation is allowed up to 2 hours before the appointment.</string>
+    <string name="booking_rule_3">3. In case of delay, service duration may be shortened or rescheduled by branch coordination.</string>
+    <string name="booking_rule_4">4. Displayed price reflects selected services; additional services will be calculated on-site.</string>
+    <string name="booking_rule_5">5. Presenting the booking tracking code upon arrival is mandatory.</string>
+    <string name="accept_rules">I have read and accept the terms</string>
     <string name="error_terms_required">Please accept the booking terms and conditions first.</string>
     <string name="confirm_booking">Confirm and book</string>
     <string name="booking_in_progress">Booking…</string>
@@ -220,6 +230,7 @@
     <string name="appointment_status_cancelled">Cancelled</string>
     <string name="appointment_status_no_show">No-show</string>
     <string name="submit_review">Submit review</string>
+    <string name="review_submitted_success">Your review was submitted successfully.</string>
     <string name="review_rating_hint">Your rating</string>
     <string name="review_comment_hint">Your review of this appointment…</string>
 
@@ -340,11 +351,12 @@
     <string name="msg_invalid_input">Please fill all fields</string>
 
     <string name="unexpected_error">An unexpected error occurred</string>
-    <string name="error_invalid_identifier">Enter a valid email (mobile login not yet supported)</string>
+    <string name="error_invalid_identifier">Enter a valid email or mobile number</string>
     <string name="error_empty_password">Password is required</string>
-    <string name="error_invalid_credentials">Email or password is incorrect</string>
+    <string name="error_invalid_credentials">Email/phone or password is incorrect</string>
     <string name="error_account_locked">Your account is temporarily locked</string>
     <string name="error_duplicate_email">This email is already registered</string>
+    <string name="error_duplicate_phone">This mobile number is already registered</string>
     <string name="error_password_mismatch">Current password is incorrect</string>
     <string name="error_weak_password">Password must be at least 6 characters with letters and digits</string>
     <string name="error_too_many_requests">Too many attempts. Please try again later</string>
@@ -489,7 +501,7 @@
     <string name="business_request_description">Description (optional)</string>
     <string name="business_request_submit_btn">Submit Business Request</string>
     <string name="business_request_submitted_success">Your business request has been submitted and is pending platform administrator review.</string>
-    <string name="business_request_status_pending">Your business registration request (\"%1$s\") is currently pending admin review.</string>
+    <string name="business_request_status_pending">Your business registration request for \"%1$s\" is currently pending admin review.</string>
     <string name="business_request_status_approved">Your request was approved and your account upgraded to business manager.</string>
     <string name="business_request_status_rejected">Your business registration request was rejected.</string>
     <string name="business_request_review_note">Reason: %1$s</string>
@@ -553,4 +565,78 @@
     <!-- Registration Welcome -->
     <string name="welcome_registered_user">Welcome to Be Nobat, %s! Your account was created successfully.</string>
     <string name="welcome_registered_default">Welcome to Be Nobat! Your account was created successfully.</string>
+
+    <!-- Auto-added localized resources -->
+    <string name="error_name_phone_required">Valid name and phone number are required.</string>
+    <string name="error_invalid_email">The email entered is not valid.</string>
+    <string name="msg_availability_created">Time slot registered successfully.</string>
+    <string name="msg_availability_updated">Time slot updated successfully.</string>
+    <string name="msg_availability_deleted">Time slot deleted successfully.</string>
+    <string name="platform_biz_edit_title">Edit Business</string>
+    <string name="platform_biz_new_title">New Business</string>
+    <string name="platform_biz_save_btn">Save Changes</string>
+    <string name="platform_biz_create_btn">Create Business</string>
+    <string name="platform_biz_system_id">Business system ID: %1$s</string>
+    <string name="platform_biz_activated">Business activated.</string>
+    <string name="platform_biz_deactivated">Business deactivated.</string>
+    <string name="platform_biz_status_error">Error changing status</string>
+    <string name="platform_biz_load_error">Error loading business details</string>
+    <string name="platform_biz_name_required">Business name is required.</string>
+    <string name="platform_biz_branch_required">Central branch name is required.</string>
+    <string name="platform_biz_created_success">Business created successfully.</string>
+    <string name="platform_biz_create_error">Error creating business</string>
+    <string name="platform_biz_saved_success">Business saved successfully.</string>
+    <string name="platform_biz_save_error">Error saving business</string>
+    <string name="platform_request_confirm_approve">Are you sure you want to approve business request "%1$s" and promote user "%2$s" to business manager?</string>
+    <string name="platform_request_applicant_label">Applicant: %1$s</string>
+    <string name="platform_request_branch_label">First branch: %1$s (%2$s)</string>
+    <string name="platform_request_desc_label">Description: %1$s</string>
+    <string name="platform_request_rejection_label">Rejection reason: %1$s</string>
+    <string name="profile_manager_active_desc">You are active as a business manager and have access to the appointments, branches, and staff management panel.</string>
+    <string name="profile_request_business_title">Registration request for %1$s</string>
+    <string name="profile_request_meta_format">Category: %1$s  •  City: %2$s  •  Branch: %3$s</string>
+    <string name="profile_request_rejected_info">Your previous request for business "%1$s" was not approved.</string>
+    <string name="analytics_percent_format">%1$s%%</string>
+    <string name="analytics_breakdown_ratio">%1$s of %2$s</string>
+    <string name="platform_access_sms_permission_notice">SMS permission is required to send the new password via default SIM; carrier charges may apply.</string>
+    <string name="platform_access_sms_action_reset">Password reset</string>
+    <string name="platform_access_temp_password_title">User Temporary Password</string>
+    <string name="platform_access_invalid_reset_response">Invalid password reset response; SMS was not sent.</string>
+    <string name="cat_auto">Auto &amp; Repair</string>
+    <string name="cat_photography">Studio &amp; Photography</string>
+    <string name="duration_minutes_val">%1$s minutes</string>
+    <string name="duration_15m">15 minutes</string>
+    <string name="duration_30m">30 minutes</string>
+    <string name="duration_45m">45 minutes</string>
+    <string name="duration_1h">1 hour</string>
+    <string name="duration_1_5h">1.5 hours</string>
+    <string name="duration_2h">2 hours</string>
+    <string name="error_city_required">City name is required.</string>
+    <string name="error_address_required">Branch address is required.</string>
+    <string name="error_phone_required">Contact phone is required.</string>
+    <string name="btn_add_another_range">+ Another Slot</string>
+    <string name="btn_copy_all_days">Copy to All Days</string>
+    <string name="analytics_revenue_value">%1$s Toman</string>
+    <string name="analytics_hours_value">%1$s hrs</string>
+    <string name="analytics_total_appts_sub">out of %1$s total appointments</string>
+    <string name="analytics_cancelled_noshow_sub">%1$s cancelled / %2$s no-show</string>
+    <string name="branch_system_id">System Branch ID: %1$s</string>
+    <string name="service_system_id">System Service ID: %1$s</string>
+    <string name="branch_working_hours">Working Hours: %1$s</string>
+    <string name="availability_hours_range">%1$s to %2$s</string>
+    <string name="share_booking_link_title">Booking Link &amp; QR Code</string>
+    <string name="share_branch_booking_link">Branch Booking Link &amp; QR</string>
+    <string name="share_booking_link_desc">Customers can tap the link or scan the QR code to view business details and book their appointment.</string>
+    <string name="copy_link">Copy Link</string>
+    <string name="link_copied_success">Booking link copied to clipboard.</string>
+    <string name="share_link_action">Share Link</string>
+    <string name="share_link_message_business">Book your appointment online at %1 via BeNobat:</string>
+    <string name="share_link_message_branch">Book your appointment online at %1 (%2) via BeNobat:</string>
+    <string name="selected_branch_banner_title">Selected Branch: %1</string>
+    <string name="selected_branch_banner_desc">Your appointment will be booked at this branch.</string>
+    <string name="book_at_branch">Book at %1</string>
+    <string name="selected_branch_tag">Selected Branch</string>
+    <string name="qr_code_ready">QR Code Ready to Scan</string>
+    <string name="no_business_found">Business details not available.</string>
+    <string name="my_business">My Business</string>
 </resources>

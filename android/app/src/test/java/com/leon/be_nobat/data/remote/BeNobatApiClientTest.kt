@@ -199,12 +199,13 @@ class BeNobatApiClientTest {
             pageSize = 10,
         )
         assertNotNull(capturedUrl)
-        assertTrue(capturedUrl!!.contains("/businesses?"))
-        assertTrue(capturedUrl!!.contains("q=clinic"))
-        assertTrue(capturedUrl!!.contains("city=Tehran"))
-        assertTrue(capturedUrl!!.contains("category=medical"))
-        assertTrue(capturedUrl!!.contains("page=2"))
-        assertTrue(capturedUrl!!.contains("pageSize=10"))
+        val url = capturedUrl!!
+        assertTrue(url.contains("/businesses?"))
+        assertTrue(url.contains("q=clinic"))
+        assertTrue(url.contains("city=Tehran"))
+        assertTrue(url.contains("category=medical"))
+        assertTrue(url.contains("page=2"))
+        assertTrue(url.contains("pageSize=10"))
     }
 
     @Test

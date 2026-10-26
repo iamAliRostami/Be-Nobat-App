@@ -46,6 +46,15 @@ class ProfileActivity : BaseActivity() {
         }
     }
 
+    private val upgradeLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.loadBusinessRequest()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.loadBusinessRequest()
+    }
+
     private val tokenManager: TokenManager by inject()
 
     companion object {
@@ -115,12 +124,19 @@ class ProfileActivity : BaseActivity() {
         }
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnLogout).setOnClickListener {
-            viewModel.logout()
-            val intent = Intent(this, StartActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
-            finishAffinity()
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.logout_confirm_title)
+                .setMessage(R.string.logout_confirm_message)
+                .setPositiveButton(R.string.logout_confirm_positive) { _, _ ->
+                    viewModel.logout()
+                    val intent = Intent(this, StartActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    startActivity(intent)
+                    finishAffinity()
+                }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
         }
 
         val btnResetDemo = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnResetDemo)
@@ -267,7 +283,7 @@ class ProfileActivity : BaseActivity() {
                 tvBadge.visibility = View.VISIBLE
                 tvBadge.text = getString(R.string.status_active)
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
-                tvDesc.text = "شما به عنوان مدیر کسب‌وکار فعال هستید و به پنل مدیریت نوبت‌ها، شعب و پرسنل دسترسی دارید."
+                tvDesc.text = getString(R.string.profile_manager_active_desc)
                 tvNote.visibility = View.GONE
                 btnRequest.visibility = View.GONE
                 btnGoAdmin.visibility = View.VISIBLE
@@ -277,12 +293,12 @@ class ProfileActivity : BaseActivity() {
             }
             req?.status.equals("Pending", ignoreCase = true) -> {
                 ivIcon.setImageResource(R.drawable.ic_calendar)
-                tvTitle.text = "درخواست ثبت ${req?.businessName}"
+                tvTitle.text = getString(R.string.profile_request_business_title, req?.businessName.orEmpty())
                 tvBadge.visibility = View.VISIBLE
                 tvBadge.text = getString(R.string.platform_tab_pending)
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.PENDING)
-                tvDesc.text = getString(R.string.business_request_status_pending, req?.businessName ?: "") +
-                        "\nدسته‌بندی: ${req?.category}  •  شهر: ${req?.city}  •  شعبه: ${req?.firstBranchName}"
+                val details = getString(R.string.profile_request_meta_format, req?.category.orEmpty(), req?.city.orEmpty(), req?.firstBranchName.orEmpty())
+                tvDesc.text = "${getString(R.string.business_request_status_pending, req?.businessName.orEmpty())}\n$details"
                 tvNote.visibility = View.GONE
                 btnRequest.visibility = View.GONE
                 btnGoAdmin.visibility = View.GONE
@@ -293,16 +309,18 @@ class ProfileActivity : BaseActivity() {
                 tvBadge.visibility = View.VISIBLE
                 tvBadge.text = getString(R.string.platform_tab_rejected)
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.CANCELLED)
-                tvDesc.text = "درخواست قبلی شما برای کسب‌وکار «${req?.businessName}» مورد تأیید قرار نگرفت."
+                tvDesc.text = getString(R.string.profile_request_rejected_info, req?.businessName.orEmpty())
                 if (!req?.reviewNote.isNullOrBlank()) {
                     tvNote.visibility = View.VISIBLE
-                    tvNote.text = getString(R.string.business_request_review_note, req?.reviewNote)
+                    tvNote.text = getString(R.string.business_request_review_note, req.reviewNote)
                 } else {
                     tvNote.visibility = View.GONE
                 }
                 btnRequest.visibility = View.VISIBLE
                 btnRequest.text = getString(R.string.business_request_resubmit_btn)
-                btnRequest.setOnClickListener { showBusinessRequestDialog(req) }
+                btnRequest.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
                 btnGoAdmin.visibility = View.GONE
             }
             else -> {
@@ -313,7 +331,9 @@ class ProfileActivity : BaseActivity() {
                 tvNote.visibility = View.GONE
                 btnRequest.visibility = View.VISIBLE
                 btnRequest.text = getString(R.string.business_request_submit_btn)
-                btnRequest.setOnClickListener { showBusinessRequestDialog(null) }
+                btnRequest.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
                 btnGoAdmin.visibility = View.GONE
             }
         }
@@ -331,7 +351,13 @@ class ProfileActivity : BaseActivity() {
         val btnCancel = dialogView.findViewById<View>(R.id.btnCancelReq)
         val btnSubmit = dialogView.findViewById<View>(R.id.btnSubmitReq)
 
-        val categories = listOf("عمومی", "آرایشی و بهداشتی", "پزشکی و سلامت", "خدمات خودرو", "ورزشی و تفریحی", "آموزشی")
+        val categories = viewModel.state.value.categories.ifEmpty {
+            listOf(
+                "زیبایی و آرایش", "پیرایش آقایان", "پزشکی", "دندانپزشکی", "فیزیوتراپی و توان‌بخشی",
+                "ماساژ و تندرستی", "مشاوره و روان‌شناسی", "ورزش و تناسب اندام", "دامپزشکی",
+                "آموزش", "خدمات خودرو", "خدمات منزل", "عمومی"
+            )
+        }
         val catAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }

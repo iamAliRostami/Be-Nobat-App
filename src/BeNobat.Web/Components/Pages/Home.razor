@@ -173,14 +173,37 @@
     private async Task LoadFeaturedAsync()
     {
         await using var db = await DbFactory.CreateDbContextAsync();
-        Results = await db.Businesses.AsNoTracking()
+        var featured = await db.Businesses.AsNoTracking()
             .Where(b => b.Branches.Any())
             .Include(b => b.Branches)
             .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published))
             .OrderByDescending(b => b.Reviews.Count(r => r.Status == ReviewStatus.Published))
             .ThenByDescending(b => b.CreatedAt)
-            .Take(12)
+            .Take(24)
             .ToListAsync();
+
+        if (FavoriteIds.Count > 0)
+        {
+            var missingFavIds = FavoriteIds.Where(id => !featured.Any(f => f.Id == id)).ToList();
+            if (missingFavIds.Count > 0)
+            {
+                var extraFavorites = await db.Businesses.AsNoTracking()
+                    .Where(b => missingFavIds.Contains(b.Id) && b.Branches.Any())
+                    .Include(b => b.Branches)
+                    .Include(b => b.Reviews.Where(r => r.Status == ReviewStatus.Published))
+                    .ToListAsync();
+                featured.AddRange(extraFavorites);
+            }
+            Results = featured.OrderByDescending(b => FavoriteIds.Contains(b.Id))
+                .ThenByDescending(b => b.Reviews.Count(r => r.Status == ReviewStatus.Published))
+                .ThenByDescending(b => b.CreatedAt)
+                .Take(12)
+                .ToList();
+        }
+        else
+        {
+            Results = featured.Take(12).ToList();
+        }
     }
 
     private string SearchReturnUrl => HasSearched
@@ -193,6 +216,11 @@
     {
         if (isFavorite) FavoriteIds.Add(businessId);
         else FavoriteIds.Remove(businessId);
+
+        Results = Results.OrderByDescending(b => FavoriteIds.Contains(b.Id))
+            .ThenByDescending(b => b.Reviews.Count(r => r.Status == ReviewStatus.Published))
+            .ThenByDescending(b => b.CreatedAt)
+            .ToList();
     }
 
     private async Task OnKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
@@ -273,6 +301,13 @@
                 Results = withoutCity;
                 CityFilterRelaxed = true;
             }
+        }
+
+        if (FavoriteIds.Count > 0)
+        {
+            Results = Results.OrderByDescending(b => FavoriteIds.Contains(b.Id))
+                .ThenByDescending(b => b.CreatedAt)
+                .ToList();
         }
 
         // اسکرول را به بعد از رندر شدن نتایج موکول می‌کنیم.

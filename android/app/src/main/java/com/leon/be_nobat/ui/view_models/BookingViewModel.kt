@@ -62,21 +62,25 @@ class BookingViewModel(
     private val _state = MutableStateFlow(BookingUiState(date = JalaliDateHelper.getTodayIso()))
     val state: StateFlow<BookingUiState> = _state.asStateFlow()
 
-    fun setBusinessId(id: String) {
+    fun setBusinessId(id: String, initialBranchId: String? = null) {
         if (id == businessId && _state.value.branches.isNotEmpty()) return
         businessId = id
         _state.value = _state.value.copy(businessId = id, date = JalaliDateHelper.getTodayIso())
-        loadBranches()
+        loadBranches(initialBranchId)
     }
 
-    private fun loadBranches() = viewModelScope.launch {
+    private fun loadBranches(initialBranchId: String? = null) = viewModelScope.launch {
         _state.value = _state.value.copy(loadingBranches = true)
         listBranches(businessId)
             .onSuccess { res ->
                 val list = res.items
-                val first = list.firstOrNull()
-                _state.value = _state.value.copy(branches = list, branchId = first?.id ?: "", loadingBranches = false)
-                if (first != null) loadServices(first.id)
+                val selected = if (!initialBranchId.isNullOrBlank()) {
+                    list.firstOrNull { it.id == initialBranchId } ?: list.firstOrNull()
+                } else {
+                    list.firstOrNull()
+                }
+                _state.value = _state.value.copy(branches = list, branchId = selected?.id ?: "", loadingBranches = false)
+                if (selected != null) loadServices(selected.id)
             }
             .onFailure { e ->
                 _state.value = _state.value.copy(loadingBranches = false, error = e.message)

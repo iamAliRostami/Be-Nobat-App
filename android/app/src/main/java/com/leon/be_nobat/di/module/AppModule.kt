@@ -278,12 +278,12 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModel { AuthViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
-    viewModel { HomeViewModel(get(), get(), get()) }
-    viewModel { BusinessDetailViewModel(get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get()) }
+    viewModel { BusinessDetailViewModel(get(), get(), get()) }
     viewModel { BookingViewModel(get(), get(), get(), get(), get()) }
     viewModel { AppointmentsViewModel(get(), get(), get()) }
     viewModel { FavoritesViewModel(get(), get()) }
-    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin
     viewModel { AdminDashboardViewModel(get(), get(), get()) }

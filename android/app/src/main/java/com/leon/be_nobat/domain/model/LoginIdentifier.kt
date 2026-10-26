@@ -4,7 +4,7 @@ import com.leon.be_nobat.data.remote.BeNobatApiException
 import io.ktor.client.network.sockets.ConnectTimeoutException
 import io.ktor.client.network.sockets.SocketTimeoutException
 import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.utils.io.errors.IOException
+import java.io.IOException
 import java.net.UnknownHostException
 
 /**
@@ -30,11 +30,14 @@ sealed interface LoginIdentifier {
             return when {
                 emailPattern.matches(normalized) -> Result.success(Email(normalized.lowercase()))
                 iranianMobilePattern.matches(normalized) -> Result.success(
-                    Mobile(normalizeIranianMobile(normalized))
+                    Mobile(normalizeIranianMobileForRegister(normalized))
                 )
                 else -> Result.failure(AuthException.InvalidIdentifier)
             }
         }
+
+        fun isIranianMobile(value: String): Boolean = iranianMobilePattern.matches(value.trim())
+        fun isValidEmail(value: String): Boolean = emailPattern.matches(value.trim())
 
         /** Iranian mobile canonical form: `+989XXXXXXXXX`. */
         fun normalizeIranianMobile(value: String): String {
@@ -67,13 +70,17 @@ sealed interface LoginIdentifier {
  * [BeNobatApiException] (HTTP-level) into one of these typed errors so the
  * UI can show a localized message per case.
  */
+@Suppress("ExceptionShouldNotBeAnObject")
 sealed class AuthException : Exception() {
+    override fun fillInStackTrace(): Throwable = this
+
     data object InvalidIdentifier : AuthException()
     data object EmptyPassword : AuthException()
     data object WeakPassword : AuthException()
     data object InvalidCredentials : AuthException()
     data object AccountLocked : AuthException()
     data object DuplicateEmail : AuthException()
+    data object DuplicatePhone : AuthException()
     data object PasswordMismatch : AuthException()
     data object Unauthorized : AuthException()
     data object Forbidden : AuthException()
@@ -104,6 +111,7 @@ sealed class AuthException : Exception() {
                     404 -> NotFound
                     409 -> when (throwable.code) {
                         "duplicate_email" -> DuplicateEmail
+                        "duplicate_phone" -> DuplicatePhone
                         "password_mismatch" -> PasswordMismatch
                         "review_exists" -> Conflict
                         else -> Conflict
@@ -114,12 +122,14 @@ sealed class AuthException : Exception() {
                         "invalid_credentials" -> InvalidCredentials
                         "account_locked" -> AccountLocked
                         "duplicate_email" -> DuplicateEmail
+                        "duplicate_phone" -> DuplicatePhone
                         "password_mismatch" -> PasswordMismatch
                         "weak_password" -> WeakPassword
                         "rate_limited" -> TooManyRequests
                         "unauthorized" -> Unauthorized
                         "forbidden" -> Forbidden
                         "not_found" -> NotFound
+                        "invalid_input" -> InvalidIdentifier
                         else -> Unexpected
                     }
                 }

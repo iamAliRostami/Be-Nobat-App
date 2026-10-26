@@ -83,9 +83,9 @@ class AdminTeamViewModel(
         )
     }
 
-    fun createTeamMember(name: String, email: String, phone: String?, branchId: String, role: String) = viewModelScope.launch {
+    fun createTeamMember(name: String, email: String?, phone: String?, branchId: String, role: String) = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
-        create(ManagementTeamMemberInput(name = name.trim(), email = email.trim(), phone = phone?.trim(), branchId = branchId, role = role))
+        create(ManagementTeamMemberInput(name = name.trim(), email = email?.trim()?.ifBlank { null }, phone = phone?.trim(), branchId = branchId, role = role))
             .onSuccess { created ->
                 val newItems = listOf(created) + _state.value.items.filterNot { it.id == created.id }
                 val filtered = applyFilters(newItems, _state.value.searchQuery, _state.value.statusFilter)

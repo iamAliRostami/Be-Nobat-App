@@ -13,7 +13,7 @@
                     android:title="@string/admin_dashboard" />
                 <item
                     android:id="@+id/drawer_analytics"
-                    android:icon="@drawable/ic_dashboard"
+                    android:icon="@drawable/ic_analytics"
                     android:title="@string/drawer_analytics" />
                 <item
                     android:id="@+id/drawer_calendar"

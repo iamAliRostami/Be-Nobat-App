@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 data class LoginInput(
     val email: String? = null,
     val password: String? = null,
+    val phoneNumber: String? = null,
+    val identifier: String? = null,
 )
 
 @Serializable
@@ -178,7 +180,7 @@ data class ManagementRolesInput(val roles: List<String>)
 @Serializable
 data class ManagementTeamMemberInput(
     val name: String,
-    val email: String,
+    val email: String? = null,
     val phone: String? = null,
     val branchId: String,
     val role: String = "Staff",
@@ -187,7 +189,7 @@ data class ManagementTeamMemberInput(
 @Serializable
 data class ManagementCustomerInput(
     val name: String,
-    val email: String,
+    val email: String? = null,
     val phone: String? = null,
 )
 

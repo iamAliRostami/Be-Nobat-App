@@ -34,7 +34,19 @@ class DemoBusinessRepository(
                     city.isNullOrBlank() || biz.city.equals(city, ignoreCase = true)
                 }
                 .filter { biz ->
-                    category.isNullOrBlank() || biz.category.equals(category, ignoreCase = true)
+                    if (category.isNullOrBlank()) true
+                    else {
+                        val cNorm = category.replace("\u200C", "").trim()
+                        val bNorm = biz.category.replace("\u200C", "").trim()
+                        bNorm.equals(cNorm, ignoreCase = true) ||
+                        bNorm.contains(cNorm, ignoreCase = true) ||
+                        cNorm.contains(bNorm, ignoreCase = true) ||
+                        (cNorm.contains("زیبایی") && bNorm.contains("زیبایی")) ||
+                        (cNorm.contains("پزشک") && bNorm.contains("پزشک")) ||
+                        (cNorm.contains("مشاور") && bNorm.contains("مشاور")) ||
+                        (cNorm.contains("دامپزشک") && bNorm.contains("دامپزشک")) ||
+                        (cNorm.contains("خودرو") && bNorm.contains("خودرو"))
+                    }
                 }
 
             val total = filtered.size
@@ -73,10 +85,11 @@ class DemoBusinessRepository(
     override suspend fun getBusiness(id: String): Result<BusinessDetail> = runCatching {
         simulateNetworkDelay(120, 250)
         dataStore.read { state ->
-            val mb = state.businesses.firstOrNull { it.id == id }
+            val mb = state.businesses.firstOrNull { it.id == id || it.slug.equals(id, ignoreCase = true) }
                 ?: error("کسب‌وکار با شناسه $id یافت نشد.")
+            val actualId = mb.id
 
-            val branches = state.branches.filter { it.businessId == id && it.active && it.isApproved }.map { b ->
+            val branches = state.branches.filter { it.businessId == actualId && it.active && it.isApproved }.map { b ->
                 Branch(
                     id = b.id,
                     businessId = b.businessId,
@@ -88,7 +101,7 @@ class DemoBusinessRepository(
                 )
             }
 
-            val services = state.services.filter { it.businessId == id && it.active }.map { s ->
+            val services = state.services.filter { it.businessId == actualId && it.active }.map { s ->
                 Service(
                     id = s.id,
                     businessId = s.businessId,
@@ -100,7 +113,7 @@ class DemoBusinessRepository(
                 )
             }
 
-            val reviews = state.reviews.filter { it.businessId == id && it.active && it.status in listOf("Approved", "Published") }.map { r ->
+            val reviews = state.reviews.filter { it.businessId == actualId && it.active && it.status in listOf("Approved", "Published") }.map { r ->
                 PublicReview(
                     id = r.id,
                     rating = r.rating,
@@ -256,6 +269,12 @@ class DemoBusinessRepository(
                 )
             }
             ApiPage(items = items, page = page, pageSize = pageSize, total = total)
+        }
+    }
+
+    override suspend fun findBusinessIdByBranch(branchId: String): String? {
+        return dataStore.read { state ->
+            state.branches.firstOrNull { it.id == branchId }?.businessId
         }
     }
 }

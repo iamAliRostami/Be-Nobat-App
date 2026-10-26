@@ -120,8 +120,7 @@ class PocketBaseClient(
     suspend fun delete(collection: String, id: String): Result<Unit> = runCatching {
         val token = currentToken()
         client.delete("$baseUrl/api/collections/$collection/records/$id") { auth(token) }
-            .ensureSuccess()
-        Unit
+            .ensureSuccess().let { }
     }
 
     // ---------- ورود ----------

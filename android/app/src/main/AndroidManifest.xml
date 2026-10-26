@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -43,6 +44,24 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Deep Link Handler: benobat://business/* and benobat://book/* and https://benobat.ir/b/* -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="benobat" android:host="business" />
+                <data android:scheme="benobat" android:host="branch" />
+                <data android:scheme="benobat" android:host="book" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/b/" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/business/" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/branch/" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/book/" />
+            </intent-filter>
         </activity>
 
         <!-- Auth -->
@@ -79,6 +98,10 @@
             android:name=".ui.activities.ProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.BusinessUpgradeActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- Admin surface -->
         <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
@@ -87,6 +110,10 @@
         <activity android:name=".ui.activities.AdminBranchesActivity" android:exported="false" />
         <activity
             android:name=".ui.activities.AdminBranchEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.activities.AdminServiceEditActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.activities.AdminReviewsActivity" android:exported="false" />

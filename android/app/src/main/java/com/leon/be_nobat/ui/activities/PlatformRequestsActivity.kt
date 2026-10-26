@@ -121,7 +121,7 @@ class PlatformRequestsActivity : BaseActivity() {
     private fun showApproveConfirmDialog(req: BusinessRequest) {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.platform_request_approve)
-            .setMessage("آیا از تأیید درخواست کسب‌وکار «${req.businessName}» و ارتقای کاربر «${req.userDisplayName ?: req.userId}» به مدیر کسب‌وکار اطمینان دارید؟")
+            .setMessage(getString(R.string.platform_request_confirm_approve, req.businessName, req.userDisplayName ?: req.userId))
             .setNegativeButton(R.string.action_cancel, null)
             .setPositiveButton(R.string.platform_request_approve) { _, _ ->
                 viewModel.approve(req.id)
@@ -223,14 +223,14 @@ class PlatformRequestsActivity : BaseActivity() {
                 val bodyLines = mutableListOf<String>()
                 val applicant = listOfNotNull(item.userDisplayName, item.userPhoneNumber).joinToString(" - ")
                 if (applicant.isNotBlank()) {
-                    bodyLines.add("متقاضی: $applicant")
+                    bodyLines.add(root.context.getString(R.string.platform_request_applicant_label, applicant))
                 }
-                bodyLines.add("اولین شعبه: ${item.firstBranchName} (${item.firstBranchAddress})")
+                bodyLines.add(root.context.getString(R.string.platform_request_branch_label, item.firstBranchName, item.firstBranchAddress))
                 if (item.description.isNotBlank()) {
-                    bodyLines.add("توضیحات: ${item.description}")
+                    bodyLines.add(root.context.getString(R.string.platform_request_desc_label, item.description))
                 }
                 if (!item.reviewNote.isNullOrBlank()) {
-                    bodyLines.add("علت رد: ${item.reviewNote}")
+                    bodyLines.add(root.context.getString(R.string.platform_request_rejection_label, item.reviewNote))
                 }
                 tvBody.isVisible = true
                 tvBody.text = bodyLines.joinToString("\n")

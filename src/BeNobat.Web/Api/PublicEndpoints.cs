@@ -47,6 +47,17 @@ public static class PublicEndpoints
             var reviews = await PublicReviews(db, businessId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
             return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews));
         }).AllowAnonymous();
+        root.MapGet("/businesses/by-slug/{slug}", async (string slug, AppDbContext db, CancellationToken ct) =>
+        {
+            var normalizedSlug = slug.Trim().ToLowerInvariant();
+            var business = await db.Businesses.AsNoTracking().Where(b => b.Slug == normalizedSlug && b.DeletedAt == null).Select(BusinessProjection).FirstOrDefaultAsync(ct);
+            if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
+            var actualId = business.Id;
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == actualId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct);
+            var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == actualId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
+            var reviews = await PublicReviews(db, actualId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
+            return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews));
+        }).AllowAnonymous();
         root.MapGet("/businesses/{businessId:guid}/reviews", async (Guid businessId, AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>
         {
             if (!await db.Businesses.AnyAsync(b => b.Id == businessId, ct)) return ApiResults.Error("not_found", "Business was not found.", 404);

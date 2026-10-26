@@ -1,17 +1,16 @@
 package com.leon.be_nobat.domain.repository
 
-import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.data.remote.ApiItems
+import com.leon.be_nobat.data.remote.ApiPage
+import com.leon.be_nobat.domain.model.Branch
 import com.leon.be_nobat.domain.model.Business
 import com.leon.be_nobat.domain.model.BusinessDetail
-import com.leon.be_nobat.domain.model.Branch
 import com.leon.be_nobat.domain.model.Category
 import com.leon.be_nobat.domain.model.Provider
 import com.leon.be_nobat.domain.model.PublicReview
 import com.leon.be_nobat.domain.model.Service
 import com.leon.be_nobat.domain.model.ServiceCatalogItem
 
-/** Public discovery endpoints (`/api/v1/businesses`, `/categories`, `/catalog`). */
 interface BusinessRepository {
     suspend fun listBusinesses(
         q: String? = null,
@@ -45,4 +44,6 @@ interface BusinessRepository {
     suspend fun getCategories(): Result<ApiItems<Category>>
 
     suspend fun getCatalog(page: Int = 1, pageSize: Int = 30): Result<ApiPage<ServiceCatalogItem>>
+
+    suspend fun findBusinessIdByBranch(branchId: String): String? = null
 }

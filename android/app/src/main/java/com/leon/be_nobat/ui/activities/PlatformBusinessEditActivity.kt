@@ -93,7 +93,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
 
         val tvHeaderTitle = findViewById<TextView>(R.id.tvHeaderTitle)
         val isEditing = !editingBusinessId.isNullOrBlank()
-        tvHeaderTitle.text = if (isEditing) "ویرایش کسب‌وکار" else "کسب‌وکار جدید"
+        tvHeaderTitle.text = if (isEditing) getString(R.string.platform_biz_edit_title) else getString(R.string.platform_biz_new_title)
 
         tilBusinessName = findViewById(R.id.tilBusinessName)
         etBusinessName = findViewById(R.id.etBusinessName)
@@ -118,7 +118,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
         btnSave = findViewById(R.id.btnSave)
         btnCancel = findViewById(R.id.btnCancel)
 
-        btnSave.text = if (isEditing) "ذخیره تغییرات" else "ایجاد کسب‌وکار"
+        btnSave.text = if (isEditing) getString(R.string.platform_biz_save_btn) else getString(R.string.platform_biz_create_btn)
         btnCancel.setOnClickListener { finish() }
 
         setupSpinners()
@@ -161,17 +161,17 @@ class PlatformBusinessEditActivity : BaseActivity() {
                 if (cityIdx >= 0) spinnerCity.setSelection(cityIdx)
 
                 cardBusinessStatus.isVisible = true
-                tvBusinessId.text = "شناسه سیستمی کسب‌وکار: ${business.id}"
+                tvBusinessId.text = getString(R.string.platform_biz_system_id, business.id)
                 switchBusinessActive.isChecked = business.active
 
                 switchBusinessActive.setOnCheckedChangeListener { _, isChecked ->
                     lifecycleScope.launch {
                         toggleBusinessActiveUseCase(business.id, isChecked).onSuccess { updated ->
                             existingBusiness = updated
-                            Toast.makeText(this@PlatformBusinessEditActivity, if (isChecked) "کسب‌وکار فعال شد" else "کسب‌وکار غیرفعال شد", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@PlatformBusinessEditActivity, if (isChecked) getString(R.string.platform_biz_activated) else getString(R.string.platform_biz_deactivated), Toast.LENGTH_SHORT).show()
                         }.onFailure { err ->
                             switchBusinessActive.isChecked = !isChecked
-                            Snackbar.make(btnSave, err.message ?: "خطا در تغییر وضعیت", Snackbar.LENGTH_SHORT).show()
+                            Snackbar.make(btnSave, err.message ?: getString(R.string.platform_biz_status_error), Snackbar.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -193,7 +193,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
                     weeklyHoursEditor.setWeeklyHours(hours)
                 }
             }.onFailure { err ->
-                Snackbar.make(btnSave, err.message ?: "خطا در بارگذاری مشخصات کسب‌وکار", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(btnSave, err.message ?: getString(R.string.platform_biz_load_error), Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -207,7 +207,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
         if (cancellationEditor.validate() != null) return
         val name = etBusinessName.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
-            tilBusinessName.error = "نام کسب‌وکار الزامی است."
+            tilBusinessName.error = getString(R.string.platform_biz_name_required)
             etBusinessName.requestFocus()
             return
         }
@@ -215,7 +215,7 @@ class PlatformBusinessEditActivity : BaseActivity() {
 
         val branchName = etFirstBranchName.text?.toString()?.trim().orEmpty()
         if (branchName.isBlank()) {
-            tilFirstBranchName.error = "نام شعبه مرکزی الزامی است."
+            tilFirstBranchName.error = getString(R.string.platform_biz_branch_required)
             etFirstBranchName.requestFocus()
             return
         }
@@ -254,21 +254,21 @@ class PlatformBusinessEditActivity : BaseActivity() {
         lifecycleScope.launch {
             if (editingBusinessId == null) {
                 createBusinessUseCase(input).onSuccess {
-                    Toast.makeText(this@PlatformBusinessEditActivity, "کسب‌وکار با موفقیت ایجاد شد.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PlatformBusinessEditActivity, getString(R.string.platform_biz_created_success), Toast.LENGTH_SHORT).show()
                     setResult(RESULT_OK)
                     finish()
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ایجاد کسب‌وکار", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(btnSave, err.message ?: getString(R.string.platform_biz_create_error), Snackbar.LENGTH_LONG).show()
                 }
             } else {
                 updateBusinessUseCase(editingBusinessId!!, input).onSuccess {
-                    Toast.makeText(this@PlatformBusinessEditActivity, "کسب‌وکار با موفقیت ذخیره شد.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PlatformBusinessEditActivity, getString(R.string.platform_biz_saved_success), Toast.LENGTH_SHORT).show()
                     setResult(RESULT_OK)
                     finish()
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ذخیره کسب‌وکار", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(btnSave, err.message ?: getString(R.string.platform_biz_save_error), Snackbar.LENGTH_LONG).show()
                 }
             }
         }

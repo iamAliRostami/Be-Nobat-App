@@ -57,6 +57,7 @@ class AuthViewModel(
         AuthException.InvalidCredentials -> "error_invalid_credentials"
         AuthException.AccountLocked -> "error_account_locked"
         AuthException.DuplicateEmail -> "error_duplicate_email"
+        AuthException.DuplicatePhone -> "error_duplicate_phone"
         AuthException.PasswordMismatch -> "error_password_mismatch"
         AuthException.WeakPassword -> "error_weak_password"
         AuthException.TooManyRequests -> "error_too_many_requests"

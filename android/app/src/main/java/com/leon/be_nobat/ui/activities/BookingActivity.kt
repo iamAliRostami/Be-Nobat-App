@@ -53,6 +53,7 @@ class BookingActivity : BaseActivity() {
 
     private val viewModel: BookingViewModel by viewModel()
     private val tokenManager: TokenManager by inject()
+    private var hasAutoShownTermsDialog = false
 
     private var servicesAdapter: ServicesAdapter? = null
     private var dateStripAdapter: DateStripAdapter? = null
@@ -70,7 +71,8 @@ class BookingActivity : BaseActivity() {
         }
 
         val bizId = intent.getStringExtra("businessId") ?: ""
-        viewModel.setBusinessId(bizId)
+        val branchIdExtra = intent.getStringExtra("branchId")
+        viewModel.setBusinessId(bizId, branchIdExtra)
 
         // Services List setup (Step 1)
         servicesAdapter = ServicesAdapter(
@@ -161,11 +163,19 @@ class BookingActivity : BaseActivity() {
             }
         }
 
-        // Terms agreement checkbox listener
+        // Terms agreement checkbox & rules text listeners
         val cbTerms = findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbTerms)
         cbTerms.setOnCheckedChangeListener { _, isChecked ->
             if (viewModel.state.value.termsAccepted != isChecked) {
                 viewModel.setTerms(isChecked)
+            }
+        }
+
+        findViewById<View>(R.id.tvTermsText)?.let { tv ->
+            val termsHtml = getString(R.string.accept_terms_with_link)
+            (tv as? TextView)?.text = android.text.Html.fromHtml(termsHtml, android.text.Html.FROM_HTML_MODE_LEGACY)
+            tv.setOnClickListener {
+                showBookingRulesDialog()
             }
         }
 
@@ -312,6 +322,10 @@ class BookingActivity : BaseActivity() {
 
         if (!isSuccess) {
             renderStepProgress(state.currentStep)
+            if (state.currentStep == 3 && !hasAutoShownTermsDialog) {
+                hasAutoShownTermsDialog = true
+                showBookingRulesDialog()
+            }
         }
 
         // Branch dropdown
@@ -663,5 +677,30 @@ class BookingActivity : BaseActivity() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             holder.bind(getItem(position))
         }
+    }
+    private fun showBookingRulesDialog() {
+        val message = buildString {
+            append(getString(R.string.booking_rule_1))
+            append("\n\n")
+            append(getString(R.string.booking_rule_2))
+            append("\n\n")
+            append(getString(R.string.booking_rule_3))
+            append("\n\n")
+            append(getString(R.string.booking_rule_4))
+            append("\n\n")
+            append(getString(R.string.booking_rule_5))
+        }
+
+        val cbTerms = findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbTerms)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.booking_rules_title)
+            .setIcon(R.drawable.ic_help)
+            .setMessage(message)
+            .setPositiveButton(R.string.accept_rules) { _, _ ->
+                cbTerms?.isChecked = true
+                viewModel.setTerms(true)
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
     }
 }

@@ -3,6 +3,7 @@ package com.leon.be_nobat.ui.activities
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.addCallback
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -11,6 +12,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.snackbar.Snackbar
 import com.leon.be_nobat.R
 import com.leon.be_nobat.helpers.BaseActivity
+import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.ui.view_models.BusinessDetailUiState
 import com.leon.be_nobat.ui.view_models.BusinessDetailViewModel
 import kotlinx.coroutines.launch
@@ -24,14 +26,21 @@ class BusinessDetailActivity : BaseActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
     override fun setupViews() {
-        setupAdminHeader(getString(R.string.business_details))
+        setupAdminHeader(getString(R.string.business_details)) {
+            handleBackPress()
+        }
         setMenuVisibility(false)
+
+        onBackPressedDispatcher.addCallback(this) {
+            handleBackPress()
+        }
 
         swipeRefresh = findViewById(R.id.swipeRefresh)
         swipeRefresh.setOnRefreshListener { viewModel.load() }
 
         val businessId = intent.getStringExtra("businessId") ?: ""
-        viewModel.setBusinessId(businessId)
+        val branchId = intent.getStringExtra("branchId")
+        viewModel.setBusinessId(businessId, branchId)
 
         val tokenManager = org.koin.java.KoinJavaComponent.get<com.leon.be_nobat.data.local.TokenManager>(com.leon.be_nobat.data.local.TokenManager::class.java)
         findViewById<android.widget.ImageButton>(R.id.btnFavorite).setOnClickListener {
@@ -50,11 +59,24 @@ class BusinessDetailActivity : BaseActivity() {
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnBook).setOnClickListener {
             val id = viewModel.state.value.business?.id ?: return@setOnClickListener
-            val intent = Intent(this, BookingActivity::class.java).apply {
+            val targetBranchId = viewModel.state.value.selectedBranchId ?: intent.getStringExtra("branchId")
+            val bookingIntent = Intent(this, BookingActivity::class.java).apply {
                 putExtra("businessId", id)
+                if (!targetBranchId.isNullOrBlank()) {
+                    putExtra("branchId", targetBranchId)
+                }
             }
-            startActivity(intent)
+            startActivity(bookingIntent)
         }
+    }
+
+    private fun handleBackPress() {
+        if (isTaskRoot) {
+            startActivity(Intent(this, HomeActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            })
+        }
+        finish()
     }
 
     override fun observeViewModel() {
@@ -77,14 +99,38 @@ class BusinessDetailActivity : BaseActivity() {
         findViewById<android.widget.TextView>(R.id.tvName).text = b.name
         findViewById<android.widget.TextView>(R.id.tvCategoryCity).text = "${b.category} • ${b.city}"
         findViewById<android.widget.TextView>(R.id.tvDescription).text = b.description
-        val branchStr = if (b.branchCount == 1) getString(R.string.branch_count_single) else getString(R.string.branch_count, com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(b.branchCount))
-        val serviceStr = if (b.serviceCount == 1) getString(R.string.service_count_single) else getString(R.string.service_count, com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(b.serviceCount))
-        val reviewStr = getString(R.string.review_count, com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(b.reviewCount))
-        val ratingStr = b.rating?.let { "★ ${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(it)}" } ?: "—"
+        val branchStr = if (b.branchCount == 1) getString(R.string.branch_count_single) else getString(R.string.branch_count, PersianUtils.toPersianDigits(b.branchCount))
+        val serviceStr = if (b.serviceCount == 1) getString(R.string.service_count_single) else getString(R.string.service_count, PersianUtils.toPersianDigits(b.serviceCount))
+        val reviewStr = getString(R.string.review_count, PersianUtils.toPersianDigits(b.reviewCount))
+        val ratingStr = b.rating?.let { "★ ${PersianUtils.toPersianDigits(it)}" } ?: "—"
         findViewById<android.widget.TextView>(R.id.tvStats).text = "$branchStr • $serviceStr • $ratingStr ($reviewStr)"
-        findViewById<android.widget.TextView>(R.id.tvBranches).text = b.branches.joinToString("\n\n") { "• ${it.name} — ${it.address}" }
+
+        val selectedBranch = if (!state.selectedBranchId.isNullOrBlank()) {
+            b.branches.firstOrNull { it.id == state.selectedBranchId }
+        } else null
+
+        val cardSelectedBranchBanner = findViewById<View>(R.id.cardSelectedBranchBanner)
+        val tvSelectedBranchTitle = findViewById<android.widget.TextView>(R.id.tvSelectedBranchTitle)
+        val btnBook = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnBook)
+
+        if (selectedBranch != null) {
+            cardSelectedBranchBanner?.isVisible = true
+            tvSelectedBranchTitle?.text = getString(R.string.selected_branch_banner_title, selectedBranch.name)
+            btnBook.text = getString(R.string.book_at_branch, selectedBranch.name)
+        } else {
+            cardSelectedBranchBanner?.isVisible = false
+            btnBook.text = getString(R.string.book_now)
+        }
+
+        findViewById<android.widget.TextView>(R.id.tvBranches).text = b.branches.joinToString("\n\n") { br ->
+            val isCurrent = br.id == state.selectedBranchId
+            val marker = if (isCurrent) "✓ " else "• "
+            val suffix = if (isCurrent) " (${getString(R.string.selected_branch_tag)})" else ""
+            "$marker${br.name} — ${br.address}$suffix"
+        }
+
         findViewById<android.widget.TextView>(R.id.tvServices).text = b.services.joinToString("\n\n") {
-            "• ${it.name} (${com.leon.be_nobat.helpers.PersianUtils.formatDuration(it.durationMinutes)}) — ${com.leon.be_nobat.helpers.PersianUtils.formatPrice(it.price, it.currency)}"
+            "• ${it.name} (${PersianUtils.formatDuration(it.durationMinutes)}) — ${PersianUtils.formatPrice(it.price, it.currency)}"
         }
         val tvReviews = findViewById<android.widget.TextView>(R.id.tvReviews)
         val cardEmptyReviews = findViewById<View>(R.id.cardEmptyReviews)
@@ -92,7 +138,7 @@ class BusinessDetailActivity : BaseActivity() {
             cardEmptyReviews.isVisible = false
             tvReviews.isVisible = true
             tvReviews.text = b.reviews.joinToString("\n\n") {
-                "★ ${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(it.rating)} — ${it.customerName}\n${it.comment}"
+                "★ ${PersianUtils.toPersianDigits(it.rating)} — ${it.customerName}\n${it.comment}"
             }
             tvReviews.setTextAppearance(R.style.TextAppearance_BeNobat_Body)
         } else {

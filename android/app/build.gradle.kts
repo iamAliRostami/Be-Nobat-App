@@ -79,7 +79,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.exifinterface:exifinterface:1.4.2")
+    implementation(libs.androidx.exifinterface)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

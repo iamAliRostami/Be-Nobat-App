@@ -704,9 +704,8 @@ public static class ManagementEndpoints
 
     private static async Task<IResult> CreateTeamMember(ManagementTeamMemberInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200 ||
-            string.IsNullOrWhiteSpace(input.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
-            return Invalid("Provide a valid name and email address.");
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200)
+            return Invalid("Provide a valid name.");
         if (!UserInputValidation.TryNormalizeIranianMobile(input.Phone, out var phone))
             return Invalid("Mobile number must be 11 digits starting with 09.");
         if (!TeamRoles.Contains(input.Role))
@@ -714,16 +713,27 @@ public static class ManagementEndpoints
         if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(input.Role, input.BranchId))
             return Denied();
 
-        var email = Clean(input.Email);
-        var user = await users.FindByEmailAsync(email);
+        string? email = null;
+        if (!string.IsNullOrWhiteSpace(input.Email))
+        {
+            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
+                return Invalid("Provide a valid email address.");
+            email = Clean(input.Email);
+        }
+
+        AppUser? user = null;
+        if (email is not null)
+            user = await users.FindByEmailAsync(email);
+        user ??= await users.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone, ct);
+
         var password = TemporaryPassword();
         if (user is null)
         {
             user = new AppUser
             {
-                UserName = email,
+                UserName = email ?? phone,
                 Email = email,
-                EmailConfirmed = true,
+                EmailConfirmed = email is not null,
                 DisplayName = Clean(input.Name),
                 PhoneNumber = phone,
             };
@@ -791,23 +801,31 @@ public static class ManagementEndpoints
 
     private static async Task<IResult> CreateCustomer(ManagementCustomerInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200 ||
-            string.IsNullOrWhiteSpace(input.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
-            return Invalid("Provide a valid name and email address.");
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length > 200)
+            return Invalid("Provide a valid name.");
         if (!UserInputValidation.TryNormalizeIranianMobile(input.Phone, out var phone))
             return Invalid("Mobile number must be 11 digits starting with 09.");
         if (!scope.IsPlatform && !await scope.Branches(true).AnyAsync(ct))
             return Denied();
 
-        var email = Clean(input.Email);
-        var user = await users.FindByEmailAsync(email);
-        if (user is not null) return Conflict("A user with this email already exists.");
-        var password = TemporaryPassword();
-        user = new AppUser
+        string? email = null;
+        if (!string.IsNullOrWhiteSpace(input.Email))
         {
-            UserName = email,
+            if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email.Trim()))
+                return Invalid("Provide a valid email address.");
+            email = Clean(input.Email);
+            if (await users.FindByEmailAsync(email) is not null) return Conflict("A user with this email already exists.");
+        }
+
+        if (await users.Users.AnyAsync(u => u.PhoneNumber == phone || u.UserName == phone, ct))
+            return Conflict("A user with this mobile number already exists.");
+
+        var password = TemporaryPassword();
+        var user = new AppUser
+        {
+            UserName = email ?? phone,
             Email = email,
-            EmailConfirmed = true,
+            EmailConfirmed = email is not null,
             DisplayName = Clean(input.Name),
             PhoneNumber = phone,
         };
@@ -1403,8 +1421,9 @@ public static class ManagementEndpoints
     }
 
     private static IResult IdentityError(IdentityResult result) => ApiResults.Error("identity_error", string.Join(" ", result.Errors.Select(e => e.Description).Distinct()));
-    private static bool ValidUser(ManagementUserInput input) => Text(input.DisplayName, 100, true) && Text(input.Email, 256, true) &&
-        new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email) && UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out _);
+    private static bool ValidUser(ManagementUserInput input) => Text(input.DisplayName, 100, true) &&
+        (string.IsNullOrWhiteSpace(input.Email) || (Text(input.Email, 256) && new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(input.Email))) &&
+        UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out _);
 
     private static string TemporaryPassword()
     {
@@ -1414,10 +1433,12 @@ public static class ManagementEndpoints
 
     private static async Task<IResult> CreateUser(ManagementUserInput input, AppDbContext db, UserManager<AppUser> users, CancellationToken ct)
     {
-        if (!ValidUser(input) || !ValidGlobalRoles([input.Role])) return Invalid("Provide a name, valid email, Iranian mobile number and a Customer or PlatformAdmin global role. Team roles require branch membership.");
-        if (await users.FindByEmailAsync(Clean(input.Email)) is not null) return Conflict("The email is already registered.");
+        if (!ValidUser(input) || !ValidGlobalRoles([input.Role])) return Invalid("Provide a name, valid Iranian mobile number and a Customer or PlatformAdmin global role. Team roles require branch membership.");
+        string? email = string.IsNullOrWhiteSpace(input.Email) ? null : Clean(input.Email);
+        if (email is not null && await users.FindByEmailAsync(email) is not null) return Conflict("The email is already registered.");
         UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var phone);
-        var user = new AppUser { UserName = Clean(input.Email), Email = Clean(input.Email), DisplayName = Clean(input.DisplayName), PhoneNumber = phone, EmailConfirmed = true };
+        if (await users.Users.AnyAsync(u => u.PhoneNumber == phone || u.UserName == phone, ct)) return Conflict("The mobile number is already registered.");
+        var user = new AppUser { UserName = email ?? phone, Email = email, DisplayName = Clean(input.DisplayName), PhoneNumber = phone, EmailConfirmed = email is not null };
         var password = TemporaryPassword();
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var result = await users.CreateAsync(user, password);
@@ -1600,8 +1621,8 @@ public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, 
 public sealed record ManagementMembershipInput(Guid BranchId, Guid UserId, string Role = AppRoles.Staff);
 public sealed record ManagementMembershipDto(Guid Id, Guid BranchId, Guid UserId, string Role, string DisplayName, string? Email);
 public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, int Visits = 0, double? Rating = null, string? Role = null, string? BranchName = null);
-public sealed record ManagementTeamMemberInput(string Name, string Email, string? Phone, Guid BranchId, string Role = AppRoles.Staff);
-public sealed record ManagementCustomerInput(string Name, string Email, string? Phone);
+public sealed record ManagementTeamMemberInput(string Name, string? Email, string? Phone, Guid BranchId, string Role = AppRoles.Staff);
+public sealed record ManagementCustomerInput(string Name, string? Email, string? Phone);
 public sealed record ManagementServiceInput(Guid BusinessId, string Name, string Description = "", int DurationMinutes = 30, decimal Price = 0, string Currency = "IRR", Guid? CatalogItemId = null, Guid? BranchId = null, Guid[]? ResourceIds = null, int? CancellationNoticeMinutes = null);
 public sealed record ManagementServiceDto(Guid Id, Guid BusinessId, Guid? CatalogItemId, string Name, string Description, int DurationMinutes, decimal Price, string Currency, Guid[] BranchIds, Guid[] ResourceIds, bool Active, int? CancellationNoticeMinutes = null);
 public sealed record ManagementBranchServiceInput(decimal? Price = null, int? CancellationNoticeMinutes = null);
@@ -1625,7 +1646,7 @@ public sealed record ManagementCatalogInput(string Name, string Slug, string Cat
 public sealed record ManagementCatalogDto(Guid Id, string Name, string Slug, string Category, string Description, int SuggestedDurationMinutes, bool IsPublished, bool Active);
 public sealed record ManagementCategoryInput(string Name, string Kind = "Business", int SortOrder = 0, bool IsActive = true);
 public sealed record ManagementCategoryDto(Guid Id, string Name, string Kind, int SortOrder, bool Active);
-public sealed record ManagementUserInput(string DisplayName, string Email, string PhoneNumber, string Role = AppRoles.Customer);
+public sealed record ManagementUserInput(string DisplayName, string? Email, string PhoneNumber, string Role = AppRoles.Customer);
 public sealed record ManagementUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, string[] Roles);
 public sealed record ManagementCreatedUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string TemporaryPassword);
 public sealed record ManagementRolesInput(string[] Roles);

@@ -22,16 +22,18 @@ class LoginUseCaseTest {
         assertEquals("user@example.com", repository.lastEmail)
     }
 
-    @Test fun `iranian mobile is rejected because the backend accepts email only`() = runBlocking {
+    @Test fun `iranian mobile is normalized and passed to repository`() = runBlocking {
         val result = useCase("09121234567", "secret")
-        assertSame(AuthException.InvalidIdentifier, result.exceptionOrNull())
-        assertEquals(0, repository.calls)
+        assertTrue(result.isSuccess)
+        assertEquals("09121234567", repository.lastEmail)
+        assertEquals(1, repository.calls)
     }
 
-    @Test fun `mobile with international prefix is also rejected for now`() = runBlocking {
+    @Test fun `mobile with international prefix is normalized and accepted`() = runBlocking {
         val result = useCase("00989121234567", "secret")
-        assertSame(AuthException.InvalidIdentifier, result.exceptionOrNull())
-        assertEquals(0, repository.calls)
+        assertTrue(result.isSuccess)
+        assertEquals("09121234567", repository.lastEmail)
+        assertEquals(1, repository.calls)
     }
 
     @Test fun `invalid identity is rejected without calling repository`() = runBlocking {
@@ -85,9 +87,10 @@ class RegisterUseCaseTest {
         assertEquals(0, repository.calls)
     }
 
-    @Test fun `missing email is rejected`() = runBlocking {
+    @Test fun `missing email is accepted when phone is present`() = runBlocking {
         val result = useCase(RegisterInput(displayName = "User", email = "", phoneNumber = "09123456789", password = "pass"))
-        assertSame(AuthException.InvalidIdentifier, result.exceptionOrNull())
+        assertTrue(result.isSuccess)
+        assertEquals(1, repository.calls)
     }
 
     @Test fun `missing phone is rejected`() = runBlocking {

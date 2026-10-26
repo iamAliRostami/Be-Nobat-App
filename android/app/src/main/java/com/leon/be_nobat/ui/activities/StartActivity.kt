@@ -8,6 +8,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.leon.be_nobat.data.local.TokenManager
+import com.leon.be_nobat.helpers.DeepLinkHelper
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -24,9 +25,33 @@ class StartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setDefaultLocaleIfNeeded()
         lifecycleScope.launch {
+            val deepLinkUri = intent?.data
+            val target = if (deepLinkUri != null) {
+                val parsed = DeepLinkHelper.parse(deepLinkUri)
+                if (parsed != null && (!parsed.businessId.isNullOrBlank() || !parsed.branchId.isNullOrBlank())) {
+                    if (parsed.isBookingRoute && !parsed.businessId.isNullOrBlank()) {
+                        Intent(this@StartActivity, BookingActivity::class.java).apply {
+                            putExtra("businessId", parsed.businessId)
+                            parsed.branchId?.let { putExtra("branchId", it) }
+                        }
+                    } else {
+                        // Scenario 2: Show business profile and details first, preserving branch filter
+                        Intent(this@StartActivity, BusinessDetailActivity::class.java).apply {
+                            parsed.businessId?.let { putExtra("businessId", it) }
+                            parsed.branchId?.let { putExtra("branchId", it) }
+                        }
+                    }
+                } else null
+            } else null
+
+            if (target != null) {
+                startActivity(target)
+                finish()
+                return@launch
+            }
+
             val session = tokenManager.currentSession()
-            val target = if (session != null) {
-                // Role-based routing: admin → AdminHomeActivity, customer → HomeActivity.
+            val defaultTarget = if (session != null) {
                 if (session.user.isStaff) {
                     Intent(this@StartActivity, AdminHomeActivity::class.java)
                 } else {
@@ -35,7 +60,7 @@ class StartActivity : AppCompatActivity() {
             } else {
                 Intent(this@StartActivity, LoginActivity::class.java)
             }
-            startActivity(target)
+            startActivity(defaultTarget)
             finish()
         }
     }

@@ -22,6 +22,7 @@ data class AppointmentsUiState(
     val reviewRating: Int = 5,
     val reviewComment: String = "",
     val reviewSubmitting: Boolean = false,
+    val reviewSuccess: Boolean = false,
 )
 
 enum class AppointmentTab(val apiStatus: String?, @androidx.annotation.StringRes val labelRes: Int) {
@@ -66,11 +67,17 @@ class AppointmentsViewModel(
     }
 
     fun openReview(id: String) {
-        _state.value = _state.value.copy(reviewForAppointmentId = id, reviewRating = 5, reviewComment = "")
+        _state.value = _state.value.copy(
+            reviewForAppointmentId = id,
+            reviewRating = 5,
+            reviewComment = "",
+            reviewSubmitting = false,
+            reviewSuccess = false
+        )
     }
 
     fun closeReview() {
-        _state.value = _state.value.copy(reviewForAppointmentId = null)
+        _state.value = _state.value.copy(reviewForAppointmentId = null, reviewSubmitting = false)
     }
 
     fun setRating(rating: Int) {
@@ -81,13 +88,31 @@ class AppointmentsViewModel(
         _state.value = _state.value.copy(reviewComment = text)
     }
 
-    fun submitReview() = viewModelScope.launch {
+    fun consumeReviewSuccess() {
+        _state.value = _state.value.copy(reviewSuccess = false)
+    }
+
+    fun consumeError() {
+        _state.value = _state.value.copy(error = null)
+    }
+
+    fun submitReview(rating: Int? = null, comment: String? = null) = viewModelScope.launch {
         val s = _state.value
         val id = s.reviewForAppointmentId ?: return@launch
-        _state.value = s.copy(reviewSubmitting = true)
-        createReviewUseCase(id, s.reviewRating, s.reviewComment.ifBlank { null })
+        val finalRating = rating?.coerceIn(1, 5) ?: s.reviewRating
+        val finalComment = comment ?: s.reviewComment
+        _state.value = s.copy(
+            reviewSubmitting = true,
+            reviewRating = finalRating,
+            reviewComment = finalComment
+        )
+        createReviewUseCase(id, finalRating, finalComment.ifBlank { null })
             .onSuccess {
-                _state.value = _state.value.copy(reviewSubmitting = false, reviewForAppointmentId = null)
+                _state.value = _state.value.copy(
+                    reviewSubmitting = false,
+                    reviewForAppointmentId = null,
+                    reviewSuccess = true
+                )
                 load()
             }
             .onFailure { e ->

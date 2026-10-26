@@ -2,6 +2,7 @@
 @layout Layout.PublicLayout
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using BeNobat.Web.Domain
 @using BeNobat.Web.Infrastructure
 @inject UserManager<AppUser> UserManager
@@ -36,12 +37,11 @@
         </label>
         <ValidationMessage For="() => Input!.DisplayName" />
 
-        <label>ایمیل
+        <label>ایمیل (اختیاری)
             <InputText @bind-Value="Input!.Email" type="email" autocomplete="username" dir="ltr" />
         </label>
         <ValidationMessage For="() => Input!.Email" />
 
-        @* شماره موبایل برای هماهنگی مجموعه با مراجعه‌کننده لازم است؛ قبلاً در ثبت‌نام گرفته نمی‌شد. *@
         <label>شماره موبایل
             <InputText @bind-Value="Input!.Phone" type="tel" inputmode="tel" maxlength="14" autocomplete="tel" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" dir="ltr" />
         </label>
@@ -101,19 +101,34 @@
             return;
         }
 
-        // ایمیل را قبل از ساخت حساب نرمال می‌کنیم؛ «Ali@Example.com » و «ali@example.com» نباید دو حساب شوند.
-        var email = Input!.Email.Trim();
-
-        if (await UserManager.FindByEmailAsync(email) is not null)
+        if (await UserManager.Users.AnyAsync(u => u.PhoneNumber == phone || u.UserName == phone))
         {
-            EmailTaken = true;
-            ErrorMessage = "این ایمیل قبلاً ثبت شده است.";
+            ErrorMessage = "این شماره موبایل قبلاً ثبت شده است.";
             return;
+        }
+
+        var rawEmail = (Input!.Email ?? "").Trim();
+        string? email = null;
+        if (!string.IsNullOrWhiteSpace(rawEmail))
+        {
+            if (!new EmailAddressAttribute().IsValid(rawEmail) || rawEmail.Length > 256)
+            {
+                ErrorMessage = "ایمیل وارد شده معتبر نیست.";
+                return;
+            }
+
+            if (await UserManager.FindByEmailAsync(rawEmail) is not null)
+            {
+                EmailTaken = true;
+                ErrorMessage = "این ایمیل قبلاً ثبت شده است.";
+                return;
+            }
+            email = rawEmail;
         }
 
         var user = new AppUser
         {
-            UserName = email,
+            UserName = phone,
             Email = email,
             DisplayName = Input!.DisplayName.Trim(),
             PhoneNumber = phone,
@@ -146,9 +161,8 @@
         [StringLength(80, ErrorMessage = "نام نباید بیشتر از ۸۰ کاراکتر باشد.")]
         public string DisplayName { get; set; } = "";
 
-        [Required(ErrorMessage = "ایمیل الزامی است.")]
         [EmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
-        public string Email { get; set; } = "";
+        public string? Email { get; set; }
 
         [Required(ErrorMessage = "شماره موبایل الزامی است.")]
         public string Phone { get; set; } = "";

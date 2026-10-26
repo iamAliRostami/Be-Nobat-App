@@ -1,1 +1,4 @@
-<resources><string name="error_cancellation_deadline">مهلت لغو این نوبت گذشته است یا وضعیت آن قابل لغو نیست؛ با شعبه تماس بگیرید.</string></resources>
+<resources>
+    <string name="error_cancellation_deadline">مهلت لغو این نوبت گذشته است؛ با شعبه یا مرکز تماس بگیرید یا نوبت جدید دریافت کنید.</string>
+    <string name="cancellation_deadline_label">مهلت لغو: %1$s</string>
+</resources>

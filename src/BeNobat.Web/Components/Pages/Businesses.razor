@@ -14,46 +14,90 @@
 @if (ShowForm)
 {
     <div class="modal-backdrop" @onclick="Close">
-        <EditForm Model="Form" FormName="service-form" OnValidSubmit="Save" class="form-modal service-form-modal" novalidate @onclick:stopPropagation>
-            <div><h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button></div>
-            <div class="service-form-row">
-                <label>کسب‌وکار<select disabled="@(EditingId is not null)" @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in BusinessOptions) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }</select></label>
-                <label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@foreach (var branch in FormBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Name</option> }</select></label>
-            </div>
-            @if (EditingId is null)
-            {
-                <div class="service-form-row source-row">
-                    <fieldset class="service-source">
-                        <legend>روش تعریف خدمت</legend>
-                        <InputRadioGroup TValue="string" @bind-Value="Form.Source">
-                            <label class="check-label"><InputRadio TValue="string" Value="@CatalogSource" /><span>کاتالوگ سراسری</span></label>
-                            <label class="check-label"><InputRadio TValue="string" Value="@CustomSource" /><span>خدمت اختصاصی</span></label>
-                        </InputRadioGroup>
-                    </fieldset>
-                    @if (Form.Source == CatalogSource)
-                    {
-                        <label>خدمت کاتالوگ<select @bind="Form.CatalogItemId" @bind:after="CatalogChanged"><option value="">— انتخاب کنید —</option>@foreach (var item in CatalogItems) { <option value="@item.Id" data-i18n-skip>@item.Category · @item.Name</option> }</select><small>نام و مشخصات از کاتالوگ تکمیل می‌شود.</small></label>
-                    }
-                    else
-                    {
-                        <label>نام خدمت<input @bind="Form.Name" /></label>
-                    }
+        <EditForm Model="Form" FormName="service-form" OnValidSubmit="Save" class="form-modal business-form-modal service-form-modal" novalidate @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>@(EditingId is null ? "خدمت جدید" : "تنظیم خدمت")</h2>
+                    <p class="modal-subtitle">@(EditingId is null ? "تعریف خدمت جدید برای شعبه و تخصیص به ارائه‌دهندگان" : "ویرایش مشخصات خدمت و تخصیص به ارائه‌دهندگان")</p>
                 </div>
-            }
-            else if (Form.Source == CustomSource)
-            {
-                <label>نام خدمت<input @bind="Form.Name" /></label>
-            }
-            <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
-            <div class="service-form-row"><label>مدت (دقیقه)<input type="number" @bind="Form.DurationMinutes" /></label><label>قیمت خدمت (تومان)<input type="number" @bind="Form.Price" /></label></div>
-            <CancellationNoticeEditor Label="مهلت لغو خود خدمت (همهٔ شعب)" @bind-Value="Form.CancellationNoticeMinutes" />
-            <CancellationNoticeEditor Label="مهلت لغو این خدمت در شعبهٔ انتخاب‌شده" @bind-Value="Form.BranchCancellationNoticeMinutes" />
-            <fieldset class="service-providers"><legend>کارکنان ارائه‌دهنده</legend>
-                @if (!FormResources.Any()) { <small>ابتدا در صفحه شعب، منبع «عضو تیم» تعریف کنید.</small> }
-                <div class="service-provider-list">@foreach (var resource in FormResources) { <label class="check-label"><input type="checkbox" checked="@SelectedResourceIds.Contains(resource.Id)" @onchange="() => ToggleResource(resource.Id)" /><span data-i18n-skip>@resource.Name</span></label> }</div>
-            </fieldset>
-            @if (Error is not null) { <div class="auth-error" role="alert" aria-live="polite">@Error</div> }
-            <button class="primary-button">ذخیره خدمت و تخصیص‌ها</button>
+                <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="service-form-row">
+                    <label>کسب‌وکار<select disabled="@(EditingId is not null)" @bind="Form.BusinessId" @bind:after="BusinessChanged">@foreach (var business in BusinessOptions) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }</select></label>
+                    <label>شعبه<select @bind="Form.BranchId" @bind:after="BranchChanged">@foreach (var branch in FormBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Name</option> }</select></label>
+                </div>
+                @if (EditingId is null)
+                {
+                    <div class="service-source-section">
+                        <div class="service-form-row" style="align-items: start;">
+                            <fieldset class="service-source">
+                                <legend>روش تعریف خدمت</legend>
+                                <InputRadioGroup TValue="string" @bind-Value="Form.Source">
+                                    <label class="check-label"><InputRadio TValue="string" Value="@CatalogSource" /><span>کاتالوگ سراسری</span></label>
+                                    <label class="check-label"><InputRadio TValue="string" Value="@CustomSource" /><span>خدمت اختصاصی</span></label>
+                                </InputRadioGroup>
+                            </fieldset>
+                            @if (Form.Source == CatalogSource)
+                            {
+                                <label>فیلتر دسته کاتالوگ
+                                    <select @bind="SelectedCatalogCategory">
+                                        <option value="">همهٔ دسته‌ها</option>
+                                        @foreach (var cat in CatalogCategories)
+                                        {
+                                            <option value="@cat">@cat</option>
+                                        }
+                                    </select>
+                                </label>
+                            }
+                            else
+                            {
+                                <label>نام خدمت<input @bind="Form.Name" placeholder="مثال: اصلاح موی سر" /></label>
+                            }
+                        </div>
+                        @if (Form.Source == CatalogSource)
+                        {
+                            <div class="service-form-row" style="margin-top: 10px; align-items: start;">
+                                <label>جست‌وجو در کاتالوگ
+                                    <input placeholder="نام یا کلمه کلیدی..." @bind="CatalogSearchQuery" @bind:event="oninput" />
+                                </label>
+                                <label>خدمت کاتالوگ
+                                    <select @bind="Form.CatalogItemId" @bind:after="CatalogChanged">
+                                        <option value="">— انتخاب کنید (@FilteredCatalogItems.Count() مورد) —</option>
+                                        @foreach (var item in FilteredCatalogItems)
+                                        {
+                                            <option value="@item.Id" data-i18n-skip>@item.Category · @item.Name</option>
+                                        }
+                                    </select>
+                                    <small>نام و مشخصات از کاتالوگ تکمیل می‌شود.</small>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (Form.Source == CustomSource)
+                {
+                    <label>نام خدمت<input @bind="Form.Name" /></label>
+                }
+                <label>توضیحات<textarea @bind="Form.Description" placeholder="توضیحات اختیاری درباره خدمت..."></textarea></label>
+                <div class="service-form-row">
+                    <label>مدت (دقیقه)<input type="number" min="5" step="5" @bind="Form.DurationMinutes" /></label>
+                    <label>قیمت خدمت (تومان)<input type="number" min="0" step="1000" @bind="Form.Price" /></label>
+                </div>
+                <div class="service-form-row" style="align-items: start;">
+                    <CancellationNoticeEditor Label="مهلت لغو خود خدمت (همهٔ شعب)" @bind-Value="Form.CancellationNoticeMinutes" />
+                    <CancellationNoticeEditor Label="مهلت لغو این خدمت در شعبهٔ انتخاب‌شده" @bind-Value="Form.BranchCancellationNoticeMinutes" />
+                </div>
+                <fieldset class="service-providers"><legend>کارکنان ارائه‌دهنده</legend>
+                    @if (!FormResources.Any()) { <small>ابتدا در صفحه شعب، منبع «عضو تیم» تعریف کنید.</small> }
+                    <div class="service-provider-list">@foreach (var resource in FormResources) { <label class="check-label"><input type="checkbox" checked="@SelectedResourceIds.Contains(resource.Id)" @onchange="() => ToggleResource(resource.Id)" /><span data-i18n-skip>@resource.Name</span></label> }</div>
+                </fieldset>
+                @if (Error is not null) { <div class="auth-error" role="alert" aria-live="polite">@Error</div> }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="Close">انصراف</button>
+                <button type="submit" class="primary-button">ذخیره خدمت و تخصیص‌ها</button>
+            </div>
         </EditForm>
     </div>
 }
@@ -125,6 +169,13 @@
         ? $"/admin/team?resourceId={resource.Id}"
         : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
 
+    private string SelectedCatalogCategory = "";
+    private string CatalogSearchQuery = "";
+    private IEnumerable<string> CatalogCategories => CatalogItems.Select(x => x.Category).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x);
+    private IEnumerable<ServiceCatalogItem> FilteredCatalogItems => CatalogItems
+        .Where(x => string.IsNullOrWhiteSpace(SelectedCatalogCategory) || x.Category == SelectedCatalogCategory)
+        .Where(x => string.IsNullOrWhiteSpace(CatalogSearchQuery) || x.Name.Contains(CatalogSearchQuery, StringComparison.OrdinalIgnoreCase) || x.Category.Contains(CatalogSearchQuery, StringComparison.OrdinalIgnoreCase));
+
     protected override async Task OnInitializedAsync()
     {
         await Load();
@@ -165,6 +216,8 @@
     private void OpenNew()
     {
         EditingId = null;
+        SelectedCatalogCategory = "";
+        CatalogSearchQuery = "";
         var selectedBranch = Branches.FirstOrDefault(b => b.Id == FilterBranchId);
         var businessId = BusinessOptions.FirstOrDefault(b => b.Id == FilterBusinessId)?.Id ?? selectedBranch?.BusinessId ?? BusinessOptions.FirstOrDefault()?.Id ?? Guid.Empty;
         Form = new() { BusinessId = businessId, BranchId = selectedBranch is not null && selectedBranch.BusinessId == businessId ? selectedBranch.Id : Branches.FirstOrDefault(b => b.BusinessId == businessId)?.Id ?? Guid.Empty };

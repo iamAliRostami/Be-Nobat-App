@@ -219,25 +219,25 @@ class AdminTeamActivity : BaseActivity() {
             .setTitle(getString(R.string.add_team_member))
             .field(getString(R.string.person_name_hint))
             .field(
-                label = getString(R.string.person_email_hint),
-                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
-            )
-            .field(
                 label = getString(R.string.person_phone_hint),
                 inputType = android.text.InputType.TYPE_CLASS_PHONE,
+            )
+            .field(
+                label = getString(R.string.person_email_hint),
+                inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
             )
             .dropdownField(getString(R.string.person_branch_hint), branchOptions)
             .dropdownField(getString(R.string.person_role_hint), roleOptions)
             .validate { values ->
                 val name = values.getOrNull(0)?.trim().orEmpty()
-                val email = values.getOrNull(1)?.trim().orEmpty()
-                val phone = values.getOrNull(2)?.trim().orEmpty()
+                val phone = values.getOrNull(1)?.trim().orEmpty()
+                val email = values.getOrNull(2)?.trim().orEmpty()
                 val branchId = values.getOrNull(3)?.trim().orEmpty()
 
-                if (name.isBlank() || email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    getString(R.string.error_name_email_required)
-                } else if (phone.isNotBlank() && (!phone.startsWith("09") || phone.length != 11)) {
-                    getString(R.string.error_phone_invalid)
+                if (name.isBlank() || phone.isBlank() || !phone.startsWith("09") || phone.length != 11) {
+                    getString(R.string.error_name_phone_required)
+                } else if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    getString(R.string.error_invalid_email)
                 } else if (branchId.isBlank()) {
                     getString(R.string.error_branch_required)
                 } else {
@@ -246,8 +246,8 @@ class AdminTeamActivity : BaseActivity() {
             }
             .onSubmit { values ->
                 val name = values[0].trim()
-                val email = values[1].trim()
-                val phone = values[2].trim().ifBlank { null }
+                val phone = values[1].trim()
+                val email = values[2].trim().ifBlank { null }
                 val branchId = values[3]
                 val role = values[4]
                 viewModel.createTeamMember(name, email, phone, branchId, role)

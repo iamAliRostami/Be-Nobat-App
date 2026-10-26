@@ -169,7 +169,10 @@ class BeNobatApiClient(
     }
 
     /** GET /businesses/{id} — `BusinessDetailDto`. */
-    suspend inline fun <reified T> getBusiness(id: String): Result<T> = get("/businesses/$id")
+    suspend inline fun <reified T> getBusiness(id: String): Result<T> {
+        val isUuid = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$").matches(id)
+        return if (isUuid) get("/businesses/$id") else get("/businesses/by-slug/$id")
+    }
 
     /** GET /businesses/{id}/reviews?page&pageSize — `ApiPage<PublicReviewDto>`. */
     suspend inline fun <reified T> listBusinessReviews(id: String, page: Int = 1, pageSize: Int = 20): Result<T> =
@@ -706,14 +709,12 @@ class BeNobatApiClient(
     /** PUT without a request body — used for idempotent toggles (favorites, active flags). */
     public suspend fun putEmpty(path: String): Result<Unit> = runCatching {
         val token = currentToken()
-        client.put("$baseUrl$path") { bearer(token) }.ensureSuccess()
-        Unit
+        client.put("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
     }
 
     public suspend fun delete(path: String): Result<Unit> = runCatching {
         val token = currentToken()
-        client.delete("$baseUrl$path") { bearer(token) }.ensureSuccess()
-        Unit
+        client.delete("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
     }
 
     /** DELETE that returns a deserialized body (e.g. `/me/avatar` returns the updated user). */

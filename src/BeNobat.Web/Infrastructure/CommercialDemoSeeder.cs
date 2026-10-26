@@ -4,6 +4,7 @@ using BeNobat.Web.Domain;
 using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace BeNobat.Web.Infrastructure;
 
@@ -19,9 +20,11 @@ public static class CommercialDemoSeeder
         var users = provider.GetRequiredService<UserManager<AppUser>>();
         var historyStart = DateTimeOffset.UtcNow.AddDays(-90);
         var configuration = provider.GetRequiredService<IConfiguration>();
-        var password = configuration["Seed:DemoPassword"];
+        var hostEnvironment = provider.GetService<IHostEnvironment>();
+        var isDevelopment = hostEnvironment?.IsDevelopment() ?? false;
+        var password = configuration["Seed:DemoPassword"] ?? (isDevelopment ? "DemoPreview2026!" : null);
         if (string.IsNullOrWhiteSpace(password))
-            throw new InvalidOperationException("برای ساخت مشتری‌های دمو، Seed__DemoPassword را مشخص کنید.");
+            throw new InvalidOperationException("برای ساخت کاربران دمو در محیط غیر توسعه، Seed__DemoPassword را مشخص کنید.");
 
         string[] firstNames = ["علی", "سارا", "رضا", "مریم", "امیر", "نگار", "محمد", "مهسا",
             "حسین", "نازنین", "آرمان", "الهام"];
@@ -45,6 +48,38 @@ public static class CommercialDemoSeeder
                 Check(await users.AddToRoleAsync(user, AppRoles.Customer));
             }
             customers.Add(user);
+        }
+
+        var ownerId = Id("demo-business-owner");
+        var ownerEmail = "owner@demo.benobat.example";
+        var owner = await users.FindByIdAsync(ownerId.ToString());
+        if (owner is null)
+        {
+            if (await users.FindByEmailAsync(ownerEmail) is not null)
+                throw new InvalidOperationException($"ایمیل {ownerEmail} قبلاً به حساب دیگری اختصاص دارد.");
+            owner = new AppUser
+            {
+                Id = ownerId, UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true,
+                DisplayName = "سارا رضایی (مالک کسب‌وکار)"
+            };
+            Check(await users.CreateAsync(owner, password));
+            Check(await users.AddToRoleAsync(owner, AppRoles.Owner));
+        }
+
+        var staffId = Id("demo-staff-elnaz");
+        var staffEmail = "elnaz.mohammadi@demo.benobat.example";
+        var staffUser = await users.FindByIdAsync(staffId.ToString());
+        if (staffUser is null)
+        {
+            if (await users.FindByEmailAsync(staffEmail) is not null)
+                throw new InvalidOperationException($"ایمیل {staffEmail} قبلاً به حساب دیگری اختصاص دارد.");
+            staffUser = new AppUser
+            {
+                Id = staffId, UserName = staffEmail, Email = staffEmail, EmailConfirmed = true,
+                DisplayName = "الناز محمدی (ارائه‌دهنده ونک)"
+            };
+            Check(await users.CreateAsync(staffUser, password));
+            Check(await users.AddToRoleAsync(staffUser, AppRoles.Staff));
         }
 
         // Price values follow the existing model's IRR currency.
@@ -272,6 +307,189 @@ public static class CommercialDemoSeeder
                 Status = ReviewStatus.Published, CreatedAt = appointment.EndsAt.AddHours(2), UpdatedAt = appointment.EndsAt.AddHours(2)
             });
         }
+
+        // امتیازدهی مجموعه به مشتری (CustomerReview) برای نوبت‌های تکمیل‌شده
+        var customerReviewedAppointmentIds = (await db.CustomerReviews.IgnoreQueryFilters()
+            .Select(x => x.AppointmentId).ToListAsync(ct)).ToHashSet();
+        string[] customerComments =
+        [
+            "مشتری بسیار محترم و وقت‌شناس، با تشکر از حضور به‌موقع.",
+            "مراجعه منظم و هماهنگی کامل در زمان نوبت.",
+            "بسیار خوش‌برخورد و بدون هیچ‌گونه تأخیر.",
+            "مشتری وفادار و منظم، میزبانی از ایشان مایه افتخار است."
+        ];
+        for (var i = 0; i < Math.Min(25, completed.Count); i++)
+        {
+            var appointment = completed[i];
+            if (customerReviewedAppointmentIds.Contains(appointment.Id)) continue;
+            db.CustomerReviews.Add(new CustomerReview
+            {
+                Id = Id($"customer-review-{appointment.Id}"),
+                AppointmentId = appointment.Id,
+                BusinessId = demoBranchBusinessIds[appointment.BranchId],
+                CustomerId = appointment.CustomerId,
+                AuthorId = owner.Id,
+                Rating = i % 6 == 0 ? 4 : 5,
+                Comment = customerComments[i % customerComments.Length],
+                CreatedAt = appointment.EndsAt.AddHours(3),
+                UpdatedAt = appointment.EndsAt.AddHours(3)
+            });
+        }
+
+        // درخواست‌های کسب‌وکار برای پنل مدیریت پلتفرم (PlatformRequests)
+        var existingRequestIds = (await db.BusinessRequests.IgnoreQueryFilters()
+            .Select(x => x.Id).ToListAsync(ct)).ToHashSet();
+        var pendingReqId = Id("demo-request-pending");
+        if (!existingRequestIds.Contains(pendingReqId))
+        {
+            db.BusinessRequests.Add(new BusinessRequest
+            {
+                Id = pendingReqId,
+                UserId = customers[0].Id,
+                BusinessName = "مرکز تخصصی مراقبت پوست ماهور",
+                Category = "زیبایی و آرایش",
+                City = "تهران",
+                ContactPhone = "09121112233",
+                Description = "ارائه خدمات فیشیال، هیدرافیشیال و پاکسازی با دستگاه‌های روز دنیا.",
+                FirstBranchName = "شعبه زعفرانیه",
+                FirstBranchAddress = "زعفرانیه، خیابان آصف، مجتمع تجاری ماهور",
+                Status = BusinessRequestStatus.Pending,
+                CreatedAt = now.AddDays(-2),
+                UpdatedAt = now.AddDays(-2)
+            });
+        }
+        var approvedReqId = Id("demo-request-approved");
+        if (!existingRequestIds.Contains(approvedReqId))
+        {
+            db.BusinessRequests.Add(new BusinessRequest
+            {
+                Id = approvedReqId,
+                UserId = customers[1].Id,
+                BusinessName = "سالن زیبایی نیلوفر",
+                Category = "زیبایی و آرایش",
+                City = "تهران",
+                ContactPhone = "09123334455",
+                Description = "مجموعه تخصصی زیبایی و مراقبت بانوان.",
+                FirstBranchName = "شعبه سعادت‌آباد",
+                FirstBranchAddress = "سعادت‌آباد، بلوار سرو، خیابان پنجم",
+                Status = BusinessRequestStatus.Approved,
+                ApprovedBusinessId = Id("demo-niloufar"),
+                ReviewNote = "مدارک صنفی بررسی و احراز هویت شد.",
+                CreatedAt = now.AddDays(-15),
+                UpdatedAt = now.AddDays(-14)
+            });
+        }
+        var rejectedReqId = Id("demo-request-rejected");
+        if (!existingRequestIds.Contains(rejectedReqId))
+        {
+            db.BusinessRequests.Add(new BusinessRequest
+            {
+                Id = rejectedReqId,
+                UserId = customers[2].Id,
+                BusinessName = "کافه و گیم‌کلاب کهکشان",
+                Category = "تفریحی و ورزشی",
+                City = "تهران",
+                ContactPhone = "09125556677",
+                Description = "رزرو میز بردگیم و اتاق بازی اختصاصی.",
+                FirstBranchName = "شعبه ولیعصر",
+                FirstBranchAddress = "میدان ولیعصر، کوچه فیروزه",
+                Status = BusinessRequestStatus.Rejected,
+                ReviewNote = "سامانه در فاز جاری صرفاً پذیرای خدمات سلامت، زیبایی، پزشکی و مشاوره‌ای است.",
+                CreatedAt = now.AddDays(-10),
+                UpdatedAt = now.AddDays(-9)
+            });
+        }
+
+        // کسب‌وکارهای برگزیده کاربر نمونه (FavoriteBusinesses)
+        var customer0 = customers[0];
+        var favBusinessId1 = Id("demo-niloufar");
+        var existingFavIds = (await db.FavoriteBusinesses.IgnoreQueryFilters()
+            .Where(x => x.UserId == customer0.Id)
+            .Select(x => x.BusinessId).ToListAsync(ct)).ToHashSet();
+        if (!existingFavIds.Contains(favBusinessId1))
+        {
+            db.FavoriteBusinesses.Add(new FavoriteBusiness
+            {
+                Id = Id($"fav-{customer0.Id}-{favBusinessId1}"),
+                UserId = customer0.Id,
+                BusinessId = favBusinessId1,
+                CreatedAt = now.AddDays(-12),
+                UpdatedAt = now.AddDays(-12)
+            });
+        }
+        var avanBusiness = await db.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Slug == "avan-beauty-studio", ct);
+        if (avanBusiness is not null && !existingFavIds.Contains(avanBusiness.Id))
+        {
+            db.FavoriteBusinesses.Add(new FavoriteBusiness
+            {
+                Id = Id($"fav-{customer0.Id}-{avanBusiness.Id}"),
+                UserId = customer0.Id,
+                BusinessId = avanBusiness.Id,
+                CreatedAt = now.AddDays(-8),
+                UpdatedAt = now.AddDays(-8)
+            });
+        }
+
+        // انتساب عضویت شعب (BranchMemberships) برای مالک و پرسنل دمو
+        var ownerMemberships = (await db.BranchMemberships.IgnoreQueryFilters()
+            .Where(m => m.UserId == owner.Id).Select(m => m.BranchId).ToListAsync(ct)).ToHashSet();
+        var niloufarBranches = await db.Branches.IgnoreQueryFilters()
+            .Where(b => b.BusinessId == Id("demo-niloufar")).ToListAsync(ct);
+        foreach (var nb in niloufarBranches)
+        {
+            if (!ownerMemberships.Contains(nb.Id))
+            {
+                db.BranchMemberships.Add(new BranchMembership
+                {
+                    Id = Id($"membership-{owner.Id}-{nb.Id}"),
+                    UserId = owner.Id,
+                    BranchId = nb.Id,
+                    Role = AppRoles.Owner,
+                    CreatedAt = historyStart,
+                    UpdatedAt = historyStart
+                });
+            }
+        }
+        var avanBranch = await db.Branches.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(b => b.Business.Slug == "avan-beauty-studio", ct);
+        if (avanBranch is not null)
+        {
+            if (!ownerMemberships.Contains(avanBranch.Id))
+            {
+                db.BranchMemberships.Add(new BranchMembership
+                {
+                    Id = Id($"membership-{owner.Id}-{avanBranch.Id}"),
+                    UserId = owner.Id,
+                    BranchId = avanBranch.Id,
+                    Role = AppRoles.Owner,
+                    CreatedAt = historyStart,
+                    UpdatedAt = historyStart
+                });
+            }
+
+            var staffMembership = await db.BranchMemberships.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(m => m.UserId == staffUser.Id && m.BranchId == avanBranch.Id, ct);
+            if (staffMembership is null)
+            {
+                db.BranchMemberships.Add(new BranchMembership
+                {
+                    Id = Id($"membership-{staffUser.Id}-{avanBranch.Id}"),
+                    UserId = staffUser.Id,
+                    BranchId = avanBranch.Id,
+                    Role = AppRoles.Staff,
+                    CreatedAt = historyStart,
+                    UpdatedAt = historyStart
+                });
+            }
+
+            var elnazResource = await db.Resources.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(r => r.BranchId == avanBranch.Id && r.Name == "الناز محمدی", ct);
+            if (elnazResource is not null && elnazResource.UserId != staffUser.Id)
+            {
+                elnazResource.UserId = staffUser.Id;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
     }
 

@@ -230,7 +230,7 @@ class AdminAvailabilityViewModel(
         _state.value = _state.value.copy(loading = true, error = null)
         create.invoke(input)
             .onSuccess {
-                _state.value = _state.value.copy(message = "بازه زمانی با موفقیت ثبت شد.")
+                _state.value = _state.value.copy(message = "availability_created")
                 load()
             }
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
@@ -240,7 +240,7 @@ class AdminAvailabilityViewModel(
         _state.value = _state.value.copy(loading = true, error = null)
         update.invoke(id, input)
             .onSuccess {
-                _state.value = _state.value.copy(message = "بازه زمانی با موفقیت ویرایش شد.")
+                _state.value = _state.value.copy(message = "availability_updated")
                 load()
             }
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
@@ -250,10 +250,14 @@ class AdminAvailabilityViewModel(
         _state.value = _state.value.copy(loading = true, error = null)
         delete.invoke(id)
             .onSuccess {
-                _state.value = _state.value.copy(message = "بازه زمانی با موفقیت حذف شد.")
+                _state.value = _state.value.copy(message = "availability_deleted")
                 load()
             }
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
+    }
+
+    fun clearMessage() {
+        _state.value = _state.value.copy(message = null)
     }
 
     private fun applyFilters(

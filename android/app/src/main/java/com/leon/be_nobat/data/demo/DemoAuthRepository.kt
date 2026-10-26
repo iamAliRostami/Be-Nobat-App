@@ -35,8 +35,12 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
     override suspend fun login(email: String, password: String): Result<MobileSession> = runCatching {
         simulateNetworkDelay()
         val user = dataStore.read { s ->
-            val u = s.users.firstOrNull { it.email.equals(email.trim(), true) || it.phoneNumber == email.trim() }
-                ?: throw AuthException.InvalidCredentials
+            val normalized = LoginIdentifier.normalizeIranianMobileForRegister(email.trim())
+            val u = s.users.firstOrNull {
+                it.email.equals(email.trim(), true) ||
+                it.phoneNumber == email.trim() ||
+                it.phoneNumber == normalized
+            } ?: throw AuthException.InvalidCredentials
             if (!u.active) throw AuthException.AccountLocked
             if (password != (s.passwords[u.id] ?: "Demo1234!")) throw AuthException.InvalidCredentials
             u.toUser(s.avatars[u.id])
@@ -46,13 +50,14 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
 
     override suspend fun register(input: RegisterInput): Result<MobileSession> = runCatching {
         simulateNetworkDelay()
-        require(!input.displayName.isNullOrBlank() && !input.email.isNullOrBlank() && !input.password.isNullOrBlank())
+        require(!input.displayName.isNullOrBlank() && !input.phoneNumber.isNullOrBlank() && !input.password.isNullOrBlank())
         val user = dataStore.update { s ->
-            if (s.users.any { it.email.equals(input.email, true) }) throw AuthException.DuplicateEmail
+            if (!input.email.isNullOrBlank() && s.users.any { it.email.equals(input.email, true) }) throw AuthException.DuplicateEmail
+            if (s.users.any { it.phoneNumber == input.phoneNumber }) throw AuthException.DuplicatePhone
             val u = ManagementUser(
                 id = demoId(),
                 displayName = input.displayName.trim(),
-                email = input.email.trim(),
+                email = input.email?.trim() ?: "",
                 phoneNumber = input.phoneNumber,
                 roles = listOf("Customer"),
                 active = true

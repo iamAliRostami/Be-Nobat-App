@@ -59,14 +59,14 @@
     <!-- 4 Key Stat Cards -->
     <div class="stat-cards" style="margin-top: 16px;">
         <div class="stat-card-link">
-            <i class="green">💳</i>
+            <i class="green">◈</i>
             <div>
                 <small>درآمد کل</small>
                 <strong>@LocalizedDate.FormatNumber(TotalRevenue, "fa", "N0") <span style="font-size: 0.7em; font-weight: normal;">تومان</span></strong>
             </div>
         </div>
         <div class="stat-card-link">
-            <i class="blue">⏱</i>
+            <i class="blue">◷</i>
             <div>
                 <small>ساعات کاری</small>
                 <strong>@LocalizedDate.FormatNumber(TotalWorkHours, "fa") <span style="font-size: 0.7em; font-weight: normal;">ساعت</span></strong>
@@ -80,7 +80,7 @@
             </div>
         </div>
         <div class="stat-card-link">
-            <i class="orange">📈</i>
+            <i class="orange">▥</i>
             <div>
                 <small>نرخ موفقیت</small>
                 <strong>@(TotalCount > 0 ? LocalizedDate.FormatNumber(Math.Round((double)CompletedCount * 100 / TotalCount), "fa") : "۰")٪</strong>

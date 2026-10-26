@@ -106,8 +106,8 @@
                 <button type="button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
             </div>
             <label>نام و نام خانوادگی<input required @bind="Form.Name" /></label>
-            <label>ایمیل<input type="email" required disabled="@(Editing is not null)" @bind="Form.Email" /></label>
-            <label>شماره تماس<input inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Form.Phone" /></label>
+            <label>ایمیل (اختیاری)<input type="email" disabled="@(Editing is not null)" @bind="Form.Email" /></label>
+            <label>شماره تماس (الزامی)<input required inputmode="tel" maxlength="14" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="Form.Phone" /></label>
             @if (IsTeam && Editing is null)
             {
                 <label>شعبه
@@ -327,20 +327,28 @@
     {
         Error = null;
         if (!await Access.IsActiveUserAsync() || (!IsTeam && !await Access.IsPlatformAdminAsync())) { Error = "اجازه‌ی مدیریت حساب‌ها را ندارید."; return; }
-        if (string.IsNullOrWhiteSpace(Form.Name) || Form.Name.Trim().Length > 200 ||
-            string.IsNullOrWhiteSpace(Form.Email) || Form.Email.Trim().Length > 254 ||
-            !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(Form.Email.Trim()))
-        { Error = "نام و ایمیل معتبر الزامی است."; return; }
+        if (string.IsNullOrWhiteSpace(Form.Name) || Form.Name.Trim().Length > 200)
+        { Error = "نام الزامی است."; return; }
         if (!UserInputValidation.TryNormalizeIranianMobile(Form.Phone, out var phone))
         {
-            Error = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
+            Error = "شماره موبایل الزامی است و باید ۱۱ رقم و با ۰۹ شروع شود.";
             return;
+        }
+
+        var rawEmail = (Form.Email ?? "").Trim();
+        string? email = null;
+        if (!string.IsNullOrWhiteSpace(rawEmail))
+        {
+            if (rawEmail.Length > 254 || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(rawEmail))
+            {
+                Error = "ایمیل وارد شده معتبر نیست.";
+                return;
+            }
+            email = rawEmail;
         }
 
         if (Editing is null)
         {
-            var email = Form.Email.Trim();
-
             if (IsTeam)
             {
                 if (Form.BranchId is not Guid selectedBranch || !await Access.CanManageBranchAsync(selectedBranch))
@@ -355,8 +363,13 @@
                 }
             }
 
-            // [fix] پیش از ساخت حساب، تکراری بودن ایمیل را با پیام فارسی اعلام می‌کنیم.
-            if (await UserManager.FindByEmailAsync(email) is not null)
+            if (await UserManager.Users.AnyAsync(u => u.PhoneNumber == phone || u.UserName == phone))
+            {
+                Error = "کاربری با این شماره موبایل از قبل وجود دارد.";
+                return;
+            }
+
+            if (email is not null && await UserManager.FindByEmailAsync(email) is not null)
             {
                 Error = "کاربری با این ایمیل از قبل وجود دارد.";
                 return;
@@ -364,9 +377,9 @@
 
             var user = new AppUser
             {
-                UserName = email,
+                UserName = phone,
                 Email = email,
-                EmailConfirmed = true,
+                EmailConfirmed = email is not null,
                 DisplayName = Form.Name.Trim(),
                 PhoneNumber = phone,
             };

@@ -196,7 +196,8 @@ class WeeklyHoursEditor : FrameLayout {
             layoutDayActions.isVisible = true
             layoutDayClosed.isVisible = false
 
-            btnAddAnotherRange.text = "+ بازه دیگر برای $selectedDayName"
+            btnAddAnotherRange.text = context.getString(R.string.btn_add_another_range)
+            btnCopyDay.text = context.getString(R.string.btn_copy_all_days)
 
             layoutRangesContainer.removeAllViews()
             val inflater = LayoutInflater.from(context)

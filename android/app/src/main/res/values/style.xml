@@ -13,6 +13,11 @@
         <item name="android:supportsRtl">true</item>
         <item name="android:fontFamily">@font/app_font</item>
     </style>
+    <style name="Widget.BeNobat.Button.Secondary" parent="Widget.BeNobat.Button.Tonal" />
+    <style name="TextAppearance.BeNobat.Label" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/app_font</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 
     <style name="Widget.BeNobat.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
         <item name="cornerRadius">@dimen/button_corner_radius</item>
@@ -212,10 +217,10 @@
     </style>
 
     <style name="Widget.BeNobat.BottomNavigationView" parent="Widget.Material3.BottomNavigationView">
-        <item name="android:minHeight">58dp</item>
+        <item name="android:minHeight">64dp</item>
         <item name="itemIconSize">22dp</item>
-        <item name="itemPaddingTop">4dp</item>
-        <item name="itemPaddingBottom">4dp</item>
+        <item name="itemPaddingTop">6dp</item>
+        <item name="itemPaddingBottom">10dp</item>
         <item name="itemTextAppearanceInactive">@style/TextAppearance.BeNobat.BottomNav</item>
         <item name="itemTextAppearanceActive">@style/TextAppearance.BeNobat.BottomNav.Active</item>
         <item name="android:background">?attr/colorSurface</item>

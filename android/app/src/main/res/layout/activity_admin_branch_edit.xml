@@ -13,46 +13,65 @@
         android:background="?attr/colorSurface"
         app:elevation="0.5dp">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
+            android:id="@+id/adminHeaderBar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:paddingStart="4dp"
-            android:paddingEnd="16dp">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp">
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/action_close"
-                android:src="@drawable/ic_back"
-                app:tint="?attr/colorOnSurface" />
+                style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
+                android:contentDescription="@string/action_back"
+                android:tooltipText="@string/action_back"
+                app:icon="@drawable/ic_back" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tvHeaderTitle"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textAppearance="@style/TextAppearance.BeNobat.Brand"
+                android:textSize="20sp"
+                tools:text="افزودن شعبه" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnThemeToggle"
+                style="@style/Widget.BeNobat.Button.Icon.Header"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/switch_theme"
+                app:icon="@drawable/ic_switch_theme" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLanguage"
+                style="@style/Widget.BeNobat.Button.Icon.Header"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:layout_marginStart="8dp"
-                android:orientation="vertical">
+                android:contentDescription="@string/language"
+                app:icon="@drawable/ic_language" />
 
-                <TextView
-                    android:id="@+id/tvHeaderTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
-                    android:textSize="17sp"
-                    android:textColor="?attr/colorOnSurface"
-                    tools:text="ویرایش شعبه" />
-
-                <TextView
-                    android:id="@+id/tvHeaderSubtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                    android:textSize="11.5sp"
-                    android:text="مشخصات شعبه، نشانی و ساعات کاری هفتگی" />
-            </LinearLayout>
-        </androidx.appcompat.widget.Toolbar>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPublicView"
+                style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:contentDescription="@string/public_view"
+                android:tooltipText="@string/public_view"
+                app:icon="@drawable/ic_home" />
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -103,22 +122,31 @@
                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                         android:textSize="12sp" />
 
-                    <!-- Business Dropdown -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="کسب‌وکار مربوطه *"
-                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                        android:textSize="12sp" />
-
-                    <Spinner
-                        android:id="@+id/spinnerBusiness"
+                    <!-- Business Selection with Search -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilBusiness"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="4dp"
+                        android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:background="@drawable/bg_day_tab_unselected"
-                        android:paddingHorizontal="12dp" />
+                        android:hint="کسب‌وکار مربوطه *"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:startIconDrawable="@drawable/ic_search"
+                        app:startIconContentDescription="جستجوی کسب‌وکار"
+                        app:helperText="برای جستجو تایپ کنید یا روی آیکون جستجو بزنید">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/autoCompleteBusiness"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:completionThreshold="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
                     <!-- Branch Name -->
                     <com.google.android.material.textfield.TextInputLayout
@@ -309,6 +337,18 @@
                             android:textSize="12sp"
                             app:cornerRadius="10dp" />
                     </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnShareBranch"
+                        style="@style/Widget.BeNobat.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="42dp"
+                        android:text="@string/share_branch_booking_link"
+                        android:textSize="12sp"
+                        app:cornerRadius="10dp"
+                        app:icon="@drawable/ic_qrcode"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

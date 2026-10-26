@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.domain.model.BusinessRequestInput
+import com.leon.be_nobat.domain.usecase.GetCategoriesUseCase
 import com.leon.be_nobat.domain.usecase.GetMyBusinessRequestUseCase
 import com.leon.be_nobat.domain.usecase.SubmitBusinessRequestUseCase
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,8 @@ data class ProfileUiState(
     val businessRequest: BusinessRequest? = null,
     val loadingBusinessRequest: Boolean = false,
     val submittingBusinessRequest: Boolean = false,
+    val categories: List<String> = emptyList(),
+    val loadingCategories: Boolean = false,
     val savingProfile: Boolean = false,
     val changingPassword: Boolean = false,
     val changingEmail: Boolean = false,
@@ -47,6 +50,7 @@ class ProfileViewModel(
     private val logoutUseCase: LogoutUseCase,
     private val getMyBusinessRequestUseCase: GetMyBusinessRequestUseCase,
     private val submitBusinessRequestUseCase: SubmitBusinessRequestUseCase,
+    private val getCategoriesUseCase: GetCategoriesUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileUiState(loading = true))
@@ -69,6 +73,38 @@ class ProfileViewModel(
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
 
         loadBusinessRequest()
+        loadCategories()
+    }
+
+    fun loadCategories() = viewModelScope.launch {
+        _state.value = _state.value.copy(loadingCategories = true)
+        getCategoriesUseCase()
+            .onSuccess { apiItems ->
+                val businessCategories = apiItems.items
+                    .filter { it.kind.equals("Business", ignoreCase = true) }
+                    .sortedBy { it.sortOrder }
+                    .map { it.name.trim() }
+                    .filter { it.isNotBlank() }
+                val list = if (businessCategories.isNotEmpty()) {
+                    businessCategories
+                } else {
+                    apiItems.items
+                        .map { it.name.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                }
+                if (list.isNotEmpty()) {
+                    _state.value = _state.value.copy(
+                        loadingCategories = false,
+                        categories = list
+                    )
+                } else {
+                    _state.value = _state.value.copy(loadingCategories = false)
+                }
+            }
+            .onFailure {
+                _state.value = _state.value.copy(loadingCategories = false)
+            }
     }
 
     fun loadBusinessRequest() = viewModelScope.launch {

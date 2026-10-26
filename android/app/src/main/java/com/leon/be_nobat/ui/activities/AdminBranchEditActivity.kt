@@ -3,17 +3,24 @@ package com.leon.be_nobat.ui.activities
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.ImageButton
+import android.widget.Filter
+import android.widget.Filterable
+import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.leon.be_nobat.R
@@ -41,8 +48,11 @@ class AdminBranchEditActivity : BaseActivity() {
     private var editingBranchId: String? = null
     private var existingBranch: ManagementBranch? = null
     private var businessesList: List<Pair<String, String>> = emptyList() // ID to Name
+    private var selectedBusinessId: String? = null
+    private var businessFilterAdapter: BusinessFilterAdapter? = null
 
-    private lateinit var spinnerBusiness: Spinner
+    private lateinit var tilBusiness: TextInputLayout
+    private lateinit var autoCompleteBusiness: MaterialAutoCompleteTextView
     private lateinit var tilBranchName: TextInputLayout
     private lateinit var etBranchName: TextInputEditText
     private lateinit var spinnerTimeZone: Spinner
@@ -83,13 +93,14 @@ class AdminBranchEditActivity : BaseActivity() {
     }
 
     override fun setupViews() {
-        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
-
-        val tvHeaderTitle = findViewById<TextView>(R.id.tvHeaderTitle)
         val isEditing = !editingBranchId.isNullOrBlank()
-        tvHeaderTitle.text = if (isEditing) "ویرایش شعبه" else "افزودن شعبه"
+        setupAdminHeader(
+            title = if (isEditing) "ویرایش شعبه" else "افزودن شعبه",
+            onBack = { finish() }
+        )
 
-        spinnerBusiness = findViewById(R.id.spinnerBusiness)
+        tilBusiness = findViewById(R.id.tilBusiness)
+        autoCompleteBusiness = findViewById(R.id.autoCompleteBusiness)
         tilBranchName = findViewById(R.id.tilBranchName)
         etBranchName = findViewById(R.id.etBranchName)
         spinnerTimeZone = findViewById(R.id.spinnerTimeZone)
@@ -110,12 +121,130 @@ class AdminBranchEditActivity : BaseActivity() {
         btnSave.text = if (isEditing) "ذخیره تغییرات" else "ایجاد شعبه"
         btnCancel.setOnClickListener { finish() }
 
+        setupBusinessSelection()
         setupTimeZoneSpinner()
         loadData()
     }
 
     override fun observeViewModel() {
         // Direct Coroutine/UseCase invocation
+    }
+
+    private fun setupBusinessSelection() {
+        tilBusiness.setStartIconOnClickListener {
+            if (tilBusiness.isEnabled) {
+                showBusinessSearchDialog()
+            }
+        }
+
+        autoCompleteBusiness.setOnClickListener {
+            if (autoCompleteBusiness.isEnabled) {
+                autoCompleteBusiness.showDropDown()
+            }
+        }
+
+        autoCompleteBusiness.setOnItemClickListener { _, _, position, _ ->
+            val chosen = businessFilterAdapter?.getItemAt(position)
+            if (chosen != null) {
+                selectedBusinessId = chosen.first
+                autoCompleteBusiness.setText(chosen.second, false)
+                tilBusiness.error = null
+            }
+        }
+
+        autoCompleteBusiness.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val current = s?.toString()?.trim().orEmpty()
+                val currentMatch = businessesList.firstOrNull { it.first == selectedBusinessId }
+                if (currentMatch == null || !currentMatch.second.equals(current, ignoreCase = true)) {
+                    val directMatch = businessesList.firstOrNull { it.second.equals(current, ignoreCase = true) }
+                    selectedBusinessId = directMatch?.first
+                }
+            }
+        })
+    }
+
+    private fun showBusinessSearchDialog() {
+        if (businessesList.isEmpty()) {
+            Toast.makeText(this, "کسب‌وکاری یافت نشد", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val context = this
+        val dialogView = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = (16 * resources.displayMetrics.density).toInt()
+            setPadding(p, p, p, 0)
+        }
+
+        val radius = 12 * resources.displayMetrics.density
+        val searchTil = TextInputLayout(context, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+            hint = "جستجوی نام کسب‌وکار…"
+            setStartIconDrawable(R.drawable.ic_search)
+            setBoxCornerRadii(radius, radius, radius, radius)
+        }
+        val searchEt = TextInputEditText(searchTil.context).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            maxLines = 1
+            typeface = androidx.core.content.res.ResourcesCompat.getFont(context, R.font.app_font)
+        }
+        searchTil.addView(searchEt)
+        dialogView.addView(searchTil)
+
+        val listView = ListView(context).apply {
+            divider = null
+            dividerHeight = 0
+            val listMarginTop = (8 * resources.displayMetrics.density).toInt()
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (300 * resources.displayMetrics.density).toInt()
+            ).apply { topMargin = listMarginTop }
+        }
+        dialogView.addView(listView)
+
+        var currentFiltered = businessesList
+        val listAdapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_list_item_1,
+            currentFiltered.map { it.second }.toMutableList()
+        )
+        listView.adapter = listAdapter
+
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setTitle("انتخاب کسب‌وکار")
+            .setView(dialogView)
+            .setNegativeButton(R.string.action_close, null)
+            .create()
+
+        searchEt.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val q = s?.toString()?.trim()?.lowercase().orEmpty()
+                currentFiltered = if (q.isEmpty()) {
+                    businessesList
+                } else {
+                    businessesList.filter { it.second.lowercase().contains(q) }
+                }
+                listAdapter.clear()
+                listAdapter.addAll(currentFiltered.map { it.second })
+                listAdapter.notifyDataSetChanged()
+            }
+        })
+
+        listView.setOnItemClickListener { _, _, position, _ ->
+            val chosen = currentFiltered.getOrNull(position)
+            if (chosen != null) {
+                selectedBusinessId = chosen.first
+                autoCompleteBusiness.setText(chosen.second, false)
+                tilBusiness.error = null
+            }
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun setupTimeZoneSpinner() {
@@ -133,14 +262,8 @@ class AdminBranchEditActivity : BaseActivity() {
         lifecycleScope.launch {
             managementRepository.listBusinesses(pageSize = 100).onSuccess { page ->
                 businessesList = page.items.filter { it.active }.map { it.id to it.name }
-                val bizAdapter = ArrayAdapter(
-                    this@AdminBranchEditActivity,
-                    android.R.layout.simple_spinner_item,
-                    businessesList.map { it.second }
-                ).apply {
-                    setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                }
-                spinnerBusiness.adapter = bizAdapter
+                businessFilterAdapter = BusinessFilterAdapter(this@AdminBranchEditActivity, businessesList)
+                autoCompleteBusiness.setAdapter(businessFilterAdapter)
 
                 if (editingBranchId != null) {
                     loadBranchDetails(editingBranchId!!)
@@ -159,11 +282,13 @@ class AdminBranchEditActivity : BaseActivity() {
             etBranchAddress.setText(branch.address)
 
             // Select business
-            val bizIndex = businessesList.indexOfFirst { it.first == branch.businessId }
-            if (bizIndex >= 0) {
-                spinnerBusiness.setSelection(bizIndex)
+            val biz = businessesList.firstOrNull { it.first == branch.businessId }
+            if (biz != null) {
+                selectedBusinessId = biz.first
+                autoCompleteBusiness.setText(biz.second, false)
             }
-            spinnerBusiness.isEnabled = false // Business cannot be changed once branch is created
+            tilBusiness.isEnabled = false
+            autoCompleteBusiness.isEnabled = false
 
             // Select timezone
             val tzIndex = timeZones.indexOfFirst { it.first.equals(branch.timeZoneId, ignoreCase = true) }
@@ -177,7 +302,7 @@ class AdminBranchEditActivity : BaseActivity() {
 
             // Show additional details card
             cardBranchDetails.isVisible = true
-            tvBranchId.text = "شناسه سیستمی شعبه: ${branch.id}"
+            tvBranchId.text = getString(R.string.branch_system_id, branch.id)
             switchBranchActive.isChecked = branch.active
 
             switchBranchActive.setOnCheckedChangeListener { _, isChecked ->
@@ -197,6 +322,16 @@ class AdminBranchEditActivity : BaseActivity() {
             }
             btnViewServices.setOnClickListener {
                 startActivity(Intent(this@AdminBranchEditActivity, AdminServicesActivity::class.java))
+            }
+            findViewById<com.google.android.material.button.MaterialButton>(R.id.btnShareBranch)?.setOnClickListener {
+                val b = existingBranch ?: return@setOnClickListener
+                com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                    context = this@AdminBranchEditActivity,
+                    businessId = b.businessId,
+                    businessName = b.businessName?.takeIf { it.isNotBlank() } ?: autoCompleteBusiness.text?.toString()?.takeIf { it.isNotBlank() } ?: getString(R.string.my_business),
+                    branchId = b.id,
+                    branchName = b.name,
+                )
             }
 
             btnSave.setOnClickListener { saveBranch() }
@@ -222,15 +357,20 @@ class AdminBranchEditActivity : BaseActivity() {
 
         val address = etBranchAddress.text?.toString()?.trim().orEmpty()
 
-        val selectedBizIndex = spinnerBusiness.selectedItemPosition
         val businessId = if (existingBranch != null) {
             existingBranch!!.businessId
-        } else if (selectedBizIndex in businessesList.indices) {
-            businessesList[selectedBizIndex].first
         } else {
-            Snackbar.make(btnSave, "لطفاً ابتدا یک کسب‌وکار انتخاب کنید.", Snackbar.LENGTH_LONG).show()
+            selectedBusinessId ?: businessesList.firstOrNull {
+                it.second.equals(autoCompleteBusiness.text?.toString()?.trim(), ignoreCase = true)
+            }?.first
+        }
+
+        if (businessId.isNullOrBlank()) {
+            tilBusiness.error = "لطفاً ابتدا یک کسب‌وکار انتخاب کنید."
+            autoCompleteBusiness.requestFocus()
             return
         }
+        tilBusiness.error = null
 
         val tzIndex = spinnerTimeZone.selectedItemPosition
         val timeZoneId = if (tzIndex in timeZones.indices) timeZones[tzIndex].first else "Asia/Tehran"
@@ -272,6 +412,53 @@ class AdminBranchEditActivity : BaseActivity() {
                 }.onFailure { err ->
                     btnSave.isEnabled = true
                     Snackbar.make(btnSave, err.message ?: "خطا در ذخیره تغییرات شعبه", Snackbar.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private class BusinessFilterAdapter(
+        context: Context,
+        private val allItems: List<Pair<String, String>>
+    ) : ArrayAdapter<String>(context, android.R.layout.simple_dropdown_item_1line, mutableListOf()), Filterable {
+
+        private var filteredItems: List<Pair<String, String>> = allItems
+
+        init {
+            addAll(allItems.map { it.second })
+        }
+
+        override fun getCount(): Int = filteredItems.size
+
+        override fun getItem(position: Int): String = filteredItems[position].second
+
+        fun getItemAt(position: Int): Pair<String, String>? = filteredItems.getOrNull(position)
+
+        override fun getFilter(): Filter {
+            return object : Filter() {
+                override fun performFiltering(constraint: CharSequence?): FilterResults {
+                    val query = constraint?.toString()?.trim()?.lowercase().orEmpty()
+                    val list = if (query.isEmpty()) {
+                        allItems
+                    } else {
+                        allItems.filter { it.second.lowercase().contains(query) }
+                    }
+                    return FilterResults().apply {
+                        values = list
+                        count = list.size
+                    }
+                }
+
+                @Suppress("UNCHECKED_CAST")
+                override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                    filteredItems = (results?.values as? List<Pair<String, String>>) ?: allItems
+                    clear()
+                    addAll(filteredItems.map { it.second })
+                    notifyDataSetChanged()
+                }
+
+                override fun convertResultToString(resultValue: Any?): CharSequence {
+                    return (resultValue as? Pair<*, *>)?.second?.toString() ?: (resultValue as? String) ?: ""
                 }
             }
         }

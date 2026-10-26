@@ -479,11 +479,14 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         requireActor(true)
         update { s ->
             val branch = s.branches.firstOrNull { it.id == input.branchId } ?: error("شعبه یافت نشد")
-            val existing = s.users.firstOrNull { it.email.equals(input.email, ignoreCase = true) }
+            val existing = s.users.firstOrNull {
+                (!input.email.isNullOrBlank() && it.email.equals(input.email, ignoreCase = true)) ||
+                (!input.phone.isNullOrBlank() && it.phoneNumber == input.phone)
+            }
             val user = existing ?: com.leon.be_nobat.domain.model.ManagementUser(
                 id = "demo_user_${s.users.size + 1}",
                 displayName = input.name,
-                email = input.email,
+                email = input.email ?: "",
                 phoneNumber = input.phone,
                 active = true,
                 roles = listOf(input.role)
@@ -539,11 +542,16 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         requireActor(true)
         update { s ->
-            require(s.users.none { it.email.equals(input.email, ignoreCase = true) }) { "کاربری با این ایمیل از قبل وجود دارد." }
+            if (!input.email.isNullOrBlank()) {
+                require(s.users.none { it.email.equals(input.email, ignoreCase = true) }) { "کاربری با این ایمیل از قبل وجود دارد." }
+            }
+            if (!input.phone.isNullOrBlank()) {
+                require(s.users.none { it.phoneNumber == input.phone }) { "کاربری با این شماره موبایل از قبل وجود دارد." }
+            }
             val user = com.leon.be_nobat.domain.model.ManagementUser(
                 id = "demo_customer_${s.users.size + 1}",
                 displayName = input.name,
-                email = input.email,
+                email = input.email ?: "",
                 phoneNumber = input.phone,
                 active = true,
                 roles = listOf("Customer")

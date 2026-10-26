@@ -147,8 +147,19 @@ class AdminAvailabilityActivity : BaseActivity() {
 
         renderFilterToolbar(state)
 
-        state.message?.let {
-            Snackbar.make(swipeRefresh, it, Snackbar.LENGTH_SHORT).show()
+        state.message?.let { msg ->
+            val resId = when (msg) {
+                "availability_created" -> R.string.msg_availability_created
+                "availability_updated" -> R.string.msg_availability_updated
+                "availability_deleted" -> R.string.msg_availability_deleted
+                else -> null
+            }
+            if (resId != null) {
+                Snackbar.make(swipeRefresh, resId, Snackbar.LENGTH_SHORT).show()
+            } else {
+                Snackbar.make(swipeRefresh, msg, Snackbar.LENGTH_SHORT).show()
+            }
+            viewModel.clearMessage()
         }
     }
 
@@ -679,7 +690,7 @@ class AdminAvailabilityActivity : BaseActivity() {
                 // Subtitle: "ساعت ۰۹:۰۰ تا ۱۸:۰۰"
                 val startClean = PersianUtils.toPersianDigits(item.startsAt.take(5))
                 val endClean = PersianUtils.toPersianDigits(item.endsAt.take(5))
-                tvSubtitle.text = "ساعت $startClean تا $endClean"
+                tvSubtitle.text = context.getString(R.string.availability_hours_range, startClean, endClean)
 
                 // Body: Scope "کسب‌وکار | شعبه | کارمند"
                 val bName = item.businessName?.ifBlank { null } ?: "کسب‌وکار"

@@ -60,7 +60,7 @@ class PlatformAccessActivity : BaseActivity() {
             sendPasswordSms()
         } else {
             viewModel.smsPermissionPending = true
-            com.leon.be_nobat.helpers.AppToast.show(this, "برای ارسال رمز جدید با سیم‌کارت پیش‌فرض گوشی، مجوز پیامک لازم است؛ هزینه طبق تعرفهٔ سیم‌کارت است.")
+            com.leon.be_nobat.helpers.AppToast.show(this, getString(R.string.platform_access_sms_permission_notice))
             smsPermission.launch(android.Manifest.permission.SEND_SMS)
         }
     }
@@ -68,9 +68,9 @@ class PlatformAccessActivity : BaseActivity() {
     private fun sendPasswordSms() {
         // Consume before telephony handoff to avoid sending again after Activity recreation.
         val pending = viewModel.takePasswordSms() ?: return
-        val result = com.leon.be_nobat.notifications.DeviceSms.send(this, pending.phoneNumber, pending.body(), "رمز بازنشانی شد")
+        val result = com.leon.be_nobat.notifications.DeviceSms.send(this, pending.phoneNumber, pending.body(), getString(R.string.platform_access_sms_action_reset))
         MaterialAlertDialogBuilder(this)
-            .setTitle("رمز موقت کاربر")
+            .setTitle(getString(R.string.platform_access_temp_password_title))
             .setMessage("$result\n\n${getString(R.string.temporary_password, pending.password)}")
             .setPositiveButton(R.string.action_close, null)
             .show()
@@ -205,7 +205,7 @@ class PlatformAccessActivity : BaseActivity() {
 
         state.temporaryPassword?.takeIf { state.message != "reset_done" }?.let { pwd ->
             MaterialAlertDialogBuilder(this)
-                .setTitle("رمز موقت کاربر")
+                .setTitle(R.string.platform_access_temp_password_title)
                 .setMessage(getString(R.string.temporary_password, pwd))
                 .setPositiveButton(R.string.action_close) { _, _ -> viewModel.clearMessage() }
                 .show()

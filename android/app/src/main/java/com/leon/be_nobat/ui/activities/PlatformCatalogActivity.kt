@@ -36,14 +36,16 @@ class PlatformCatalogActivity : BaseActivity() {
         "عمومی", "پزشکی و سلامت", "زیبایی و سلامت", "آموزش", "خدمات فنی", "ورزش", "مشاوره", "فروشگاهی", "سایر"
     )
 
-    private val durationOptions = listOf(
-        AdminFormDialog.DropdownOption("15", "۱۵ دقیقه"),
-        AdminFormDialog.DropdownOption("30", "۳۰ دقیقه"),
-        AdminFormDialog.DropdownOption("45", "۴۵ دقیقه"),
-        AdminFormDialog.DropdownOption("60", "۱ ساعت"),
-        AdminFormDialog.DropdownOption("90", "۱.۵ ساعت"),
-        AdminFormDialog.DropdownOption("120", "۲ ساعت"),
-    )
+    private val durationOptions by lazy {
+        listOf(
+            AdminFormDialog.DropdownOption("15", getString(R.string.duration_15m)),
+            AdminFormDialog.DropdownOption("30", getString(R.string.duration_30m)),
+            AdminFormDialog.DropdownOption("45", getString(R.string.duration_45m)),
+            AdminFormDialog.DropdownOption("60", getString(R.string.duration_1h)),
+            AdminFormDialog.DropdownOption("90", getString(R.string.duration_1_5h)),
+            AdminFormDialog.DropdownOption("120", getString(R.string.duration_2h)),
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -154,7 +156,7 @@ class PlatformCatalogActivity : BaseActivity() {
         override fun bindHolder(holder: AdminViewHolder, item: ManagementCatalog) {
             holder.binding.apply {
                 tvTitle.text = item.name
-                val durationStr = "${PersianUtils.toPersianDigits(item.suggestedDurationMinutes)} دقیقه"
+                val durationStr = root.context.getString(R.string.duration_minutes_val, PersianUtils.toPersianDigits(item.suggestedDurationMinutes))
                 tvSubtitle.text = "${item.category} • $durationStr"
                 tvBody.text = item.description
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)

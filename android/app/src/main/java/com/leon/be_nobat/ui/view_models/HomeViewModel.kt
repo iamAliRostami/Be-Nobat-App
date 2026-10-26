@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.Business
+import com.leon.be_nobat.domain.model.Category
+import com.leon.be_nobat.domain.usecase.GetCategoriesUseCase
 import com.leon.be_nobat.domain.usecase.ListBusinessesUseCase
 import com.leon.be_nobat.domain.usecase.ListFavoritesUseCase
 import com.leon.be_nobat.domain.usecase.ToggleFavoriteUseCase
@@ -31,6 +33,7 @@ data class HomeUiState(
     val query: String = "",
     val city: String = "",
     val category: String = "",
+    val categories: List<Category> = emptyList(),
     val sortOption: BusinessSortOption = BusinessSortOption.DEFAULT,
     val filterInstantOnly: Boolean = false,
     val error: String? = null,
@@ -41,24 +44,48 @@ class HomeViewModel(
     private val listBusinesses: ListBusinessesUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val listFavorites: ListFavoritesUseCase? = null,
+    private val getCategoriesUseCase: GetCategoriesUseCase? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
-    init { refresh(initial = true) }
+    init {
+        loadCategories()
+        refresh(initial = true)
+    }
+
+    fun loadCategories() {
+        val useCase = getCategoriesUseCase ?: return
+        viewModelScope.launch {
+            useCase.invoke().onSuccess { result ->
+                val list = result.items.filter { it.kind.equals("Business", ignoreCase = true) }
+                    .sortedBy { it.sortOrder }
+                _state.value = _state.value.copy(
+                    categories = if (list.isNotEmpty()) list else result.items
+                )
+            }
+        }
+    }
 
     fun refresh(initial: Boolean) {
+        loadCategories()
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = initial, refreshing = !initial, error = null)
             val s = _state.value
+            var favMap = s.favoriteSnapshot
+            listFavorites?.invoke()?.onSuccess { favPage ->
+                favMap = favPage.items.associate { it.id to true }
+            }
+            _state.value = _state.value.copy(favoriteSnapshot = favMap)
             listBusinesses(s.query.ifBlank { null }, s.city.ifBlank { null }, s.category.ifBlank { null }, page = 1)
                 .onSuccess { page: ApiPage<Business> ->
-                    val filtered = applyFilterAndSort(page.items, s.sortOption, s.filterInstantOnly)
+                    val filtered = applyFilterAndSort(page.items, s.sortOption, s.filterInstantOnly, favMap)
                     _state.value = _state.value.copy(
                         loading = false, refreshing = false,
                         rawItems = page.items,
                         items = filtered,
+                        favoriteSnapshot = favMap,
                         page = 1, total = page.total,
                         hasMore = page.items.size < page.total,
                         error = null,
@@ -67,11 +94,6 @@ class HomeViewModel(
                 .onFailure { e ->
                     _state.value = _state.value.copy(loading = false, refreshing = false, error = e.message)
                 }
-
-            listFavorites?.invoke()?.onSuccess { favPage ->
-                val favMap = favPage.items.associate { it.id to true }
-                _state.value = _state.value.copy(favoriteSnapshot = favMap)
-            }
         }
     }
 
@@ -83,7 +105,7 @@ class HomeViewModel(
             listBusinesses(s.query.ifBlank { null }, s.city.ifBlank { null }, s.category.ifBlank { null }, page = s.page + 1)
                 .onSuccess { page ->
                     val newRaw = s.rawItems + page.items
-                    val filtered = applyFilterAndSort(newRaw, s.sortOption, s.filterInstantOnly)
+                    val filtered = applyFilterAndSort(newRaw, s.sortOption, s.filterInstantOnly, s.favoriteSnapshot)
                     _state.value = _state.value.copy(
                         loading = false,
                         rawItems = newRaw,
@@ -112,7 +134,7 @@ class HomeViewModel(
 
     fun setSortAndFilter(sortOption: BusinessSortOption, instantOnly: Boolean) {
         val s = _state.value
-        val filtered = applyFilterAndSort(s.rawItems, sortOption, instantOnly)
+        val filtered = applyFilterAndSort(s.rawItems, sortOption, instantOnly, s.favoriteSnapshot)
         _state.value = s.copy(sortOption = sortOption, filterInstantOnly = instantOnly, items = filtered)
     }
 
@@ -120,6 +142,7 @@ class HomeViewModel(
         source: List<Business>,
         sortOption: BusinessSortOption,
         instantOnly: Boolean,
+        favorites: Map<String, Boolean> = _state.value.favoriteSnapshot,
     ): List<Business> {
         var result = if (instantOnly) source.filter { !it.requiresApproval } else source
         result = when (sortOption) {
@@ -129,6 +152,9 @@ class HomeViewModel(
             BusinessSortOption.SERVICES -> result.sortedByDescending { it.serviceCount }
             BusinessSortOption.NAME -> result.sortedBy { it.name }
         }
+        if (favorites.isNotEmpty()) {
+            result = result.sortedByDescending { favorites[it.id] == true }
+        }
         return result
     }
 
@@ -136,8 +162,23 @@ class HomeViewModel(
         viewModelScope.launch {
             toggleFavorite(businessId, isFav).onSuccess {
                 val snap = _state.value.favoriteSnapshot.toMutableMap()
-                snap[businessId] = !isFav
-                _state.value = _state.value.copy(favoriteSnapshot = snap)
+                val newFav = !isFav
+                if (newFav) snap[businessId] = true else snap.remove(businessId)
+                val reordered = applyFilterAndSort(_state.value.rawItems, _state.value.sortOption, _state.value.filterInstantOnly, snap)
+                _state.value = _state.value.copy(favoriteSnapshot = snap, items = reordered)
+            }
+        }
+    }
+
+    fun refreshFavoritesOnly() {
+        val useCase = listFavorites ?: return
+        viewModelScope.launch {
+            useCase.invoke().onSuccess { favPage ->
+                val favMap = favPage.items.associate { it.id to true }
+                if (favMap != _state.value.favoriteSnapshot) {
+                    val reordered = applyFilterAndSort(_state.value.rawItems, _state.value.sortOption, _state.value.filterInstantOnly, favMap)
+                    _state.value = _state.value.copy(favoriteSnapshot = favMap, items = reordered)
+                }
             }
         }
     }

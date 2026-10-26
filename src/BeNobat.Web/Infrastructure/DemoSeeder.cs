@@ -285,6 +285,11 @@ public static class DemoSeeder
         var resourceIds = await db.Resources.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).Select(x => x.Id).ToListAsync(ct);
         var serviceIds = await db.Services.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).Select(x => x.Id).ToListAsync(ct);
 
+        var demoUsers = await db.Users.Where(x => x.Email != null && x.Email.EndsWith("@demo.benobat.example")).ToListAsync(ct);
+        var demoUserIds = demoUsers.Select(x => x.Id).ToList();
+
+        await db.FavoriteBusinesses.IgnoreQueryFilters().Where(x => demoUserIds.Contains(x.UserId) || businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
+        await db.BusinessRequests.IgnoreQueryFilters().Where(x => demoUserIds.Contains(x.UserId)).ExecuteDeleteAsync(ct);
         await db.CustomerReviews.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
         await db.Reviews.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
         await db.AppointmentServices.IgnoreQueryFilters().Where(x => appointmentIds.Contains(x.AppointmentId)).ExecuteDeleteAsync(ct);
@@ -292,13 +297,12 @@ public static class DemoSeeder
         await db.AvailabilityRules.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
         await db.ServiceResources.IgnoreQueryFilters().Where(x => resourceIds.Contains(x.ResourceId)).ExecuteDeleteAsync(ct);
         await db.BranchServices.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).ExecuteDeleteAsync(ct);
-        await db.BranchMemberships.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).ExecuteDeleteAsync(ct);
+        await db.BranchMemberships.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId) || demoUserIds.Contains(x.UserId)).ExecuteDeleteAsync(ct);
         await db.Resources.IgnoreQueryFilters().Where(x => resourceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
         await db.Services.IgnoreQueryFilters().Where(x => serviceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
         await db.Branches.IgnoreQueryFilters().Where(x => branchIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
         await db.Businesses.IgnoreQueryFilters().Where(x => businessIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
 
-        var demoUsers = await db.Users.Where(x => x.Email != null && x.Email.EndsWith("@demo.benobat.example")).ToListAsync(ct);
         db.Users.RemoveRange(demoUsers);
         await db.SaveChangesAsync(ct);
     }

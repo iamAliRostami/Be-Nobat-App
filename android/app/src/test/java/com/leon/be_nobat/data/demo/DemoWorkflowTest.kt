@@ -325,7 +325,6 @@ class DemoWorkflowTest {
 
         // Re-activate
         mgmt.setBranchActive(targetBranch.id, true).getOrThrow()
-        Unit
     }
 
     @Test fun `business request submission and platform approval promotes user to owner with business and branch`(): Unit = runBlocking {

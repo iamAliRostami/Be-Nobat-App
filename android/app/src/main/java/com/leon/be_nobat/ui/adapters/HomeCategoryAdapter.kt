@@ -62,9 +62,9 @@ class HomeCategoryAdapter(
                 tvIcon.setTextColor(ContextCompat.getColor(ctx, R.color.colorPrimary))
             }
 
-            card.setOnClickListener {
-                onCategoryClick(item)
-            }
+            val clickListener = View.OnClickListener { onCategoryClick(item) }
+            card.setOnClickListener(clickListener)
+            itemView.setOnClickListener(clickListener)
         }
     }
 }

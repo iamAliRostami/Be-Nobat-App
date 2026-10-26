@@ -64,6 +64,7 @@ class RegisterActivity : BaseActivity() {
                                 AuthException.InvalidIdentifier -> getString(R.string.error_invalid_identifier)
                                 AuthException.EmptyPassword -> getString(R.string.error_empty_password)
                                 AuthException.DuplicateEmail -> getString(R.string.error_duplicate_email)
+                                AuthException.DuplicatePhone -> getString(R.string.error_duplicate_phone)
                                 AuthException.WeakPassword -> getString(R.string.error_weak_password)
                                 AuthException.TooManyRequests -> getString(R.string.error_too_many_requests)
                                 AuthException.NetworkUnavailable -> getString(R.string.error_network_unavailable)

@@ -127,7 +127,7 @@ class AdminBranchesActivity : BaseActivity() {
                     "${PersianUtils.toPersianDigits(daysCount.toString())} روز فعال، ${PersianUtils.toPersianDigits(it.size.toString())} بازه هفتگی"
                 } ?: "$openStr تا $closeStr"
                 tvBody.isVisible = true
-                tvBody.text = "ساعت کاری: $hoursText"
+                tvBody.text = root.context.getString(R.string.branch_working_hours, hoursText)
 
                 if (!item.isApproved) {
                     tvStatus.text = root.context.getString(R.string.branch_pending_approval)
@@ -156,6 +156,16 @@ class AdminBranchesActivity : BaseActivity() {
                     btnAction2.setOnClickListener { onEdit(item) }
                 }
                 root.setOnClickListener { onEdit(item) }
+                root.setOnLongClickListener {
+                    com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                        context = root.context,
+                        businessId = item.businessId,
+                        businessName = item.businessName?.takeIf { it.isNotBlank() } ?: root.context.getString(R.string.my_business),
+                        branchId = item.id,
+                        branchName = item.name,
+                    )
+                    true
+                }
             }
         }
     }

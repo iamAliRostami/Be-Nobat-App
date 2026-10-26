@@ -7,6 +7,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.leon.be_nobat.R
+import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.domain.model.ManagementBreakdownItem
 import java.text.NumberFormat
 import java.util.Locale
@@ -53,18 +54,22 @@ class AdminAnalyticsBreakdownAdapter(
                 tvSubtitle.visibility = View.GONE
             }
 
-            val nf = NumberFormat.getNumberInstance(Locale("fa", "IR"))
-            tvRevenue.text = "${nf.format(item.revenue)} ${ctx.getString(R.string.analytics_toman_suffix)}"
+            val nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("fa-IR"))
+            tvRevenue.text = ctx.getString(R.string.analytics_revenue_value, nf.format(item.revenue))
 
-            val hours = String.format(Locale("fa", "IR"), "%.1f", item.workMinutes / 60.0)
-            tvHours.text = "$hours ${ctx.getString(R.string.analytics_hours_suffix)}"
+            val hours = String.format(Locale.forLanguageTag("fa-IR"), "%.1f", item.workMinutes / 60.0)
+            tvHours.text = ctx.getString(R.string.analytics_hours_value, hours)
 
-            tvAppointments.text = "${nf.format(item.completedAppointments)} از ${nf.format(item.totalAppointments)}"
+            tvAppointments.text = ctx.getString(
+                R.string.analytics_breakdown_ratio,
+                nf.format(item.completedAppointments),
+                nf.format(item.totalAppointments)
+            )
 
             val rate = if (item.totalAppointments > 0) {
                 (item.completedAppointments * 100) / item.totalAppointments
             } else 0
-            tvRate.text = "$rate٪"
+            tvRate.text = ctx.getString(R.string.analytics_percent_format, PersianUtils.toPersianDigits(rate))
 
             val progress = if (maxRevenue > 0) ((item.revenue * 100) / maxRevenue).toInt().coerceIn(5, 100) else 0
             pbProgress.progress = progress

@@ -69,9 +69,9 @@ class AdminCustomersViewModel(
         )
     }
 
-    fun createCustomer(name: String, email: String, phone: String?) = viewModelScope.launch {
+    fun createCustomer(name: String, email: String?, phone: String?) = viewModelScope.launch {
         _state.value = _state.value.copy(loading = true, error = null)
-        create(ManagementCustomerInput(name = name.trim(), email = email.trim(), phone = phone?.trim()))
+        create(ManagementCustomerInput(name = name.trim(), email = email?.trim()?.ifBlank { null }, phone = phone?.trim()))
             .onSuccess { created ->
                 val newItems = listOf(created) + _state.value.items.filterNot { it.id == created.id }
                 val filtered = applyFilters(newItems, _state.value.searchQuery, _state.value.statusFilter)

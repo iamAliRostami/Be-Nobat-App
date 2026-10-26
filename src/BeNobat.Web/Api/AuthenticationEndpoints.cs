@@ -5,6 +5,7 @@ using BeNobat.Web.Infrastructure;
 using BeNobat.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace BeNobat.Web.Api;
 
@@ -15,8 +16,24 @@ public static class AuthenticationEndpoints
         var auth = root.MapGroup("/auth");
         auth.MapPost("/login", async (LoginInput input, UserManager<AppUser> users, SignInManager<AppUser> signIn, MobileTokenService tokens) =>
         {
-            if (!Email(input.Email) || string.IsNullOrEmpty(input.Password) || input.Password.Length > 256) return ApiResults.Error("invalid_input", "A valid email and password are required.");
-            var user = await users.FindByEmailAsync(input.Email!.Trim());
+            var raw = input.Identifier ?? input.Email ?? input.PhoneNumber;
+            if (string.IsNullOrWhiteSpace(raw) || string.IsNullOrEmpty(input.Password) || input.Password.Length > 256)
+                return ApiResults.Error("invalid_input", "A valid email or Iranian mobile number and password are required.");
+
+            AppUser? user = null;
+            if (UserInputValidation.TryNormalizeIranianMobile(raw, out var phone))
+            {
+                user = await users.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone);
+            }
+            else if (Email(raw))
+            {
+                user = await users.FindByEmailAsync(raw.Trim()) ?? await users.Users.FirstOrDefaultAsync(u => u.UserName == raw.Trim());
+            }
+            else
+            {
+                return ApiResults.Error("invalid_input", "A valid email or Iranian mobile number and password are required.");
+            }
+
             if (user is null) return ApiResults.Error("invalid_credentials", "Email or password is incorrect.", 401);
             if (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow) return ApiResults.Error("account_locked", "This account is temporarily unavailable.", 401);
             var result = await signIn.CheckPasswordSignInAsync(user, input.Password, lockoutOnFailure: true);
@@ -25,11 +42,24 @@ public static class AuthenticationEndpoints
         }).AllowAnonymous().RequireRateLimiting("mobile-auth");
         auth.MapPost("/register", async (RegisterInput input, UserManager<AppUser> users, MobileTokenService tokens) =>
         {
-            if (!Email(input.Email) || !UserInputValidation.TryNormalizeDisplayName(input.DisplayName, out var displayName) ||
+            if (!UserInputValidation.TryNormalizeDisplayName(input.DisplayName, out var displayName) ||
                 string.IsNullOrEmpty(input.Password) || input.Password.Length > 256 || !UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var phone))
-                return ApiResults.Error("invalid_input", "A name, valid email, Iranian mobile number and password are required.");
-            var email = input.Email!.Trim();
-            var user = new AppUser { Id = Guid.CreateVersion7(), UserName = email, Email = email, DisplayName = displayName, PhoneNumber = phone, LockoutEnabled = true };
+                return ApiResults.Error("invalid_input", "A name, valid Iranian mobile number and password are required.");
+
+            string? email = null;
+            if (!string.IsNullOrWhiteSpace(input.Email))
+            {
+                if (!Email(input.Email))
+                    return ApiResults.Error("invalid_input", "The provided email address is invalid.");
+                email = input.Email.Trim();
+                if (await users.FindByEmailAsync(email) is not null)
+                    return ApiResults.Error("duplicate_email", "This email is already registered.", 409);
+            }
+
+            if (await users.Users.AnyAsync(u => u.PhoneNumber == phone || u.UserName == phone))
+                return ApiResults.Error("duplicate_phone", "This mobile number is already registered.", 409);
+
+            var user = new AppUser { Id = Guid.CreateVersion7(), UserName = phone, Email = email, DisplayName = displayName, PhoneNumber = phone, LockoutEnabled = true };
             var result = await users.CreateAsync(user, input.Password);
             if (!result.Succeeded) return IdentityError(result);
             var role = await users.AddToRoleAsync(user, AppRoles.Customer);
@@ -105,7 +135,7 @@ public static class AuthenticationEndpoints
     };
     public static bool ValidImage(byte[] bytes, string contentType) => UserAvatar.ValidImage(bytes, contentType);
 }
-public sealed record LoginInput(string? Email, string? Password);
+public sealed record LoginInput(string? Email, string? Password, string? PhoneNumber = null, string? Identifier = null);
 public sealed record RegisterInput(string? DisplayName, string? Email, string? PhoneNumber, string? Password);
 public sealed record ProfileInput(string? DisplayName, string? PhoneNumber);
 public sealed record PasswordInput(string? CurrentPassword, string? NewPassword);

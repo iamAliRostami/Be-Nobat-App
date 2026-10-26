@@ -39,4 +39,8 @@ class BusinessRepositoryImpl(
 
     override suspend fun getCatalog(page: Int, pageSize: Int): Result<ApiPage<ServiceCatalogItem>> =
         api.getCatalog(page, pageSize)
+
+    override suspend fun findBusinessIdByBranch(branchId: String): String? {
+        return null
+    }
 }

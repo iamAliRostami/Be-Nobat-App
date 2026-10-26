@@ -15,17 +15,17 @@ class LoginIdentifierTest {
 
     @Test fun `accepts mobile without zero prefix`() {
         val identifier = LoginIdentifier.parse("9121234567").getOrThrow()
-        assertEquals("+989121234567", identifier.value)
+        assertEquals("09121234567", identifier.value)
     }
 
     @Test fun `normalizes 0098 prefix to international format`() {
         val identifier = LoginIdentifier.parse("00989121234567").getOrThrow()
-        assertEquals("+989121234567", identifier.value)
+        assertEquals("09121234567", identifier.value)
     }
 
     @Test fun `normalizes +98 prefix to international format`() {
         val identifier = LoginIdentifier.parse("+989121234567").getOrThrow()
-        assertEquals("+989121234567", identifier.value)
+        assertEquals("09121234567", identifier.value)
     }
 
     @Test fun `normalizeIranianMobileForRegister returns 09 prefix`() {

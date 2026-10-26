@@ -751,14 +751,32 @@
                         android:textSize="13sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Terms Checkbox -->
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/cbTerms"
+                <!-- Terms Checkbox & Rules Link -->
+                <LinearLayout
+                    android:id="@+id/layoutTermsAgreement"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/accept_terms"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbTerms"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp" />
+
+                    <TextView
+                        android:id="@+id/tvTermsText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/accept_terms_with_link"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                        android:textSize="13sp" />
+                </LinearLayout>
 
                 <!-- Step 3 Navigation Actions -->
                 <LinearLayout

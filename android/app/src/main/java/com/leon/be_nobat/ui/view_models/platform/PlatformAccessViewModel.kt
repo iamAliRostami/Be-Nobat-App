@@ -153,7 +153,7 @@ class PlatformAccessViewModel(
         try {
             resetPasswordUseCase(id).onSuccess { res ->
                 if (res.userId != id || res.temporaryPassword.isBlank()) {
-                    _state.value = _state.value.copy(error = "پاسخ بازنشانی رمز معتبر نیست؛ پیامک ارسال نشد.")
+                    _state.value = _state.value.copy(error = "invalid_reset_response")
                     return@onSuccess
                 }
                 _state.value = _state.value.copy(temporaryPassword = res.temporaryPassword, message = "reset_done", error = null)

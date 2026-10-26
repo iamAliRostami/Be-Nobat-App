@@ -22,10 +22,6 @@ class LoginUseCase(
         val parsed = LoginIdentifier.parse(identity).getOrElse {
             return Result.failure(AuthException.InvalidIdentifier)
         }
-        // The current backend contract accepts only email for login.
-        if (parsed is LoginIdentifier.Mobile) {
-            return Result.failure(AuthException.InvalidIdentifier)
-        }
         return repository.login(parsed.value, password)
     }
 }
@@ -35,9 +31,13 @@ class RegisterUseCase(
 ) {
     suspend operator fun invoke(input: RegisterInput): Result<MobileSession> {
         if (input.displayName.isNullOrBlank()) return Result.failure(AuthException.InvalidIdentifier)
-        if (input.email.isNullOrBlank()) return Result.failure(AuthException.InvalidIdentifier)
+        if (input.phoneNumber.isNullOrBlank() || !LoginIdentifier.isIranianMobile(input.phoneNumber)) {
+            return Result.failure(AuthException.InvalidIdentifier)
+        }
+        if (!input.email.isNullOrBlank() && !LoginIdentifier.isValidEmail(input.email)) {
+            return Result.failure(AuthException.InvalidIdentifier)
+        }
         if (input.password.isNullOrBlank()) return Result.failure(AuthException.EmptyPassword)
-        if (input.phoneNumber.isNullOrBlank()) return Result.failure(AuthException.InvalidIdentifier)
         return repository.register(input)
     }
 }

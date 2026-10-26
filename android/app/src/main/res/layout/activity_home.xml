@@ -25,8 +25,9 @@
             android:id="@+id/tvHeaderTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textAppearance="@style/TextAppearance.BeNobat.Brand" />
+            android:text="@string/platform_businesses"
+            android:textAppearance="@style/TextAppearance.BeNobat.Brand"
+            android:textSize="22sp" />
 
         <View
             android:layout_width="0dp"
@@ -63,60 +64,6 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Search bar and Filter button -->
-    <LinearLayout
-        android:id="@+id/searchRow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingTop="2dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="4dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/homeHeaderBar">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/searchLayout"
-            style="@style/Widget.BeNobat.TextInputLayout.Search"
-            android:layout_width="0dp"
-            android:layout_height="46dp"
-            android:layout_weight="1"
-            app:endIconMode="clear_text"
-            app:startIconDrawable="@drawable/ic_search">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/searchInput"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:hint="@string/home_search_hint"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:paddingStart="4dp"
-                android:paddingTop="0dp"
-                android:paddingEnd="4dp"
-                android:paddingBottom="0dp"
-                android:textSize="13sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnFilterSort"
-            style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="@string/filter_and_sort"
-            android:padding="0dp"
-            app:cornerRadius="14dp"
-            app:icon="@drawable/ic_filter"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="20dp" />
-    </LinearLayout>
-
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="0dp"
@@ -125,7 +72,7 @@
         app:layout_constraintBottom_toTopOf="@id/bottomNav"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchRow">
+        app:layout_constraintTop_toBottomOf="@id/homeHeaderBar">
 
         <androidx.core.widget.NestedScrollView
             android:id="@+id/homeScrollView"
@@ -254,9 +201,9 @@
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
 
-                            <!-- Shortcut 1: My Appointments -->
+                            <!-- Shortcut 1: Top Centers -->
                             <LinearLayout
-                                android:id="@+id/btnShortcutAppointments"
+                                android:id="@+id/btnShortcutTopCenters"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -277,7 +224,7 @@
                                         android:layout_height="22dp"
                                         android:layout_gravity="center"
                                         android:contentDescription="@null"
-                                        android:src="@drawable/ic_calendar"
+                                        android:src="@drawable/ic_star_filled"
                                         app:tint="@color/shortcut_blue_fg" />
                                 </FrameLayout>
 
@@ -291,7 +238,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_my_appointments"
+                                        android:text="@string/home_shortcut_top_centers"
                                         android:textColor="?attr/colorOnSurface"
                                         android:textSize="12sp"
                                         android:textStyle="bold" />
@@ -299,7 +246,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_my_appointments_sub"
+                                        android:text="@string/home_shortcut_top_centers_sub"
                                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                                         android:textSize="10sp" />
                                 </LinearLayout>
@@ -335,7 +282,7 @@
                                         android:layout_height="22dp"
                                         android:layout_gravity="center"
                                         android:contentDescription="@null"
-                                        android:src="@drawable/ic_search"
+                                        android:src="@drawable/ic_calendar"
                                         app:tint="@color/shortcut_green_fg" />
                                 </FrameLayout>
 
@@ -371,15 +318,15 @@
                             android:layout_marginBottom="6dp"
                             android:background="@color/colorOutline" />
 
-                        <!-- Row 2: Favorites & Profile -->
+                        <!-- Row 2: How It Works & Business Upgrade -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="horizontal">
 
-                            <!-- Shortcut 3: Favorites -->
+                            <!-- Shortcut 3: How It Works -->
                             <LinearLayout
-                                android:id="@+id/btnShortcutFavorites"
+                                android:id="@+id/btnShortcutHowItWorks"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -400,7 +347,7 @@
                                         android:layout_height="22dp"
                                         android:layout_gravity="center"
                                         android:contentDescription="@null"
-                                        android:src="@drawable/ic_heart_filled"
+                                        android:src="@drawable/ic_help"
                                         app:tint="@color/shortcut_pink_fg" />
                                 </FrameLayout>
 
@@ -414,7 +361,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_favorites"
+                                        android:text="@string/home_shortcut_how_it_works"
                                         android:textColor="?attr/colorOnSurface"
                                         android:textSize="12sp"
                                         android:textStyle="bold" />
@@ -422,7 +369,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_favorites_sub"
+                                        android:text="@string/home_shortcut_how_it_works_sub"
                                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                                         android:textSize="10sp" />
                                 </LinearLayout>
@@ -434,9 +381,9 @@
                                 android:layout_gravity="center_vertical"
                                 android:background="@color/colorOutline" />
 
-                            <!-- Shortcut 4: Profile -->
+                            <!-- Shortcut 4: Business Upgrade -->
                             <LinearLayout
-                                android:id="@+id/btnShortcutProfile"
+                                android:id="@+id/btnShortcutUpgrade"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
@@ -458,7 +405,7 @@
                                         android:layout_height="22dp"
                                         android:layout_gravity="center"
                                         android:contentDescription="@null"
-                                        android:src="@drawable/ic_person"
+                                        android:src="@drawable/ic_dashboard"
                                         app:tint="@color/shortcut_purple_fg" />
                                 </FrameLayout>
 
@@ -472,7 +419,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_profile"
+                                        android:text="@string/home_shortcut_upgrade"
                                         android:textColor="?attr/colorOnSurface"
                                         android:textSize="12sp"
                                         android:textStyle="bold" />
@@ -480,7 +427,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_profile_sub"
+                                        android:text="@string/home_shortcut_upgrade_sub"
                                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                                         android:textSize="10sp" />
                                 </LinearLayout>
@@ -488,6 +435,57 @@
                         </LinearLayout>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+
+                <!-- Search bar and Filter button (moved below quick access) -->
+                <LinearLayout
+                    android:id="@+id/searchRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="10dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/searchLayout"
+                        style="@style/Widget.BeNobat.TextInputLayout.Search"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        android:layout_weight="1"
+                        app:endIconMode="clear_text"
+                        app:startIconDrawable="@drawable/ic_search">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/searchInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:hint="@string/home_search_hint"
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:paddingStart="4dp"
+                            android:paddingTop="0dp"
+                            android:paddingEnd="4dp"
+                            android:paddingBottom="0dp"
+                            android:textSize="13sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFilterSort"
+                        style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="@string/filter_and_sort"
+                        android:padding="0dp"
+                        app:cornerRadius="14dp"
+                        app:icon="@drawable/ic_filter"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="20dp" />
+                </LinearLayout>
 
                 <!-- 3. Categories Section -->
                 <LinearLayout

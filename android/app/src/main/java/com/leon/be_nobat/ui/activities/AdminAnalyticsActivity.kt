@@ -17,6 +17,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.leon.be_nobat.R
+import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.domain.model.ManagementAnalyticsSummary
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.adapters.AdminAnalyticsBreakdownAdapter
@@ -29,6 +30,11 @@ import java.util.Locale
 
 class AdminAnalyticsActivity : BaseActivity() {
     override val layoutResourceId: Int = R.layout.activity_admin_analytics
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireBusinessManagementPermission()
+    }
 
     private val viewModel: AdminAnalyticsViewModel by viewModel()
 
@@ -57,7 +63,7 @@ class AdminAnalyticsActivity : BaseActivity() {
     private lateinit var tabStaff: MaterialButton
 
     override fun setupViews() {
-        setToolbarTitle(true)
+        setupAdminHeader(getString(R.string.admin_analytics_title), currentMenuItemId = R.id.drawer_analytics)
 
         rvBreakdown = findViewById(R.id.rvBreakdown)
         swipeRefresh = findViewById(R.id.swipeRefresh)
@@ -82,7 +88,7 @@ class AdminAnalyticsActivity : BaseActivity() {
         tabBranches = findViewById(R.id.tabBranches)
         tabStaff = findViewById(R.id.tabStaff)
 
-        findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
+        // btnBack managed by setupAdminHeader
         findViewById<View>(R.id.btnRefresh).setOnClickListener { viewModel.load() }
         findViewById<View>(R.id.btnFilterAnalytics).setOnClickListener { showFilterDialog() }
         swipeRefresh.setOnRefreshListener { viewModel.load() }
@@ -194,20 +200,24 @@ class AdminAnalyticsActivity : BaseActivity() {
     }
 
     private fun renderMetrics(data: ManagementAnalyticsSummary) {
-        val nf = NumberFormat.getNumberInstance(Locale("fa", "IR"))
+        val nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("fa-IR"))
         tvTotalRevenue.text = nf.format(data.totalRevenue)
 
-        val hours = String.format(Locale("fa", "IR"), "%.1f", data.totalWorkHours)
+        val hours = String.format(Locale.forLanguageTag("fa-IR"), "%.1f", data.totalWorkHours)
         tvTotalWorkHours.text = hours
 
         tvCompletedAppts.text = nf.format(data.completedAppointments)
-        tvTotalApptsSub.text = "از ${nf.format(data.totalAppointments)} ${getString(R.string.analytics_appts_suffix)} کل"
+        tvTotalApptsSub.text = getString(R.string.analytics_total_appts_sub, nf.format(data.totalAppointments))
 
         val rate = if (data.totalAppointments > 0) {
             (data.completedAppointments * 100) / data.totalAppointments
         } else 0
-        tvCompletionRate.text = "$rate٪"
-        tvCancelledNoShowSub.text = "${nf.format(data.cancelledAppointments)} لغو / ${nf.format(data.noShowAppointments)} غیبت"
+        tvCompletionRate.text = getString(R.string.analytics_percent_format, PersianUtils.toPersianDigits(rate))
+        tvCancelledNoShowSub.text = getString(
+            R.string.analytics_cancelled_noshow_sub,
+            nf.format(data.cancelledAppointments),
+            nf.format(data.noShowAppointments)
+        )
     }
 
     private fun renderChart(data: ManagementAnalyticsSummary) {

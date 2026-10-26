@@ -180,6 +180,13 @@ object ErrorFormatter {
                     isConnectionError = false
                 )
             }
+            if (message == "invalid_reset_response" || message.contains("پاسخ بازنشانی رمز معتبر نیست")) {
+                return FormattedError(
+                    title = context.getString(R.string.error_generic),
+                    description = context.getString(R.string.platform_access_invalid_reset_response),
+                    isConnectionError = false
+                )
+            }
             val lower = message.lowercase()
             if (lower.contains("sign in to continue") ||
                 lower.contains("unauthorized") ||

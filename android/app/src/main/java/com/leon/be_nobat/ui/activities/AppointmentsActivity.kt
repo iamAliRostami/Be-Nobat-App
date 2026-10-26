@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -37,6 +38,7 @@ class AppointmentsActivity : BaseActivity() {
     private val viewModel: AppointmentsViewModel by viewModel()
     private lateinit var adapter: AppointmentsAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
+    private var reviewDialog: AlertDialog? = null
 
     private val tokenManager: TokenManager by inject()
 
@@ -112,18 +114,31 @@ class AppointmentsActivity : BaseActivity() {
         findViewById<android.widget.TextView>(R.id.emptyStateText).isVisible = !state.loading && state.items.isEmpty()
         adapter.submitList(state.items)
 
-        state.reviewForAppointmentId?.let { apptId ->
-            showReviewDialog(state.reviewRating, state.reviewComment, state.reviewSubmitting) { rating, comment ->
-                viewModel.setRating(rating); viewModel.setComment(comment); viewModel.submitReview()
+        if (state.reviewSuccess) {
+            com.leon.be_nobat.helpers.AppToast.show(this, getString(R.string.review_submitted_success))
+            viewModel.consumeReviewSuccess()
+        }
+
+        if (state.reviewForAppointmentId != null && !state.reviewSubmitting) {
+            if (reviewDialog == null || !reviewDialog!!.isShowing) {
+                showReviewDialog(state.reviewRating, state.reviewComment) { rating, comment ->
+                    viewModel.submitReview(rating, comment)
+                }
             }
+        } else if (state.reviewForAppointmentId == null) {
+            reviewDialog?.dismiss()
+            reviewDialog = null
         }
 
         state.error?.let {
             Snackbar.make(swipeRefresh, com.leon.be_nobat.helpers.ErrorFormatter.format(this, it), Snackbar.LENGTH_SHORT).show()
+            viewModel.consumeError()
         }
     }
 
-    private fun showReviewDialog(rating: Int, comment: String, submitting: Boolean, onSubmit: (Int, String) -> Unit) {
+    private fun showReviewDialog(rating: Int, comment: String, onSubmit: (Int, String) -> Unit) {
+        reviewDialog?.dismiss()
+
         val view = layoutInflater.inflate(R.layout.dialog_review, null)
         var currentRating = if (rating in 1..5) rating else 5
 
@@ -166,15 +181,34 @@ class AppointmentsActivity : BaseActivity() {
 
         updateStars(currentRating)
 
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.add_review)
             .setView(view)
             .setPositiveButton(R.string.submit_review) { _, _ ->
                 onSubmit(currentRating, etComment.text?.toString() ?: "")
             }
-            .setNegativeButton(R.string.action_close) { _, _ -> viewModel.closeReview() }
-            .setOnDismissListener { viewModel.closeReview() }
-            .show()
+            .setNegativeButton(R.string.action_close) { _, _ ->
+                viewModel.closeReview()
+            }
+            .create()
+
+        dialog.setOnDismissListener {
+            if (viewModel.state.value.reviewForAppointmentId != null && !viewModel.state.value.reviewSubmitting) {
+                viewModel.closeReview()
+            }
+            if (reviewDialog == dialog) {
+                reviewDialog = null
+            }
+        }
+
+        reviewDialog = dialog
+        dialog.show()
+    }
+
+    override fun onDestroy() {
+        reviewDialog?.dismiss()
+        reviewDialog = null
+        super.onDestroy()
     }
 
     private class AppointmentsAdapter(
@@ -196,8 +230,7 @@ class AppointmentsActivity : BaseActivity() {
                     tvProvider.text = item.resourceName ?: ""
                     tvTime.text = com.leon.be_nobat.helpers.JalaliDateHelper.formatIsoDateTime(item.startsAt)
                     tvPrice.text = com.leon.be_nobat.helpers.PersianUtils.formatPrice(item.finalPrice, item.currency)
-                    val formattedCode = com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(item.trackingCode)
-                    tvTrackingCode.text = root.context.getString(R.string.booking_tracking_code, "\u200E$formattedCode\u200E")
+                    tvTrackingCode.text = root.context.getString(R.string.booking_tracking_code, "\u200E${item.trackingCode}\u200E")
                     val copyTrackingAction = {
                         val clipboard = root.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                         val clip = android.content.ClipData.newPlainText("tracking_code", item.trackingCode)
@@ -209,7 +242,12 @@ class AppointmentsActivity : BaseActivity() {
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatus(tvStatus, item.status)
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, item.status)
                     val deadline = item.cancellationDeadline ?: com.leon.be_nobat.domain.CancellationPolicy.deadline(item.startsAt, item.cancellationNoticeMinutes)
-                    tvCancellationDeadline.text = "مهلت لغو: ${deadline?.let { com.leon.be_nobat.notifications.AppointmentMessages.date(it, item.timeZoneId) }.orEmpty()}"
+                    val formattedDeadline = deadline?.let {
+                        com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(
+                            com.leon.be_nobat.notifications.AppointmentMessages.date(it, item.timeZoneId)
+                        )
+                    }.orEmpty()
+                    tvCancellationDeadline.text = root.context.getString(R.string.cancellation_deadline_label, formattedDeadline)
                     tvCancellationDeadline.isVisible = deadline != null
                     btnCancel.isVisible = item.canCancel && com.leon.be_nobat.domain.CancellationPolicy.canCancel(item.status, item.startsAt, item.cancellationNoticeMinutes)
                     btnReview.isVisible = item.canReview

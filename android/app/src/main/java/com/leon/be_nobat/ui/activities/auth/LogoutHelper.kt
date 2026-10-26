@@ -22,8 +22,8 @@ object LogoutHelper {
             org.koin.core.context.GlobalContext.getOrNull()
                 ?.get<LogoutUseCase>()
         }
-        val scope = logoutUseCase?.let {
-            kotlinx.coroutines.GlobalScope.launch { it() }
+        logoutUseCase?.let {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch { it() }
         }
         val intent = Intent(context, StartActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

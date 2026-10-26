@@ -75,6 +75,15 @@ abstract class BaseActivity : AppCompatActivity() {
         toolbar = findViewById(R.id.baseToolbar)
         setSupportActionBar(toolbar)
 
+        findViewById<View?>(R.id.bottomNav)?.let { nav ->
+            ViewCompat.setOnApplyWindowInsetsListener(nav) { v, insets ->
+                val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                val extraPadding = (6 * resources.displayMetrics.density).toInt()
+                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, maxOf(navBars.bottom, extraPadding))
+                insets
+            }
+        }
+
         setupViews()
         observeViewModel()
     }
@@ -231,19 +240,41 @@ abstract class BaseActivity : AppCompatActivity() {
         val themeButton = findViewById<View>(R.id.btnThemeToggle)
         val header = themeButton?.parent as? android.widget.LinearLayout
         if (header != null && header.findViewById<View>(R.id.btnAppointmentNotifications) == null) {
-            val size = (48 * resources.displayMetrics.density).toInt()
-            val button = androidx.appcompat.widget.AppCompatImageButton(this).apply {
+            val density = resources.displayMetrics.density
+            val size = (40 * density).toInt()
+            val primaryColor = com.google.android.material.color.MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary, 0)
+            val surfaceColor = com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, 0)
+            val strokeColor = androidx.core.content.ContextCompat.getColor(this, R.color.colorOutline)
+
+            val button = com.google.android.material.button.MaterialButton(
+                androidx.appcompat.view.ContextThemeWrapper(this, R.style.Widget_BeNobat_Button_Icon_Header),
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle
+            ).apply {
                 id = R.id.btnAppointmentNotifications
                 contentDescription = "اعلان‌های نوبت"
-                setImageResource(R.drawable.ic_appointment_notification)
-                imageTintList = android.content.res.ColorStateList.valueOf(
-                    com.google.android.material.color.MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface))
-                setBackgroundResource(android.R.drawable.list_selector_background)
-                val pad = (12 * resources.displayMetrics.density).toInt()
-                setPadding(pad, pad, pad, pad)
+                setIconResource(R.drawable.ic_appointment_notification)
+                iconSize = (20 * density).toInt()
+                iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
+                iconPadding = 0
+                iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
+                backgroundTintList = android.content.res.ColorStateList.valueOf(surfaceColor)
+                cornerRadius = (20 * density).toInt()
+                strokeWidth = (1 * density).toInt()
+                setStrokeColor(android.content.res.ColorStateList.valueOf(strokeColor))
+                insetTop = 0
+                insetBottom = 0
+                insetLeft = 0
+                insetRight = 0
+                minWidth = 0
+                minHeight = 0
+                setPadding(0, 0, 0, 0)
                 setOnClickListener { startActivity(Intent(this@BaseActivity, AppointmentNotificationsActivity::class.java)) }
             }
-            header.addView(button, header.indexOfChild(themeButton), android.widget.LinearLayout.LayoutParams(size, size))
+            val lp = android.widget.LinearLayout.LayoutParams(size, size).apply {
+                marginEnd = (8 * density).toInt()
+            }
+            header.addView(button, header.indexOfChild(themeButton), lp)
         }
         val headerTitle = title ?: getString(R.string.app_name)
         findViewById<android.widget.TextView>(R.id.tvHeaderTitle)?.text = headerTitle
