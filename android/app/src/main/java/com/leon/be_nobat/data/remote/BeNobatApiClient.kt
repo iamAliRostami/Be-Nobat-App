@@ -16,6 +16,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -673,65 +675,83 @@ class BeNobatApiClient(
 
     // ====================  INTERNAL HELPERS  ====================
 
-    public suspend inline fun <reified T> get(path: String, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.get("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> get(path: String, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.get("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+            }
         }
 
-    public suspend inline fun <reified T> post(path: String, body: JsonObject, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.post("$baseUrl$path") {
-                contentType(ContentType.Application.Json)
-                setBody(body)
-                block(); bearer(token)
-            }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> post(path: String, body: JsonObject, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.post("$baseUrl$path") {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                    block(); bearer(token)
+                }.ensureSuccess().body<T>()
+            }
         }
 
     /** POST without a request body (e.g. /auth/logout, /appointments/{id}/cancel). */
-    public suspend inline fun <reified T> postEmpty(path: String, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.post("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> postEmpty(path: String, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.post("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+            }
         }
 
-    public suspend inline fun <reified T> put(path: String, body: JsonObject, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.put("$baseUrl$path") {
-                contentType(ContentType.Application.Json)
-                setBody(body)
-                block(); bearer(token)
-            }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> put(path: String, body: JsonObject, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.put("$baseUrl$path") {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                    block(); bearer(token)
+                }.ensureSuccess().body<T>()
+            }
         }
 
-    /** PUT without a request body — used for idempotent toggles (favorites, active flags). */
-    public suspend fun putEmpty(path: String): Result<Unit> = runCatching {
-        val token = currentToken()
-        client.put("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
-    }
+    /** PUT without a request body â€” used for idempotent toggles (favorites, active flags). */
+    public suspend fun putEmpty(path: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.put("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
+            }
+        }
 
-    public suspend fun delete(path: String): Result<Unit> = runCatching {
-        val token = currentToken()
-        client.delete("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
-    }
+    public suspend fun delete(path: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.delete("$baseUrl$path") { bearer(token) }.ensureSuccess().let { }
+            }
+        }
 
     /** DELETE that returns a deserialized body (e.g. `/me/avatar` returns the updated user). */
-    public suspend inline fun <reified T> deleteReturning(path: String, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.delete("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> deleteReturning(path: String, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.delete("$baseUrl$path") { block(); bearer(token) }.ensureSuccess().body<T>()
+            }
         }
 
-    public suspend inline fun <reified T> patch(path: String, body: JsonObject, block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
-        runCatching {
-            val token = currentToken()
-            client.patch("$baseUrl$path") {
-                contentType(ContentType.Application.Json)
-                setBody(body)
-                block(); bearer(token)
-            }.ensureSuccess().body<T>()
+    public suspend inline fun <reified T> patch(path: String, body: JsonObject, crossinline block: HttpRequestBuilder.() -> Unit = {}): Result<T> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val token = currentToken()
+                client.patch("$baseUrl$path") {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                    block(); bearer(token)
+                }.ensureSuccess().body<T>()
+            }
         }
 }
 

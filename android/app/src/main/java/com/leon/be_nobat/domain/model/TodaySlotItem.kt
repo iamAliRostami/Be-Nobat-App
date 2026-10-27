@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 data class TodaySlotItem(
     val businessId: String = "",
     val businessName: String = "",
+    val city: String = "",
     val category: String = "",
     val branchId: String = "",
     val branchName: String = "",

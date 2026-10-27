@@ -286,6 +286,13 @@
     <string name="cancel_appointment_admin">لغو نوبت</string>
     <string name="publish_review">انتشار نظر</string>
     <string name="reject_review">رد نظر</string>
+    <string name="reply_review">پاسخ</string>
+    <string name="edit_reply_review">ویرایش پاسخ</string>
+    <string name="reply_dialog_title">پاسخ به نظر %1$s</string>
+    <string name="reply_hint">پاسخ مجموعه را بنویسید…</string>
+    <string name="submit_reply">ثبت پاسخ و انتشار</string>
+    <string name="reply_submitted_success">پاسخ با موفقیت ثبت شد.</string>
+    <string name="manager_reply_prefix">پاسخ مجموعه:</string>
     <string name="reset_password">بازنشانی گذرواژه</string>
     <string name="set_active">فعال‌سازی</string>
     <string name="set_inactive">غیرفعال‌سازی</string>
@@ -667,5 +674,10 @@
     <string name="today_slots_tab_tomorrow">فردا</string>
     <string name="today_slots_book_now">رزرو این نوبت</string>
     <string name="today_slots_instant_badge">تأیید فوری</string>
-    <string name="today_slots_count">%1 نوبت خالی در دسترس است</string>
+    <string name="today_slots_count">%1$s نوبت خالی در دسترس است</string>
+    <string name="today_slots_all_categories">همه دسته‌ها</string>
+    <string name="today_slots_all_cities">همه شهرها</string>
+    <string name="today_slots_city_filter">شهر: %1$s</string>
+    <string name="today_slots_select_city">انتخاب شهر</string>
+    <string name="today_slots_empty_filtered">نوبتی با فیلترهای انتخابی یافت نشد.</string>
 </resources>

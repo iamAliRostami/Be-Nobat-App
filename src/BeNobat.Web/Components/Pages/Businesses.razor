@@ -1,4 +1,4 @@
-﻿@page "/businesses"
+@page "/businesses"
 @rendermode InteractiveServer
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @inject AppDbContext Db
@@ -23,13 +23,16 @@
                 <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="Close">×</button>
             </div>
             <div class="modal-body">
+                @if (EditingId is null && BusinessOptions.Count > 1)
+                {
+                    <label class="business-search-field">
+                        <span>جست‌وجوی کسب‌وکار</span>
+                        <input type="search" placeholder="فیلتر نام کسب‌وکار..." @bind="BusinessSearchQuery" @bind:event="oninput" class="search-inline-input" />
+                    </label>
+                }
                 <div class="service-form-row">
                     <label>
                         <span>کسب‌وکار</span>
-                        @if (BusinessOptions.Count > 1)
-                        {
-                            <input type="search" placeholder="جست‌وجوی کسب‌وکار..." @bind="BusinessSearchQuery" @bind:event="oninput" class="search-inline-input" />
-                        }
                         <select disabled="@(EditingId is not null)" @bind="Form.BusinessId" @bind:after="BusinessChanged">
                             @foreach (var business in FilteredBusinessOptions) { <option value="@business.Id" data-i18n-skip>@business.Name</option> }
                         </select>

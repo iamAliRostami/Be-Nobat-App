@@ -74,7 +74,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnTabToday"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="40dp"
             android:layout_marginEnd="6dp"
@@ -94,6 +94,50 @@
             android:textSize="12sp"
             app:cornerRadius="10dp" />
     </LinearLayout>
+
+    <!-- Filter Chips: City & Categories -->
+    <HorizontalScrollView
+        android:id="@+id/scrollTodaySlotsFilters"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:clipToPadding="false"
+        android:focusable="false"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:scrollbars="none">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupTodaySlotsFilters"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            app:singleLine="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterCity"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:text="@string/today_slots_all_cities"
+                android:textSize="11.5sp"
+                app:chipIcon="@drawable/ic_branch"
+                app:chipIconSize="14dp"
+                app:chipIconTint="?attr/colorPrimary" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipFilterAllCategories"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:focusable="false"
+                android:text="@string/today_slots_all_categories"
+                android:textSize="11.5sp" />
+
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
 
     <!-- Status / Count -->
     <TextView

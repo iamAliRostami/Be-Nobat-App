@@ -1216,7 +1216,9 @@ public static class ManagementEndpoints
         if (!Text(input.ManagerReply, 2000)) return Invalid("A reply must have at most 2000 characters.");
         var item = await scope.Reviews().SingleOrDefaultAsync(r => r.Id == id, ct);
         if (item is null) return Missing();
-        item.ManagerReply = Clean(input.ManagerReply); item.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct);
+        item.ManagerReply = Clean(input.ManagerReply);
+        if (item.Status == ReviewStatus.Pending) item.Status = ReviewStatus.Published;
+        item.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct);
         return Results.Ok(await ReviewDtos(scope.Reviews().Where(r => r.Id == id)).SingleAsync(ct));
     }
 

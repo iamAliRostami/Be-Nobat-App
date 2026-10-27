@@ -966,7 +966,8 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         requireActor(true)
         update { s ->
             val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
-            val value = old.copy(managerReply = input.managerReply)
+            val newStatus = if (old.status == "Pending") "Published" else old.status
+            val value = old.copy(managerReply = input.managerReply, status = newStatus)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }

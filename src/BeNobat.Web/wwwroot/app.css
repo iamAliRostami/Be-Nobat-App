@@ -1,4 +1,4 @@
-﻿/* ===== فونت بومی وزیرمتن (کاملاً آفلاین / بدون وابستگی به سرورهای خارجی) ===== */
+/* ===== فونت بومی وزیرمتن (کاملاً آفلاین / بدون وابستگی به سرورهای خارجی) ===== */
 @font-face {
   font-family: 'Vazirmatn';
   font-style: normal;
@@ -610,6 +610,13 @@ html[data-theme="dark"] .availability-form-modal .availability-fields{background
 .public-user-menu>summary{min-height:38px;padding:3px 7px}.public-user-menu>summary .header-avatar{margin:0}.booking-calendar>summary i{margin-inline-start:auto}.booking-date-navigation input[type="date"],.availability-form-modal input[type="date"]{direction:ltr;text-align:left;padding-inline:10px 34px;color-scheme:light}.availability-form-modal input[type="date"]::-webkit-calendar-picker-indicator,.booking-date-navigation input[type="date"]::-webkit-calendar-picker-indicator{position:absolute;inset-inline-end:9px}.availability-form-modal input[type="date"],.booking-date-navigation input[type="date"]{position:relative}
 .availability-empty{margin-top:14px;min-height:150px;border:1px dashed var(--outline,#cadbd7);border-radius:12px;background:#f6faf9;display:grid;place-items:center;align-content:center;gap:6px;text-align:center;color:var(--muted,#687a75)}.availability-empty span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e4f2ef;color:var(--primary);font-size:20px}.availability-empty b{font-size:12px;color:var(--on-surface,#27332f)}.availability-empty small{font-size:9px}.availability-main span{direction:rtl!important;display:flex;align-items:center;gap:6px;text-align:start!important}.availability-main span time{direction:ltr}.availability-main span i{font-style:normal;color:var(--muted)}
 .admin-header-actions{align-items:center}.admin-header-actions>.ui-preferences{height:38px}.admin-header-actions .ui-preferences{display:flex;gap:10px}.admin-header-actions>.public-user-menu>summary{height:38px}.availability-form-modal .form-columns{align-items:start}.availability-form-modal input,.availability-form-modal select{height:40px;box-sizing:border-box}
+.schedule-info-box{display:flex;align-items:center;gap:8px;background-color:rgba(20,107,93,0.08);border:1px solid rgba(20,107,93,0.25);border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--foreground,#1e293b);margin-top:6px}
+.schedule-info-box.closed{background-color:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25)}
+.overlap-notice-box{display:flex;align-items:center;gap:8px;border-radius:9px;padding:8px 12px;font-size:12.5px;margin-top:8px}
+.overlap-notice-box.warning{background-color:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#b45309}
+.overlap-notice-box.positive{background-color:rgba(20,107,93,0.1);border:1px solid rgba(20,107,93,0.3);color:#146B5D}
+html[data-theme="dark"] .overlap-notice-box.warning{color:#fbbf24;background-color:rgba(245,158,11,0.15)}
+html[data-theme="dark"] .overlap-notice-box.positive{color:#76D6C3;background-color:rgba(20,107,93,0.2)}
 
 /* =====================================================================
    رفع باگ‌های گزارش‌شده (پوشه‌ی BUGS)
@@ -1647,11 +1654,18 @@ html[data-theme="dark"] .cancellation-fields-row .cancellation-input-label input
 html[data-theme="dark"] .cancellation-notice-editor small {
   color: #94a3b8 !important;
 }
+.business-search-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
 .search-inline-input {
   margin-bottom: 2px !important;
-  height: 38px !important;
-  font-size: 0.82rem !important;
-  padding: 6px 12px !important;
+  height: 40px !important;
+  font-size: 0.84rem !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d4e3e0 !important;
   border-radius: 8px !important;
   background: var(--surface-raised, #f8fafc) !important;
 }

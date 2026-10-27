@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -44,6 +44,8 @@ public sealed class AdminAccessScope(
 
     public async Task<bool> IsPlatformAdminAsync()
     {
+        var principal = await PrincipalAsync();
+        if (principal.IsInRole(AppRoles.PlatformAdmin)) return true;
         if (dbFactory is null) return await (await PlatformUsersAsync()).AnyAsync();
         await using var fresh = await dbFactory.CreateDbContextAsync();
         return await (await new AdminAccessScope(fresh, authenticationStateProvider).PlatformUsersAsync()).AnyAsync();
@@ -137,6 +139,11 @@ public sealed class AdminAccessScope(
 
     public async Task<IQueryable<Review>> ReviewsAsync()
     {
+        var principal = await PrincipalAsync();
+        if (principal.IsInRole(AppRoles.PlatformAdmin))
+        {
+            return db.Reviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null);
+        }
         var platform = await PlatformUsersAsync();
         var managed = (await ManagedBranchesAsync(includeArchived: true)).IgnoreQueryFilters();
         var id = await UserIdAsync();

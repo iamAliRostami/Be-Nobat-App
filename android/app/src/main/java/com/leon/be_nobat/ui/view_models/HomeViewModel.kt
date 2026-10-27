@@ -50,7 +50,10 @@ data class HomeUiState(
     val error: String? = null,
     val favoriteSnapshot: Map<String, Boolean> = emptyMap(),
     val loadingTodaySlots: Boolean = false,
+    val todaySlotsRaw: List<TodaySlotItem> = emptyList(),
     val todaySlots: List<TodaySlotItem> = emptyList(),
+    val todaySlotsCategoryFilter: String? = null,
+    val todaySlotsCityFilter: String? = null,
     val todaySlotsError: String? = null,
     val todaySlotsDate: String = "",
     val todaySlotsForTomorrow: Boolean = false,
@@ -221,6 +224,7 @@ class HomeViewModel(
                                 TodaySlotItem(
                                     businessId = biz.id,
                                     businessName = biz.name,
+                                    city = biz.city,
                                     category = biz.category,
                                     branchId = branch.id,
                                     branchName = branch.name,
@@ -242,9 +246,16 @@ class HomeViewModel(
                 }
 
                 results.sortBy { it.startsAt }
+                val cat = _state.value.todaySlotsCategoryFilter
+                val cty = _state.value.todaySlotsCityFilter
+                val filtered = results.filter { item ->
+                    (cat.isNullOrBlank() || item.category.equals(cat, ignoreCase = true)) &&
+                    (cty.isNullOrBlank() || item.city.equals(cty, ignoreCase = true))
+                }
                 _state.value = _state.value.copy(
                     loadingTodaySlots = false,
-                    todaySlots = results,
+                    todaySlotsRaw = results,
+                    todaySlots = filtered,
                     todaySlotsError = null,
                 )
             } catch (e: Exception) {
@@ -285,5 +296,24 @@ class HomeViewModel(
                 }
             }
         }
+    }
+
+    fun setTodaySlotsFilter(category: String?, city: String?) {
+        val s = _state.value
+        val cat = category?.takeIf { it.isNotBlank() && it != "all" }
+        val cty = city?.takeIf { it.isNotBlank() && it != "all" }
+        val filtered = s.todaySlotsRaw.filter { item ->
+            (cat == null || item.category.equals(cat, ignoreCase = true)) &&
+            (cty == null || item.city.equals(cty, ignoreCase = true))
+        }
+        _state.value = s.copy(
+            todaySlotsCategoryFilter = cat,
+            todaySlotsCityFilter = cty,
+            todaySlots = filtered,
+        )
+    }
+
+    fun clearTodaySlotsFilter() {
+        setTodaySlotsFilter(null, null)
     }
 }

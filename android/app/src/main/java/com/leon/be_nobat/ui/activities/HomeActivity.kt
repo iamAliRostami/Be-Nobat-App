@@ -2,7 +2,11 @@ package com.leon.be_nobat.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.content.res.ColorStateList
+import android.graphics.Color
+import com.google.android.material.color.MaterialColors
 import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.core.view.isVisible
 import com.leon.be_nobat.domain.model.Category
@@ -16,6 +20,9 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
@@ -224,6 +231,22 @@ class HomeActivity : BaseActivity() {
         viewModel.refreshFavoritesOnly()
     }
 
+    private fun scrollChipsToStart(hsv: HorizontalScrollView?) {
+        hsv ?: return
+        hsv.post {
+            val isRtl = hsv.context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+            if (isRtl) {
+                val child = hsv.getChildAt(0)
+                val maxScroll = if (child != null) (child.width - hsv.width).coerceAtLeast(0) else 0
+                hsv.scrollTo(maxScroll, 0)
+                hsv.fullScroll(View.FOCUS_RIGHT)
+            } else {
+                hsv.scrollTo(0, 0)
+                hsv.fullScroll(View.FOCUS_LEFT)
+            }
+        }
+    }
+
     private fun showTodaySlotsBottomSheet() {
         val dialog = BottomSheetDialog(this)
         todaySlotsDialog = dialog
@@ -238,8 +261,53 @@ class HomeActivity : BaseActivity() {
         val btnViewTomorrowSlots = sheetView.findViewById<View>(R.id.btnViewTomorrowSlots)
         val btnViewInstantCenters = sheetView.findViewById<View>(R.id.btnViewInstantCenters)
         val rvSlots = sheetView.findViewById<RecyclerView>(R.id.rvTodaySlots)
+        val chipFilterCity = sheetView.findViewById<Chip>(R.id.chipFilterCity)
+        val chipFilterAllCategories = sheetView.findViewById<Chip>(R.id.chipFilterAllCategories)
+        val scrollTodaySlotsFilters = sheetView.findViewById<HorizontalScrollView>(R.id.scrollTodaySlotsFilters)
+        val chipGroupFilters = sheetView.findViewById<ChipGroup>(R.id.chipGroupTodaySlotsFilters)
+
+        chipGroupFilters.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left != oldRight - oldLeft) {
+                scrollChipsToStart(scrollTodaySlotsFilters)
+            }
+        }
 
         btnClose.setOnClickListener { dialog.dismiss() }
+
+        chipFilterCity.setOnClickListener {
+            val cities = viewModel.state.value.todaySlotsRaw
+                .map { it.city.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+
+            if (cities.isEmpty()) {
+                showToast(getString(R.string.today_slots_all_cities))
+                return@setOnClickListener
+            }
+
+            val options = arrayOf(getString(R.string.today_slots_all_cities), *cities.toTypedArray())
+            val currentCity = viewModel.state.value.todaySlotsCityFilter
+            val currentIndex = if (currentCity.isNullOrBlank()) 0 else (cities.indexOf(currentCity) + 1).coerceAtLeast(0)
+
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.today_slots_select_city)
+                .setSingleChoiceItems(options, currentIndex) { dialogInterface, which ->
+                    dialogInterface.dismiss()
+                    val selectedCity = if (which == 0) null else cities[which - 1]
+                    viewModel.setTodaySlotsFilter(
+                        viewModel.state.value.todaySlotsCategoryFilter,
+                        selectedCity
+                    )
+                }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
+        }
+
+        chipFilterAllCategories.setOnClickListener {
+            chipFilterAllCategories.isChecked = true
+            viewModel.setTodaySlotsFilter(null, viewModel.state.value.todaySlotsCityFilter)
+        }
 
         todaySlotsAdapter = TodaySlotsAdapter { slotItem ->
             dialog.dismiss()
@@ -259,13 +327,29 @@ class HomeActivity : BaseActivity() {
         rvSlots.adapter = todaySlotsAdapter
 
         val updateTabs = { tomorrow: Boolean ->
+            val primaryColor = MaterialColors.getColor(sheetView, androidx.appcompat.R.attr.colorPrimary)
+            val onPrimaryColor = MaterialColors.getColor(sheetView, com.google.android.material.R.attr.colorOnPrimary)
+            val onSurfaceColor = MaterialColors.getColor(sheetView, com.google.android.material.R.attr.colorOnSurface)
+            val outlineColor = MaterialColors.getColor(sheetView, com.google.android.material.R.attr.colorOutline)
+            val stroke1dp = (1 * resources.displayMetrics.density).toInt()
+
+            val applyActiveTab = { btn: MaterialButton ->
+                btn.strokeWidth = 0
+                btn.backgroundTintList = ColorStateList.valueOf(primaryColor)
+                btn.setTextColor(onPrimaryColor)
+            }
+            val applyInactiveTab = { btn: MaterialButton ->
+                btn.strokeWidth = stroke1dp
+                btn.setStrokeColor(ColorStateList.valueOf(outlineColor))
+                btn.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+                btn.setTextColor(onSurfaceColor)
+            }
+
+            viewModel.clearTodaySlotsFilter()
+            scrollChipsToStart(scrollTodaySlotsFilters)
             if (tomorrow) {
-                btnTabToday.strokeWidth = 2
-                btnTabToday.backgroundTintList = null
-                btnTabTomorrow.strokeWidth = 0
-                btnTabTomorrow.setBackgroundColor(getColor(R.color.colorPrimary))
-                btnTabTomorrow.setTextColor(getColor(R.color.colorOnPrimary))
-                btnTabToday.setTextColor(getColor(R.color.colorOnSurface))
+                applyInactiveTab(btnTabToday)
+                applyActiveTab(btnTabTomorrow)
 
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, 1)
@@ -278,12 +362,8 @@ class HomeActivity : BaseActivity() {
                 tvSubtitle.text = "فردا · ${jd.toDisplayString()}"
                 viewModel.loadTodaySlots(forTomorrow = true)
             } else {
-                btnTabTomorrow.strokeWidth = 2
-                btnTabTomorrow.backgroundTintList = null
-                btnTabToday.strokeWidth = 0
-                btnTabToday.setBackgroundColor(getColor(R.color.colorPrimary))
-                btnTabToday.setTextColor(getColor(R.color.colorOnPrimary))
-                btnTabTomorrow.setTextColor(getColor(R.color.colorOnSurface))
+                applyActiveTab(btnTabToday)
+                applyInactiveTab(btnTabTomorrow)
 
                 val jd = JalaliDateHelper.getTodayJalali()
                 tvTitle.text = getString(R.string.today_slots_title)
@@ -539,6 +619,10 @@ class HomeActivity : BaseActivity() {
                 val tvCount = d.findViewById<TextView>(R.id.tvSlotsCountBadge)
                 val rvSlots = d.findViewById<RecyclerView>(R.id.rvTodaySlots)
                 val tvEmptyTitle = d.findViewById<TextView>(R.id.tvEmptySlotsTitle)
+                val chipFilterCity = d.findViewById<Chip>(R.id.chipFilterCity)
+                val chipFilterAllCategories = d.findViewById<Chip>(R.id.chipFilterAllCategories)
+                val chipGroupFilters = d.findViewById<ChipGroup>(R.id.chipGroupTodaySlotsFilters)
+                val btnViewTomorrowSlots = d.findViewById<View>(R.id.btnViewTomorrowSlots)
 
                 progress?.isVisible = state.loadingTodaySlots
                 tvError?.isVisible = state.todaySlotsError != null && !state.loadingTodaySlots
@@ -550,11 +634,19 @@ class HomeActivity : BaseActivity() {
                 rvSlots?.isVisible = hasSlots
                 layoutEmpty?.isVisible = isEmpty
 
+                val isFiltered = !state.todaySlotsCategoryFilter.isNullOrBlank() || !state.todaySlotsCityFilter.isNullOrBlank()
+
                 if (isEmpty) {
-                    tvEmptyTitle?.text = if (state.todaySlotsForTomorrow) {
-                        getString(R.string.today_slots_empty_tomorrow)
+                    if (isFiltered && state.todaySlotsRaw.isNotEmpty()) {
+                        tvEmptyTitle?.text = getString(R.string.today_slots_empty_filtered)
+                        btnViewTomorrowSlots?.isVisible = false
                     } else {
-                        getString(R.string.today_slots_empty)
+                        btnViewTomorrowSlots?.isVisible = !state.todaySlotsForTomorrow
+                        tvEmptyTitle?.text = if (state.todaySlotsForTomorrow) {
+                            getString(R.string.today_slots_empty_tomorrow)
+                        } else {
+                            getString(R.string.today_slots_empty)
+                        }
                     }
                 }
 
@@ -566,6 +658,65 @@ class HomeActivity : BaseActivity() {
                     )
                 } else {
                     tvCount?.isVisible = false
+                }
+
+                // Update City Chip text
+                chipFilterCity?.let { chip ->
+                    if (state.todaySlotsCityFilter.isNullOrBlank()) {
+                        chip.text = getString(R.string.today_slots_all_cities)
+                        chip.isCloseIconVisible = false
+                    } else {
+                        chip.text = getString(R.string.today_slots_city_filter, state.todaySlotsCityFilter)
+                        chip.isCloseIconVisible = true
+                        chip.setOnCloseIconClickListener {
+                            viewModel.setTodaySlotsFilter(state.todaySlotsCategoryFilter, null)
+                        }
+                    }
+                }
+
+                // Update Category Chips
+                chipGroupFilters?.let { group ->
+                    val categories = state.todaySlotsRaw
+                        .map { it.category.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                        .sorted()
+
+                    val cachedCategories = group.getTag(R.id.chipGroupTodaySlotsFilters) as? List<*>
+                    if (cachedCategories != categories) {
+                        group.setTag(R.id.chipGroupTodaySlotsFilters, categories)
+                        // Keep first 2 chips (City and All Categories)
+                        while (group.childCount > 2) {
+                            group.removeViewAt(2)
+                        }
+                        for (cat in categories) {
+                            val catChip = Chip(this).apply {
+                                text = cat
+                                isCheckable = true
+                                isClickable = true
+                                isFocusable = false
+                                textSize = 11.5f
+                                setOnClickListener {
+                                    if (isChecked) {
+                                        viewModel.setTodaySlotsFilter(cat, state.todaySlotsCityFilter)
+                                    } else {
+                                        viewModel.setTodaySlotsFilter(null, state.todaySlotsCityFilter)
+                                    }
+                                }
+                            }
+                            group.addView(catChip)
+                        }
+                        val scrollHsv = d.findViewById<HorizontalScrollView>(R.id.scrollTodaySlotsFilters)
+                        scrollChipsToStart(scrollHsv)
+                    }
+
+                    // Update checked state of category chips
+                    val selectedCat = state.todaySlotsCategoryFilter
+                    chipFilterAllCategories?.isChecked = selectedCat.isNullOrBlank()
+                    for (i in 2 until group.childCount) {
+                        val c = group.getChildAt(i) as? Chip ?: continue
+                        c.isChecked = c.text.toString().equals(selectedCat, ignoreCase = true)
+                    }
                 }
 
                 todaySlotsAdapter?.submitList(state.todaySlots)

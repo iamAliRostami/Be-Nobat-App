@@ -68,4 +68,9 @@
     <color name="category_chip_text">#CBD5E1</color>
     <color name="category_chip_selected_bg">#76D6C3</color>
     <color name="category_chip_selected_text">#00382F</color>
+    <!-- Today slots alternate card backgrounds (Night) -->
+    <color name="slot_card_bg_primary">#16211E</color>
+    <color name="slot_card_bg_secondary">#223430</color>
+    <color name="slot_card_stroke_primary">#2C3E3A</color>
+    <color name="slot_card_stroke_secondary">#3E5C53</color>
 </resources>

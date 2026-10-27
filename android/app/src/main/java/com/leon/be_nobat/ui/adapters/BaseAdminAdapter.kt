@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.adapters
+﻿package com.leon.be_nobat.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -25,6 +25,7 @@ abstract class BaseAdminAdapter<T>(
     override fun onBindViewHolder(holder: AdminViewHolder, position: Int) {
         holder.binding.viewStatusIndicator.visibility = android.view.View.GONE
         holder.binding.btnQrCode.visibility = android.view.View.GONE
+        holder.binding.btnAction3.visibility = android.view.View.GONE
         val primaryColor = com.google.android.material.color.MaterialColors.getColor(holder.binding.btnAction1, androidx.appcompat.R.attr.colorPrimary)
         holder.binding.btnAction1.setTextColor(primaryColor)
         holder.binding.btnAction1.strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)

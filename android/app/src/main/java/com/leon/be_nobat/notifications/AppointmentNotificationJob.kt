@@ -9,7 +9,7 @@ class AppointmentNotificationJob : JobService() {
     private val monitor: AppointmentNotificationMonitor by inject()
     private var work: Job? = null
     override fun onStartJob(params: JobParameters): Boolean {
-        work = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch {
+        work = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             var retry = false
             try { monitor.sync() }
             catch (e: CancellationException) { throw e }

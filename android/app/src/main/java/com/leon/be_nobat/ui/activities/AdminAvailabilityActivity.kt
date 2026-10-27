@@ -5,7 +5,10 @@ import android.app.TimePickerDialog
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
+import com.google.android.material.color.MaterialColors
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -464,6 +467,11 @@ class AdminAvailabilityActivity : BaseActivity() {
         val etEndTime = view.findViewById<TextInputEditText>(R.id.etEndTime)
         val cbIsAvailable = view.findViewById<MaterialCheckBox>(R.id.cbIsAvailable)
         val tvError = view.findViewById<TextView>(R.id.tvValidationError)
+        val tvBranchScheduleInfo = view.findViewById<TextView>(R.id.tvBranchScheduleInfo)
+        val ivScheduleIcon = view.findViewById<ImageView>(R.id.ivScheduleIcon)
+        val layoutOverlapWarning = view.findViewById<LinearLayout>(R.id.layoutOverlapWarning)
+        val tvOverlapWarning = view.findViewById<TextView>(R.id.tvOverlapWarning)
+        val ivOverlapWarningIcon = view.findViewById<ImageView>(R.id.ivOverlapWarningIcon)
 
         tvTitle.setText(if (item == null) R.string.form_create_availability_title else R.string.form_edit_availability_title)
 
@@ -499,21 +507,178 @@ class AdminAvailabilityActivity : BaseActivity() {
             etResource.setText(res?.name ?: getString(R.string.availability_all_staff))
         }
 
+        val existingRules = viewModel.state.value.items
+
+        fun evaluateScheduleAndOverlaps() {
+            val parts = selectedIsoDate.split("-").mapNotNull { it.toIntOrNull() }
+            val cal = Calendar.getInstance().apply {
+                if (parts.size == 3) set(parts[0], parts[1] - 1, parts[2])
+            }
+            val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1
+            val dayNames = mapOf(
+                6 to "شنبه",
+                0 to "یکشنبه",
+                1 to "دوشنبه",
+                2 to "سه‌شنبه",
+                3 to "چهارشنبه",
+                4 to "پنج‌شنبه",
+                5 to "جمعه"
+            )
+            val dayName = dayNames[dayOfWeek] ?: ""
+
+            val branch = allBranches.firstOrNull { it.id == selectedBranchId }
+            var isBranchClosed = false
+            var branchHoursDesc = ""
+
+            if (branch != null) {
+                val allWindows = branch.weeklyHours ?: WeeklyHours.legacy(branch.openHour, branch.closeHour)
+                val dayWindows = allWindows.filter { it.dayOfWeek == dayOfWeek }
+                if (dayWindows.isEmpty()) {
+                    isBranchClosed = true
+                    tvBranchScheduleInfo.text = "شعبه در روز $dayName تعطیل است (ساعت کاری تعریف نشده)."
+                    ivScheduleIcon.setImageResource(R.drawable.ic_close)
+                    ivScheduleIcon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@AdminAvailabilityActivity, R.color.error_red))
+                } else {
+                    branchHoursDesc = dayWindows.joinToString(" و ") {
+                        "${PersianUtils.toPersianDigits(it.startsAt.take(5))} تا ${PersianUtils.toPersianDigits(it.endsAt.take(5))}"
+                    }
+                    tvBranchScheduleInfo.text = "ساعت کاری شعبه در روز $dayName: $branchHoursDesc"
+                    ivScheduleIcon.setImageResource(R.drawable.ic_availability)
+                    ivScheduleIcon.imageTintList = ColorStateList.valueOf(MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary))
+                }
+            } else {
+                tvBranchScheduleInfo.text = "اعمال بر کل شعب مجموعه در روز $dayName"
+                ivScheduleIcon.setImageResource(R.drawable.ic_branch)
+                ivScheduleIcon.imageTintList = ColorStateList.valueOf(MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary))
+            }
+
+            val startFull = if (selectedStartTime.length == 5) "$selectedStartTime:00" else selectedStartTime
+            val endFull = if (selectedEndTime.length == 5) "$selectedEndTime:00" else selectedEndTime
+            val startSec = runCatching { WeeklyHours.seconds(startFull) }.getOrNull()
+            val endSec = runCatching { WeeklyHours.seconds(endFull) }.getOrNull()
+
+            if (startSec == null || endSec == null || startSec >= endSec) {
+                layoutOverlapWarning.isVisible = false
+                return
+            }
+
+            val isAvailable = cbIsAvailable.isChecked
+            var warningText: String? = null
+            var isPositiveNotice = false
+
+            if (branch != null) {
+                val allWindows = branch.weeklyHours ?: WeeklyHours.legacy(branch.openHour, branch.closeHour)
+                val dayWindows = allWindows.filter { it.dayOfWeek == dayOfWeek }
+                if (isBranchClosed) {
+                    if (!isAvailable) {
+                        warningText = "شعبه در روز $dayName تعطیل است؛ مسدودسازی این ساعت تاثیری در نوبت‌ها ندارد."
+                        isPositiveNotice = false
+                    } else {
+                        warningText = "این بازه به عنوان شیفت کاری مازاد (فوق‌العاده) در روز تعطیل $dayName فعال خواهد شد."
+                        isPositiveNotice = true
+                    }
+                } else {
+                    val isWithinAnyWindow = dayWindows.any {
+                        startSec >= WeeklyHours.seconds(it.startsAt) && endSec <= WeeklyHours.seconds(it.endsAt)
+                    }
+                    val hasAnyOverlap = dayWindows.any {
+                        startSec < WeeklyHours.seconds(it.endsAt) && endSec > WeeklyHours.seconds(it.startsAt)
+                    }
+
+                    if (!hasAnyOverlap) {
+                        if (!isAvailable) {
+                            warningText = "این بازه کاملاً خارج از ساعت کاری شعبه ($branchHoursDesc) است و نوبتی برای مسدودسازی ندارد."
+                            isPositiveNotice = false
+                        } else {
+                            warningText = "این بازه خارج از ساعت کاری عادی شعبه است و به عنوان شیفت کاری مازاد در این تاریخ فعال خواهد شد."
+                            isPositiveNotice = true
+                        }
+                    } else if (!isWithinAnyWindow) {
+                        if (!isAvailable) {
+                            warningText = "بخشی از این بازه خارج از ساعت کاری شعبه ($branchHoursDesc) است."
+                            isPositiveNotice = false
+                        } else {
+                            warningText = "ساعات مازاد بر ساعت کاری شعبه، به عنوان شیفت کاری اضافه فعال خواهند شد."
+                            isPositiveNotice = true
+                        }
+                    }
+                }
+            }
+
+            if (warningText == null) {
+                val sameDateRules = existingRules.filter { r ->
+                    r.id != item?.id &&
+                    r.effectiveDate == selectedIsoDate &&
+                    (selectedBranchId == null || r.branchId == null || r.branchId == selectedBranchId) &&
+                    (selectedResourceId == null || r.resourceId == null || r.resourceId == selectedResourceId)
+                }
+
+                for (r in sameDateRules) {
+                    val rStart = runCatching { WeeklyHours.seconds(r.startsAt) }.getOrNull() ?: continue
+                    val rEnd = runCatching { WeeklyHours.seconds(r.endsAt) }.getOrNull() ?: continue
+                    val overlaps = startSec < rEnd && endSec > rStart
+
+                    if (overlaps) {
+                        val rRangeText = "${PersianUtils.toPersianDigits(r.startsAt.take(5))} تا ${PersianUtils.toPersianDigits(r.endsAt.take(5))}"
+                        if (!isAvailable && !r.isAvailable) {
+                            warningText = "این بازه با بازهٔ مسدود قبلی ($rRangeText) همپوشانی دارد و در هم ادغام خواهند شد."
+                            isPositiveNotice = false
+                        } else if (!isAvailable && r.isAvailable) {
+                            warningText = "این بازه، بخشی از بازهٔ قابل‌رزرو قبلی ($rRangeText) را مسدود می‌کند."
+                            isPositiveNotice = false
+                        } else if (isAvailable && !r.isAvailable) {
+                            warningText = "یک بازهٔ مسدود ($rRangeText) با این ساعات همپوشانی دارد و نوبت‌ها در آن بخش بسته می‌مانند."
+                            isPositiveNotice = false
+                        } else {
+                            warningText = "این بازه با بازهٔ قابل‌رزرو دیگری ($rRangeText) همپوشانی دارد."
+                            isPositiveNotice = true
+                        }
+                        break
+                    }
+                }
+            }
+
+            if (warningText != null) {
+                layoutOverlapWarning.isVisible = true
+                tvOverlapWarning.text = warningText
+                if (isPositiveNotice) {
+                    layoutOverlapWarning.setBackgroundResource(R.drawable.bg_schedule_info_box)
+                    ivOverlapWarningIcon.setImageResource(R.drawable.ic_availability)
+                    val primaryColor = MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary)
+                    ivOverlapWarningIcon.imageTintList = ColorStateList.valueOf(primaryColor)
+                    tvOverlapWarning.setTextColor(primaryColor)
+                } else {
+                    layoutOverlapWarning.setBackgroundResource(R.drawable.bg_overlap_warning_box)
+                    ivOverlapWarningIcon.setImageResource(R.drawable.ic_warning)
+                    val amberColor = android.graphics.Color.parseColor("#D97706")
+                    ivOverlapWarningIcon.imageTintList = ColorStateList.valueOf(amberColor)
+                    tvOverlapWarning.setTextColor(android.graphics.Color.parseColor("#B45309"))
+                }
+            } else {
+                layoutOverlapWarning.isVisible = false
+            }
+        }
+
         fun updateDateField() {
             val jDate = JalaliDateHelper.formatIsoToJalali(selectedIsoDate)
             etDate.setText(PersianUtils.toPersianDigits(jDate))
+            evaluateScheduleAndOverlaps()
         }
 
         fun updateTimeFields() {
             etStartTime.setText(PersianUtils.toPersianDigits(selectedStartTime))
             etEndTime.setText(PersianUtils.toPersianDigits(selectedEndTime))
+            evaluateScheduleAndOverlaps()
         }
+
+        cbIsAvailable.setOnCheckedChangeListener { _, _ -> evaluateScheduleAndOverlaps() }
 
         updateBusinessField()
         updateBranchField()
         updateResourceField()
         updateDateField()
         updateTimeFields()
+        evaluateScheduleAndOverlaps()
 
         // Disable moving to another scope on edit (backend restriction)
         if (item != null) {
@@ -554,6 +719,7 @@ class AdminAvailabilityActivity : BaseActivity() {
                         selectedResourceId = null
                         updateBranchField()
                         updateResourceField()
+                        evaluateScheduleAndOverlaps()
                         dialog.dismiss()
                     }
                     .setNegativeButton(R.string.action_close, null)

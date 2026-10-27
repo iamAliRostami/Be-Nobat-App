@@ -1,4 +1,4 @@
-package com.leon.be_nobat.domain.usecase
+﻿package com.leon.be_nobat.domain.usecase
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.ManagementAppointment
@@ -160,6 +160,10 @@ class AdminListReviewsUseCase(private val repo: ManagementRepository) {
 
 class AdminModerateReviewUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(id: String, input: ManagementModerationInput): Result<ManagementReview> = repo.moderateReview(id, input)
+}
+
+class AdminReplyReviewUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(id: String, reply: String?): Result<ManagementReview> = repo.replyReview(id, com.leon.be_nobat.domain.model.ManagementReplyInput(reply))
 }
 
 class AdminListAvailabilityUseCase(private val repo: ManagementRepository) {

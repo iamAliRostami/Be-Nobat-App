@@ -10,6 +10,10 @@ import com.leon.be_nobat.domain.model.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 /**
@@ -32,31 +36,30 @@ class TokenManager(
     }
 
     /** Plain bearer token (decrypted). */
-    val userToken: Flow<String?> = dataStore.data.map { it.decrypt(KEY_TOKEN) }
+    val userToken: Flow<String?> = dataStore.data.map { it.decrypt(KEY_TOKEN) }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     /** The persisted user (decoded from JSON). */
     val user: Flow<User?> = dataStore.data.map { prefs ->
         prefs.decrypt(KEY_USER)?.let { serialized ->
             runCatching { json.decodeFromString(User.serializer(), serialized) }.getOrNull()
         }
-    }
+    }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     /** The persisted management context (decoded from JSON). */
     val managementContext: Flow<com.leon.be_nobat.domain.model.ManagementContext?> = dataStore.data.map { prefs ->
         prefs.decrypt(KEY_MANAGEMENT_CONTEXT)?.let { serialized ->
             runCatching { json.decodeFromString(com.leon.be_nobat.domain.model.ManagementContext.serializer(), serialized) }.getOrNull()
         }
-    }
-
+    }.distinctUntilChanged().flowOn(Dispatchers.IO)
     /** ISO-8601 expiry timestamp of the current session. */
-    val expiresAt: Flow<String?> = dataStore.data.map { it.decrypt(KEY_EXPIRES_AT) }
+    val expiresAt: Flow<String?> = dataStore.data.map { it.decrypt(KEY_EXPIRES_AT) }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     /** Convenience accessor used by `StartActivity` to decide the launcher target. */
-    suspend fun currentSession(): MobileSession? {
-        val token = userToken.first() ?: return null
-        val userVal = user.first() ?: return null
+    suspend fun currentSession(): MobileSession? = withContext(Dispatchers.IO) {
+        val token = userToken.first() ?: return@withContext null
+        val userVal = user.first() ?: return@withContext null
         val exp = expiresAt.first()
-        return MobileSession(
+        MobileSession(
             accessToken = token,
             tokenType = "Bearer",
             expiresAt = exp ?: "",
@@ -85,7 +88,7 @@ class TokenManager(
     /** Replace the whole session (used after `/me/password` or `/me/email` reissue). */
     suspend fun replaceSession(session: MobileSession) = save(session)
 
-    suspend fun currentManagementContext(): com.leon.be_nobat.domain.model.ManagementContext? = managementContext.first()
+    suspend fun currentManagementContext(): com.leon.be_nobat.domain.model.ManagementContext? = withContext(Dispatchers.IO) { managementContext.first() }
 
     suspend fun saveManagementContext(context: com.leon.be_nobat.domain.model.ManagementContext) {
         val encContext = cryptoManager.encrypt(json.encodeToString(com.leon.be_nobat.domain.model.ManagementContext.serializer(), context))

@@ -647,5 +647,17 @@
     <string name="today_slots_tab_tomorrow">غداً</string>
     <string name="today_slots_book_now">حجز هذا الموعد</string>
     <string name="today_slots_instant_badge">تأكيد فوري</string>
-    <string name="today_slots_count">%1 موعد شاغر متاح</string>
+    <string name="today_slots_count">%1$s موعد شاغر متاح</string>
+    <string name="today_slots_all_categories">جميع الفئات</string>
+    <string name="today_slots_all_cities">جميع المدن</string>
+    <string name="today_slots_city_filter">المدينة: %1$s</string>
+    <string name="today_slots_select_city">اختر المدينة</string>
+    <string name="today_slots_empty_filtered">لم يتم العثور على مواعيد تطابق عوامل التصفية.</string>
+    <string name="reply_review">الرد</string>
+    <string name="edit_reply_review">تعديل الرد</string>
+    <string name="reply_dialog_title">الرد على تعليق %1$s</string>
+    <string name="reply_hint">اكتب رد المنشأة…</string>
+    <string name="submit_reply">إرسال الرد</string>
+    <string name="reply_submitted_success">تم إرسال الرد بنجاح.</string>
+    <string name="manager_reply_prefix">رد المنشأة:</string>
 </resources>

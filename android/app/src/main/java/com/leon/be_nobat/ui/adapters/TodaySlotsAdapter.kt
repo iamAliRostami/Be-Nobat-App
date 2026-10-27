@@ -3,6 +3,7 @@ package com.leon.be_nobat.ui.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -25,14 +26,33 @@ class TodaySlotsAdapter(
     }
 
     inner class VH(val binding: ItemTodaySlotBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: TodaySlotItem) {
+        fun bind(item: TodaySlotItem, position: Int) {
             binding.apply {
+                val ctx = root.context
+                val isAlternate = position % 2 != 0
+                val bgColor = ContextCompat.getColor(
+                    ctx,
+                    if (isAlternate) R.color.slot_card_bg_secondary else R.color.slot_card_bg_primary
+                )
+                val strokeColor = ContextCompat.getColor(
+                    ctx,
+                    if (isAlternate) R.color.slot_card_stroke_secondary else R.color.slot_card_stroke_primary
+                )
+
+                cardTodaySlot.setCardBackgroundColor(bgColor)
+                cardTodaySlot.strokeColor = strokeColor
+
                 tvSlotTime.text = item.timeLabel
                 tvBusinessName.text = item.businessName
                 tvServiceName.text = "${item.serviceName} · ${PersianUtils.formatDuration(item.serviceDurationMinutes)}"
 
                 val providerPart = if (item.resourceName.isNotBlank()) " · ${item.resourceName}" else ""
-                tvBranchAndProvider.text = "${item.branchName}$providerPart"
+                val branchCityPart = if (item.city.isNotBlank() && item.branchName.isNotBlank()) {
+                    "${item.city} · ${item.branchName}"
+                } else {
+                    item.city.ifBlank { item.branchName }
+                }
+                tvBranchAndProvider.text = "$branchCityPart$providerPart"
 
                 val priceText = if (item.price <= 0.0) {
                     if (PersianUtils.isEnglishLocale()) "Free" else "رایگان"
@@ -60,6 +80,6 @@ class TodaySlotsAdapter(
     }
 
     override fun onBindViewHolder(holder: VH, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(getItem(position), position)
     }
 }

@@ -70,8 +70,22 @@
                 </fieldset>
             }
             <label class="localized-date-field"><span class="localized-date-heading"><span>تاریخ</span><small>@LocalizedDate.Weekday(Form.EffectiveDate, Language)</small></span><div class="localized-date-inputs"><select aria-label="سال" @bind="LocalYear" @bind:after="LocalizedDateChanged">@foreach(var year in LocalYears){<option value="@year">@LocalizedDate.FormatNumber(year, Language)</option>}</select><select aria-label="ماه" @bind="LocalMonth" @bind:after="LocalizedDateChanged">@foreach(var month in LocalMonths){<option value="@month">@LocalizedDate.MonthName(month, Language)</option>}</select><select aria-label="روز" @bind="LocalDay" @bind:after="LocalizedDateChanged">@foreach(var day in LocalDays){<option value="@day">@LocalizedDate.FormatNumber(day, Language)</option>}</select></div></label>
-            <div class="time-range"><label>از<select @bind="StartMinutes" @bind:after="StartTimeChanged">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><label>تا<select @bind="EndMinutes">@foreach(var minutes in TimeOptions(Form.EndsAt, true)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
-            <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" /><span>قابل رزرو باشد</span></label>
+            @if (!string.IsNullOrWhiteSpace(BranchScheduleInfo))
+            {
+                <div class="schedule-info-box @(IsBranchClosed ? "closed" : "")">
+                    <span>@(IsBranchClosed ? "🔴" : "🟢")</span>
+                    <span>@BranchScheduleInfo</span>
+                </div>
+            }
+            <div class="time-range"><label>از<select @bind="StartMinutes" @bind:after="StartTimeChanged">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><label>تا<select @bind="EndMinutes" @bind:after="EndTimeChanged">@foreach(var minutes in TimeOptions(Form.EndsAt, true)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
+            <label class="check-label"><input type="checkbox" @bind="Form.IsAvailable" @bind:after="EvaluateScheduleAndOverlaps" /><span>قابل رزرو باشد</span></label>
+            @if (!string.IsNullOrWhiteSpace(OverlapNotice))
+            {
+                <div class="overlap-notice-box @(IsPositiveNotice ? "positive" : "warning")">
+                    <span>@(IsPositiveNotice ? "🟢" : "⚠️")</span>
+                    <span>@OverlapNotice</span>
+                </div>
+            }
             @if (Error is not null) { <div class="auth-error">@Error</div> }
             <button class="primary-button">ذخیره</button>
         </EditForm>
@@ -99,6 +113,10 @@
     private Guid? EditingId;
     private RuleInput Form = new();
     private string? Error;
+    private string BranchScheduleInfo = "";
+    private bool IsBranchClosed;
+    private string OverlapNotice = "";
+    private bool IsPositiveNotice;
     private bool IsPlatformAdmin;
     private string Language = "fa";
     private DateOnly Today => BranchClock.Today(Branches.FirstOrDefault()?.TimeZoneId);
@@ -204,6 +222,7 @@
         await LoadSelectedServicesAsync(Form.ResourceId);
         SetLocalizedDateParts();
         EnsureFutureTimes();
+        EvaluateScheduleAndOverlaps();
         ShowForm = true;
     }
 
@@ -215,11 +234,12 @@
         await LoadSelectedServicesAsync(rule.ResourceId);
         SetLocalizedDateParts();
         EnsureFutureTimes();
+        EvaluateScheduleAndOverlaps();
         ShowForm = true;
     }
 
     private async Task BusinessChanged() { Form.BranchId = IsPlatformAdmin ? null : AvailableBranches.FirstOrDefault()?.Id; Form.ResourceId = null; await LoadSelectedServicesAsync(null); }
-    private async Task BranchChanged() { Form.ResourceId = null; await LoadSelectedServicesAsync(null); }
+    private async Task BranchChanged() { Form.ResourceId = null; await LoadSelectedServicesAsync(null); EvaluateScheduleAndOverlaps(); }
     private async Task ResourceChanged() => await LoadSelectedServicesAsync(Form.ResourceId);
     private async Task LoadSelectedServicesAsync(Guid? resourceId)
     {
@@ -247,6 +267,7 @@
         SetLocalizedDateParts();
         Form.DayOfWeek = Form.EffectiveDate.DayOfWeek;
         EnsureFutureTimes();
+        EvaluateScheduleAndOverlaps();
         return Task.CompletedTask;
     }
     private IEnumerable<int> TimeOptions(TimeOnly selected, bool isEnd = false)
@@ -277,6 +298,12 @@
     private Task StartTimeChanged()
     {
         if (EndMinutes <= StartMinutes) EndMinutes = Math.Min(1440, StartMinutes + 15);
+        EvaluateScheduleAndOverlaps();
+        return Task.CompletedTask;
+    }
+    private Task EndTimeChanged()
+    {
+        EvaluateScheduleAndOverlaps();
         return Task.CompletedTask;
     }
     private string FormatTimeOption(int minutes) => LocalizedDate.LocalizeDigits(minutes >= 1440 ? "24:00" : $"{minutes / 60:00}:{minutes % 60:00}", Language);
@@ -384,6 +411,177 @@
     private static string ResourceUrl(Resource resource) => resource.Kind == "staff"
         ? EntityUrl("/admin/team", "resourceId", resource.Id)
         : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
+    private static string DayOfWeekPersian(DayOfWeek d) => d switch
+    {
+        DayOfWeek.Saturday => "شنبه",
+        DayOfWeek.Sunday => "یکشنبه",
+        DayOfWeek.Monday => "دوشنبه",
+        DayOfWeek.Tuesday => "سه‌شنبه",
+        DayOfWeek.Wednesday => "چهارشنبه",
+        DayOfWeek.Thursday => "پنج‌شنبه",
+        DayOfWeek.Friday => "جمعه",
+        _ => ""
+    };
+
+    private void EvaluateScheduleAndOverlaps()
+    {
+        if (Form.EffectiveDate == default)
+        {
+            BranchScheduleInfo = "";
+            OverlapNotice = "";
+            return;
+        }
+
+        var dayOfWeek = Form.EffectiveDate.DayOfWeek;
+        var dayName = DayOfWeekPersian(dayOfWeek);
+        var branch = Branches.FirstOrDefault(x => x.Id == Form.BranchId);
+
+        IsBranchClosed = false;
+        var branchHoursDesc = "";
+
+        if (branch != null)
+        {
+            var recurringBranchRules = Rules.Where(r => r.BranchId == branch.Id && r.EffectiveDate == null && r.DeletedAt == null).ToList();
+            if (recurringBranchRules.Count > 0)
+            {
+                var dayRules = recurringBranchRules.Where(r => r.DayOfWeek == dayOfWeek && r.IsAvailable).OrderBy(r => r.StartsAt).ToList();
+                if (dayRules.Count == 0)
+                {
+                    IsBranchClosed = true;
+                    BranchScheduleInfo = $"شعبه در روز {dayName} تعطیل است (ساعت کاری تعریف نشده).";
+                }
+                else
+                {
+                    branchHoursDesc = string.Join(" و ", dayRules.Select(r => $"{LocalTime(r.StartsAt)} تا {LocalTime(r.EndsAt)}"));
+                    BranchScheduleInfo = $"ساعت کاری شعبه در روز {dayName}: {branchHoursDesc}";
+                }
+            }
+            else
+            {
+                branchHoursDesc = $"{LocalTime(new TimeOnly(branch.OpenHour, 0))} تا {LocalTime(branch.CloseHour >= 24 ? AvailabilityResolver.EndOfDay : new TimeOnly(branch.CloseHour, 0))}";
+                BranchScheduleInfo = $"ساعت کاری شعبه در روز {dayName}: {branchHoursDesc}";
+            }
+        }
+        else
+        {
+            BranchScheduleInfo = $"اعمال بر کل شعب مجموعه در روز {dayName}";
+        }
+
+        if (Form.StartsAt >= Form.EndsAt)
+        {
+            OverlapNotice = "";
+            return;
+        }
+
+        var isAvailable = Form.IsAvailable;
+        string? notice = null;
+        var isPositive = false;
+
+        if (branch != null)
+        {
+            TimeOnly openStart;
+            TimeOnly openEnd;
+            var recurringBranchRules = Rules.Where(r => r.BranchId == branch.Id && r.EffectiveDate == null && r.DeletedAt == null).ToList();
+            if (recurringBranchRules.Count > 0)
+            {
+                var dayRules = recurringBranchRules.Where(r => r.DayOfWeek == dayOfWeek && r.IsAvailable).OrderBy(r => r.StartsAt).ToList();
+                openStart = dayRules.FirstOrDefault()?.StartsAt ?? new TimeOnly(9, 0);
+                openEnd = dayRules.LastOrDefault()?.EndsAt ?? new TimeOnly(18, 0);
+            }
+            else
+            {
+                openStart = new TimeOnly(branch.OpenHour, 0);
+                openEnd = branch.CloseHour >= 24 ? AvailabilityResolver.EndOfDay : new TimeOnly(branch.CloseHour, 0);
+            }
+
+            if (IsBranchClosed)
+            {
+                if (!isAvailable)
+                {
+                    notice = $"شعبه در روز {dayName} تعطیل است؛ مسدودسازی این ساعت تاثیری در نوبت‌ها ندارد.";
+                    isPositive = false;
+                }
+                else
+                {
+                    notice = $"این بازه به عنوان شیفت کاری مازاد (فوق‌العاده) در روز تعطیل {dayName} فعال خواهد شد.";
+                    isPositive = true;
+                }
+            }
+            else
+            {
+                var isWithin = Form.StartsAt >= openStart && Form.EndsAt <= openEnd;
+                var hasOverlap = Form.StartsAt < openEnd && Form.EndsAt > openStart;
+
+                if (!hasOverlap)
+                {
+                    if (!isAvailable)
+                    {
+                        notice = $"این بازه کاملاً خارج از ساعت کاری شعبه ({branchHoursDesc}) است و نوبتی برای مسدودسازی ندارد.";
+                        isPositive = false;
+                    }
+                    else
+                    {
+                        notice = "این بازه خارج از ساعت کاری عادی شعبه است و به عنوان شیفت کاری مازاد در این تاریخ فعال خواهد شد.";
+                        isPositive = true;
+                    }
+                }
+                else if (!isWithin)
+                {
+                    if (!isAvailable)
+                    {
+                        notice = $"بخشی از این بازه خارج از ساعت کاری شعبه ({branchHoursDesc}) است.";
+                        isPositive = false;
+                    }
+                    else
+                    {
+                        notice = "ساعات مازاد بر ساعت کاری شعبه، به عنوان شیفت کاری اضافه فعال خواهند شد.";
+                        isPositive = true;
+                    }
+                }
+            }
+        }
+
+        if (notice == null)
+        {
+            var otherRules = Rules.Where(r => r.Id != EditingId && r.EffectiveDate == Form.EffectiveDate && r.DeletedAt == null &&
+                (Form.BranchId == null || r.BranchId == null || r.BranchId == Form.BranchId) &&
+                (Form.ResourceId == null || r.ResourceId == null || r.ResourceId == Form.ResourceId)).ToList();
+
+            foreach (var r in otherRules)
+            {
+                var overlaps = Form.StartsAt < r.EndsAt && Form.EndsAt > r.StartsAt;
+                if (overlaps)
+                {
+                    var rRange = $"{LocalTime(r.StartsAt)} تا {LocalTime(r.EndsAt)}";
+                    if (!isAvailable && !r.IsAvailable)
+                    {
+                        notice = $"این بازه با بازهٔ مسدود قبلی ({rRange}) همپوشانی دارد و در هم ادغام خواهند شد.";
+                        isPositive = false;
+                    }
+                    else if (!isAvailable && r.IsAvailable)
+                    {
+                        notice = $"این بازه، بخشی از بازهٔ قابل‌رزرو قبلی ({rRange}) را مسدود می‌کند.";
+                        isPositive = false;
+                    }
+                    else if (isAvailable && !r.IsAvailable)
+                    {
+                        notice = $"یک بازهٔ مسدود ({rRange}) با این ساعات همپوشانی دارد و نوبت‌ها در آن بخش بسته می‌مانند.";
+                        isPositive = false;
+                    }
+                    else
+                    {
+                        notice = $"این بازه با بازهٔ قابل‌رزرو دیگری ({rRange}) همپوشانی دارد.";
+                        isPositive = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        OverlapNotice = notice ?? "";
+        IsPositiveNotice = isPositive;
+    }
+
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
     private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = BranchClock.Today(null); public DayOfWeek DayOfWeek { get; set; } = BranchClock.Today(null).DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }

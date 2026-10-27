@@ -1,4 +1,5 @@
 package com.leon.be_nobat.ui.activities
+import android.content.Intent
 
 import android.os.Bundle
 import android.view.View
@@ -165,61 +166,91 @@ class BusinessUpgradeActivity : BaseActivity() {
             }
         }
 
+        val cardIntro = findViewById<View>(R.id.cardIntroInfo)
         val cardStatus = findViewById<View>(R.id.cardExistingStatus)
+        val formContainer = findViewById<View>(R.id.formFieldsContainer)
         val tvStatusTitle = findViewById<TextView>(R.id.tvStatusTitle)
         val tvStatusBadge = findViewById<TextView>(R.id.tvStatusBadge)
         val tvStatusDesc = findViewById<TextView>(R.id.tvStatusDesc)
 
-        if (req != null) {
-            cardStatus.isVisible = true
-            when {
-                req.status.equals("Pending", ignoreCase = true) -> {
-                    tvStatusTitle.text = getString(R.string.business_request_status_pending, req.businessName)
-                    tvStatusBadge.text = getString(R.string.platform_tab_pending)
-                    StatusBadgeHelper.applyBadgeStyle(tvStatusBadge, StatusBadgeHelper.BadgeStyle.PENDING)
-                    tvStatusDesc.text = "درخواست شما ثبت شده و در صف بررسی مدیران سامانه قرار دارد."
-                    btnSubmit.text = getString(R.string.business_request_resubmit_btn)
-                }
-                req.status.equals("Rejected", ignoreCase = true) -> {
-                    tvStatusTitle.text = getString(R.string.business_request_status_rejected)
-                    tvStatusBadge.text = getString(R.string.platform_tab_rejected)
-                    StatusBadgeHelper.applyBadgeStyle(tvStatusBadge, StatusBadgeHelper.BadgeStyle.CANCELLED)
-                    tvStatusDesc.text = if (!req.reviewNote.isNullOrBlank()) {
-                        "درخواست تأیید نشد: ${req.reviewNote}"
-                    } else {
-                        "درخواست شما برای «${req.businessName}» رد شد. می‌توانید با ویرایش مشخصات مجدداً ارسال کنید."
-                    }
-                    btnSubmit.text = getString(R.string.business_request_resubmit_btn)
-                }
-                else -> {
-                    cardStatus.isVisible = false
-                }
-            }
+        val isStaff = state.user?.isStaff == true
+        val isApproved = isStaff || req?.status.equals("Approved", ignoreCase = true)
 
-            if (!initializedFromState) {
-                initializedFromState = true
-                findViewById<TextInputEditText>(R.id.etReqBusinessName)?.setText(req.businessName)
-                val catIdx = currentCategories.indexOf(req.category).takeIf { it >= 0 }
-                    ?: run {
-                        if (req.category.isNotBlank()) {
-                            currentCategories = listOf(req.category) + currentCategories
-                            val updatedAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currentCategories).apply {
-                                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                            }
-                            spCategory?.adapter = updatedAdapter
-                            0
-                        } else 0
-                    }
-                spCategory?.setSelection(catIdx)
-                findViewById<TextInputEditText>(R.id.etReqCity)?.setText(req.city)
-                findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(req.contactPhone)
-                findViewById<TextInputEditText>(R.id.etReqFirstBranchName)?.setText(req.firstBranchName)
-                findViewById<TextInputEditText>(R.id.etReqFirstBranchAddress)?.setText(req.firstBranchAddress)
-                findViewById<TextInputEditText>(R.id.etReqDescription)?.setText(req.description.orEmpty())
+        if (isApproved) {
+            cardIntro?.isVisible = false
+            formContainer?.isVisible = false
+            cardStatus.isVisible = true
+            val bizName = req?.businessName?.takeIf { it.isNotBlank() }
+            tvStatusTitle.text = if (bizName != null) "کسب‌وکار «$bizName» فعال است" else getString(R.string.business_request_status_approved)
+            tvStatusBadge.text = getString(R.string.status_active)
+            StatusBadgeHelper.applyBadgeStyle(tvStatusBadge, StatusBadgeHelper.BadgeStyle.COMPLETED)
+            tvStatusDesc.text = getString(R.string.profile_manager_active_desc)
+            btnSubmit.text = getString(R.string.nav_admin)
+            btnSubmit.setOnClickListener {
+                startActivity(Intent(this, AdminHomeActivity::class.java))
+                finish()
             }
-        } else if (!initializedFromState && !state.phoneNumber.isNullOrBlank()) {
-            initializedFromState = true
-            findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(state.phoneNumber)
+        } else {
+            cardIntro?.isVisible = true
+            formContainer?.isVisible = true
+            btnSubmit.setOnClickListener { submitRequest() }
+
+            if (req != null) {
+                cardStatus.isVisible = true
+                when {
+                    req.status.equals("Pending", ignoreCase = true) -> {
+                        tvStatusTitle.text = getString(R.string.business_request_status_pending, req.businessName)
+                        tvStatusBadge.text = getString(R.string.platform_tab_pending)
+                        StatusBadgeHelper.applyBadgeStyle(tvStatusBadge, StatusBadgeHelper.BadgeStyle.PENDING)
+                        tvStatusDesc.text = "درخواست شما ثبت شده و در صف بررسی مدیران سامانه قرار دارد."
+                        btnSubmit.text = getString(R.string.business_request_resubmit_btn)
+                    }
+                    req.status.equals("Rejected", ignoreCase = true) -> {
+                        tvStatusTitle.text = getString(R.string.business_request_status_rejected)
+                        tvStatusBadge.text = getString(R.string.platform_tab_rejected)
+                        StatusBadgeHelper.applyBadgeStyle(tvStatusBadge, StatusBadgeHelper.BadgeStyle.CANCELLED)
+                        tvStatusDesc.text = if (!req.reviewNote.isNullOrBlank()) {
+                            "درخواست تأیید نشد: ${req.reviewNote}"
+                        } else {
+                            "درخواست شما برای «${req.businessName}» رد شد. می‌توانید با ویرایش مشخصات مجدداً ارسال کنید."
+                        }
+                        btnSubmit.text = getString(R.string.business_request_resubmit_btn)
+                    }
+                    else -> {
+                        cardStatus.isVisible = false
+                        btnSubmit.text = getString(R.string.business_request_submit_btn)
+                    }
+                }
+
+                if (!initializedFromState) {
+                    initializedFromState = true
+                    findViewById<TextInputEditText>(R.id.etReqBusinessName)?.setText(req.businessName)
+                    val catIdx = currentCategories.indexOf(req.category).takeIf { it >= 0 }
+                        ?: run {
+                            if (req.category.isNotBlank()) {
+                                currentCategories = listOf(req.category) + currentCategories
+                                val updatedAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currentCategories).apply {
+                                    setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                                }
+                                spCategory?.adapter = updatedAdapter
+                                0
+                            } else 0
+                        }
+                    spCategory?.setSelection(catIdx)
+                    findViewById<TextInputEditText>(R.id.etReqCity)?.setText(req.city)
+                    findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(req.contactPhone)
+                    findViewById<TextInputEditText>(R.id.etReqFirstBranchName)?.setText(req.firstBranchName)
+                    findViewById<TextInputEditText>(R.id.etReqFirstBranchAddress)?.setText(req.firstBranchAddress)
+                    findViewById<TextInputEditText>(R.id.etReqDescription)?.setText(req.description.orEmpty())
+                }
+            } else {
+                cardStatus.isVisible = false
+                btnSubmit.text = getString(R.string.business_request_submit_btn)
+                if (!initializedFromState && !state.phoneNumber.isNullOrBlank()) {
+                    initializedFromState = true
+                    findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(state.phoneNumber)
+                }
+            }
         }
 
         state.message?.let { msg ->

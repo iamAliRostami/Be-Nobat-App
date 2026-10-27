@@ -2,16 +2,19 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardTodaySlot"
+    style="@style/Widget.Material3.CardView.Outlined"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="16dp"
-    android:layout_marginTop="6dp"
+    android:layout_marginTop="7dp"
     android:layout_marginEnd="16dp"
-    android:layout_marginBottom="6dp"
-    app:cardCornerRadius="14dp"
-    app:cardElevation="1dp"
-    app:strokeColor="@color/colorOutline"
-    app:strokeWidth="1dp">
+    android:layout_marginBottom="7dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1.2dp"
+    tools:cardBackgroundColor="#FFFFFF"
+    tools:strokeColor="#DCE5E2">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -65,7 +68,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="?attr/colorOnSurface"
-                android:textSize="13sp"
+                android:textSize="13.5sp"
                 android:textStyle="bold"
                 tools:text="سالن پیرایش دیپلمات" />
 
@@ -85,10 +88,12 @@
 
         <!-- Divider line -->
         <View
+            android:id="@+id/dividerLine"
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:layout_marginTop="10dp"
             android:layout_marginBottom="10dp"
+            android:alpha="0.4"
             android:background="@color/colorOutline" />
 
         <!-- Service & Provider details -->
@@ -128,7 +133,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="?attr/colorPrimary"
-                android:textSize="13sp"
+                android:textSize="13.5sp"
                 android:textStyle="bold"
                 tools:text="۱۵۰,۰۰۰ تومان" />
         </LinearLayout>
@@ -136,17 +141,22 @@
         <!-- Action Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBookSlot"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="10dp"
+            android:layout_height="42dp"
+            android:layout_marginTop="12dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:backgroundTint="?attr/colorPrimary"
+            android:textColor="?attr/colorOnPrimary"
             android:text="@string/today_slots_book_now"
-            android:textSize="12sp"
-            app:cornerRadius="10dp"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            app:cornerRadius="12dp"
             app:icon="@drawable/ic_calendar"
             app:iconGravity="textStart"
-            app:iconSize="16dp" />
+            app:iconSize="16dp"
+            app:iconTint="?attr/colorOnPrimary"
+            app:elevation="0dp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

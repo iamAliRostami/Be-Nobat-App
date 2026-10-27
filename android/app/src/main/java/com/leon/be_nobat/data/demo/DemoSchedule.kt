@@ -42,7 +42,9 @@ internal fun DemoDatabaseState.slots(
         val occupied = appointments.filter { it.resourceId == r.id && it.status in listOf("Pending", "Confirmed", "Completed") && it.startsAt.startsWith(date) }
         generateSequence(open) { it + 15 * 60000L }.takeWhile { it + duration * 60000L <= close }.mapNotNull { start ->
             val end = start + duration * 60000L
-            val branchOpen = windows.any { start >= midnight + WeeklyHours.seconds(it.startsAt) * 1000L && end <= midnight + WeeklyHours.seconds(it.endsAt) * 1000L }
+            val overtimeRule = rules.any { it.isAvailable && it.effectiveDate == date && start >= demoMillis("${date}T${it.startsAt}") && end <= demoMillis("${date}T${it.endsAt}") }
+            val inStandardHours = windows.any { start >= midnight + WeeklyHours.seconds(it.startsAt) * 1000L && end <= midnight + WeeklyHours.seconds(it.endsAt) * 1000L }
+            val branchOpen = inStandardHours || overtimeRule
             val within = rules.filter { it.isAvailable }.let { windows -> windows.isEmpty() || windows.any { start >= demoMillis("${date}T${it.startsAt}") && end <= demoMillis("${date}T${it.endsAt}") } }
             val blocked = rules.filterNot { it.isAvailable }.any { start < demoMillis("${date}T${it.endsAt}") && end > demoMillis("${date}T${it.startsAt}") }
             if ((!includePastSlots && start <= System.currentTimeMillis()) || !branchOpen || !within || blocked || occupied.any { start < demoMillis(it.endsAt) && end > demoMillis(it.startsAt) }) null

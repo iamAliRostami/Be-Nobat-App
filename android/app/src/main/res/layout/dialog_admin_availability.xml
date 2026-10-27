@@ -111,6 +111,39 @@
                     android:focusableInTouchMode="false" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Branch Working Hours for this day -->
+            <LinearLayout
+                android:id="@+id/layoutBranchScheduleInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_schedule_info_box"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/ivScheduleIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_availability"
+                    app:tint="?attr/colorPrimary" />
+
+                <TextView
+                    android:id="@+id/tvBranchScheduleInfo"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="12sp"
+                    tools:text="ساعت کاری شعبه در این روز (دوشنبه): ۰۹:۰۰ تا ۱۸:۰۰" />
+            </LinearLayout>
+
             <!-- Time Row (StartsAt - EndsAt) -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -171,6 +204,41 @@
                 android:checked="true"
                 android:textAppearance="@style/TextAppearance.BeNobat.Body"
                 android:textSize="14sp" />
+
+            <!-- Overlap / Conflict Warning Container -->
+            <LinearLayout
+                android:id="@+id/layoutOverlapWarning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_overlap_warning_box"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:id="@+id/ivOverlapWarningIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_warning"
+                    app:tint="#D97706" />
+
+                <TextView
+                    android:id="@+id/tvOverlapWarning"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:textColor="#B45309"
+                    android:textSize="12sp"
+                    tools:text="این بازه خارج از ساعت کاری شعبه است." />
+            </LinearLayout>
 
             <!-- Validation Error Text -->
             <TextView

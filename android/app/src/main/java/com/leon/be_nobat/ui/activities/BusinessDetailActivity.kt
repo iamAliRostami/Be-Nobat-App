@@ -305,8 +305,8 @@ class BusinessDetailActivity : BaseActivity() {
             tvReviews.isVisible = true
 
             tvReviews.text = b.reviews.joinToString("\n\n") {
-
-                "★ ${PersianUtils.toPersianDigits(it.rating)} — ${it.customerName}\n${it.comment}"
+                val replyPart = if (!it.managerReply.isNullOrBlank()) "\n${getString(R.string.manager_reply_prefix)} ${it.managerReply}" else ""
+                "\u2605 ${PersianUtils.toPersianDigits(it.rating)} \u2014 ${it.customerName}\n${it.comment}$replyPart"
 
             }
 

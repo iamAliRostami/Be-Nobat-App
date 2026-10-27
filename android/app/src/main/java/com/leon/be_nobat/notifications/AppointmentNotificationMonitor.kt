@@ -24,6 +24,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.milliseconds
@@ -33,7 +34,7 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
     private val bookings: BookingRepository) {
     private val store = AppointmentNoticeStore(context)
     private val lock = Mutex()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _revision = MutableStateFlow(0L)
     val revision = _revision.asStateFlow()
     private var foreground: Job? = null
@@ -47,7 +48,7 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
         })
         scope.launch {
             var previousId: String? = null
-            tokens.user.collectLatest { user ->
+            tokens.user.distinctUntilChanged().collectLatest { user ->
                 val scheduler = context.getSystemService(JobScheduler::class.java)
                 if (previousId != user?.id) manager.cancelAll()
                 previousId = user?.id

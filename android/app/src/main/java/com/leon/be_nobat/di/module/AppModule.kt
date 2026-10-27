@@ -1,4 +1,4 @@
-package com.leon.be_nobat.di.module
+﻿package com.leon.be_nobat.di.module
 
 import com.leon.be_nobat.data.demo.*
 import android.util.Log
@@ -53,6 +53,7 @@ import com.leon.be_nobat.domain.usecase.AdminCreateTeamMemberUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateCustomerUseCase
 import com.leon.be_nobat.domain.usecase.AdminTogglePersonActiveUseCase
 import com.leon.be_nobat.domain.usecase.AdminModerateReviewUseCase
+import com.leon.be_nobat.domain.usecase.AdminReplyReviewUseCase
 import com.leon.be_nobat.domain.usecase.AdminSetAppointmentStatusUseCase
 import com.leon.be_nobat.domain.usecase.AdminToggleBranchActiveUseCase
 import com.leon.be_nobat.domain.usecase.AdminToggleServiceActiveUseCase
@@ -140,7 +141,9 @@ import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -240,6 +243,7 @@ val useCaseModule = module {
     factory { AdminSetAppointmentStatusUseCase(get()) }
     factory { AdminListReviewsUseCase(get()) }
     factory { AdminModerateReviewUseCase(get()) }
+    factory { AdminReplyReviewUseCase(get()) }
     factory { AdminListAvailabilityUseCase(get()) }
     factory { AdminCreateAvailabilityUseCase(get()) }
     factory { AdminUpdateAvailabilityUseCase(get()) }
@@ -290,7 +294,7 @@ val viewModelModule = module {
     viewModel { AdminAnalyticsViewModel(get(), get()) }
     viewModel { AdminCalendarViewModel(get(), get()) }
     viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { AdminReviewsViewModel(get(), get()) }
+    viewModel { AdminReviewsViewModel(get(), get(), get()) }
     viewModel { AdminCustomersViewModel(get(), get(), get()) }
     viewModel { AdminTeamViewModel(get(), get(), get(), get()) }
     viewModel { AdminServicesViewModel(get(), get(), get(), get()) }
@@ -341,7 +345,7 @@ val networkModule = module {
         BeNobatApiClient(
             client = get(),
             baseUrl = BeNobatApiConfig.apiBaseUrl,
-            tokenProvider = { tokenManager.userToken.first() },
+            tokenProvider = { withContext(Dispatchers.IO) { tokenManager.userToken.first() } },
         )
     }
 }

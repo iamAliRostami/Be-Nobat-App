@@ -1,4 +1,4 @@
-﻿/* ===== فونت بومی وزیرمتن (کاملاً آفلاین / بدون وابستگی به سرورهای خارجی) ===== */
+/* ===== فونت بومی وزیرمتن (کاملاً آفلاین / بدون وابستگی به سرورهای خارجی) ===== */
 @font-face {
   font-family: 'Vazirmatn';
   font-style: normal;
@@ -1647,11 +1647,18 @@ html[data-theme="dark"] .cancellation-fields-row .cancellation-input-label input
 html[data-theme="dark"] .cancellation-notice-editor small {
   color: #94a3b8 !important;
 }
+.business-search-field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
 .search-inline-input {
   margin-bottom: 2px !important;
-  height: 38px !important;
-  font-size: 0.82rem !important;
-  padding: 6px 12px !important;
+  height: 40px !important;
+  font-size: 0.84rem !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d4e3e0 !important;
   border-radius: 8px !important;
   background: var(--surface-raised, #f8fafc) !important;
 }

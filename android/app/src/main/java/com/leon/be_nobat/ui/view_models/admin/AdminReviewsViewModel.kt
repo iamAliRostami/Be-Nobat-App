@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.view_models.admin
+﻿package com.leon.be_nobat.ui.view_models.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,6 +6,7 @@ import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.ManagementReview
 import com.leon.be_nobat.domain.usecase.AdminListReviewsUseCase
 import com.leon.be_nobat.domain.usecase.AdminModerateReviewUseCase
+import com.leon.be_nobat.domain.usecase.AdminReplyReviewUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ data class AdminReviewsUiState(
 class AdminReviewsViewModel(
     private val list: AdminListReviewsUseCase,
     private val moderate: AdminModerateReviewUseCase,
+    private val replyUseCase: AdminReplyReviewUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminReviewsUiState(loading = true))
@@ -50,6 +52,18 @@ class AdminReviewsViewModel(
             }
             .onFailure { e -> _state.value = _state.value.copy(error = e.message) }
     }
+
+    fun reply(id: String, replyText: String) = viewModelScope.launch {
+        _state.value = _state.value.copy(loading = true, error = null)
+        replyUseCase(id, replyText.trim())
+            .onSuccess { updated ->
+                val items = _state.value.items.map { if (it.id == id) updated else it }
+                _state.value = _state.value.copy(loading = false, items = items, message = "reply_saved")
+            }
+            .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
+    }
+
+    fun clearMessage() { _state.value = _state.value.copy(message = null) }
 
     fun reject(id: String, reply: String?) = viewModelScope.launch {
         moderate(id, com.leon.be_nobat.domain.model.ManagementModerationInput(status = "Rejected", managerReply = reply))

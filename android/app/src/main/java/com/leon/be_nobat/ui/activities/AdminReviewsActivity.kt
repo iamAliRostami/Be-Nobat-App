@@ -8,8 +8,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.ManagementReview
 import com.leon.be_nobat.helpers.BaseActivity
@@ -44,6 +46,7 @@ class AdminReviewsActivity : BaseActivity() {
         adapter = ReviewsAdapter(
             onPublish = { review -> viewModel.publish(review.id) },
             onReject = { review -> viewModel.reject(review.id, null) },
+            onReply = { review -> showReplyDialog(review) },
         )
         findViewById<RecyclerView>(R.id.list).apply {
             layoutManager = LinearLayoutManager(this@AdminReviewsActivity)
@@ -92,16 +95,51 @@ class AdminReviewsActivity : BaseActivity() {
         }
         renderAdminError(state.error) { viewModel.load() }
         adapter.submitList(state.items)
+
+        state.message?.let { msg ->
+            val textRes = when (msg) {
+                "reply_saved" -> R.string.reply_submitted_success
+                "review_published" -> R.string.review_submitted_success
+                else -> null
+            }
+            if (textRes != null) {
+                Snackbar.make(swipeRefresh, textRes, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearMessage()
+            }
+        }
         state.error?.let { Snackbar.make(swipeRefresh, com.leon.be_nobat.helpers.ErrorFormatter.format(this, it), Snackbar.LENGTH_SHORT).show() }
+    }
+
+    private fun showReplyDialog(review: ManagementReview) {
+        val view = layoutInflater.inflate(R.layout.dialog_admin_reply, null)
+        val tvComment = view.findViewById<android.widget.TextView>(R.id.tvReviewComment)
+        val etReply = view.findViewById<TextInputEditText>(R.id.etReply)
+
+        tvComment.text = review.comment
+        if (!review.managerReply.isNullOrBlank()) {
+            etReply.setText(review.managerReply)
+            etReply.setSelection(review.managerReply.length)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.reply_dialog_title, review.customerName))
+            .setView(view)
+            .setPositiveButton(R.string.submit_reply) { _, _ ->
+                val replyText = etReply.text?.toString().orEmpty()
+                viewModel.reply(review.id, replyText)
+            }
+            .setNegativeButton(R.string.action_close, null)
+            .show()
     }
 
     private class ReviewsAdapter(
         private val onPublish: (ManagementReview) -> Unit,
         private val onReject: (ManagementReview) -> Unit,
+        private val onReply: (ManagementReview) -> Unit,
     ) : BaseAdminAdapter<ManagementReview>(simpleDiff({ a, b -> a.id == b.id }, { a, b -> a == b })) {
         override fun bindHolder(holder: AdminViewHolder, item: ManagementReview) {
             holder.binding.apply {
-                tvTitle.text = "${item.customerName} • ★ ${PersianUtils.toPersianDigits(item.rating)}"
+                tvTitle.text = "${item.customerName} \u2022 \u2605 ${PersianUtils.toPersianDigits(item.rating)}"
                 val jalaliDate = item.createdAt.takeIf { it.isNotBlank() }?.let { JalaliDateHelper.formatIsoToJalali(it) }
                 if (!jalaliDate.isNullOrBlank()) {
                     tvSubtitle.isVisible = true
@@ -109,15 +147,50 @@ class AdminReviewsActivity : BaseActivity() {
                 } else {
                     tvSubtitle.isVisible = false
                 }
-                tvBody.text = item.comment
+                if (!item.managerReply.isNullOrBlank()) {
+                    val replyPrefix = root.context.getString(R.string.manager_reply_prefix)
+                    tvBody.text = "${item.comment}\n\n$replyPrefix ${item.managerReply}"
+                } else {
+                    tvBody.text = item.comment
+                }
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyReviewStatus(tvStatus, item.status)
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyReviewStatusIndicator(viewStatusIndicator, item.status)
-                btnAction1.text = root.context.getString(R.string.publish_review)
-                btnAction2.text = root.context.getString(R.string.reject_review)
-                btnAction1.isVisible = item.status == "Pending"
-                btnAction2.isVisible = item.status == "Pending"
-                btnAction1.setOnClickListener { onPublish(item) }
-                btnAction2.setOnClickListener { onReject(item) }
+
+                when (item.status) {
+                    "Pending" -> {
+                        btnAction1.isVisible = true
+                        btnAction1.text = root.context.getString(R.string.publish_review)
+                        btnAction1.setOnClickListener { onPublish(item) }
+
+                        btnAction2.isVisible = true
+                        btnAction2.text = root.context.getString(R.string.reject_review)
+                        btnAction2.setOnClickListener { onReject(item) }
+                    }
+                    "Published" -> {
+                        btnAction1.isVisible = false
+
+                        btnAction2.isVisible = true
+                        btnAction2.text = root.context.getString(R.string.reject_review)
+                        btnAction2.setOnClickListener { onReject(item) }
+                    }
+                    "Rejected" -> {
+                        btnAction1.isVisible = true
+                        btnAction1.text = root.context.getString(R.string.publish_review)
+                        btnAction1.setOnClickListener { onPublish(item) }
+
+                        btnAction2.isVisible = false
+                    }
+                    else -> {
+                        btnAction1.isVisible = false
+                        btnAction2.isVisible = false
+                    }
+                }
+
+                btnAction3.isVisible = true
+                btnAction3.text = root.context.getString(
+                    if (item.managerReply.isNullOrBlank()) R.string.reply_review else R.string.edit_reply_review
+                )
+                btnAction3.setOnClickListener { onReply(item) }
             }
         }
     }

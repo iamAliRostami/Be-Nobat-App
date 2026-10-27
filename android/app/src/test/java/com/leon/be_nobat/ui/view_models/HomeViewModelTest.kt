@@ -152,4 +152,73 @@ class HomeViewModelTest {
         assertEquals("کوتاهی مو", slots[0].serviceName)
         assertEquals(com.leon.be_nobat.helpers.PersianUtils.toPersianDigits("18:00"), slots[0].timeLabel)
     }
+
+    @Test
+    fun `setTodaySlotsFilter filters slots by category and city`() = runTest(testDispatcher) {
+        val b1 = Business(id = "biz-1", name = "مرکز اول", category = "زیبایی", city = "تهران")
+        val b2 = Business(id = "biz-2", name = "مرکز دوم", category = "پزشکی", city = "اصفهان")
+        val branch1 = Branch(id = "branch-1", businessId = "biz-1", name = "شعبه ۱")
+        val branch2 = Branch(id = "branch-2", businessId = "biz-2", name = "شعبه ۲")
+        val srv1 = Service(id = "srv-1", businessId = "biz-1", name = "سرویس ۱")
+        val srv2 = Service(id = "srv-2", businessId = "biz-2", name = "سرویس ۲")
+        val slot1 = Slot(startsAt = "2099-01-01T10:00:00")
+        val slot2 = Slot(startsAt = "2099-01-01T11:00:00")
+
+        val fakeBusinessRepo = object : BusinessRepository {
+            override suspend fun listBusinesses(q: String?, city: String?, category: String?, page: Int, pageSize: Int) =
+                Result.success(ApiPage(listOf(b1, b2), 1, 10, 2))
+            override suspend fun getBusiness(id: String) = TODO()
+            override suspend fun listBusinessReviews(id: String, page: Int, pageSize: Int) = TODO()
+            override suspend fun listBranches(businessId: String) =
+                Result.success(ApiItems(listOf(if (businessId == "biz-1") branch1 else branch2)))
+            override suspend fun listBranchServices(businessId: String, branchId: String) =
+                Result.success(ApiItems(listOf(if (businessId == "biz-1") srv1 else srv2)))
+            override suspend fun listProviders(businessId: String, branchId: String, serviceIds: String) = TODO()
+            override suspend fun getCategories() = TODO()
+            override suspend fun getCatalog(page: Int, pageSize: Int) = TODO()
+        }
+
+        val fakeBookingRepo = object : BookingRepository {
+            override suspend fun getSlots(businessId: String, branchId: String, serviceIds: String, date: String, resourceId: String?) =
+                Result.success(SlotsResponse(slots = listOf(if (businessId == "biz-1") slot1 else slot2)))
+            override suspend fun createAppointment(input: BookingInput) = TODO()
+            override suspend fun listAppointments(status: String?, page: Int, pageSize: Int) = TODO()
+            override suspend fun getAppointment(id: String) = TODO()
+            override suspend fun cancelAppointment(id: String) = TODO()
+            override suspend fun createReview(id: String, input: ReviewInput) = TODO()
+        }
+
+        val viewModel = HomeViewModel(
+            listBusinesses = ListBusinessesUseCase(fakeBusinessRepo),
+            toggleFavorite = ToggleFavoriteUseCase(object : FavoriteRepository {
+                override suspend fun listFavorites(page: Int, pageSize: Int) = Result.success(ApiPage<Business>(emptyList(), 1, 10, 0))
+                override suspend fun addFavorite(businessId: String) = Result.success(Unit)
+                override suspend fun removeFavorite(businessId: String) = Result.success(Unit)
+            }),
+            listBranchesUseCase = ListBranchesUseCase(fakeBusinessRepo),
+            listBranchServicesUseCase = ListBranchServicesUseCase(fakeBusinessRepo),
+            getSlotsUseCase = GetSlotsUseCase(fakeBookingRepo),
+        )
+        advanceUntilIdle()
+
+        viewModel.loadTodaySlots(forTomorrow = true)
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.state.value.todaySlotsRaw.size)
+        assertEquals(2, viewModel.state.value.todaySlots.size)
+
+        // Filter by category
+        viewModel.setTodaySlotsFilter(category = "زیبایی", city = null)
+        assertEquals(1, viewModel.state.value.todaySlots.size)
+        assertEquals("زیبایی", viewModel.state.value.todaySlots[0].category)
+
+        // Filter by city
+        viewModel.setTodaySlotsFilter(category = null, city = "اصفهان")
+        assertEquals(1, viewModel.state.value.todaySlots.size)
+        assertEquals("اصفهان", viewModel.state.value.todaySlots[0].city)
+
+        // Clear filter
+        viewModel.clearTodaySlotsFilter()
+        assertEquals(2, viewModel.state.value.todaySlots.size)
+    }
 }

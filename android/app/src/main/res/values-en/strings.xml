@@ -651,5 +651,17 @@
     <string name="today_slots_tab_tomorrow">Tomorrow</string>
     <string name="today_slots_book_now">Book This Slot</string>
     <string name="today_slots_instant_badge">Instant</string>
-    <string name="today_slots_count">%1 free slots available</string>
+    <string name="today_slots_count">%1$s free slots available</string>
+    <string name="today_slots_all_categories">All Categories</string>
+    <string name="today_slots_all_cities">All Cities</string>
+    <string name="today_slots_city_filter">City: %1$s</string>
+    <string name="today_slots_select_city">Select City</string>
+    <string name="today_slots_empty_filtered">No slots found matching the selected filters.</string>
+    <string name="reply_review">Reply</string>
+    <string name="edit_reply_review">Edit Reply</string>
+    <string name="reply_dialog_title">"Reply to %1$s's review"</string>
+    <string name="reply_hint">Write business reply…</string>
+    <string name="submit_reply">Submit Reply</string>
+    <string name="reply_submitted_success">Reply submitted successfully.</string>
+    <string name="manager_reply_prefix">Business reply:</string>
 </resources>
