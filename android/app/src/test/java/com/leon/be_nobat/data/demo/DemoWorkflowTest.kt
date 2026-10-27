@@ -479,5 +479,56 @@ class DemoWorkflowTest {
         assertTrue(booking.cancelAppointment(chosen.id).isFailure)
     }
 
-}
 
+    @Test fun `overtime availability rule allows customer to book outside standard branch hours`() = runBlocking {
+        val db = store(); val token = tokens(); val auth = DemoAuthRepository(db, token)
+        auth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val management = DemoManagementRepository(db, token)
+        val date = demoFormat(System.currentTimeMillis() + 5 * 86400000L).take(10)
+        management.createAvailability(ManagementAvailabilityInput(
+            businessId = "biz_diplomat",
+            branchId = "br_diplomat_1",
+            resourceId = "res_dip_1",
+            effectiveDate = date,
+            startsAt = "21:00:00",
+            endsAt = "23:00:00",
+            isAvailable = true,
+        )).getOrThrow()
+
+        auth.login("user@benobat.ir", "Demo1234!").getOrThrow()
+        val booking = DemoBookingRepository(db, token)
+        val slots = booking.getSlots("biz_diplomat", "br_diplomat_1", "srv_dip_1", date, "res_dip_1").getOrThrow()
+        val overtimeSlots = slots.slots.filter { it.startsAt >= "${date}T21:00:00" && it.endsAt <= "${date}T23:00:00" }
+        assertTrue("Overtime slots should be generated and available", overtimeSlots.isNotEmpty())
+
+        val targetSlot = overtimeSlots.first()
+        val appt = booking.createAppointment(BookingInput(
+            businessId = "biz_diplomat",
+            branchId = "br_diplomat_1",
+            serviceIds = listOf("srv_dip_1"),
+            resourceId = "res_dip_1",
+            startsAt = targetSlot.startsAt,
+            termsAccepted = true,
+        )).getOrThrow()
+
+        assertEquals(targetSlot.startsAt, appt.startsAt)
+    }
+
+    @Test fun `moderate review preserves manager reply and reject updates status`() = runBlocking {
+        val db = store(); val token = tokens(); val auth = DemoAuthRepository(db, token)
+        auth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val management = DemoManagementRepository(db, token)
+
+        val targetReview = db.read { s -> s.reviews.first { it.status == "Pending" } }
+        val replied = management.replyReview(targetReview.id, ManagementReplyInput("با تشکر از نظر شما")).getOrThrow()
+        assertEquals("با تشکر از نظر شما", replied.managerReply)
+
+        val approved = management.moderateReview(targetReview.id, ManagementModerationInput(status = "Approved")).getOrThrow()
+        assertEquals("با تشکر از نظر شما", approved.managerReply)
+        assertEquals("Approved", approved.status)
+
+        val rejected = management.moderateReview(targetReview.id, ManagementModerationInput(status = "Rejected")).getOrThrow()
+        assertEquals("Rejected", rejected.status)
+        assertEquals("با تشکر از نظر شما", rejected.managerReply)
+    }
+}

@@ -99,13 +99,14 @@ class AdminReviewsActivity : BaseActivity() {
         state.message?.let { msg ->
             val textRes = when (msg) {
                 "reply_saved" -> R.string.reply_submitted_success
-                "review_published" -> R.string.review_submitted_success
+                "review_published" -> R.string.review_published_success
+                "review_rejected" -> R.string.review_rejected_success
                 else -> null
             }
             if (textRes != null) {
                 Snackbar.make(swipeRefresh, textRes, Snackbar.LENGTH_SHORT).show()
-                viewModel.clearMessage()
             }
+            viewModel.clearMessage()
         }
         state.error?.let { Snackbar.make(swipeRefresh, com.leon.be_nobat.helpers.ErrorFormatter.format(this, it), Snackbar.LENGTH_SHORT).show() }
     }

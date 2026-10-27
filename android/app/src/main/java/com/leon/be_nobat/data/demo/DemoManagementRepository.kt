@@ -956,7 +956,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             require(input.status in listOf("Pending", "Approved", "Published", "Rejected"))
             val normalized = if (input.status == "Published") "Approved" else input.status
             val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
-            val value = old.copy(status = normalized, managerReply = input.managerReply)
+            val value = old.copy(status = normalized, managerReply = input.managerReply ?: old.managerReply)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }

@@ -292,6 +292,8 @@
     <string name="reply_hint">پاسخ مجموعه را بنویسید…</string>
     <string name="submit_reply">ثبت پاسخ و انتشار</string>
     <string name="reply_submitted_success">پاسخ با موفقیت ثبت شد.</string>
+    <string name="review_published_success">نظر با موفقیت تایید و منتشر شد.</string>
+    <string name="review_rejected_success">نظر با موفقیت رد شد.</string>
     <string name="manager_reply_prefix">پاسخ مجموعه:</string>
     <string name="reset_password">بازنشانی گذرواژه</string>
     <string name="set_active">فعال‌سازی</string>
