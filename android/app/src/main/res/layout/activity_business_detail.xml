@@ -47,6 +47,15 @@
             app:icon="@drawable/ic_switch_theme" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShareQr"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="اشتراک و کد QR"
+            app:icon="@drawable/ic_qrcode" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLanguage"
             style="@style/Widget.BeNobat.Button.Icon.Header"
             android:layout_width="40dp"
@@ -202,7 +211,7 @@
                                     android:layout_height="wrap_content"
                                     android:textAppearance="@style/TextAppearance.BeNobat.Label"
                                     android:textColor="?attr/colorPrimary"
-                                    tools:text="Ø´Ø¹Ø¨Ù‡ Ø§Ù†ØªØ®Ø§Ø¨â€ŒØ´Ø¯Ù‡: Ø´Ø¹Ø¨Ù‡ Ù…Ø±Ú©Ø²ÛŒ" />
+                                    tools:text="شعبه انتخاب‌شده: شعبه مرکزی" />
 
                                 <TextView
                                     android:id="@+id/tvSelectedBranchDesc"
@@ -211,7 +220,7 @@
                                     android:layout_marginTop="2dp"
                                     android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                                     android:text="@string/selected_branch_banner_desc"
-                                    tools:text="Ù†ÙˆØ¨Øª Ø´Ù…Ø§ Ø¯Ø± Ø§ÛŒÙ† Ø´Ø¹Ø¨Ù‡ Ø«Ø¨Øª Ø®ÙˆØ§Ù‡Ø¯ Ø´Ø¯." />
+                                    tools:text="نوبت شما در این شعبه ثبت خواهد شد." />
                             </LinearLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>

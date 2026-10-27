@@ -1,19 +1,27 @@
 <fieldset class="cancellation-notice-editor">
     <legend>@Label</legend>
-    @if (AllowInherit)
-    {
-        <label class="check-label"><input type="checkbox" checked="@(Value is null)" @onchange="SetInheritance" /> ارث‌بری از تنظیم بالاتر</label>
-    }
-    <label>فاصلهٔ لازم تا شروع نوبت (دقیقه)
-        <input type="number" min="0" max="129600" step="1" value="@(Value ?? 120)" disabled="@(AllowInherit && Value is null)" @onchange="SetValue" />
-    </label>
+    <div class="cancellation-fields-row">
+        @if (AllowInherit)
+        {
+            <label class="check-label">
+                <input type="checkbox" checked="@(Value is null)" @onchange="SetInheritance" />
+                <span>ارث‌بری از تنظیم بالاتر</span>
+            </label>
+        }
+        <label class="cancellation-input-label">
+            <span>فاصلهٔ لازم تا شروع نوبت (دقیقه)</span>
+            <input type="number" min="0" max="129600" step="1" value="@(Value ?? 120)" disabled="@(AllowInherit && Value is null)" @onchange="SetValue" />
+        </label>
+    </div>
     <small>پیش‌فرض سامانه ۱۲۰ دقیقه (۲ ساعت) است. صفر یعنی امکان لغو تا پیش از شروع نوبت. تنظیم اختصاصی‌تر اولویت دارد.</small>
 </fieldset>
+
 @code {
     [Parameter] public string Label { get; set; } = "مهلت لغو نوبت";
     [Parameter] public int? Value { get; set; }
     [Parameter] public EventCallback<int?> ValueChanged { get; set; }
     [Parameter] public bool AllowInherit { get; set; } = true;
+
     private Task SetInheritance(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value is true ? null : Value ?? 120);
     private Task SetValue(ChangeEventArgs e) => ValueChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var minutes) ? minutes : -1);
 }

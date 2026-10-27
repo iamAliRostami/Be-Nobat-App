@@ -126,6 +126,18 @@
                 android:textSize="13sp"
                 app:cornerRadius="12dp"
                 tools:text="ویرایش" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQrCode"
+                style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"
+                android:contentDescription="@string/qr_code_ready"
+                android:tooltipText="@string/qr_code_ready"
+                app:icon="@drawable/ic_qrcode"
+                tools:visibility="visible" />
         </LinearLayout>
     </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>

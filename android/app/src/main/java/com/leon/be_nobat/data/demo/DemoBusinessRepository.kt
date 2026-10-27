@@ -272,6 +272,14 @@ class DemoBusinessRepository(
         }
     }
 
+    override suspend fun findBusinessIdByProvider(providerId: String): Pair<String, String>? {
+        return dataStore.read { state ->
+            val res = state.resources.firstOrNull { it.id == providerId } ?: return@read null
+            val br = state.branches.firstOrNull { it.id == res.branchId } ?: return@read null
+            br.businessId to br.id
+        }
+    }
+
     override suspend fun findBusinessIdByBranch(branchId: String): String? {
         return dataStore.read { state ->
             state.branches.firstOrNull { it.id == branchId }?.businessId

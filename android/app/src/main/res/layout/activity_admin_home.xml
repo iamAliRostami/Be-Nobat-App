@@ -615,7 +615,7 @@
                     android:text="@string/admin_analytics_title"
                     android:textAlignment="viewStart"
                     app:cornerRadius="16dp"
-                    app:icon="@drawable/ic_dashboard"
+                    app:icon="@drawable/ic_analytics"
                     app:iconGravity="textStart"
                     app:iconPadding="12dp"
                     app:layout_constraintEnd_toEndOf="parent"

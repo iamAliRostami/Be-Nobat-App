@@ -133,12 +133,27 @@ else
                         <p class="booking-login-hint">برای ثبت نوبت باید وارد حساب خود شوید یا ثبت‌نام کنید؛ انتخاب‌های شما حفظ می‌شود و بعد از ورود به همین مرحله برمی‌گردید.</p>
                     }
                 </section>
-                <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted || IsBooking)" DisabledReason="برای ثبت نوبت، قوانین رزرو را مطالعه و تأیید کنید." />
+                <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted || IsBooking)" DisabledReason="لطفاً ابتدا قوانین رزرو را مطالعه و با آن موافقت کنید." />
             </div>
         }
         else
         {
-            <section class="success-card"><div class="success-icon">✓</div><span>@(CreatedStatus == AppointmentStatus.Confirmed ? "نوبت شما ثبت و تأیید شد" : "درخواست نوبت شما ثبت شد")</span><h1>@(CreatedStatus == AppointmentStatus.Confirmed ? "منتظرت هستیم!" : "منتظر تأیید مجموعه باشید")</h1><p>@(CreatedStatus == AppointmentStatus.Confirmed ? "جزئیات نوبت در «نوبت‌های من» قابل مشاهده است." : CreatedOverrun > 0 ? "این زمان کمی کوتاه‌تر از مدت خدمت شماست؛ شعبه زمان نهایی را تأیید می‌کند و ممکن است چند دقیقه آن را جابه‌جا کند. نتیجه در «نوبت‌های من» نمایش داده می‌شود." : "به‌محض تأیید مجموعه، وضعیت نوبت در «نوبت‌های من» به «تأیید شده» تغییر می‌کند.")</p><div class="success-details"><div><small>شماره پیگیری</small><b>@TrackingCode</b></div><div><small>خدمات</small><b data-i18n-skip>@SelectedServicesLabel</b></div><div><small>متخصص</small><b data-i18n-skip>@(ResourceForSelectedSlot?.Name ?? "—")</b></div><div><small>زمان</small><b>@FormatSelectedTime()</b></div></div><a href="/appointments">مشاهده نوبت‌های من</a></section>
+            <section class="success-card">
+                <div class="success-icon">✓</div>
+                <span>@(CreatedStatus == AppointmentStatus.Confirmed ? "نوبت شما ثبت و تأیید شد" : "درخواست نوبت شما ثبت شد")</span>
+                <h1>نوبت شما با موفقیت ثبت شد</h1>
+                <p>اطلاعات رزرو شما به شرح زیر می‌باشد:@(CreatedStatus != AppointmentStatus.Confirmed ? " (به‌محض تأیید مجموعه، وضعیت نوبت در «نوبت‌های من» به «تأیید شده» تغییر می‌کند.)" : "")</p>
+                <div class="success-details">
+                    <div><small>کد پیگیری</small><b>@TrackingCode</b></div>
+                    <div><small>خدمات</small><b data-i18n-skip>@SelectedServicesLabel</b></div>
+                    <div><small>متخصص</small><b data-i18n-skip>@(ResourceForSelectedSlot?.Name ?? "—")</b></div>
+                    <div><small>زمان نوبت</small><b>@FormatSelectedTime()</b></div>
+                </div>
+                <div class="success-actions" style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+                    <a class="primary-button" href="/appointments">مشاهده نوبت‌های من</a>
+                    <a class="outline-link" href="/">بازگشت به صفحه اصلی</a>
+                </div>
+            </section>
         }
     </div>
 }
@@ -147,14 +162,21 @@ else
 {
     <div class="modal-backdrop" @onclick="CloseTerms">
         <section class="form-modal booking-rules-modal" @onclick:stopPropagation>
-            <div><h2>قوانین رزرو نوبت</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseTerms">×</button></div>
+            <div class="modal-header">
+                <h2>قوانین و مقررات رزرو نوبت</h2>
+                <button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseTerms">×</button>
+            </div>
             <ol>
-                <li>برای حضور به‌موقع، حداقل ۱۰ دقیقه پیش از شروع نوبت در شعبه حاضر باشید.</li>
-                <li>لغو اینترنتی فقط تا دو ساعت پیش از شروع نوبت امکان‌پذیر است.</li>
-                <li>در صورت تأخیر، مدت خدمت ممکن است کوتاه شود یا نوبت با هماهنگی شعبه جابه‌جا شود.</li>
-                <li>مبلغ نمایش‌داده‌شده بر اساس خدمات انتخابی است و خدمات اضافه با تأیید شما محاسبه می‌شود.</li>
+                <li>برای حضور به‌موقع، حداقل ۱۰ دقیقه پیش از شروع نوبت در محل شعبه حاضر باشید.</li>
+                <li>لغو اینترنتی نوبت فقط تا ۲ ساعت پیش از شروع نوبت امکان‌پذیر است.</li>
+                <li>در صورت تأخیر، مدت خدمت ممکن است کوتاه شده یا با هماهنگی شعبه جابه‌جا گردد.</li>
+                <li>مبلغ نمایش‌داده‌شده بر اساس خدمات انتخابی است و هرگونه خدمات اضافه در محل محاسبه می‌شود.</li>
+                <li>به همراه داشتن کد پیگیری هنگام مراجعه به شعبه الزامی است.</li>
             </ol>
-            <button type="button" class="primary-button" @onclick="AcceptTerms">قوانین را خواندم و تأیید می‌کنم</button>
+            <div class="rules-modal-actions">
+                <button type="button" class="action-secondary" @onclick="CloseTerms">بستن</button>
+                <button type="button" class="primary-button" @onclick="AcceptTerms">قوانین را خواندم و می‌پذیرم</button>
+            </div>
         </section>
     </div>
 }

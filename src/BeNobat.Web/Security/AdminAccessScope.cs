@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -139,16 +139,22 @@ public sealed class AdminAccessScope(
     {
         var platform = await PlatformUsersAsync();
         var managed = (await ManagedBranchesAsync(includeArchived: true)).IgnoreQueryFilters();
+        var id = await UserIdAsync();
         return db.Reviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null && (platform.Any() ||
-            (r.BranchId != null && managed.Any(b => b.Id == r.BranchId))));
+            (r.BranchId != null && managed.Any(b => b.Id == r.BranchId)) ||
+            db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
+                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager))));
     }
 
     public async Task<IQueryable<CustomerReview>> CustomerReviewsAsync()
     {
         var platform = await PlatformUsersAsync();
         var managed = (await ManagedBranchesAsync(includeArchived: true)).IgnoreQueryFilters();
+        var id = await UserIdAsync();
         return db.CustomerReviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null &&
-            (platform.Any() || managed.Any(b => b.Id == r.Appointment.BranchId)));
+            (platform.Any() || managed.Any(b => b.Id == r.Appointment.BranchId) ||
+            db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
+                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager))));
     }
 
     public async Task<bool> CanAccessBranchAsync(Guid branchId) =>

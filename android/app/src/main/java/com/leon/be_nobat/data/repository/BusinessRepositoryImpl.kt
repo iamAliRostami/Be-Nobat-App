@@ -40,6 +40,27 @@ class BusinessRepositoryImpl(
     override suspend fun getCatalog(page: Int, pageSize: Int): Result<ApiPage<ServiceCatalogItem>> =
         api.getCatalog(page, pageSize)
 
+    override suspend fun findBusinessIdByProvider(providerId: String): Pair<String, String>? {
+        return try {
+            val businesses = listBusinesses().getOrNull()?.items ?: emptyList()
+            for (b in businesses) {
+                val branches = listBranches(b.id).getOrNull()?.items ?: emptyList()
+                for (br in branches) {
+                    val services = listBranchServices(b.id, br.id).getOrNull()?.items ?: emptyList()
+                    val sIds = services.firstOrNull()?.id ?: ""
+                    val providers = listProviders(b.id, br.id, sIds).getOrNull()?.items ?: emptyList()
+                    val match = providers.firstOrNull { it.id == providerId }
+                    if (match != null) {
+                        return b.id to br.id
+                    }
+                }
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     override suspend fun findBusinessIdByBranch(branchId: String): String? {
         return null
     }

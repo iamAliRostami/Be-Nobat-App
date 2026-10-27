@@ -14,19 +14,25 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.helpers.BaseActivity
+import com.leon.be_nobat.helpers.JalaliDateHelper
+import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.ui.adapters.BusinessAdapter
 import com.leon.be_nobat.ui.adapters.HomeCategoryAdapter
 import com.leon.be_nobat.ui.adapters.HomeCategoryItem
+import com.leon.be_nobat.ui.adapters.TodaySlotsAdapter
+import com.leon.be_nobat.ui.view_models.BusinessSortOption
 import com.leon.be_nobat.ui.view_models.HomeUiState
 import com.leon.be_nobat.ui.view_models.HomeViewModel
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.util.Calendar
 
 class HomeActivity : BaseActivity() {
     override val layoutResourceId: Int = R.layout.activity_home
@@ -46,6 +52,10 @@ class HomeActivity : BaseActivity() {
     private lateinit var searchInput: TextInputEditText
     private lateinit var btnClearCategory: MaterialButton
     private lateinit var tvActiveCategoryFilter: TextView
+    private var btnHeroAction: MaterialButton? = null
+
+    private var todaySlotsDialog: BottomSheetDialog? = null
+    private var todaySlotsAdapter: TodaySlotsAdapter? = null
 
     private val tokenManager: TokenManager by inject()
 
@@ -67,23 +77,21 @@ class HomeActivity : BaseActivity() {
             showFilterSortDialog()
         }
 
-        // Setup Hero Banner quick action
-        findViewById<View>(R.id.btnHeroAction)?.setOnClickListener {
-            viewModel.setSortAndFilter(viewModel.state.value.sortOption, instantOnly = true)
-            val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
-            scrollToView(target)
+        btnHeroAction = findViewById(R.id.btnHeroAction)
+
+        // Setup Hero Banner action -> Open today's free slots bottom sheet
+        btnHeroAction?.setOnClickListener {
+            showTodaySlotsBottomSheet()
         }
 
         // Setup Bank Mehr Quick Shortcuts
         findViewById<View>(R.id.btnShortcutTopCenters)?.setOnClickListener {
-            viewModel.setSortAndFilter(com.leon.be_nobat.ui.view_models.BusinessSortOption.RATING, instantOnly = false)
+            viewModel.setSortAndFilter(BusinessSortOption.RATING, instantOnly = false)
             val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
-            scrollToView(target)
+            homeScrollView.postDelayed({ scrollToView(target) }, 100)
         }
         findViewById<View>(R.id.btnShortcutSlots)?.setOnClickListener {
-            viewModel.setSortAndFilter(viewModel.state.value.sortOption, instantOnly = true)
-            val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
-            scrollToView(target)
+            showTodaySlotsBottomSheet()
         }
         findViewById<View>(R.id.btnShortcutHowItWorks)?.setOnClickListener {
             showHowItWorksDialog()
@@ -216,6 +224,92 @@ class HomeActivity : BaseActivity() {
         viewModel.refreshFavoritesOnly()
     }
 
+    private fun showTodaySlotsBottomSheet() {
+        val dialog = BottomSheetDialog(this)
+        todaySlotsDialog = dialog
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_today_slots, null)
+        dialog.setContentView(sheetView)
+
+        val tvTitle = sheetView.findViewById<TextView>(R.id.tvTodaySlotsTitle)
+        val tvSubtitle = sheetView.findViewById<TextView>(R.id.tvTodaySlotsSubtitle)
+        val btnClose = sheetView.findViewById<View>(R.id.btnCloseTodaySlots)
+        val btnTabToday = sheetView.findViewById<MaterialButton>(R.id.btnTabToday)
+        val btnTabTomorrow = sheetView.findViewById<MaterialButton>(R.id.btnTabTomorrow)
+        val btnViewTomorrowSlots = sheetView.findViewById<View>(R.id.btnViewTomorrowSlots)
+        val btnViewInstantCenters = sheetView.findViewById<View>(R.id.btnViewInstantCenters)
+        val rvSlots = sheetView.findViewById<RecyclerView>(R.id.rvTodaySlots)
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        todaySlotsAdapter = TodaySlotsAdapter { slotItem ->
+            dialog.dismiss()
+            val intent = Intent(this, BookingActivity::class.java).apply {
+                putExtra("businessId", slotItem.businessId)
+                putExtra("branchId", slotItem.branchId)
+                putExtra("businessName", slotItem.businessName)
+                putExtra("serviceId", slotItem.serviceId)
+                putExtra("selectedDate", slotItem.startsAt.substringBefore("T"))
+                putExtra("slotStartsAt", slotItem.startsAt)
+                putExtra("slotResourceId", slotItem.resourceId)
+            }
+            startActivity(intent)
+        }
+
+        rvSlots.layoutManager = LinearLayoutManager(this)
+        rvSlots.adapter = todaySlotsAdapter
+
+        val updateTabs = { tomorrow: Boolean ->
+            if (tomorrow) {
+                btnTabToday.strokeWidth = 2
+                btnTabToday.backgroundTintList = null
+                btnTabTomorrow.strokeWidth = 0
+                btnTabTomorrow.setBackgroundColor(getColor(R.color.colorPrimary))
+                btnTabTomorrow.setTextColor(getColor(R.color.colorOnPrimary))
+                btnTabToday.setTextColor(getColor(R.color.colorOnSurface))
+
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+                val jd = JalaliDateHelper.gregorianToJalali(
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH)
+                )
+                tvTitle.text = getString(R.string.today_slots_tomorrow_title)
+                tvSubtitle.text = "فردا · ${jd.toDisplayString()}"
+                viewModel.loadTodaySlots(forTomorrow = true)
+            } else {
+                btnTabTomorrow.strokeWidth = 2
+                btnTabTomorrow.backgroundTintList = null
+                btnTabToday.strokeWidth = 0
+                btnTabToday.setBackgroundColor(getColor(R.color.colorPrimary))
+                btnTabToday.setTextColor(getColor(R.color.colorOnPrimary))
+                btnTabTomorrow.setTextColor(getColor(R.color.colorOnSurface))
+
+                val jd = JalaliDateHelper.getTodayJalali()
+                tvTitle.text = getString(R.string.today_slots_title)
+                tvSubtitle.text = "امروز · ${jd.toDisplayString()}"
+                viewModel.loadTodaySlots(forTomorrow = false)
+            }
+        }
+
+        btnTabToday.setOnClickListener { updateTabs(false) }
+        btnTabTomorrow.setOnClickListener { updateTabs(true) }
+        btnViewTomorrowSlots.setOnClickListener { updateTabs(true) }
+
+        btnViewInstantCenters.setOnClickListener {
+            dialog.dismiss()
+            viewModel.setSortAndFilter(viewModel.state.value.sortOption, instantOnly = true)
+            showToast(getString(R.string.filter_applied_instant))
+            homeScrollView.postDelayed({
+                val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
+                scrollToView(target)
+            }, 100)
+        }
+
+        updateTabs(false)
+        dialog.show()
+    }
+
     private fun scrollToView(target: View) {
         var top = 0
         var current: View? = target
@@ -321,11 +415,11 @@ class HomeActivity : BaseActivity() {
             getString(R.string.sort_name),
         )
         val currentIdx = when (s.sortOption) {
-            com.leon.be_nobat.ui.view_models.BusinessSortOption.DEFAULT -> 0
-            com.leon.be_nobat.ui.view_models.BusinessSortOption.RATING -> 1
-            com.leon.be_nobat.ui.view_models.BusinessSortOption.BRANCHES -> 2
-            com.leon.be_nobat.ui.view_models.BusinessSortOption.SERVICES -> 3
-            com.leon.be_nobat.ui.view_models.BusinessSortOption.NAME -> 4
+            BusinessSortOption.DEFAULT -> 0
+            BusinessSortOption.RATING -> 1
+            BusinessSortOption.BRANCHES -> 2
+            BusinessSortOption.SERVICES -> 3
+            BusinessSortOption.NAME -> 4
         }
         var selectedIdx = currentIdx
         var instantOnly = s.filterInstantOnly
@@ -349,16 +443,16 @@ class HomeActivity : BaseActivity() {
             }
             .setPositiveButton(R.string.apply_filter) { _, _ ->
                 val sort = when (selectedIdx) {
-                    1 -> com.leon.be_nobat.ui.view_models.BusinessSortOption.RATING
-                    2 -> com.leon.be_nobat.ui.view_models.BusinessSortOption.BRANCHES
-                    3 -> com.leon.be_nobat.ui.view_models.BusinessSortOption.SERVICES
-                    4 -> com.leon.be_nobat.ui.view_models.BusinessSortOption.NAME
-                    else -> com.leon.be_nobat.ui.view_models.BusinessSortOption.DEFAULT
+                    1 -> BusinessSortOption.RATING
+                    2 -> BusinessSortOption.BRANCHES
+                    3 -> BusinessSortOption.SERVICES
+                    4 -> BusinessSortOption.NAME
+                    else -> BusinessSortOption.DEFAULT
                 }
                 viewModel.setSortAndFilter(sort, instantOnly)
             }
             .setNeutralButton(R.string.reset_filter) { _, _ ->
-                viewModel.setSortAndFilter(com.leon.be_nobat.ui.view_models.BusinessSortOption.DEFAULT, false)
+                viewModel.setSortAndFilter(BusinessSortOption.DEFAULT, false)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -434,6 +528,48 @@ class HomeActivity : BaseActivity() {
         adapter.submitList(state.items)
         if (favChanged) {
             adapter.notifyDataSetChanged()
+        }
+
+        // Update Today Slots Bottom Sheet if visible
+        todaySlotsDialog?.let { d ->
+            if (d.isShowing) {
+                val progress = d.findViewById<View>(R.id.progressTodaySlots)
+                val tvError = d.findViewById<TextView>(R.id.tvTodaySlotsError)
+                val layoutEmpty = d.findViewById<View>(R.id.layoutEmptyTodaySlots)
+                val tvCount = d.findViewById<TextView>(R.id.tvSlotsCountBadge)
+                val rvSlots = d.findViewById<RecyclerView>(R.id.rvTodaySlots)
+                val tvEmptyTitle = d.findViewById<TextView>(R.id.tvEmptySlotsTitle)
+
+                progress?.isVisible = state.loadingTodaySlots
+                tvError?.isVisible = state.todaySlotsError != null && !state.loadingTodaySlots
+                tvError?.text = state.todaySlotsError
+
+                val hasSlots = state.todaySlots.isNotEmpty() && !state.loadingTodaySlots
+                val isEmpty = state.todaySlots.isEmpty() && !state.loadingTodaySlots && state.todaySlotsError == null
+
+                rvSlots?.isVisible = hasSlots
+                layoutEmpty?.isVisible = isEmpty
+
+                if (isEmpty) {
+                    tvEmptyTitle?.text = if (state.todaySlotsForTomorrow) {
+                        getString(R.string.today_slots_empty_tomorrow)
+                    } else {
+                        getString(R.string.today_slots_empty)
+                    }
+                }
+
+                if (hasSlots) {
+                    tvCount?.isVisible = true
+                    tvCount?.text = getString(
+                        R.string.today_slots_count,
+                        PersianUtils.toPersianDigits(state.todaySlots.size)
+                    )
+                } else {
+                    tvCount?.isVisible = false
+                }
+
+                todaySlotsAdapter?.submitList(state.todaySlots)
+            }
         }
     }
 }

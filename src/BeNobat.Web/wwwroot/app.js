@@ -1,3 +1,4 @@
+if(typeof navigator!=='undefined'&&/android/i.test(navigator.userAgent)){document.documentElement.classList.add('is-android');}
 window.beNobat = {
     // [fix] اسکرول به نتایج جست‌وجو کار نمی‌کرد. دو دلیل داشت:
     //   ۱) بخش نتایج داخل .public-main است که overflow:hidden دارد؛ مرورگر آن را

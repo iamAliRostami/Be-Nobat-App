@@ -91,7 +91,7 @@
                             {
                                 @if (appointment.StartsAt <= DateTimeOffset.UtcNow)
                                 {
-                                    <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">تکمیل شد</button>
+                                    <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Completed)">اتمام نوبت</button>
                                     <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.NoShow)">عدم حضور</button>
                                 }
                                 <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(appointment.Id)" @onclick="() => UpdateStatus(appointment.Id, AppointmentStatus.Cancelled)">لغو</button>
@@ -331,9 +331,9 @@
 
     private static string StatusLabel(AppointmentStatus status) => status switch
     {
-        AppointmentStatus.Pending => "در انتظار",
+        AppointmentStatus.Pending => "در انتظار تأیید",
         AppointmentStatus.Confirmed => "تأیید شده",
-        AppointmentStatus.Completed => "تکمیل شد",
+        AppointmentStatus.Completed => "انجام شده",
         AppointmentStatus.Cancelled => "لغو شده",
         AppointmentStatus.NoShow => "عدم حضور",
         _ => status.ToString(),

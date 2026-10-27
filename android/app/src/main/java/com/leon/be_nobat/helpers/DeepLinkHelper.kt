@@ -23,8 +23,7 @@ object DeepLinkHelper {
     }
 
     /**
-     * Builds the custom application scheme link.
-     * e.g. benobat://business/biz-123 or benobat://business/biz-123?branch=br-456
+     * Builds the custom application scheme link for business.
      */
     fun createBusinessAppLink(businessId: String, branchId: String? = null): String {
         return if (!branchId.isNullOrBlank()) {
@@ -32,6 +31,36 @@ object DeepLinkHelper {
         } else {
             "$APP_SCHEME://business/$businessId"
         }
+    }
+
+    /**
+     * Builds the standard public web link for a branch.
+     * e.g. https://benobat.ir/branch/br-456
+     */
+    fun createBranchWebLink(branchId: String): String {
+        return "$WEB_BASE_URL/branch/$branchId"
+    }
+
+    /**
+     * Builds the custom application scheme link for branch.
+     */
+    fun createBranchAppLink(branchId: String): String {
+        return "$APP_SCHEME://branch/$branchId"
+    }
+
+    /**
+     * Builds the standard public web link for a service provider / staff.
+     * e.g. https://benobat.ir/provider/prov-789
+     */
+    fun createProviderWebLink(providerId: String): String {
+        return "$WEB_BASE_URL/provider/$providerId"
+    }
+
+    /**
+     * Builds the custom application scheme link for provider.
+     */
+    fun createProviderAppLink(providerId: String): String {
+        return "$APP_SCHEME://provider/$providerId"
     }
 
     fun copyToClipboard(context: Context, link: String, label: String = "BeNobat Link") {
@@ -52,6 +81,7 @@ object DeepLinkHelper {
     data class ParsedDeepLink(
         val businessId: String?,
         val branchId: String?,
+        val providerId: String? = null,
         val isBookingRoute: Boolean = false,
     )
 
@@ -75,6 +105,7 @@ object DeepLinkHelper {
         }
 
         var branchParam: String? = null
+        var providerParam: String? = null
         if (queryPart.isNotEmpty()) {
             for (param in queryPart.split('&')) {
                 val pair = param.split('=', limit = 2)
@@ -82,6 +113,9 @@ object DeepLinkHelper {
                     val key = pair[0].trim().lowercase()
                     if (key == "branch" || key == "branchid") {
                         branchParam = pair[1].trim().takeIf { it.isNotEmpty() }
+                    }
+                    if (key == "provider" || key == "providerid" || key == "staff" || key == "resourceid") {
+                        providerParam = pair[1].trim().takeIf { it.isNotEmpty() }
                     }
                 }
             }
@@ -97,6 +131,21 @@ object DeepLinkHelper {
 
         val isBookingRoute = host == "book" || (pathSegments.isNotEmpty() && pathSegments[0].equals("book", ignoreCase = true))
 
+        // Check for provider route
+        if (host == "provider" || (pathSegments.isNotEmpty() && (pathSegments[0].equals("provider", ignoreCase = true) || pathSegments[0].equals("p", ignoreCase = true)))) {
+            val providerId = if (host == "provider" && pathSegments.isNotEmpty()) {
+                pathSegments[0]
+            } else if (pathSegments.size >= 2) {
+                pathSegments[1]
+            } else {
+                pathSegments.firstOrNull()
+            }
+            return if (!providerId.isNullOrBlank()) {
+                ParsedDeepLink(businessId = null, branchId = branchParam, providerId = providerId, isBookingRoute = isBookingRoute)
+            } else null
+        }
+
+        // Check for branch route
         if (host == "branch" || (pathSegments.isNotEmpty() && pathSegments[0].equals("branch", ignoreCase = true))) {
             val branchId = if (host == "branch" && pathSegments.isNotEmpty()) {
                 pathSegments[0]
@@ -106,10 +155,11 @@ object DeepLinkHelper {
                 pathSegments.firstOrNull()
             }
             return if (!branchId.isNullOrBlank()) {
-                ParsedDeepLink(businessId = null, branchId = branchId, isBookingRoute = isBookingRoute)
+                ParsedDeepLink(businessId = null, branchId = branchId, providerId = providerParam, isBookingRoute = isBookingRoute)
             } else null
         }
 
+        // Check for business route
         val businessId = when {
             host in listOf("business", "book") && pathSegments.isNotEmpty() -> pathSegments[0]
             pathSegments.size >= 2 && pathSegments[0].lowercase() in listOf("b", "business", "book") -> pathSegments[1]
@@ -121,6 +171,7 @@ object DeepLinkHelper {
             ParsedDeepLink(
                 businessId = businessId,
                 branchId = branchParam,
+                providerId = providerParam,
                 isBookingRoute = isBookingRoute,
             )
         } else null

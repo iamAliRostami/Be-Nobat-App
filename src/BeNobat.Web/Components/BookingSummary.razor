@@ -14,8 +14,10 @@
     {
         <div class="booking-terms-consent">
             <span class="terms-check @(TermsAccepted ? "accepted" : "")">@(TermsAccepted ? "✓" : "!")</span>
-            <span>@(TermsAccepted ? "قوانین رزرو را پذیرفته‌اید." : "برای ادامه، قوانین رزرو را مطالعه و تأیید کنید.")</span>
-            <button type="button" @onclick="OnShowTerms">@(TermsAccepted ? "مشاهده قوانین" : "مطالعه و تأیید قوانین")</button>
+            <div>
+                <span>با قوانین رزرو موافقم</span>
+                <button type="button" @onclick="OnShowTerms">(مشاهده قوانین)</button>
+            </div>
         </div>
     }
     <button type="button" disabled="@(Disabled || IsSubmitting)" title="@(Disabled ? DisabledReason : null)" @onclick="ContinueAsync">@(IsSubmitting ? "لطفاً صبر کنید…" : Time is null ? "ادامه" : "تأیید و ثبت نوبت") <span>←</span></button>

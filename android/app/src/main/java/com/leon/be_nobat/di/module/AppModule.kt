@@ -278,7 +278,7 @@ val useCaseModule = module {
 val viewModelModule = module {
     viewModel { AuthViewModel(get(), get()) }
     viewModel { RegisterViewModel(get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), getOrNull(), getOrNull(), getOrNull(), getOrNull(), getOrNull()) }
     viewModel { BusinessDetailViewModel(get(), get(), get()) }
     viewModel { BookingViewModel(get(), get(), get(), get(), get()) }
     viewModel { AppointmentsViewModel(get(), get(), get()) }

@@ -15,11 +15,16 @@ import com.leon.be_nobat.ui.view_models.admin.AdminDashboardUiState
 import com.leon.be_nobat.ui.view_models.admin.AdminDashboardViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.android.ext.android.inject
+import com.leon.be_nobat.domain.usecase.AdminListBranchesUseCase
+import com.leon.be_nobat.domain.usecase.AdminListBusinessesUseCase
 
 class AdminHomeActivity : BaseActivity() {
     override val layoutResourceId: Int = R.layout.activity_admin_home
 
     private val viewModel: AdminDashboardViewModel by viewModel()
+    private val listBranchesUseCase: AdminListBranchesUseCase by inject()
+    private val listBusinessesUseCase: AdminListBusinessesUseCase by inject()
     private lateinit var drawerLayout: androidx.drawerlayout.widget.DrawerLayout
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
@@ -62,17 +67,74 @@ class AdminHomeActivity : BaseActivity() {
         }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnShareBusiness)?.setOnClickListener {
             val ctx = viewModel.state.value.context
-            val membership = ctx?.memberships?.firstOrNull()
-            val bizId = membership?.businessId ?: ""
-            val bizName = membership?.branchName?.takeIf { it.isNotBlank() } ?: getString(R.string.my_business)
-            if (bizId.isNotBlank()) {
+            val memberships = ctx?.memberships.orEmpty()
+
+            if (memberships.size == 1) {
+                val m = memberships.first()
                 com.leon.be_nobat.helpers.BusinessShareDialog.show(
                     context = this,
-                    businessId = bizId,
-                    businessName = bizName,
+                    businessId = m.businessId,
+                    businessName = m.branchName.takeIf { it.isNotBlank() } ?: getString(R.string.my_business),
+                    branchId = m.branchId,
+                    branchName = m.branchName,
                 )
-            } else {
-                showToast(getString(R.string.no_business_found))
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                val branchesResult = listBranchesUseCase(pageSize = 50)
+                val branches = branchesResult.getOrNull()?.items.orEmpty()
+                if (branches.isNotEmpty()) {
+                    if (branches.size == 1) {
+                        val b = branches.first()
+                        com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                            context = this@AdminHomeActivity,
+                            businessId = b.businessId,
+                            businessName = b.businessName ?: getString(R.string.my_business),
+                            branchId = b.id,
+                            branchName = b.name,
+                        )
+                    } else {
+                        val items = branches.map { br ->
+                            val bName = br.businessName.orEmpty()
+                            if (bName.isNotBlank()) "$bName — ${br.name}" else br.name
+                        }.toTypedArray()
+
+                        com.google.android.material.dialog.MaterialAlertDialogBuilder(this@AdminHomeActivity)
+                            .setTitle(R.string.share_booking_link_title)
+                            .setItems(items) { _, which ->
+                                val selected = branches[which]
+                                com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                                    context = this@AdminHomeActivity,
+                                    businessId = selected.businessId,
+                                    businessName = selected.businessName ?: getString(R.string.my_business),
+                                    branchId = selected.id,
+                                    branchName = selected.name,
+                                )
+                            }
+                            .setNegativeButton(R.string.action_cancel, null)
+                            .show()
+                    }
+                } else {
+                    val businesses = listBusinessesUseCase(pageSize = 50).getOrNull()?.items.orEmpty()
+                    if (businesses.isNotEmpty()) {
+                        val items = businesses.map { it.name }.toTypedArray()
+                        com.google.android.material.dialog.MaterialAlertDialogBuilder(this@AdminHomeActivity)
+                            .setTitle(R.string.share_booking_link_title)
+                            .setItems(items) { _, which ->
+                                val selected = businesses[which]
+                                com.leon.be_nobat.helpers.BusinessShareDialog.show(
+                                    context = this@AdminHomeActivity,
+                                    businessId = selected.id,
+                                    businessName = selected.name,
+                                )
+                            }
+                            .setNegativeButton(R.string.action_cancel, null)
+                            .show()
+                    } else {
+                        showToast(getString(R.string.no_business_found))
+                    }
+                }
             }
         }
         findViewById<android.view.View>(R.id.cardRevenue)?.setOnClickListener {

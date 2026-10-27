@@ -41,7 +41,7 @@
                     android:title="@string/admin_branches" />
                 <item
                     android:id="@+id/drawer_availability"
-                    android:icon="@drawable/ic_calendar"
+                    android:icon="@drawable/ic_availability"
                     android:title="@string/admin_availability" />
                 <item
                     android:id="@+id/drawer_reviews"

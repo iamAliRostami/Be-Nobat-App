@@ -5,14 +5,25 @@ import androidx.lifecycle.viewModelScope
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.Business
 import com.leon.be_nobat.domain.model.Category
+import com.leon.be_nobat.domain.model.TodaySlotItem
 import com.leon.be_nobat.domain.usecase.GetCategoriesUseCase
+import com.leon.be_nobat.domain.usecase.GetSlotsUseCase
+import com.leon.be_nobat.domain.usecase.ListBranchesUseCase
+import com.leon.be_nobat.domain.usecase.ListBranchServicesUseCase
 import com.leon.be_nobat.domain.usecase.ListBusinessesUseCase
 import com.leon.be_nobat.domain.usecase.ListFavoritesUseCase
 import com.leon.be_nobat.domain.usecase.ToggleFavoriteUseCase
+import com.leon.be_nobat.helpers.JalaliDateHelper
+import com.leon.be_nobat.helpers.PersianUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 enum class BusinessSortOption {
     DEFAULT,
@@ -38,6 +49,11 @@ data class HomeUiState(
     val filterInstantOnly: Boolean = false,
     val error: String? = null,
     val favoriteSnapshot: Map<String, Boolean> = emptyMap(),
+    val loadingTodaySlots: Boolean = false,
+    val todaySlots: List<TodaySlotItem> = emptyList(),
+    val todaySlotsError: String? = null,
+    val todaySlotsDate: String = "",
+    val todaySlotsForTomorrow: Boolean = false,
 )
 
 class HomeViewModel(
@@ -45,6 +61,9 @@ class HomeViewModel(
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val listFavorites: ListFavoritesUseCase? = null,
     private val getCategoriesUseCase: GetCategoriesUseCase? = null,
+    private val listBranchesUseCase: ListBranchesUseCase? = null,
+    private val listBranchServicesUseCase: ListBranchServicesUseCase? = null,
+    private val getSlotsUseCase: GetSlotsUseCase? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState())
@@ -80,7 +99,8 @@ class HomeViewModel(
             _state.value = _state.value.copy(favoriteSnapshot = favMap)
             listBusinesses(s.query.ifBlank { null }, s.city.ifBlank { null }, s.category.ifBlank { null }, page = 1)
                 .onSuccess { page: ApiPage<Business> ->
-                    val filtered = applyFilterAndSort(page.items, s.sortOption, s.filterInstantOnly, favMap)
+                    val current = _state.value
+                    val filtered = applyFilterAndSort(page.items, current.sortOption, current.filterInstantOnly, favMap)
                     _state.value = _state.value.copy(
                         loading = false, refreshing = false,
                         rawItems = page.items,
@@ -104,13 +124,14 @@ class HomeViewModel(
             _state.value = s.copy(loading = true)
             listBusinesses(s.query.ifBlank { null }, s.city.ifBlank { null }, s.category.ifBlank { null }, page = s.page + 1)
                 .onSuccess { page ->
-                    val newRaw = s.rawItems + page.items
-                    val filtered = applyFilterAndSort(newRaw, s.sortOption, s.filterInstantOnly, s.favoriteSnapshot)
-                    _state.value = _state.value.copy(
+                    val current = _state.value
+                    val newRaw = current.rawItems + page.items
+                    val filtered = applyFilterAndSort(newRaw, current.sortOption, current.filterInstantOnly, current.favoriteSnapshot)
+                    _state.value = current.copy(
                         loading = false,
                         rawItems = newRaw,
                         items = filtered,
-                        page = s.page + 1,
+                        page = current.page + 1,
                         hasMore = newRaw.size < page.total,
                     )
                 }
@@ -156,6 +177,89 @@ class HomeViewModel(
             result = result.sortedByDescending { favorites[it.id] == true }
         }
         return result
+    }
+
+    fun loadTodaySlots(forTomorrow: Boolean = false) {
+        val targetDate = if (forTomorrow) getTomorrowIso() else JalaliDateHelper.getTodayIso()
+        viewModelScope.launch {
+            _state.value = _state.value.copy(
+                loadingTodaySlots = true,
+                todaySlotsError = null,
+                todaySlotsDate = targetDate,
+                todaySlotsForTomorrow = forTomorrow,
+            )
+            try {
+                var businesses = _state.value.rawItems
+                if (businesses.isEmpty()) {
+                    val pageRes = listBusinesses(null, null, null, page = 1)
+                    businesses = pageRes.getOrNull()?.items.orEmpty()
+                }
+
+                val results = mutableListOf<TodaySlotItem>()
+                val sdfTehran = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                    timeZone = TimeZone.getTimeZone("Asia/Tehran")
+                }
+                val nowTime = sdfTehran.format(Date())
+
+                // Check up to top 6 businesses
+                val sampleBusinesses = businesses.take(6)
+                for (biz in sampleBusinesses) {
+                    val branches = listBranchesUseCase?.invoke(biz.id)?.getOrNull()?.items.orEmpty()
+                    val branch = branches.firstOrNull() ?: continue
+                    val services = listBranchServicesUseCase?.invoke(biz.id, branch.id)?.getOrNull()?.items.orEmpty()
+                    val selectedServices = services.take(2)
+                    for (srv in selectedServices) {
+                        val slotsResp = getSlotsUseCase?.invoke(biz.id, branch.id, srv.id, targetDate, null)?.getOrNull()
+                        val rawSlots = slotsResp?.slots.orEmpty()
+                        for (slot in rawSlots) {
+                            if (!forTomorrow && slot.startsAt <= nowTime) {
+                                continue
+                            }
+                            val rawTime = slot.startsAt.substringAfter("T").take(5)
+                            val persianTime = PersianUtils.toPersianDigits(rawTime)
+                            results.add(
+                                TodaySlotItem(
+                                    businessId = biz.id,
+                                    businessName = biz.name,
+                                    category = biz.category,
+                                    branchId = branch.id,
+                                    branchName = branch.name,
+                                    serviceId = srv.id,
+                                    serviceName = srv.name,
+                                    serviceDurationMinutes = srv.durationMinutes,
+                                    price = srv.price,
+                                    currency = srv.currency,
+                                    resourceId = slot.resourceId,
+                                    resourceName = slot.resourceName,
+                                    startsAt = slot.startsAt,
+                                    endsAt = slot.endsAt,
+                                    timeLabel = persianTime,
+                                    requiresApproval = biz.requiresApproval,
+                                )
+                            )
+                        }
+                    }
+                }
+
+                results.sortBy { it.startsAt }
+                _state.value = _state.value.copy(
+                    loadingTodaySlots = false,
+                    todaySlots = results,
+                    todaySlotsError = null,
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    loadingTodaySlots = false,
+                    todaySlotsError = e.message,
+                )
+            }
+        }
+    }
+
+    private fun getTomorrowIso(): String {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, 1)
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
     }
 
     fun toggleFavoriteFor(businessId: String, isFav: Boolean) {

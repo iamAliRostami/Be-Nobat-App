@@ -46,4 +46,5 @@ interface BusinessRepository {
     suspend fun getCatalog(page: Int = 1, pageSize: Int = 30): Result<ApiPage<ServiceCatalogItem>>
 
     suspend fun findBusinessIdByBranch(branchId: String): String? = null
+    suspend fun findBusinessIdByProvider(providerId: String): Pair<String, String>? = null
 }

@@ -72,7 +72,11 @@ class BookingActivity : BaseActivity() {
 
         val bizId = intent.getStringExtra("businessId") ?: ""
         val branchIdExtra = intent.getStringExtra("branchId")
-        viewModel.setBusinessId(bizId, branchIdExtra)
+        val serviceIdExtra = intent.getStringExtra("serviceId")
+        val dateExtra = intent.getStringExtra("selectedDate")
+        val slotStartsAtExtra = intent.getStringExtra("slotStartsAt")
+        val slotResourceIdExtra = intent.getStringExtra("slotResourceId")
+        viewModel.setBusinessId(bizId, branchIdExtra, serviceIdExtra, dateExtra, slotStartsAtExtra, slotResourceIdExtra)
 
         // Services List setup (Step 1)
         servicesAdapter = ServicesAdapter(

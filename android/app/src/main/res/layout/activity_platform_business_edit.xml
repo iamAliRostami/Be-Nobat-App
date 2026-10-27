@@ -13,46 +13,54 @@
         android:background="?attr/colorSurface"
         app:elevation="0.5dp">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
+            android:id="@+id/adminHeaderBar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:paddingStart="4dp"
-            android:paddingEnd="16dp">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp">
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBack"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/action_close"
-                android:src="@drawable/ic_back"
-                app:tint="?attr/colorOnSurface" />
+                style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
+                android:contentDescription="@string/action_back"
+                android:tooltipText="@string/action_back"
+                app:icon="@drawable/ic_back" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/tvHeaderTitle"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:orientation="vertical">
+                android:layout_weight="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textAppearance="@style/TextAppearance.BeNobat.Brand"
+                android:textSize="20sp"
+                tools:text="کسب‌وکار جدید" />
 
-                <TextView
-                    android:id="@+id/tvHeaderTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
-                    android:textSize="17sp"
-                    android:textColor="?attr/colorOnSurface"
-                    tools:text="ویرایش کسب‌وکار" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnThemeToggle"
+                style="@style/Widget.BeNobat.Button.Icon.Header"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/switch_theme"
+                app:icon="@drawable/ic_switch_theme" />
 
-                <TextView
-                    android:id="@+id/tvHeaderSubtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                    android:textSize="11.5sp"
-                    android:text="مشخصات کسب‌وکار، شعبه اصلی و ساعات کاری" />
-            </LinearLayout>
-        </androidx.appcompat.widget.Toolbar>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLanguage"
+                style="@style/Widget.BeNobat.Button.Icon.Header"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:contentDescription="@string/change_language"
+                app:icon="@drawable/ic_language" />
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -223,6 +231,13 @@
                             android:minLines="2" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Cancellation Policy -->
+                    <com.leon.be_nobat.helpers.CancellationNoticeEditor
+                        android:id="@+id/cancellationEditor"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp" />
+
                     <!-- Requires Approval Switch -->
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -357,6 +372,23 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏰ ساعات کاری شعبه مرکزی"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="روزهای کاری و بازه‌های زمانی فعالیت این شعبه را مشخص کنید."
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                        android:textSize="12sp" />
+
                     <com.leon.be_nobat.helpers.WeeklyHoursEditor
                         android:id="@+id/weeklyHoursEditor"
                         android:layout_width="match_parent"
@@ -370,12 +402,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="14dp"
+                android:visibility="gone"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
                 app:strokeColor="@color/colorOutline"
                 app:strokeWidth="1dp"
                 app:cardBackgroundColor="?attr/colorSurface"
-                android:visibility="gone"
                 tools:visibility="visible">
 
                 <LinearLayout
@@ -387,15 +419,23 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⚙️ وضعیت و شناسه سیستم"
+                        android:text="وضعیت کسب‌وکار"
                         android:textAppearance="@style/TextAppearance.BeNobat.Headline"
                         android:textSize="15sp"
                         android:textStyle="bold" />
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="فعال‌سازی یا غیرفعال‌سازی دسترسی و رزرو برای این کسب‌وکار."
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                        android:textSize="12sp" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
                         android:orientation="horizontal"
                         android:gravity="center_vertical">
 
@@ -403,25 +443,25 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="وضعیت فعالیت کسب‌وکار"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body" />
+                            android:text="کسب‌وکار فعال است"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                            android:textSize="13.5sp" />
 
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchBusinessActive"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="فعال" />
+                            android:layout_height="wrap_content" />
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/tvBusinessId"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                        android:layout_marginTop="10dp"
+                        android:fontFamily="monospace"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="11sp"
-                        tools:text="شناسه: biz_12345" />
-
+                        tools:text="شناسه: b1a3087e-fd63-f21b-a2fd-695a5ed2d6f8" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

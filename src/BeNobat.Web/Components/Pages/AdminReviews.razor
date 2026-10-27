@@ -1,4 +1,4 @@
-@page "/admin/reviews"
+﻿@page "/admin/reviews"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
@@ -34,9 +34,9 @@
             <input aria-label="جست‌وجوی نظرات" placeholder="جست‌وجوی مشتری، مجموعه یا متن نظر..." @bind="Search" @bind:event="oninput" />
             <select aria-label="وضعیت نظر" @bind="Filter">
                 <option value="all">همه</option>
-                <option value="Pending">در انتظار</option>
-                <option value="Published">منتشرشده</option>
-                <option value="Rejected">ردشده</option>
+                <option value="Pending">در انتظار بررسی</option>
+                <option value="Published">منتشر شده</option>
+                <option value="Rejected">رد شده</option>
             </select>
             <select aria-label="امتیاز نظر" @bind="RatingFilter">
                 <option value="">همه امتیازها</option>
@@ -66,8 +66,8 @@
                     @if (!string.IsNullOrWhiteSpace(review.ManagerReply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.ManagerReply</span></blockquote> }
                     <footer>
                         <em class="status @StatusClass(review.Status)">@StatusLabel(review.Status)</em>
-                        <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار</button>
-                        <button type="button" class="action-danger" disabled="@(review.Status == ReviewStatus.Rejected || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد</button>
+                        <button type="button" class="action-success" disabled="@(review.Status == ReviewStatus.Published || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Published)">انتشار نظر</button>
+                        <button type="button" class="action-danger" disabled="@(review.Status == ReviewStatus.Rejected || BusyIds.Contains(review.Id))" @onclick="() => SetStatus(review, ReviewStatus.Rejected)">رد نظر</button>
                         <button type="button" class="action-secondary" @onclick="() => Reply(review)">پاسخ</button>
                     </footer>
                 </article>
@@ -473,6 +473,7 @@ else
         item.Status = status;
         item.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(token);
+        Message = status == ReviewStatus.Published ? "نظر با موفقیت منتشر شد." : "نظر رد شد.";
         return true;
     });
 
@@ -481,6 +482,7 @@ else
         PageError = null;
         Replying = review;
         ReplyForm = new ReplyInput { Text = review.ManagerReply ?? "" };
+        StateHasChanged();
     }
 
     private Task SaveReply()
@@ -497,6 +499,7 @@ else
             item.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(token);
             if (Replying?.Id == id) Close();
+            Message = "پاسخ ثبت و نظر منتشر شد.";
             return true;
         });
     }
@@ -518,7 +521,16 @@ else
             PageError = "ذخیره انجام نشد؛ ممکن است این ارزیابی هم‌زمان تغییر کرده باشد. دوباره بررسی کنید.";
             await Load();
         }
-        finally { BusyIds.Remove(id); }
+        catch (Exception ex)
+        {
+            if (Disposed) return;
+            PageError = $"خطا در انجام عملیات: {ex.Message}";
+        }
+        finally
+        {
+            BusyIds.Remove(id);
+            if (!Disposed) await InvokeAsync(StateHasChanged);
+        }
     }
 
     private void Close() => Replying = null;
@@ -541,9 +553,9 @@ else
 
     private static string StatusLabel(ReviewStatus s) => s switch
     {
-        ReviewStatus.Published => "منتشرشده",
-        ReviewStatus.Rejected => "ردشده",
-        _ => "در انتظار",
+        ReviewStatus.Published => "منتشر شده",
+        ReviewStatus.Rejected => "رد شده",
+        _ => "در انتظار بررسی",
     };
 
     private static string StatusClass(ReviewStatus s) => s switch

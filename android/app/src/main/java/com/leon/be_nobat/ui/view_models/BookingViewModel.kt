@@ -62,14 +62,28 @@ class BookingViewModel(
     private val _state = MutableStateFlow(BookingUiState(date = JalaliDateHelper.getTodayIso()))
     val state: StateFlow<BookingUiState> = _state.asStateFlow()
 
-    fun setBusinessId(id: String, initialBranchId: String? = null) {
-        if (id == businessId && _state.value.branches.isNotEmpty()) return
+    fun setBusinessId(
+        id: String,
+        initialBranchId: String? = null,
+        initialServiceId: String? = null,
+        initialDate: String? = null,
+        initialSlotStartsAt: String? = null,
+        initialResourceId: String? = null,
+    ) {
+        if (id == businessId && _state.value.branches.isNotEmpty() && initialServiceId == null) return
         businessId = id
-        _state.value = _state.value.copy(businessId = id, date = JalaliDateHelper.getTodayIso())
-        loadBranches(initialBranchId)
+        val dateToUse = initialDate ?: JalaliDateHelper.getTodayIso()
+        _state.value = _state.value.copy(businessId = id, date = dateToUse)
+        loadBranches(initialBranchId, initialServiceId, dateToUse, initialSlotStartsAt, initialResourceId)
     }
 
-    private fun loadBranches(initialBranchId: String? = null) = viewModelScope.launch {
+    private fun loadBranches(
+        initialBranchId: String? = null,
+        initialServiceId: String? = null,
+        initialDate: String? = null,
+        initialSlotStartsAt: String? = null,
+        initialResourceId: String? = null,
+    ) = viewModelScope.launch {
         _state.value = _state.value.copy(loadingBranches = true)
         listBranches(businessId)
             .onSuccess { res ->
@@ -80,7 +94,9 @@ class BookingViewModel(
                     list.firstOrNull()
                 }
                 _state.value = _state.value.copy(branches = list, branchId = selected?.id ?: "", loadingBranches = false)
-                if (selected != null) loadServices(selected.id)
+                if (selected != null) {
+                    loadServices(selected.id, initialServiceId, initialDate, initialSlotStartsAt, initialResourceId)
+                }
             }
             .onFailure { e ->
                 _state.value = _state.value.copy(loadingBranches = false, error = e.message)
@@ -100,20 +116,38 @@ class BookingViewModel(
         loadServices(id)
     }
 
-    private fun loadServices(branchId: String) = viewModelScope.launch {
+    private fun loadServices(
+        branchId: String,
+        initialServiceId: String? = null,
+        initialDate: String? = null,
+        initialSlotStartsAt: String? = null,
+        initialResourceId: String? = null,
+    ) = viewModelScope.launch {
         _state.value = _state.value.copy(loadingServices = true)
         listBranchServices(businessId, branchId)
             .onSuccess { res ->
                 val services = res.items
-                val first = services.firstOrNull()
-                val selected = if (first != null && _state.value.selectedServices.isEmpty()) listOf(first) else _state.value.selectedServices
+                val matched = if (!initialServiceId.isNullOrBlank()) {
+                    services.filter { it.id == initialServiceId }
+                } else emptyList()
+                val selected = if (matched.isNotEmpty()) {
+                    matched
+                } else {
+                    val first = services.firstOrNull()
+                    if (first != null && _state.value.selectedServices.isEmpty()) listOf(first) else _state.value.selectedServices
+                }
+                val dateToUse = initialDate ?: _state.value.date
+                val stepToUse = if (matched.isNotEmpty()) 2 else _state.value.currentStep
                 _state.value = _state.value.copy(
                     services = services,
                     selectedServices = selected,
-                    loadingServices = false
+                    loadingServices = false,
+                    date = dateToUse,
+                    currentStep = stepToUse,
+                    selectedProviderId = initialResourceId ?: _state.value.selectedProviderId,
                 )
                 if (selected.isNotEmpty()) {
-                    loadProviders()
+                    loadProviders(initialSlotStartsAt)
                 }
             }
             .onFailure { e ->
@@ -137,23 +171,25 @@ class BookingViewModel(
         }
     }
 
-    private fun loadProviders() = viewModelScope.launch {
+    private fun loadProviders(initialSlotStartsAt: String? = null) = viewModelScope.launch {
         val s = _state.value
         if (s.selectedServiceIds.isEmpty()) return@launch
         _state.value = s.copy(loadingProviders = true)
         listProviders(businessId, s.branchId, s.selectedServiceIds.joinToString(","))
             .onSuccess { res ->
                 val providers = res.items
-                val autoSelectedProvider = if (providers.size == 1) providers[0].id
-                else if (providers.any { it.id == s.selectedProviderId }) s.selectedProviderId
-                else null
+                val autoSelectedProvider = if (s.selectedProviderId != null && providers.any { it.id == s.selectedProviderId }) {
+                    s.selectedProviderId
+                } else if (providers.size == 1) {
+                    providers[0].id
+                } else null
                 _state.value = _state.value.copy(
                     providers = providers,
                     selectedProviderId = autoSelectedProvider,
                     loadingProviders = false
                 )
                 if (_state.value.date.isNotBlank()) {
-                    loadSlots()
+                    loadSlots(initialSlotStartsAt)
                 }
             }
             .onFailure { e ->
@@ -175,13 +211,20 @@ class BookingViewModel(
         }
     }
 
-    fun loadSlots() = viewModelScope.launch {
+    fun loadSlots(initialSlotStartsAt: String? = null) = viewModelScope.launch {
         val s = _state.value
         if (s.date.isBlank() || s.selectedServiceIds.isEmpty()) return@launch
         _state.value = s.copy(loadingSlots = true)
         getSlots(s.businessId, s.branchId, s.selectedServiceIds.joinToString(","), s.date, s.selectedProviderId)
             .onSuccess { resp ->
-                _state.value = _state.value.copy(slots = resp, loadingSlots = false)
+                val autoSlot = if (!initialSlotStartsAt.isNullOrBlank()) {
+                    resp.slots.firstOrNull { it.startsAt == initialSlotStartsAt }
+                } else null
+                _state.value = _state.value.copy(
+                    slots = resp,
+                    selectedSlot = autoSlot ?: _state.value.selectedSlot,
+                    loadingSlots = false,
+                )
             }
             .onFailure { e ->
                 _state.value = _state.value.copy(loadingSlots = false, error = e.message)

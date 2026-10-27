@@ -34,6 +34,18 @@ class DeepLinkHelperTest {
     }
 
     @Test
+    fun createProviderWebLink_generatesCorrectUrl() {
+        val link = DeepLinkHelper.createProviderWebLink("prov-123")
+        assertEquals("https://benobat.ir/provider/prov-123", link)
+    }
+
+    @Test
+    fun createProviderAppLink_generatesCorrectUrl() {
+        val link = DeepLinkHelper.createProviderAppLink("prov-123")
+        assertEquals("benobat://provider/prov-123", link)
+    }
+
+    @Test
     fun parseUrl_businessWebShortLink_parsesCorrectly() {
         val parsed = DeepLinkHelper.parseUrl("https://benobat.ir/b/biz-test-123")
         assertNotNull(parsed)
@@ -75,6 +87,14 @@ class DeepLinkHelperTest {
         assertNotNull(parsed)
         assertNull(parsed?.businessId)
         assertEquals("branch-only-88", parsed?.branchId)
+        assertFalse(parsed!!.isBookingRoute)
+    }
+
+    @Test
+    fun parseUrl_providerRoute_extractsProviderId() {
+        val parsed = DeepLinkHelper.parseUrl("https://benobat.ir/provider/prov-master-77")
+        assertNotNull(parsed)
+        assertEquals("prov-master-77", parsed?.providerId)
         assertFalse(parsed!!.isBookingRoute)
     }
 }

@@ -1,142 +1,297 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+
+
     <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+
+
     <uses-permission android:name="android.permission.SEND_SMS" />
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
+
+
     <application
+
         android:name=".helpers.App"
+
         android:allowBackup="true"
+
         android:dataExtractionRules="@xml/data_extraction_rules"
+
         android:fullBackupContent="@xml/backup_rules"
+
         android:icon="@mipmap/ic_launcher"
+
         android:label="@string/app_name"
+
         android:localeConfig="@xml/locales_config"
+
         android:roundIcon="@mipmap/ic_launcher_round"
+
         android:supportsRtl="true"
+
         android:theme="@style/Theme.BeNobat"
+
         android:usesCleartextTraffic="true">
+
         <service
+
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+
             android:enabled="true"
+
             android:exported="false">
+
             <meta-data
+
                 android:name="autoStoreLocales"
+
                 android:value="true" />
+
         </service>
 
+
+
         <service android:name=".notifications.AppointmentNotificationJob"
+
             android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
+
         <receiver android:name=".notifications.SmsSentReceiver" android:exported="false" />
+
         <activity android:name=".ui.activities.AppointmentNotificationsActivity" android:exported="false" />
 
+
+
         <!-- Launcher -->
+
         <activity
+
             android:name=".ui.activities.StartActivity"
+
             android:theme="@style/Theme.App.Starting"
+
             android:exported="true">
+
             <intent-filter>
+
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
+
             <!-- Deep Link Handler: benobat://business/* and benobat://book/* and https://benobat.ir/b/* -->
-            <intent-filter android:autoVerify="true">
+
+            <intent-filter>
+
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data android:scheme="benobat" android:host="business" />
+
                 <data android:scheme="benobat" android:host="branch" />
+                <data android:scheme="benobat" android:host="provider" />
+
                 <data android:scheme="benobat" android:host="book" />
+
             </intent-filter>
+
             <intent-filter android:autoVerify="true">
+
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <category android:name="android.intent.category.BROWSABLE" />
+
                 <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/b/" />
+
                 <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/business/" />
+
                 <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/branch/" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/provider/" />
+                <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/p/" />
+
                 <data android:scheme="https" android:host="benobat.ir" android:pathPrefix="/book/" />
+
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/b/" />
+
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/business/" />
+
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/branch/" />
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/provider/" />
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/p/" />
+
+                <data android:scheme="https" android:host="www.benobat.ir" android:pathPrefix="/book/" />
+
             </intent-filter>
+
         </activity>
 
+
+
         <!-- Auth -->
+
         <activity
+
             android:name=".ui.activities.LoginActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity
+
             android:name=".ui.activities.RegisterActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
+
 
         <!-- Customer surface -->
+
         <activity
+
             android:name=".ui.activities.HomeActivity"
+
             android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.BusinessDetailActivity"
+
             android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.BookingActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity
+
             android:name=".ui.activities.BookingSuccessActivity"
+
             android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.AppointmentsActivity"
+
             android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.FavoritesActivity"
+
             android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.ProfileActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity
+
             android:name=".ui.activities.BusinessUpgradeActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
+
 
         <!-- Admin surface -->
+
         <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminAnalyticsActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminCalendarActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminBranchesActivity" android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.AdminBranchEditActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity
+
             android:name=".ui.activities.AdminServiceEditActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity android:name=".ui.activities.AdminReviewsActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminServicesActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminAvailabilityActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminCustomersActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.AdminTeamActivity" android:exported="false" />
 
+
+
         <!-- Platform surface -->
+
         <activity android:name=".ui.activities.PlatformBusinessesActivity" android:exported="false" />
+
         <activity
+
             android:name=".ui.activities.PlatformBusinessEditActivity"
+
             android:exported="false"
+
             android:windowSoftInputMode="adjustResize" />
+
         <activity android:name=".ui.activities.PlatformCatalogActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.PlatformCategoriesActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.PlatformAccessActivity" android:exported="false" />
+
         <activity android:name=".ui.activities.PlatformRequestsActivity" android:exported="false" />
 
+
+
         <!-- Legacy example activity (kept for back-compat) -->
+
         <activity
+
             android:name=".ui.activities.ExampleActivity"
+
             android:exported="false" />
+
     </application>
 
+
+
 </manifest>
+

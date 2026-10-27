@@ -116,6 +116,7 @@ dependencies {
 
     // Image loading
     implementation(libs.coil)
+    implementation("com.google.zxing:core:3.5.3")
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

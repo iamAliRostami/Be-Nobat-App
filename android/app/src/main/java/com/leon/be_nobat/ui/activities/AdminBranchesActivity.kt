@@ -155,6 +155,15 @@ class AdminBranchesActivity : BaseActivity() {
                     btnAction2.text = root.context.getString(R.string.action_edit)
                     btnAction2.setOnClickListener { onEdit(item) }
                 }
+                btnQrCode.isVisible = true
+                btnQrCode.setOnClickListener {
+                    com.leon.be_nobat.helpers.BusinessShareDialog.showForBranch(
+                        context = root.context,
+                        branchId = item.id,
+                        branchName = item.name,
+                        businessName = item.businessName?.takeIf { it.isNotBlank() } ?: root.context.getString(R.string.my_business),
+                    )
+                }
                 root.setOnClickListener { onEdit(item) }
                 root.setOnLongClickListener {
                     com.leon.be_nobat.helpers.BusinessShareDialog.show(

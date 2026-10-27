@@ -122,9 +122,11 @@
     <div class="modal-backdrop" @onclick="CloseCancel">
         <div class="form-modal" role="dialog" aria-modal="true" @onclick:stopPropagation>
             <div><h2>لغو نوبت</h2><button type="button" aria-label="بستن پنجره" title="بستن" @onclick="CloseCancel">×</button></div>
-            <p>نوبت «@ServiceLabel(Cancelling)» در @BranchClock.FormatDateTime(Cancelling.StartsAt, Cancelling.Branch.TimeZoneId, Language) لغو شود؟ این کار قابل بازگشت نیست.</p>
-            <button type="button" class="action-danger" disabled="@IsCancelling" @onclick="ConfirmCancel">@(IsCancelling ? "در حال لغو…" : "بله، لغو شود")</button>
-            <button type="button" class="outline-link" disabled="@IsCancelling" @onclick="CloseCancel">انصراف</button>
+            <p>آیا از لغو نوبت «@ServiceLabel(Cancelling)» اطمینان دارید؟ این کار قابل بازگشت نیست.</p>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+                <button type="button" class="outline-link" disabled="@IsCancelling" @onclick="CloseCancel">انصراف</button>
+                <button type="button" class="action-danger" disabled="@IsCancelling" @onclick="ConfirmCancel">@(IsCancelling ? "در حال لغو…" : "بله، لغو شود")</button>
+            </div>
         </div>
     </div>
 }
@@ -143,10 +145,10 @@
                     <button type="button" role="radio" aria-checked="@(ReviewForm.Rating == value ? "true" : "false")" aria-label="@value ستاره" class="@(value <= ReviewForm.Rating ? "on" : "")" disabled="@IsSubmittingReview" @onclick="() => ReviewForm.Rating = value">★</button>
                 }
             </div>
-            <label>نظر شما (اختیاری)<textarea maxlength="1000" disabled="@IsSubmittingReview" @bind="ReviewForm.Comment" @bind:event="oninput"></textarea></label>
+            <label>نظر شما (اختیاری)<textarea maxlength="1000" disabled="@IsSubmittingReview" placeholder="نظر شما درباره این نوبت…" @bind="ReviewForm.Comment" @bind:event="oninput"></textarea></label>
             @if (ReviewError is not null) { <div class="auth-error" role="alert">@ReviewError</div> }
             <button type="button" class="primary-button" disabled="@IsSubmittingReview" @onclick="SubmitReview">
-                @(IsSubmittingReview ? "در حال ارسال…" : "ارسال برای بررسی")
+                @(IsSubmittingReview ? "در حال ارسال…" : "ارسال نظر")
             </button>
         </div>
     </div>
@@ -300,7 +302,7 @@
     {
         AppointmentStatus.Pending => "در انتظار تأیید",
         AppointmentStatus.Confirmed => "تأیید شده",
-        AppointmentStatus.Completed => "تکمیل شد",
+        AppointmentStatus.Completed => "انجام شده",
         AppointmentStatus.Cancelled => "لغو شده",
         AppointmentStatus.NoShow => "عدم حضور",
         _ => status.ToString(),
@@ -378,7 +380,7 @@
             await db.SaveChangesAsync();
             Reviewing = null;
             await LoadAsync();
-            ReviewMessage = "امتیاز و نظر شما ثبت شد و پس از بررسی مجموعه نمایش داده می‌شود.";
+            ReviewMessage = "نظر شما با موفقیت ثبت شد.";
         }
         catch (Exception exception)
         {
