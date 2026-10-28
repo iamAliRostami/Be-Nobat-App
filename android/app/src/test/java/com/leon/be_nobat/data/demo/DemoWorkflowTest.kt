@@ -531,4 +531,48 @@ class DemoWorkflowTest {
         assertEquals("Rejected", rejected.status)
         assertEquals("با تشکر از نظر شما", rejected.managerReply)
     }
+
+    @Test fun `custom availability preserves standard daytime slots and blocks specific range`() = runBlocking {
+        val db = store(); val token = tokens(); val auth = DemoAuthRepository(db, token)
+        auth.login("admin@benobat.ir", "Demo1234!").getOrThrow()
+        val management = DemoManagementRepository(db, token)
+        val date = demoFormat(System.currentTimeMillis() + 6 * 86400000L).take(10)
+
+        // 1. Add overtime range from 20:00 to 22:00
+        management.createAvailability(ManagementAvailabilityInput(
+            businessId = "biz_diplomat",
+            branchId = "br_diplomat_1",
+            resourceId = "res_dip_1",
+            effectiveDate = date,
+            startsAt = "20:00:00",
+            endsAt = "22:00:00",
+            isAvailable = true,
+        )).getOrThrow()
+
+        // 2. Block 12:00 to 14:00 (e.g. lunch/break)
+        management.createAvailability(ManagementAvailabilityInput(
+            businessId = "biz_diplomat",
+            branchId = "br_diplomat_1",
+            resourceId = "res_dip_1",
+            effectiveDate = date,
+            startsAt = "12:00:00",
+            endsAt = "14:00:00",
+            isAvailable = false,
+        )).getOrThrow()
+
+        val booking = DemoBookingRepository(db, token)
+        val slots = booking.getSlots("biz_diplomat", "br_diplomat_1", "srv_dip_1", date, "res_dip_1").getOrThrow().slots
+
+        val morningSlots = slots.filter { it.startsAt >= "${date}T09:00:00" && it.endsAt <= "${date}T12:00:00" }
+        assertTrue("Morning slots should be available", morningSlots.isNotEmpty())
+
+        val blockedSlots = slots.filter { it.startsAt >= "${date}T12:00:00" && it.endsAt <= "${date}T14:00:00" }
+        assertTrue("Blocked slots (12:00-14:00) must not be present", blockedSlots.isEmpty())
+
+        val afternoonSlots = slots.filter { it.startsAt >= "${date}T14:00:00" && it.endsAt <= "${date}T18:00:00" }
+        assertTrue("Afternoon slots should be available", afternoonSlots.isNotEmpty())
+
+        val overtimeSlots = slots.filter { it.startsAt >= "${date}T20:00:00" && it.endsAt <= "${date}T22:00:00" }
+        assertTrue("Overtime slots (20:00-22:00) should be available", overtimeSlots.isNotEmpty())
+    }
 }

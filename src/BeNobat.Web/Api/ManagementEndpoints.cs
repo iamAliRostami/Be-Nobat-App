@@ -103,6 +103,8 @@ public static class ManagementEndpoints
         platform.MapPut("/users/{id:guid}/roles", SetUserRoles);
         platform.MapPut("/users/{id:guid}/active", SetUserActive);
         platform.MapPost("/users/{id:guid}/reset-password", ResetUserPassword);
+        platform.MapGet("/pricing", GetPlatformPricing);
+        platform.MapPost("/pricing", UpdatePlatformPricing);
         platform.MapGet("/business-requests", ListBusinessRequests);
         platform.MapPost("/business-requests/{id:guid}/approve", ApproveBusinessRequest);
         platform.MapPost("/business-requests/{id:guid}/reject", RejectBusinessRequest);
@@ -1519,10 +1521,58 @@ public static class ManagementEndpoints
         return Results.Ok(new { userId = user.Id, temporaryPassword = password });
     }
 
-    public static BusinessRequestDto ToBusinessRequestDto(BusinessRequest r, string? userName = null, string? userEmail = null, string? userPhone = null) =>
-        new(r.Id, r.UserId, userName ?? r.User?.DisplayName ?? "", userEmail ?? r.User?.Email, userPhone ?? r.User?.PhoneNumber ?? r.ContactPhone,
-            r.BusinessName, r.Category, r.City, r.Description, r.ContactPhone, r.FirstBranchName, r.FirstBranchAddress,
-            r.Status.ToString(), r.ReviewNote, r.ApprovedBusinessId, r.CreatedAt);
+    private static async Task<IResult> GetPlatformPricing(AppDbContext db, CancellationToken ct)
+    {
+        var p = await db.GetPlatformPricingAsync(ct);
+        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+    }
+
+    private static async Task<IResult> UpdatePlatformPricing(PlatformPricingInput input, AppDbContext db, CancellationToken ct)
+    {
+        if (input.BaseBusinessPrice < 0 || input.ExtraBranchPrice < 0)
+            return ApiResults.Error("invalid_input", "مبالغ تعرفه نمی‌توانند منفی باشند.");
+        var p = await db.GetPlatformPricingAsync(ct);
+        p.BaseBusinessPrice = input.BaseBusinessPrice;
+        p.ExtraBranchPrice = input.ExtraBranchPrice;
+        p.CardNumber = input.CardNumber?.Trim() ?? "";
+        p.Iban = input.Iban?.Trim() ?? "";
+        p.AccountHolder = input.AccountHolder?.Trim() ?? "";
+        p.PaymentInstructions = input.PaymentInstructions?.Trim() ?? "";
+        p.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+    }
+
+    public static BusinessRequestDto ToBusinessRequestDto(BusinessRequest r, string? userName = null, string? userEmail = null, string? userPhone = null)
+    {
+        var branches = r.GetAdditionalBranches().Select(b => new RequestedBranchDto(b.Name, b.Address)).ToArray();
+        return new(
+            r.Id,
+            r.UserId,
+            userName ?? r.User?.DisplayName ?? "",
+            userEmail ?? r.User?.Email,
+            userPhone ?? r.User?.PhoneNumber ?? r.ContactPhone,
+            r.BusinessName,
+            r.Category,
+            r.City,
+            r.Description,
+            r.ContactPhone,
+            r.FirstBranchName,
+            r.FirstBranchAddress,
+            branches,
+            r.BasePrice,
+            r.ExtraBranchPrice,
+            r.TotalBranchesCount,
+            r.TotalFee,
+            r.ReceiptImageData != null && r.ReceiptImageData.Length > 0,
+            r.ReceiptTrackingCode,
+            r.ReceiptUploadedAt,
+            r.Status.ToString(),
+            r.ReviewNote,
+            r.ApprovedBusinessId,
+            r.CreatedAt
+        );
+    }
 
     private static async Task<IResult> ApproveBranch(Guid id, AppDbContext db, CancellationToken ct)
     {
@@ -1652,6 +1702,10 @@ public sealed record ManagementUserInput(string DisplayName, string? Email, stri
 public sealed record ManagementUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, string[] Roles);
 public sealed record ManagementCreatedUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string TemporaryPassword);
 public sealed record ManagementRolesInput(string[] Roles);
-public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "");
-public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt);
+public sealed record PlatformPricingDto(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
+public sealed record PlatformPricingInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
+public sealed record RequestedBranchDto(string Name, string Address);
+public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string DataBase64);
+public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "", RequestedBranchDto[]? AdditionalBranches = null);
+public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt);
 public sealed record ReviewBusinessRequestInput(string? Note = null);

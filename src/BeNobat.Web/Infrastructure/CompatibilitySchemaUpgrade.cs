@@ -155,6 +155,22 @@ public static class CompatibilitySchemaUpgrade
             CREATE INDEX IF NOT EXISTS "IX_BusinessRequests_UserId_Status" ON benobat."BusinessRequests" ("UserId", "Status");
             CREATE INDEX IF NOT EXISTS "IX_BusinessRequests_Status_CreatedAt" ON benobat."BusinessRequests" ("Status", "CreatedAt");
 
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "AdditionalBranchesJson" text NULL;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "BasePrice" numeric(18,2) NOT NULL DEFAULT 500000;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "ExtraBranchPrice" numeric(18,2) NOT NULL DEFAULT 200000;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "TotalBranchesCount" integer NOT NULL DEFAULT 1;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "TotalFee" numeric(18,2) NOT NULL DEFAULT 500000;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "ReceiptImageContentType" text NULL;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "ReceiptImageData" bytea NULL;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "ReceiptTrackingCode" text NULL;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "ReceiptUploadedAt" timestamptz NULL;
+
+            CREATE TABLE IF NOT EXISTS benobat."PlatformPricingSettings" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "BaseBusinessPrice" numeric(18,2) NOT NULL DEFAULT 500000,
+                "ExtraBranchPrice" numeric(18,2) NOT NULL DEFAULT 200000, "CardNumber" text NOT NULL DEFAULT '',
+                "Iban" text NOT NULL DEFAULT '', "AccountHolder" text NOT NULL DEFAULT '', "PaymentInstructions" text NOT NULL DEFAULT '');
+
             -- لایه‌ی دفاعی دوم در برابر double-booking: حتی اگر قفل برنامه دور زده شود، دیتابیس دو نوبت
             -- هم‌پوشان فعال را برای یک ارائه‌دهنده نمی‌پذیرد. اگر داده‌ی موجود تداخل داشته باشد یا
             -- اکستنشن در دسترس نباشد فقط یک NOTICE ثبت می‌شود و برنامه بالا می‌آید.

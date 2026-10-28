@@ -1,4 +1,4 @@
-﻿package com.leon.be_nobat.di.module
+package com.leon.be_nobat.di.module
 
 import com.leon.be_nobat.data.demo.*
 import android.util.Log
@@ -193,6 +193,8 @@ val useCaseModule = module {
     factory { DeleteAvatarUseCase(get()) }
     factory { GetMyBusinessRequestUseCase(get()) }
     factory { SubmitBusinessRequestUseCase(get()) }
+    factory { GetPlatformPricingUseCase(get()) }
+    factory { UploadReceiptUseCase(get()) }
 
     // Customer - discovery
     factory { ListBusinessesUseCase(get()) }
@@ -277,6 +279,8 @@ val useCaseModule = module {
     factory { PlatformApproveBusinessRequestUseCase(get()) }
     factory { PlatformRejectBusinessRequestUseCase(get()) }
     factory { PlatformApproveBranchUseCase(get()) }
+    factory { PlatformGetPricingUseCase(get()) }
+    factory { PlatformUpdatePricingUseCase(get()) }
 }
 
 val viewModelModule = module {
@@ -287,7 +291,7 @@ val viewModelModule = module {
     viewModel { BookingViewModel(get(), get(), get(), get(), get()) }
     viewModel { AppointmentsViewModel(get(), get(), get()) }
     viewModel { FavoritesViewModel(get(), get()) }
-    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Admin
     viewModel { AdminDashboardViewModel(get(), get(), get()) }
@@ -305,7 +309,7 @@ val viewModelModule = module {
     viewModel { PlatformCatalogViewModel(get(), get(), get(), get()) }
     viewModel { PlatformCategoriesViewModel(get(), get(), get(), get()) }
     viewModel { PlatformAccessViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { PlatformRequestsViewModel(get(), get(), get()) }
+    viewModel { PlatformRequestsViewModel(get(), get(), get(), get(), get()) }
 }
 
 val networkModule = module {

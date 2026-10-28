@@ -531,6 +531,33 @@
     <string name="business_request_status_rejected">درخواست ثبت کسب‌وکار شما رد شد.</string>
     <string name="business_request_review_note">علت رد: %1$s</string>
     <string name="business_request_resubmit_btn">ارسال مجدد درخواست</string>
+    <string name="business_request_intro_title">ثبت کسب‌وکار و ارتقا به مدیر</string>
+    <string name="business_request_intro_desc">با ثبت درخواست کسب‌وکار و تأیید مدیر کل سامانه، حساب شما به «مدیر کسب‌وکار» ارتقا یافته و می‌توانید خدمات، نوبت‌ها و شعب خود را مدیریت کنید.</string>
+    <string name="business_request_section_business">مشخصات کسب‌وکار</string>
+    <string name="business_request_section_branch">مشخصات شعبه اول</string>
+    <string name="business_request_section_submitted_details">مشخصات ارسال‌شده</string>
+    <string name="business_request_name_hint">مثال: سالن زیبایی پروانه</string>
+    <string name="business_request_city_hint">مثال: تهران</string>
+    <string name="business_request_phone_hint">مثلاً ۰۲۱۱۲۳۴۵۶۷۸ یا ۰۹۱۲...</string>
+    <string name="business_request_first_branch_hint">مثال: شعبه مرکزی</string>
+    <string name="business_request_address_hint">مثال: خیابان ولیعصر، پلاک ۱۰</string>
+    <string name="business_request_desc_hint">توضیح مختصری درباره خدمات و فعالیت کسب‌وکار...</string>
+    <string name="business_request_submit_to_admin_btn">ارسال درخواست برای مدیریت</string>
+    <string name="business_request_cancel_resubmit">انصراف</string>
+    <string name="business_request_pending_header">درخواست شما در انتظار بررسی مدیریت سامانه است</string>
+    <string name="business_request_pending_detail_msg">اطلاعات کسب‌وکار «%1$s» ثبت شده و پس از بررسی و تأیید مدیر کل، حساب شما به «مدیر کسب‌وکار» ارتقا خواهد یافت.</string>
+    <string name="business_request_pending_notice">امکان ارسال درخواست هم‌زمان دیگر وجود ندارد. پس از تعیین تکلیف توسط مدیریت سامانه، اطلاع‌رسانی خواهد شد.</string>
+    <string name="business_request_rejected_header">درخواست قبلی شما رد شد</string>
+    <string name="business_request_active_manager_header">مدیر فعال</string>
+    <string name="business_request_active_manager_desc">شما دارای دسترسی مدیریت کسب‌وکار در سامانه هستید و می‌توانید خدمات، نوبت‌ها و شعب خود را مدیریت کنید.</string>
+    <string name="business_request_go_to_admin">ورود به پنل مدیریت</string>
+    <string name="business_request_field_business_name">نام کسب‌وکار:</string>
+    <string name="business_request_field_category">دسته‌بندی:</string>
+    <string name="business_request_field_city">شهر:</string>
+    <string name="business_request_field_phone">شماره تماس کاری:</string>
+    <string name="business_request_field_first_branch">نام اولین شعبه:</string>
+    <string name="business_request_field_address">نشانی اولین شعبه:</string>
+    <string name="business_request_field_desc">توضیحات:</string>
     <string name="platform_requests_title">درخواست‌های کسب‌وکار</string>
     <string name="platform_tab_all">همه</string>
     <string name="platform_tab_pending">در انتظار بررسی</string>
@@ -639,6 +666,7 @@
     <string name="error_city_required">نام شهر الزامی است.</string>
     <string name="error_address_required">آدرس شعبه الزامی است.</string>
     <string name="error_phone_required">شماره تماس کاری الزامی است.</string>
+    <string name="error_category_required">انتخاب دسته‌بندی الزامی است.</string>
     <string name="btn_add_another_range">+ بازه دیگر</string>
     <string name="btn_copy_all_days">کپی برای همه روزها</string>
     <string name="analytics_revenue_value">%1$s تومان</string>
@@ -682,4 +710,38 @@
     <string name="today_slots_city_filter">شهر: %1$s</string>
     <string name="today_slots_select_city">انتخاب شهر</string>
     <string name="today_slots_empty_filtered">نوبتی با فیلترهای انتخابی یافت نشد.</string>
+    <string name="business_request_section_extra_branches">شعب اضافی (اختیاری)</string>
+    <string name="business_request_add_branch_btn">+ افزودن شعبه دیگر</string>
+    <string name="business_request_extra_branch_title" formatted="false">شعبه شماره %d</string>
+    <string name="business_request_extra_branch_name">نام شعبه</string>
+    <string name="business_request_extra_branch_name_hint">مثال: شعبه تجریش</string>
+    <string name="business_request_extra_branch_address">نشانی شعبه</string>
+    <string name="business_request_extra_branch_address_hint">مثال: میدان تجریش، پاساژ تندیس</string>
+    <string name="business_request_remove_branch">حذف این شعبه</string>
+    <string name="business_request_pricing_base" formatted="false">هزینه ثبت کسب‌وکار (شعبه اول): %s تومان</string>
+    <string name="business_request_pricing_extra" formatted="false">هزینه %d شعبه اضافی: %s تومان</string>
+    <string name="business_request_pricing_total" formatted="false">مبلغ کل قابل پرداخت: %s تومان</string>
+    <string name="business_request_bank_card_label" formatted="false">شماره کارت: %s</string>
+    <string name="business_request_bank_iban_label" formatted="false">شماره شبا: %s (به نام %s)</string>
+    <string name="business_request_receipt_section">فیش واریز وجه</string>
+    <string name="business_request_receipt_uploaded_badge">✓ فیش ارسال شد</string>
+    <string name="business_request_receipt_pending_badge">⏳ در انتظار ارسال فیش</string>
+    <string name="business_request_receipt_upload_btn">انتخاب و ارسال تصویر فیش</string>
+    <string name="business_request_receipt_change_btn">تغییر تصویر فیش</string>
+    <string name="business_request_receipt_tracking_hint">کد پیگیری یا شماره ارجاع واریز (اختیاری)</string>
+    <string name="business_request_receipt_success">تصویر فیش واریز با موفقیت ارسال شد.</string>
+    <string name="business_request_field_total_branches">تعداد کل شعب:</string>
+    <string name="business_request_field_total_fee">مبلغ کل تعرفه:</string>
+    <string name="platform_pricing_settings_title">تنظیمات تعرفه و حساب بانکی</string>
+    <string name="platform_pricing_base_label">هزینه ثبت کسب‌وکار و شعبه اول (تومان)</string>
+    <string name="platform_pricing_extra_label">هزینه به ازای هر شعبه اضافی (تومان)</string>
+    <string name="platform_pricing_card_label">شماره کارت بانکی</string>
+    <string name="platform_pricing_iban_label">شماره شبا (IBAN)</string>
+    <string name="platform_pricing_holder_label">نام صاحب حساب</string>
+    <string name="platform_pricing_instructions_label">توضیحات و راهنمای پرداخت</string>
+    <string name="platform_pricing_save_success">تنظیمات تعرفه با موفقیت ذخیره شد.</string>
+    <string name="platform_request_view_receipt">مشاهده تصویر فیش</string>
+    <string name="platform_request_total_branches">تعداد کل شعب: %1 شعبه</string>
+    <string name="platform_request_total_fee">مبلغ کل: %1 تومان</string>
+    <string name="platform_request_other_branches">سایر شعب درخواستی (%1 شعبه):</string>
 </resources>

@@ -143,6 +143,12 @@ class BeNobatApiClient(
     /** POST /business-request — submits a business request for Platform Admin approval. */
     suspend inline fun <reified T> submitBusinessRequest(body: JsonObject): Result<T> = post("/business-request", body)
 
+    /** GET /platform-pricing - gets platform pricing and bank payment info. */
+    suspend inline fun <reified T> getPlatformPricing(): Result<T> = get("/platform-pricing")
+
+    /** POST /business-request/receipt - uploads payment receipt. */
+    suspend inline fun <reified T> uploadBusinessRequestReceipt(body: JsonObject): Result<T> = post("/business-request/receipt", body)
+
     // ====================  PUBLIC DISCOVERY  ====================
 
     /** GET /categories — `{items: CategoryDto[]}`. */
@@ -655,6 +661,12 @@ class BeNobatApiClient(
     /** POST /platform/users/{id}/reset-password → `{userId, temporaryPassword}`. */
     suspend inline fun <reified T> platformResetUserPassword(id: String): Result<T> =
         postEmpty("/platform/users/$id/reset-password")
+
+    /** GET /platform/pricing. */
+    suspend inline fun <reified T> getPlatformPricingAdmin(): Result<T> = get("/platform/pricing")
+
+    /** POST /platform/pricing. */
+    suspend inline fun <reified T> updatePlatformPricingAdmin(body: JsonObject): Result<T> = post("/platform/pricing", body)
 
     /** GET /platform/business-requests. */
     suspend inline fun <reified T> platformListBusinessRequests(

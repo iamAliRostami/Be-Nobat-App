@@ -13,6 +13,9 @@
         <h1>درخواست‌های کسب‌وکار و ارتقا</h1>
         <p>بررسی و تعیین تکلیف درخواست‌های ارتقای کاربران به مدیر کسب‌وکار و ایجاد مجموعه جدید.</p>
     </div>
+    <div>
+        <button type="button" class="primary-button action-primary" @onclick="OpenPricingModal">⚙ تنظیمات تعرفه و حساب بانکی</button>
+    </div>
 </div>
 
 @if (Message is not null) { <div class="success-notice" role="status">@Message</div> }
@@ -68,8 +71,42 @@
                         <div><dt>تلفن کسب‌وکار</dt><dd dir="ltr">@req.ContactPhone</dd></div>
                         <div><dt>شعبه اول</dt><dd>@req.FirstBranchName</dd></div>
                         <div><dt>نشانی</dt><dd>@req.FirstBranchAddress</dd></div>
+                        <div><dt>تعداد کل شعب</dt><dd><b>@req.TotalBranchesCount شعبه</b></dd></div>
+                        <div><dt>مبلغ کل تعرفه</dt><dd><b style="color:#059669;">@LocalizedDate.FormatNumber(req.TotalFee, UiLocale.Language) تومان</b></dd></div>
                         <div><dt>تاریخ ثبت</dt><dd>@LocalizedDate.Format(DateOnly.FromDateTime(req.CreatedAt.DateTime), UiLocale.Language)</dd></div>
                     </dl>
+                    @if (req.GetAdditionalBranches().Count > 0)
+                    {
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.4rem 0.6rem; font-size:0.8rem; margin:0.4rem 0;">
+                            <span style="color:#64748b; font-weight:600;">سایر شعب (@req.GetAdditionalBranches().Count مورد):</span>
+                            <ul style="margin:0; padding-right:1rem; color:#334155; line-height:1.5;">
+                                @foreach (var br in req.GetAdditionalBranches())
+                                {
+                                    <li><b>@br.Name</b> @(!string.IsNullOrWhiteSpace(br.Address) ? $"- {br.Address}" : "")</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem; background:#f1f5f9; padding:0.4rem 0.6rem; border-radius:6px; font-size:0.85rem;">
+                        <div>
+                            @if (req.ReceiptImageData != null && req.ReceiptImageData.Length > 0)
+                            {
+                                <span class="status confirmed" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px;">✓ فیش واریز شد</span>
+                                @if (!string.IsNullOrWhiteSpace(req.ReceiptTrackingCode))
+                                {
+                                    <span style="font-size:0.8rem; color:#64748b; margin-right:0.4rem;">کد پیگیری: <b dir="ltr">@req.ReceiptTrackingCode</b></span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="status pending" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px;">⏳ فیش واریز نشده</span>
+                            }
+                        </div>
+                        @if (req.ReceiptImageData != null && req.ReceiptImageData.Length > 0)
+                        {
+                            <button type="button" class="action-secondary" style="font-size:0.75rem; padding:0.2rem 0.5rem;" @onclick="() => ViewReceipt(req)">مشاهده تصویر فیش</button>
+                        }
+                    </div>
                     @if (!string.IsNullOrWhiteSpace(req.Description))
                     {
                         <p style="font-size:0.85rem; color:#64748b; margin:0.5rem 0; line-height:1.5;">@req.Description</p>
@@ -92,6 +129,80 @@
         </div>
     }
 </article>
+
+@if (ViewingReceiptRequest is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseReceiptModal">
+        <div class="form-modal" style="max-width:600px;" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>تصویر فیش واریز</h2>
+                    <p class="modal-subtitle">کسب‌وکار: @ViewingReceiptRequest.BusinessName (متقاضی: @(ViewingReceiptRequest.User?.DisplayName ?? "کاربر"))</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن" title="بستن" @onclick="CloseReceiptModal">×</button>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <img src="@($"/media/receipt/{ViewingReceiptRequest.Id}?v={ViewingReceiptRequest.UpdatedAt.Ticks}")" alt="فیش واریز" style="max-width:100%; max-height:65vh; object-fit:contain; border-radius:8px; border:1px solid #cbd5e1;" />
+                <div style="margin-top:0.75rem; display:flex; justify-content:space-around; font-size:0.85rem; color:#475569; flex-wrap:wrap; gap:0.5rem;">
+                    <div>مبلغ کل: <b>@LocalizedDate.FormatNumber(ViewingReceiptRequest.TotalFee, UiLocale.Language) تومان</b></div>
+                    @if (!string.IsNullOrWhiteSpace(ViewingReceiptRequest.ReceiptTrackingCode))
+                    {
+                        <div>کد پیگیری: <b dir="ltr">@ViewingReceiptRequest.ReceiptTrackingCode</b></div>
+                    }
+                    @if (ViewingReceiptRequest.ReceiptUploadedAt.HasValue)
+                    {
+                        <div>تاریخ ارسال: @LocalizedDate.Format(DateOnly.FromDateTime(ViewingReceiptRequest.ReceiptUploadedAt.Value.DateTime), UiLocale.Language)</div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="CloseReceiptModal">بستن</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (IsPricingModalOpen)
+{
+    <div class="modal-backdrop" @onclick="ClosePricingModal">
+        <div class="form-modal" style="max-width:550px;" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>تنظیمات تعرفه و حساب بانکی</h2>
+                    <p class="modal-subtitle">تعیین قیمت پایه ثبت کسب‌وکار و حساب بانکی جهت واریز متقاضیان</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن" title="بستن" @onclick="ClosePricingModal">×</button>
+            </div>
+            <div class="modal-body">
+                @if (PricingModalError is not null) { <div class="auth-error" style="margin-bottom:0.5rem;">@PricingModalError</div> }
+                <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                    <label>هزینه ثبت کسب‌وکار و شعبه اول (تومان)
+                        <input type="number" min="0" step="10000" @bind="PricingForm.BaseBusinessPrice" />
+                    </label>
+                    <label>هزینه به ازای هر شعبه اضافی (تومان)
+                        <input type="number" min="0" step="10000" @bind="PricingForm.ExtraBranchPrice" />
+                    </label>
+                    <label>شماره کارت بانکی
+                        <input type="text" dir="ltr" maxlength="30" placeholder="مثلاً ۶۰۳۷-۹۹۱۸-..." @bind="PricingForm.CardNumber" />
+                    </label>
+                    <label>شماره شبا (IBAN)
+                        <input type="text" dir="ltr" maxlength="40" placeholder="IR..." @bind="PricingForm.Iban" />
+                    </label>
+                    <label>نام صاحب حساب
+                        <input type="text" maxlength="100" placeholder="نام صاحب حساب یا شرکت" @bind="PricingForm.AccountHolder" />
+                    </label>
+                    <label>توضیحات و راهنمای پرداخت
+                        <textarea rows="2" maxlength="300" @bind="PricingForm.PaymentInstructions"></textarea>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="ClosePricingModal">انصراف</button>
+                <button type="button" class="primary-button action-primary" disabled="@IsSavingPricing" @onclick="SavePricing">ذخیره تنظیمات</button>
+            </div>
+        </div>
+    </div>
+}
 
 @if (RejectingRequest is not null)
 {
@@ -128,6 +239,84 @@
 
     private BusinessRequest? RejectingRequest;
     private string RejectNote = "";
+
+    private BusinessRequest? ViewingReceiptRequest;
+    private bool IsPricingModalOpen;
+    private bool IsSavingPricing;
+    private string? PricingModalError;
+    private PlatformPricingSettings PricingForm = new();
+
+    private void ViewReceipt(BusinessRequest req)
+    {
+        ViewingReceiptRequest = req;
+    }
+
+    private void CloseReceiptModal()
+    {
+        ViewingReceiptRequest = null;
+    }
+
+    private async Task OpenPricingModal()
+    {
+        PricingModalError = null;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var current = await db.GetPlatformPricingAsync();
+        PricingForm = new PlatformPricingSettings
+        {
+            Id = current.Id,
+            BaseBusinessPrice = current.BaseBusinessPrice,
+            ExtraBranchPrice = current.ExtraBranchPrice,
+            CardNumber = current.CardNumber,
+            Iban = current.Iban,
+            AccountHolder = current.AccountHolder,
+            PaymentInstructions = current.PaymentInstructions
+        };
+        IsPricingModalOpen = true;
+    }
+
+    private void ClosePricingModal()
+    {
+        IsPricingModalOpen = false;
+        PricingModalError = null;
+    }
+
+    private async Task SavePricing()
+    {
+        if (IsSavingPricing) return;
+        PricingModalError = null;
+        if (PricingForm.BaseBusinessPrice < 0 || PricingForm.ExtraBranchPrice < 0)
+        {
+            PricingModalError = "مبالغ نمی‌توانند منفی باشند.";
+            return;
+        }
+
+        IsSavingPricing = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var current = await db.GetPlatformPricingAsync();
+            current.BaseBusinessPrice = PricingForm.BaseBusinessPrice;
+            current.ExtraBranchPrice = PricingForm.ExtraBranchPrice;
+            current.CardNumber = PricingForm.CardNumber?.Trim() ?? "";
+            current.Iban = PricingForm.Iban?.Trim() ?? "";
+            current.AccountHolder = PricingForm.AccountHolder?.Trim() ?? "";
+            current.PaymentInstructions = PricingForm.PaymentInstructions?.Trim() ?? "";
+            current.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+
+            IsPricingModalOpen = false;
+            Message = "تنظیمات تعرفه و حساب بانکی با موفقیت ذخیره شد.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving platform pricing");
+            PricingModalError = "خطا در ذخیره تنظیمات تعرفه.";
+        }
+        finally
+        {
+            IsSavingPricing = false;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,6 +442,35 @@
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             });
+
+            var extraBranches = request.GetAdditionalBranches();
+            foreach (var extra in extraBranches)
+            {
+                if (string.IsNullOrWhiteSpace(extra.Name)) continue;
+                var extraBranch = new Branch
+                {
+                    Business = business,
+                    Name = extra.Name.Trim(),
+                    Address = extra.Address?.Trim() ?? "",
+                    TimeZoneId = "Asia/Tehran",
+                    OpenHour = 9,
+                    CloseHour = 18,
+                    IsApproved = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                WeeklySchedule.Replace(extraBranch, WeeklySchedule.Default());
+                db.Branches.Add(extraBranch);
+
+                db.BranchMemberships.Add(new BranchMembership
+                {
+                    Branch = extraBranch,
+                    UserId = request.UserId,
+                    Role = AppRoles.Owner,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                });
+            }
 
             request.Status = BusinessRequestStatus.Approved;
             request.ApprovedBusinessId = business.Id;

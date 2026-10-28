@@ -14,6 +14,8 @@ import com.leon.be_nobat.domain.model.ManagementReview
 import com.leon.be_nobat.domain.model.ManagementService
 import com.leon.be_nobat.domain.model.ManagementUser
 import com.leon.be_nobat.domain.model.BusinessRequest
+import com.leon.be_nobat.domain.model.PlatformPricing
+import com.leon.be_nobat.domain.model.RequestedBranch
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -37,6 +39,7 @@ data class DemoDatabaseState(
     val favorites: List<String> = emptyList(),
     val resourceServices: Map<String, List<String>> = emptyMap(),
     val businessRequests: List<BusinessRequest> = emptyList(),
+    val platformPricing: PlatformPricing = PlatformPricing(),
 )
 
 object DemoSeedData {

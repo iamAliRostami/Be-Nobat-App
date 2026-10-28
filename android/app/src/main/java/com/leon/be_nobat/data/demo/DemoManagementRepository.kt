@@ -852,10 +852,29 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
             val brName = input.branchId?.let { bid -> s.branches.firstOrNull { it.id == bid }?.name }
             val resName = input.resourceId?.let { rid -> s.resources.firstOrNull { it.id == rid }?.name }
+            val dayName = input.effectiveDate.takeIf { it.isNotBlank() }?.let { eff ->
+                val parts = eff.split("-").mapNotNull { it.toIntOrNull() }
+                if (parts.size == 3) {
+                    val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Tehran")).apply {
+                        set(parts[0], parts[1] - 1, parts[2])
+                    }
+                    when (cal.get(java.util.Calendar.DAY_OF_WEEK)) {
+                        java.util.Calendar.SATURDAY -> "Saturday"
+                        java.util.Calendar.SUNDAY -> "Sunday"
+                        java.util.Calendar.MONDAY -> "Monday"
+                        java.util.Calendar.TUESDAY -> "Tuesday"
+                        java.util.Calendar.WEDNESDAY -> "Wednesday"
+                        java.util.Calendar.THURSDAY -> "Thursday"
+                        java.util.Calendar.FRIDAY -> "Friday"
+                        else -> "Monday"
+                    }
+                } else "Monday"
+            } ?: "Monday"
             val value = ManagementAvailability(
                 id = id,
                 businessId = resolvedBusinessId,
                 effectiveDate = input.effectiveDate,
+                dayOfWeek = dayName,
                 startsAt = input.startsAt,
                 endsAt = input.endsAt,
                 branchId = input.branchId,
@@ -880,9 +899,28 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
             val brName = input.branchId?.let { bid -> s.branches.firstOrNull { it.id == bid }?.name }
             val resName = input.resourceId?.let { rid -> s.resources.firstOrNull { it.id == rid }?.name }
+            val dayName = input.effectiveDate.takeIf { it.isNotBlank() }?.let { eff ->
+                val parts = eff.split("-").mapNotNull { it.toIntOrNull() }
+                if (parts.size == 3) {
+                    val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Tehran")).apply {
+                        set(parts[0], parts[1] - 1, parts[2])
+                    }
+                    when (cal.get(java.util.Calendar.DAY_OF_WEEK)) {
+                        java.util.Calendar.SATURDAY -> "Saturday"
+                        java.util.Calendar.SUNDAY -> "Sunday"
+                        java.util.Calendar.MONDAY -> "Monday"
+                        java.util.Calendar.TUESDAY -> "Tuesday"
+                        java.util.Calendar.WEDNESDAY -> "Wednesday"
+                        java.util.Calendar.THURSDAY -> "Thursday"
+                        java.util.Calendar.FRIDAY -> "Friday"
+                        else -> "Monday"
+                    }
+                } else old.dayOfWeek
+            } ?: old.dayOfWeek
             val value = old.copy(
                 businessId = resolvedBusinessId,
                 effectiveDate = input.effectiveDate,
+                dayOfWeek = dayName,
                 startsAt = input.startsAt,
                 endsAt = input.endsAt,
                 branchId = input.branchId,

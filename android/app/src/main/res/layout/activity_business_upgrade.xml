@@ -59,11 +59,690 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingStart="20dp"
-            android:paddingTop="10dp"
+            android:paddingTop="8dp"
             android:paddingEnd="20dp"
             android:paddingBottom="32dp">
 
-            <!-- Intro Info Card -->
+            <!-- 1. Manager Active State (Approved or already staff/owner) -->
+            <LinearLayout
+                android:id="@+id/layoutManagerActive"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardManagerActive"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/status_completed_bg"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/status_completed_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_check"
+                                app:tint="@color/status_completed_text" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/business_request_status_approved"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textColor="@color/status_completed_text"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_status"
+                                android:paddingStart="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2dp"
+                                android:text="@string/business_request_active_manager_header"
+                                android:textColor="@color/status_completed_text"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="@string/business_request_active_manager_desc"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textColor="@color/status_completed_text"
+                            android:textSize="13sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGoToAdmin"
+                            style="@style/Widget.BeNobat.Button"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="16dp"
+                            android:text="@string/business_request_go_to_admin" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- 2. Pending Request State (Matching Web MyAccount) -->
+            <LinearLayout
+                android:id="@+id/layoutPendingStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <!-- Yellow/Amber Notice Banner -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPendingBanner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/status_pending_bg"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/status_pending_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_calendar"
+                                app:tint="@color/status_pending_text" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/business_request_pending_header"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textColor="@color/status_pending_text"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_status"
+                                android:paddingStart="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2dp"
+                                android:text="@string/platform_tab_pending"
+                                android:textColor="@color/status_pending_text"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvPendingDescMsg"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textColor="@color/status_pending_text"
+                            android:textSize="12.5sp"
+                            tools:text="اطلاعات کسب‌وکار «سالن زیبایی پروانه» ثبت شده و پس از بررسی و تأیید مدیر کل، حساب شما به «مدیر کسب‌وکار» ارتقا خواهد یافت." />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Submitted Details Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPendingDetails"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            android:text="@string/business_request_section_submitted_details"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13.5sp" />
+
+                        <!-- Detail Row: Business Name -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_business_name"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingBizName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textSize="13sp"
+                                tools:text="سالن زیبایی پروانه" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Category -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_category"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingCategory"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="زیبایی و آرایش" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: City -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_city"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingCity"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="تهران" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Contact Phone -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_phone"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingPhone"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textDirection="ltr"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="09121234567" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: First Branch Name -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_first_branch"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingBranch"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="شعبه مرکزی" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Address -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_address"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingAddress"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="خیابان ولیعصر، پلاک ۱۰" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Description (Optional) -->
+                        <LinearLayout
+                            android:id="@+id/rowPendingDesc"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_desc"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingDesc"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="ارائه انواع خدمات زیبایی بانوان" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Total Branches -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_total_branches"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingTotalBranches"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textStyle="bold"
+                                android:textSize="12.5sp"
+                                tools:text="۲ شعبه" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Total Fee -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_field_total_fee"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingTotalFee"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textColor="@color/colorSuccess"
+                                android:textStyle="bold"
+                                android:textSize="13sp"
+                                tools:text="۷۰۰,۰۰۰ تومان" />
+                        </LinearLayout>
+
+                        <!-- Extra Branches List container -->
+                        <LinearLayout
+                            android:id="@+id/layoutPendingExtraBranches"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_badge_status"
+                            android:orientation="vertical"
+                            android:padding="10dp"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/tvPendingExtraBranchesTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textStyle="bold"
+                                android:textSize="12sp"
+                                tools:text="سایر شعب درخواستی (۱ شعبه):" />
+
+                            <TextView
+                                android:id="@+id/tvPendingExtraBranchesList"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:lineSpacingExtra="3dp"
+                                android:textSize="12sp"
+                                tools:text="• شعبه تجریش - میدان تجریش، پاساژ تندیس" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Bank Info Card in Pending State -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPendingBankInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="اطلاعات حساب بانکی جهت واریز"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp" />
+
+                        <TextView
+                            android:id="@+id/tvPendingCardNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                            android:textSize="12.5sp"
+                            tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
+
+                        <TextView
+                            android:id="@+id/tvPendingIban"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                            android:textSize="12sp"
+                            tools:text="شماره شبا: IR120170000000123456789012 (به نام سامانه نوبت‌دهی به‌نوبت)" />
+
+                        <TextView
+                            android:id="@+id/tvPendingInstructions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textColor="@color/colorWarning"
+                            android:textSize="11.5sp"
+                            tools:text="لطفاً پس از واریز مبلغ کل به شماره کارت یا شبای فوق، تصویر فیش واریز را بارگذاری نمایید." />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Receipt Upload & Status Card in Pending State -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPendingReceipt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/business_request_receipt_section"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textSize="13.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingReceiptBadge"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_status"
+                                android:paddingStart="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="11sp"
+                                tools:text="✓ فیش ارسال شد" />
+                        </LinearLayout>
+
+                        <!-- Preview Image if available -->
+                        <ImageView
+                            android:id="@+id/ivPendingReceiptPreview"
+                            android:layout_width="match_parent"
+                            android:layout_height="160dp"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_badge_status"
+                            android:contentDescription="پیش‌نمایش فیش واریز"
+                            android:scaleType="fitCenter"
+                            android:visibility="gone"
+                            tools:visibility="visible" />
+
+                        <!-- Tracking Code Input -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilPendingTrackingCode"
+                            style="@style/Widget.BeNobat.TextInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:hint="@string/business_request_receipt_tracking_hint">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etPendingTrackingCode"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:maxLength="50" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnUploadReceipt"
+                            style="@style/Widget.BeNobat.Button"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="10dp"
+                            android:text="@string/business_request_receipt_upload_btn" />
+
+                        <ProgressBar
+                            android:id="@+id/pbReceiptLoading"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:layout_marginTop="8dp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Helpful note -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center"
+                    android:text="@string/business_request_pending_notice"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <!-- 3. Rejected Request State (Matching Web MyAccount) -->
+            <LinearLayout
+                android:id="@+id/layoutRejectedStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <!-- Red Notice Banner -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardRejectedBanner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/status_cancelled_bg"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/status_cancelled_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_close"
+                                app:tint="@color/status_cancelled_text" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/business_request_rejected_header"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textColor="@color/status_cancelled_text"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_status"
+                                android:paddingStart="8dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="8dp"
+                                android:paddingBottom="2dp"
+                                android:text="@string/platform_tab_rejected"
+                                android:textColor="@color/status_cancelled_text"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvRejectedReason"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textColor="@color/status_cancelled_text"
+                            android:textSize="12.5sp"
+                            tools:text="توضیح مدیریت: نشانی دقیق‌تر و شماره تماس ثابت الزامی است." />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Action to open form and resubmit -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStartResubmit"
+                    style="@style/Widget.BeNobat.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/business_request_resubmit_btn" />
+            </LinearLayout>
+
+            <!-- 4. Intro Info Card (Visible when creating or editing form) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardIntroInfo"
                 android:layout_width="match_parent"
@@ -104,7 +783,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/business_upgrade_card_title"
+                            android:text="@string/business_request_intro_title"
                             android:textAppearance="@style/TextAppearance.BeNobat.Title"
                             android:textSize="14sp" />
 
@@ -112,193 +791,291 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="@string/business_upgrade_card_desc"
+                            android:text="@string/business_request_intro_desc"
                             android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Status Banner (when pending or rejected) -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardExistingStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:visibility="gone"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/colorOutline"
-                app:strokeWidth="1dp"
-                tools:visibility="visible">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:id="@+id/tvStatusTitle"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
-                            android:textSize="13sp" />
-
-                        <TextView
-                            android:id="@+id/tvStatusBadge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_badge_status"
-                            android:paddingStart="8dp"
-                            android:paddingTop="2dp"
-                            android:paddingEnd="8dp"
-                            android:paddingBottom="2dp"
-                            android:textSize="11sp" />
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tvStatusDesc"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Form -->
+            <!-- 5. Form Fields Container -->
             <LinearLayout
                 android:id="@+id/formFieldsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqBusinessName"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/business_request_name">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqBusinessName"
+                <!-- Section 1 Header: Business Details -->
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/business_request_section_business"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                    android:textSize="14sp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:text="@string/business_request_category"
-                android:textAppearance="@style/TextAppearance.BeNobat.Caption" />
-
-            <Spinner
-                android:id="@+id/spReqCategory"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/bg_day_tab_unselected"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqCity"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/business_request_city">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqCity"
+                <!-- Business Name -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqBusinessName"
+                    style="@style/Widget.BeNobat.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:text="تهران" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:hint="@string/business_request_name"
+                    app:placeholderText="@string/business_request_name_hint">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqContactPhone"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/business_request_phone"
-                app:startIconDrawable="@drawable/ic_mobile">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqBusinessName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLength="100" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqContactPhone"
+                <!-- Category Dropdown (Material 3 Exposed Dropdown Menu) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqCategory"
+                    style="@style/Widget.BeNobat.TextInputLayout.Dropdown"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="phone" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/business_request_category">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqFirstBranchName"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/business_request_first_branch">
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/actvReqCategory"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqFirstBranchName"
+                <!-- City -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqCity"
+                    style="@style/Widget.BeNobat.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:text="شعبه مرکزی" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/business_request_city"
+                    app:placeholderText="@string/business_request_city_hint">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqFirstBranchAddress"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/business_request_address">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqCity"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLength="50" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqFirstBranchAddress"
+                <!-- Contact Phone -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqContactPhone"
+                    style="@style/Widget.BeNobat.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPostalAddress" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/business_request_phone"
+                    app:placeholderText="@string/business_request_phone_hint"
+                    app:startIconDrawable="@drawable/ic_mobile">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilReqDescription"
-                style="@style/Widget.BeNobat.TextInputLayout"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:hint="@string/business_request_description">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqContactPhone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="end|center_vertical"
+                        android:inputType="phone"
+                        android:maxLength="15"
+                        android:textDirection="ltr" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etReqDescription"
+                <!-- Description -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqDescription"
+                    style="@style/Widget.BeNobat.TextInputLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="top"
-                    android:inputType="textMultiLine"
-                    android:minLines="3" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/business_request_description"
+                    app:placeholderText="@string/business_request_desc_hint">
 
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="top"
+                        android:inputType="textMultiLine"
+                        android:maxLength="1000"
+                        android:minLines="3" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Section 2 Header: First Branch Details -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/business_request_section_branch"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                    android:textSize="14sp" />
+
+                <!-- First Branch Name -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqFirstBranchName"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/business_request_first_branch"
+                    app:placeholderText="@string/business_request_first_branch_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqFirstBranchName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:maxLength="100" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- First Branch Address -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilReqFirstBranchAddress"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/business_request_address"
+                    app:placeholderText="@string/business_request_address_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etReqFirstBranchAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textPostalAddress"
+                        android:maxLength="250" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Section: Additional Branches -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/business_request_section_extra_branches"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                        android:textSize="13.5sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnAddExtraBranch"
+                        style="@style/Widget.BeNobat.Button.Outlined"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/business_request_add_branch_btn"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Container where extra branches will be added dynamically -->
+                <LinearLayout
+                    android:id="@+id/layoutExtraBranchesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="vertical" />
+
+                <!-- Live Pricing & Bank Information Card in Form -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardLivePricing"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <TextView
+                            android:id="@+id/tvLiveBasePrice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            tools:text="هزینه ثبت کسب‌وکار (شعبه اول): ۵۰۰,۰۰۰ تومان" />
+
+                        <TextView
+                            android:id="@+id/tvLiveExtraCost"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            android:visibility="gone"
+                            tools:text="هزینه ۱ شعبه اضافی: ۲۰۰,۰۰۰ تومان"
+                            tools:visibility="visible" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="4dp"
+                            android:layout_marginBottom="6dp"
+                            android:background="@color/colorOutline" />
+
+                        <TextView
+                            android:id="@+id/tvLiveTotalFee"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textColor="@color/colorSuccess"
+                            android:textSize="14sp"
+                            tools:text="مبلغ کل قابل پرداخت: ۷۰۰,۰۰۰ تومان" />
+
+                        <TextView
+                            android:id="@+id/tvLiveBankInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="11.5sp"
+                            tools:text="شماره کارت جهت واریز: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸\nپس از ثبت درخواست، تصویر فیش واریز را بارگذاری نمایید." />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Form Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSubmitReq"
+                        style="@style/Widget.BeNobat.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:text="@string/business_request_submit_to_admin_btn" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCancelResubmit"
+                        style="@style/Widget.BeNobat.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/business_request_cancel_resubmit"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSubmitReq"
-                style="@style/Widget.BeNobat.Button"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="24dp"
-                android:text="@string/business_request_submit_btn" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

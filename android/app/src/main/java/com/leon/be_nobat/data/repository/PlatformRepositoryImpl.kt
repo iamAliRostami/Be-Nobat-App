@@ -93,6 +93,12 @@ class PlatformRepositoryImpl(
     override suspend fun resetUserPassword(id: String): Result<PlatformResetPasswordResponse> =
         api.platformResetUserPassword(id)
 
+    override suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing> =
+        api.getPlatformPricingAdmin()
+
+    override suspend fun updatePlatformPricing(input: com.leon.be_nobat.domain.model.PlatformPricingInput): Result<com.leon.be_nobat.domain.model.PlatformPricing> =
+        api.updatePlatformPricingAdmin(encode(input))
+
     override suspend fun listBusinessRequests(
         status: String?, q: String?, page: Int, pageSize: Int,
     ): Result<ApiPage<com.leon.be_nobat.domain.model.BusinessRequest>> =

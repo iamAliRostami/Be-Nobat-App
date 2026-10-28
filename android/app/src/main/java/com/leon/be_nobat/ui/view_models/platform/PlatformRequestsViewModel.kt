@@ -7,6 +7,10 @@ import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.domain.usecase.PlatformApproveBusinessRequestUseCase
 import com.leon.be_nobat.domain.usecase.PlatformListBusinessRequestsUseCase
 import com.leon.be_nobat.domain.usecase.PlatformRejectBusinessRequestUseCase
+import com.leon.be_nobat.domain.model.PlatformPricing
+import com.leon.be_nobat.domain.model.PlatformPricingInput
+import com.leon.be_nobat.domain.usecase.PlatformGetPricingUseCase
+import com.leon.be_nobat.domain.usecase.PlatformUpdatePricingUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +24,8 @@ data class PlatformRequestsUiState(
     val searchQuery: String = "",
     val error: String? = null,
     val message: String? = null,
+    val pricing: PlatformPricing = PlatformPricing(),
+    val savingPricing: Boolean = false,
 ) {
     val filteredItems: List<BusinessRequest>
         get() {
@@ -58,6 +64,7 @@ class PlatformRequestsViewModel(
     fun load() = viewModelScope.launch {
         val s = _state.value
         _state.value = s.copy(loading = true, error = null)
+        loadPricing()
         listUseCase(status = s.selectedTab.ifBlank { null }, q = s.searchQuery.ifBlank { null })
             .onSuccess { page: ApiPage<BusinessRequest> ->
                 _state.value = _state.value.copy(

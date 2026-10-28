@@ -324,6 +324,28 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         }
     }
 
+    override suspend fun getPlatformPricing(): Result<PlatformPricing> = runCatching {
+        simulateNetworkDelay()
+        dataStore.read { it.platformPricing }
+    }
+
+    override suspend fun updatePlatformPricing(input: PlatformPricingInput): Result<PlatformPricing> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        require(input.baseBusinessPrice >= 0 && input.extraBranchPrice >= 0) { "مبالغ تعرفه نمی‌توانند منفی باشند." }
+        dataStore.update { s ->
+            val updated = s.platformPricing.copy(
+                baseBusinessPrice = input.baseBusinessPrice,
+                extraBranchPrice = input.extraBranchPrice,
+                cardNumber = input.cardNumber.trim(),
+                iban = input.iban.trim(),
+                accountHolder = input.accountHolder.trim(),
+                paymentInstructions = input.paymentInstructions.trim(),
+            )
+            s.copy(platformPricing = updated) to updated
+        }
+    }
+
     override suspend fun listBusinessRequests(
         status: String?,
         q: String?,

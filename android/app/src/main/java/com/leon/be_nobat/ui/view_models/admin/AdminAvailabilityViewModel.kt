@@ -279,10 +279,10 @@ class AdminAvailabilityViewModel(
             result = result.filter { it.businessId == businessId }
         }
         if (!branchId.isNullOrBlank()) {
-            result = result.filter { it.branchId == branchId }
+            result = result.filter { it.branchId == null || it.branchId == branchId }
         }
         if (!resourceId.isNullOrBlank()) {
-            result = result.filter { it.resourceId == resourceId }
+            result = result.filter { it.resourceId == null || it.resourceId == resourceId }
         }
 
         if (query.isNotBlank()) {

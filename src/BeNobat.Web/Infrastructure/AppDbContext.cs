@@ -25,6 +25,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<CategoryDefinition> CategoryDefinitions => Set<CategoryDefinition>();
     public DbSet<FavoriteBusiness> FavoriteBusinesses => Set<FavoriteBusiness>();
     public DbSet<BusinessRequest> BusinessRequests => Set<BusinessRequest>();
+    public DbSet<PlatformPricingSettings> PlatformPricingSettings => Set<PlatformPricingSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -138,6 +139,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             .HasForeignKey(x => x.ApprovedBusinessId).OnDelete(DeleteBehavior.SetNull);
         builder.Entity<BusinessRequest>().HasIndex(x => new { x.UserId, x.Status });
         builder.Entity<BusinessRequest>().HasIndex(x => new { x.Status, x.CreatedAt });
+        builder.Entity<BusinessRequest>().Property(x => x.BasePrice).HasPrecision(18, 2);
+        builder.Entity<BusinessRequest>().Property(x => x.ExtraBranchPrice).HasPrecision(18, 2);
+        builder.Entity<BusinessRequest>().Property(x => x.TotalFee).HasPrecision(18, 2);
+        builder.Entity<PlatformPricingSettings>().Property(x => x.BaseBusinessPrice).HasPrecision(18, 2);
+        builder.Entity<PlatformPricingSettings>().Property(x => x.ExtraBranchPrice).HasPrecision(18, 2);
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))
@@ -178,5 +184,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             && (x.ResourceId == null || (x.Resource != null && x.Resource.DeletedAt == null
                 && x.Resource.Branch.DeletedAt == null && x.Resource.Branch.BusinessId == x.BusinessId
                 && (x.BranchId == null || x.Resource.BranchId == x.BranchId))));
+    }
+
+    public async Task<PlatformPricingSettings> GetPlatformPricingAsync(CancellationToken ct = default)
+    {
+        var settings = await PlatformPricingSettings.FirstOrDefaultAsync(ct);
+        if (settings is null)
+        {
+            settings = new PlatformPricingSettings();
+            PlatformPricingSettings.Add(settings);
+            await SaveChangesAsync(ct);
+        }
+        return settings;
     }
 }

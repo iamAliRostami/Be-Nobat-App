@@ -72,6 +72,10 @@ interface PlatformRepository {
     suspend fun setUserActive(id: String, active: Boolean): Result<ManagementUser>
     suspend fun resetUserPassword(id: String): Result<PlatformResetPasswordResponse>
 
+    // platform pricing
+    suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing>
+    suspend fun updatePlatformPricing(input: com.leon.be_nobat.domain.model.PlatformPricingInput): Result<com.leon.be_nobat.domain.model.PlatformPricing>
+
     // business requests
     suspend fun listBusinessRequests(
         status: String? = null,

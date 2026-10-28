@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.domain.model.BusinessRequestInput
+import com.leon.be_nobat.domain.model.PlatformPricing
+import com.leon.be_nobat.domain.model.ReceiptUploadInput
+import com.leon.be_nobat.domain.usecase.GetPlatformPricingUseCase
+import com.leon.be_nobat.domain.usecase.UploadReceiptUseCase
 import com.leon.be_nobat.domain.usecase.GetCategoriesUseCase
 import com.leon.be_nobat.domain.usecase.GetMyBusinessRequestUseCase
 import com.leon.be_nobat.domain.usecase.SubmitBusinessRequestUseCase
@@ -30,6 +34,8 @@ data class ProfileUiState(
     val businessRequest: BusinessRequest? = null,
     val loadingBusinessRequest: Boolean = false,
     val submittingBusinessRequest: Boolean = false,
+    val uploadingReceipt: Boolean = false,
+    val pricing: PlatformPricing = PlatformPricing(),
     val categories: List<String> = emptyList(),
     val loadingCategories: Boolean = false,
     val savingProfile: Boolean = false,
@@ -51,6 +57,8 @@ class ProfileViewModel(
     private val getMyBusinessRequestUseCase: GetMyBusinessRequestUseCase,
     private val submitBusinessRequestUseCase: SubmitBusinessRequestUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
+    private val getPlatformPricingUseCase: GetPlatformPricingUseCase,
+    private val uploadReceiptUseCase: UploadReceiptUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileUiState(loading = true))
@@ -73,6 +81,7 @@ class ProfileViewModel(
             .onFailure { e -> _state.value = _state.value.copy(loading = false, error = e.message) }
 
         loadBusinessRequest()
+        loadPricing()
         loadCategories()
     }
 

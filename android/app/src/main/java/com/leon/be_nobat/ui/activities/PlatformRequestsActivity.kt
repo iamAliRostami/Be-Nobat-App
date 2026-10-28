@@ -18,7 +18,16 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputLayout
+import java.text.NumberFormat
+import java.util.Locale
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.helpers.AdminFormDialog
@@ -160,6 +169,7 @@ class PlatformRequestsActivity : BaseActivity() {
 
         state.message?.let { msg ->
             val resId = when (msg) {
+                "pricing_updated" -> R.string.platform_pricing_save_success
                 "approved" -> R.string.platform_request_approved_success
                 "rejected" -> R.string.platform_request_rejected_success
                 else -> null

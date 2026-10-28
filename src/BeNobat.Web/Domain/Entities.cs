@@ -269,6 +269,22 @@ public enum ReviewStatus { Pending, Published, Rejected }
 
 public enum BusinessRequestStatus { Pending, Approved, Rejected }
 
+public sealed class RequestedBranchItem
+{
+    public string Name { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+}
+
+public sealed class PlatformPricingSettings : Entity
+{
+    public decimal BaseBusinessPrice { get; set; } = 500_000;
+    public decimal ExtraBranchPrice { get; set; } = 200_000;
+    public string CardNumber { get; set; } = "6037-9918-1234-5678";
+    public string Iban { get; set; } = "IR120170000000123456789012";
+    public string AccountHolder { get; set; } = "سامانه نوبت‌دهی به‌نوبت";
+    public string PaymentInstructions { get; set; } = "لطفاً پس از واریز مبلغ کل به شماره کارت یا شبای فوق، تصویر فیش واریز را در این بخش بارگذاری نمایید.";
+}
+
 /// <summary>
 /// درخواست ارتقا و ثبت کسب‌وکار توسط کاربر؛ پس از تأیید مدیر کل،
 /// کسب‌وکار و شعبه ایجاد شده و کاربر به عنوان مالک (Owner) منتسب می‌شود.
@@ -283,10 +299,35 @@ public sealed class BusinessRequest : Entity
     public string ContactPhone { get; set; } = string.Empty;
     public string FirstBranchName { get; set; } = "شعبه مرکزی";
     public string FirstBranchAddress { get; set; } = string.Empty;
+
+    public string? AdditionalBranchesJson { get; set; }
+    public decimal BasePrice { get; set; } = 500_000;
+    public decimal ExtraBranchPrice { get; set; } = 200_000;
+    public int TotalBranchesCount { get; set; } = 1;
+    public decimal TotalFee { get; set; } = 500_000;
+
+    public string? ReceiptImageContentType { get; set; }
+    public byte[]? ReceiptImageData { get; set; }
+    public string? ReceiptTrackingCode { get; set; }
+    public DateTimeOffset? ReceiptUploadedAt { get; set; }
+
     public BusinessRequestStatus Status { get; set; } = BusinessRequestStatus.Pending;
     public string? ReviewNote { get; set; }
     public Guid? ApprovedBusinessId { get; set; }
 
     public AppUser User { get; set; } = null!;
     public Business? ApprovedBusiness { get; set; }
+
+    public List<RequestedBranchItem> GetAdditionalBranches()
+    {
+        if (string.IsNullOrWhiteSpace(AdditionalBranchesJson)) return [];
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<RequestedBranchItem>>(AdditionalBranchesJson) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
 }
