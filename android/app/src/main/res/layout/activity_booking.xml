@@ -715,6 +715,143 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Deposit Payment Card (Shown if Business/Branch requires deposit) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardDepositPayment"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1.5dp"
+                    app:strokeColor="#F6C88F"
+                    app:cardBackgroundColor="#FEF8F0"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="💳"
+                                android:textSize="22sp" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvDepositTitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="پرداخت بیعانه جهت نهایی‌سازی رزرو"
+                                    android:textStyle="bold"
+                                    android:textColor="#8C4A00"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/tvDepositAmount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:textColor="?attr/colorOnSurface"
+                                    android:textSize="12sp"
+                                    tools:text="مبلغ بیعانه: ۵۰,۰۰۰ تومان (۲۰٪)" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <!-- Bank account details -->
+                        <LinearLayout
+                            android:id="@+id/layoutBankInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:background="@drawable/bg_bank_info"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+
+                            <TextView
+                                android:id="@+id/tvDepositCardNumber"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textSize="12sp"
+                                android:textDirection="ltr"
+                                tools:text="شماره کارت: ۶۰۳۷-۹۹۷۵-۱۲۳۴-۵۶۷۸" />
+
+                            <TextView
+                                android:id="@+id/tvDepositIban"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="3dp"
+                                android:textSize="11sp"
+                                android:textDirection="ltr"
+                                tools:text="شماره شبا: IR120170000000123456789012" />
+
+                            <TextView
+                                android:id="@+id/tvDepositAccountHolder"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="3dp"
+                                android:textSize="12sp"
+                                tools:text="به نام: علی رستمی" />
+                        </LinearLayout>
+
+                        <!-- Deposit Tracking Code input -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilDepositTrackingCode"
+                            style="@style/Widget.BeNobat.TextInputLayout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:hint="کد یا شناسه پیگیری واریز">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etDepositTrackingCode"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Upload receipt button -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnUploadDepositReceipt"
+                            style="@style/Widget.BeNobat.Button.Outlined"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:layout_marginTop="8dp"
+                            android:text="الصاق عکس فیش واریز"
+                            app:icon="@drawable/ic_document"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvDepositReceiptSelected"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textColor="#2E7D32"
+                            android:textSize="11sp"
+                            android:visibility="gone"
+                            tools:text="✓ تصویر فیش انتخاب شد"
+                            tools:visibility="visible" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Phone Input -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilPhone"

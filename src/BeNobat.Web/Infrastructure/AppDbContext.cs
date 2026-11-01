@@ -26,6 +26,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<FavoriteBusiness> FavoriteBusinesses => Set<FavoriteBusiness>();
     public DbSet<BusinessRequest> BusinessRequests => Set<BusinessRequest>();
     public DbSet<PlatformPricingSettings> PlatformPricingSettings => Set<PlatformPricingSettings>();
+    public DbSet<BusinessGalleryItem> BusinessGalleryItems => Set<BusinessGalleryItem>();
+    public DbSet<BranchGalleryItem> BranchGalleryItems => Set<BranchGalleryItem>();
+    public DbSet<ResourceGalleryItem> ResourceGalleryItems => Set<ResourceGalleryItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -70,6 +73,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<ServiceResource>().HasOne(x => x.Service).WithMany(x => x.ServiceResources).HasForeignKey(x => x.ServiceId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<ServiceResource>().HasOne(x => x.Resource).WithMany(x => x.ServiceResources).HasForeignKey(x => x.ResourceId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Appointment>().Property(x => x.FinalPrice).HasPrecision(18, 2);
+        builder.Entity<Appointment>().Property(x => x.DepositAmount).HasPrecision(18, 2);
+        builder.Entity<BusinessGalleryItem>().HasOne(x => x.Business).WithMany(x => x.GalleryItems).HasForeignKey(x => x.BusinessId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<BranchGalleryItem>().HasOne(x => x.Branch).WithMany(x => x.GalleryItems).HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<ResourceGalleryItem>().HasOne(x => x.Resource).WithMany(x => x.GalleryItems).HasForeignKey(x => x.ResourceId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<Appointment>().Property(x => x.Status).HasConversion<string>();
         builder.Entity<Appointment>().HasOne(x => x.Branch).WithMany()
             .HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
@@ -179,6 +186,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             && x.Resource.DeletedAt == null && x.Resource.Branch.DeletedAt == null
             && x.Resource.Branch.Business.DeletedAt == null
             && x.Resource.Branch.BusinessId == x.Service.BusinessId);
+        builder.Entity<BusinessGalleryItem>().HasQueryFilter(x => x.DeletedAt == null && x.Business.DeletedAt == null);
+        builder.Entity<BranchGalleryItem>().HasQueryFilter(x => x.DeletedAt == null && x.Branch.DeletedAt == null && x.Branch.Business.DeletedAt == null);
+        builder.Entity<ResourceGalleryItem>().HasQueryFilter(x => x.DeletedAt == null && x.Resource.DeletedAt == null && x.Resource.Branch.DeletedAt == null && x.Resource.Branch.Business.DeletedAt == null);
         builder.Entity<AvailabilityRule>().HasQueryFilter(x => x.DeletedAt == null && x.Business.DeletedAt == null
             && (x.BranchId == null || (x.Branch != null && x.Branch.DeletedAt == null && x.Branch.BusinessId == x.BusinessId))
             && (x.ResourceId == null || (x.Resource != null && x.Resource.DeletedAt == null

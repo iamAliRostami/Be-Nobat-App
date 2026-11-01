@@ -145,6 +145,19 @@ public static class CommercialDemoSeeder
                 };
                 db.Businesses.Add(business);
             }
+            if (business.AvatarData is null || business.HeaderData is null)
+            {
+                var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(catalog.Slug, catalog.Name, catalog.Category);
+                business.AvatarData = bAvatar;
+                business.AvatarContentType = "image/svg+xml";
+                business.HeaderData = bHeader;
+                business.HeaderContentType = "image/svg+xml";
+            }
+            if (!await db.BusinessGalleryItems.IgnoreQueryFilters().AnyAsync(g => g.BusinessId == business.Id, ct))
+            {
+                var gal = DemoMediaAssets.GetBusinessGallery(business.Id, catalog.Category);
+                db.BusinessGalleryItems.AddRange(gal);
+            }
             if (business.DeletedAt is not null) continue;
             var serviceList = new List<Service>();
             for (var s = 0; s < 4; s++)
@@ -178,6 +191,19 @@ public static class CommercialDemoSeeder
                         CreatedAt = historyStart, UpdatedAt = historyStart
                     };
                     db.Branches.Add(branch);
+                }
+                if (branch.AvatarData is null || branch.HeaderData is null)
+                {
+                    var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(catalog.Slug, branch.Name, catalog.Category);
+                    branch.AvatarData = brAvatar;
+                    branch.AvatarContentType = "image/svg+xml";
+                    branch.HeaderData = brHeader;
+                    branch.HeaderContentType = "image/svg+xml";
+                }
+                if (!await db.BranchGalleryItems.IgnoreQueryFilters().AnyAsync(g => g.BranchId == branch.Id, ct))
+                {
+                    var brGal = DemoMediaAssets.GetBranchGallery(branch.Id, branch.Name, catalog.Category);
+                    db.BranchGalleryItems.AddRange(brGal);
                 }
                 if (branch.DeletedAt is not null) continue;
                 var resources = new List<Resource>();

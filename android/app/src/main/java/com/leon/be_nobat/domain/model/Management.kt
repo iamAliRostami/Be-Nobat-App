@@ -50,6 +50,13 @@ data class ManagementBusiness(
     val active: Boolean = false,
     val firstBranchId: String? = null,
     val cancellationNoticeMinutes: Int = 120,
+    val avatarUrl: String? = null,
+    val headerUrl: String? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable
@@ -66,6 +73,13 @@ data class ManagementBranch(
     val weeklyHours: List<WeeklyTimeRange>? = null,
     val businessName: String? = null,
     val cancellationNoticeMinutes: Int? = null,
+    val avatarUrl: String? = null,
+    val headerUrl: String? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable
@@ -76,6 +90,8 @@ data class ManagementResource(
     val kind: String = "staff",
     val userId: String? = null,
     val active: Boolean = false,
+    val avatarUrl: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable
@@ -169,6 +185,12 @@ data class ManagementAppointment(
     val timeZoneId: String = "Asia/Tehran",
     val serviceNames: List<String> = emptyList(),
     val trackingCode: String = "",
+    val depositRequired: Boolean = false,
+    val depositPercentage: Double = 0.0,
+    val depositAmount: Double = 0.0,
+    val depositTrackingCode: String? = null,
+    val depositReceiptUrl: String? = null,
+    val depositPaidAt: String? = null,
 )
 
 @Serializable
@@ -249,6 +271,26 @@ data class PlatformResetPasswordResponse(
 )
 
 @Serializable
+data class RequestedBranch(
+    val name: String = "",
+    val address: String = "",
+)
+
+@Serializable
+data class PlatformPricing(
+    val baseBusinessPrice: Long = 500_000L,
+    val extraBranchPrice: Long = 200_000L,
+    val cardNumber: String = "",
+    val iban: String = "",
+    val accountHolder: String = "",
+    val paymentInstructions: String = "",
+) {
+    val bankCardNumber: String get() = cardNumber
+    val bankIban: String get() = iban
+    val bankAccountHolder: String get() = accountHolder
+}
+
+@Serializable
 data class BusinessRequest(
     val id: String = "",
     val userId: String = "",
@@ -259,13 +301,24 @@ data class BusinessRequest(
     val contactPhone: String = "",
     val firstBranchName: String = "شعبه مرکزی",
     val firstBranchAddress: String = "",
+    val additionalBranches: List<RequestedBranch> = emptyList(),
+    val basePrice: Long = 0L,
+    val extraBranchPrice: Long = 0L,
+    val totalBranchesCount: Int = 1,
+    val totalFee: Long = 0L,
+    val receiptTrackingCode: String? = null,
+    val receiptUploadedAt: String? = null,
+    val hasReceiptImage: Boolean = false,
+    val receiptImageBase64: String? = null,
     val status: String = "Pending",
     val reviewNote: String? = null,
     val approvedBusinessId: String? = null,
     val createdAt: String = "",
     val userDisplayName: String? = null,
     val userPhoneNumber: String? = null,
-)
+) {
+    val hasReceipt: Boolean get() = hasReceiptImage || !receiptTrackingCode.isNullOrBlank() || !receiptImageBase64.isNullOrBlank()
+}
 
 @Serializable
 data class ManagementAnalyticsSummary(

@@ -52,6 +52,8 @@ class PlatformRequestsViewModel(
     private val listUseCase: PlatformListBusinessRequestsUseCase,
     private val approveUseCase: PlatformApproveBusinessRequestUseCase,
     private val rejectUseCase: PlatformRejectBusinessRequestUseCase,
+    private val getPricingUseCase: PlatformGetPricingUseCase,
+    private val updatePricingUseCase: PlatformUpdatePricingUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PlatformRequestsUiState(loading = true))
@@ -108,6 +110,23 @@ class PlatformRequestsViewModel(
             }
             .onFailure { e ->
                 _state.value = _state.value.copy(loading = false, error = e.message)
+            }
+    }
+
+    fun loadPricing() = viewModelScope.launch {
+        getPricingUseCase()
+            .onSuccess { pricing -> _state.value = _state.value.copy(pricing = pricing) }
+            .onFailure { e -> _state.value = _state.value.copy(error = e.message) }
+    }
+
+    fun updatePricing(input: PlatformPricingInput) = viewModelScope.launch {
+        _state.value = _state.value.copy(savingPricing = true, error = null, message = null)
+        updatePricingUseCase(input)
+            .onSuccess { updated ->
+                _state.value = _state.value.copy(savingPricing = false, pricing = updated, message = "pricing_updated")
+            }
+            .onFailure { e ->
+                _state.value = _state.value.copy(savingPricing = false, error = e.message)
             }
     }
 

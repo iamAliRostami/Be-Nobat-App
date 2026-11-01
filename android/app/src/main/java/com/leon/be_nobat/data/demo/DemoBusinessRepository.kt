@@ -70,6 +70,13 @@ class DemoBusinessRepository(
                     serviceCount = serviceCount,
                     rating = rating,
                     reviewCount = bizReviews.size,
+                    avatarUrl = mb.avatarUrl,
+                    headerUrl = mb.headerUrl,
+                    depositPercentage = mb.depositPercentage,
+                    depositCardNumber = mb.depositCardNumber,
+                    depositIban = mb.depositIban,
+                    depositAccountHolder = mb.depositAccountHolder,
+                    gallery = mb.gallery,
                 )
             }
 
@@ -98,6 +105,13 @@ class DemoBusinessRepository(
                     timeZoneId = b.timeZoneId,
                     openHour = b.openHour,
                     closeHour = b.closeHour,
+                    avatarUrl = b.avatarUrl,
+                    headerUrl = b.headerUrl,
+                    depositPercentage = b.depositPercentage,
+                    depositCardNumber = b.depositCardNumber,
+                    depositIban = b.depositIban,
+                    depositAccountHolder = b.depositAccountHolder,
+                    gallery = b.gallery,
                 )
             }
 
@@ -138,6 +152,13 @@ class DemoBusinessRepository(
                 serviceCount = services.size,
                 rating = rating,
                 reviewCount = reviews.size,
+                avatarUrl = mb.avatarUrl,
+                headerUrl = mb.headerUrl,
+                depositPercentage = mb.depositPercentage,
+                depositCardNumber = mb.depositCardNumber,
+                depositIban = mb.depositIban,
+                depositAccountHolder = mb.depositAccountHolder,
+                gallery = mb.gallery,
                 branches = branches,
                 services = services,
                 reviews = reviews,
@@ -182,6 +203,13 @@ class DemoBusinessRepository(
                     timeZoneId = b.timeZoneId,
                     openHour = b.openHour,
                     closeHour = b.closeHour,
+                    avatarUrl = b.avatarUrl,
+                    headerUrl = b.headerUrl,
+                    depositPercentage = b.depositPercentage,
+                    depositCardNumber = b.depositCardNumber,
+                    depositIban = b.depositIban,
+                    depositAccountHolder = b.depositAccountHolder,
+                    gallery = b.gallery,
                 )
             }
             ApiItems(items = branches)
@@ -235,6 +263,8 @@ class DemoBusinessRepository(
                         name = res.name,
                         kind = res.kind,
                         userId = res.userId,
+                        avatarUrl = res.avatarUrl,
+                        gallery = res.gallery,
                     )
                 }
             ApiItems(items = providers)

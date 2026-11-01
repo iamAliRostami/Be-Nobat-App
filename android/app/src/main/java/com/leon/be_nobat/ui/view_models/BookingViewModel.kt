@@ -43,10 +43,21 @@ data class BookingUiState(
     val bookedTrackingCode: String? = null,
     val bookedAppointment: Appointment? = null,
     val error: String? = null,
+    val depositTrackingCode: String = "",
+    val depositReceiptBase64: String? = null,
+    val depositReceiptContentType: String? = null,
+    val depositReceiptFileName: String? = null,
 ) {
     val selectedServiceIds: List<String> get() = selectedServices.map { it.id }
     val totalPrice: Double get() = slots?.totalPrice ?: selectedServices.sumOf { it.price }
     val totalDuration: Int get() = slots?.totalDurationMinutes ?: selectedServices.sumOf { it.durationMinutes }
+    val selectedBranch: Branch? get() = branches.firstOrNull { it.id == branchId }
+    val depositPercentage: Double get() = slots?.depositPercentage ?: selectedBranch?.depositPercentage ?: 0.0
+    val isDepositRequired: Boolean get() = depositPercentage > 0.0
+    val depositAmount: Double get() = slots?.depositAmount ?: if (isDepositRequired) Math.round(totalPrice * depositPercentage / 100.0).toDouble() else 0.0
+    val depositCardNumber: String? get() = slots?.depositCardNumber ?: selectedBranch?.depositCardNumber
+    val depositIban: String? get() = slots?.depositIban ?: selectedBranch?.depositIban
+    val depositAccountHolder: String? get() = slots?.depositAccountHolder ?: selectedBranch?.depositAccountHolder
 }
 
 class BookingViewModel(
@@ -242,12 +253,24 @@ class BookingViewModel(
     fun setPhone(v: String) { _state.value = _state.value.copy(phoneNumber = v) }
     fun setNote(v: String) { _state.value = _state.value.copy(note = v) }
     fun setTerms(v: Boolean) { _state.value = _state.value.copy(termsAccepted = v) }
+    fun setDepositTrackingCode(v: String) { _state.value = _state.value.copy(depositTrackingCode = v) }
+    fun setDepositReceipt(base64: String?, contentType: String?, fileName: String?) {
+        _state.value = _state.value.copy(
+            depositReceiptBase64 = base64,
+            depositReceiptContentType = contentType,
+            depositReceiptFileName = fileName
+        )
+    }
 
     fun book() = viewModelScope.launch {
         val s = _state.value
         val slot = s.selectedSlot ?: return@launch
         if (!s.termsAccepted) {
             _state.value = s.copy(error = "terms_required")
+            return@launch
+        }
+        if (s.isDepositRequired && s.depositTrackingCode.isBlank() && s.depositReceiptBase64.isNullOrBlank()) {
+            _state.value = s.copy(error = "deposit_required")
             return@launch
         }
         _state.value = s.copy(booking = true, error = null)
@@ -262,6 +285,9 @@ class BookingViewModel(
             termsAccepted = s.termsAccepted,
             expectedPrice = s.slots?.totalPrice,
             expectedDurationMinutes = s.slots?.totalDurationMinutes,
+            depositTrackingCode = s.depositTrackingCode.ifBlank { null },
+            depositReceiptBase64 = s.depositReceiptBase64,
+            depositReceiptContentType = s.depositReceiptContentType,
         )
         createAppointment(input)
             .onSuccess { appt ->

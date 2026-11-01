@@ -13,6 +13,14 @@ import kotlinx.serialization.Serializable
  */
 
 @Serializable
+data class GalleryItem(
+    val id: String = "",
+    val imageUrl: String = "",
+    val caption: String? = null,
+    val sortOrder: Int = 0,
+)
+
+@Serializable
 data class Business(
     val id: String = "",
     val name: String = "",
@@ -25,6 +33,13 @@ data class Business(
     val serviceCount: Int = 0,
     val rating: Double? = null,
     val reviewCount: Int = 0,
+    val avatarUrl: String? = null,
+    val headerUrl: String? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable
@@ -40,6 +55,13 @@ data class BusinessDetail(
     val serviceCount: Int = 0,
     val rating: Double? = null,
     val reviewCount: Int = 0,
+    val avatarUrl: String? = null,
+    val headerUrl: String? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
     val branches: List<Branch> = emptyList(),
     val services: List<Service> = emptyList(),
     val reviews: List<PublicReview> = emptyList(),
@@ -54,6 +76,13 @@ data class Branch(
     val timeZoneId: String = "Asia/Tehran",
     val openHour: Int = 9,
     val closeHour: Int = 18,
+    val avatarUrl: String? = null,
+    val headerUrl: String? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable
@@ -74,6 +103,8 @@ data class Provider(
     val name: String = "",
     val kind: String = "staff",
     val userId: String? = null,
+    val avatarUrl: String? = null,
+    val gallery: List<GalleryItem> = emptyList(),
 )
 
 @Serializable

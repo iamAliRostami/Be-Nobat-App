@@ -74,4 +74,5 @@
     <color name="slot_card_stroke_secondary">#A8C6BA</color>
     <color name="colorSuccess">#16A34A</color>
     <color name="colorWarning">#D97706</color>
+    <color name="colorError">#BA1A1A</color>
 </resources>

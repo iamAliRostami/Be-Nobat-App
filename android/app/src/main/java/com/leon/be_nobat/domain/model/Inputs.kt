@@ -197,6 +197,12 @@ data class ManagementCustomerInput(
 data class ManagementResourceServicesInput(val serviceIds: List<String>)
 
 @Serializable
+data class RequestedBranchInput(
+    val name: String,
+    val address: String = "",
+)
+
+@Serializable
 data class BusinessRequestInput(
     val businessName: String,
     val category: String = "عمومی",
@@ -205,6 +211,29 @@ data class BusinessRequestInput(
     val contactPhone: String = "",
     val firstBranchName: String = "شعبه مرکزی",
     val firstBranchAddress: String = "",
+    val additionalBranches: List<RequestedBranch> = emptyList(),
+)
+
+@Serializable
+data class PlatformPricingInput(
+    val baseBusinessPrice: Long = 500_000L,
+    val extraBranchPrice: Long = 200_000L,
+    val cardNumber: String = "",
+    val iban: String = "",
+    val accountHolder: String = "",
+    val paymentInstructions: String = "",
+) {
+    val bankCardNumber: String get() = cardNumber
+    val bankIban: String get() = iban
+    val bankAccountHolder: String get() = accountHolder
+}
+
+@Serializable
+data class ReceiptUploadInput(
+    val imageBase64: String = "",
+    val dataBase64: String = imageBase64,
+    val contentType: String = "image/jpeg",
+    val trackingCode: String? = null,
 )
 
 @Serializable

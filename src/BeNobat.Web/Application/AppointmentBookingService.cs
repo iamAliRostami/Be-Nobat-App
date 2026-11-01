@@ -17,7 +17,8 @@ public enum BookingFailure
 public sealed record AppointmentBookingRequest(
     Guid BusinessId, Guid BranchId, IReadOnlyCollection<Guid> ServiceIds, Guid? ResourceId,
     DateTimeOffset StartsAt, string? PhoneNumber, string? CustomerNote, bool TermsAccepted,
-    decimal? ExpectedPrice = null, int? ExpectedDurationMinutes = null, string? ExpectedSecurityStamp = null);
+    decimal? ExpectedPrice = null, int? ExpectedDurationMinutes = null, string? ExpectedSecurityStamp = null,
+    string? DepositTrackingCode = null, string? DepositReceiptBase64 = null, string? DepositReceiptContentType = null);
 
 public enum ConfirmFailure { NotFound, NotPending, SlotUnavailable, CustomerOverlap, InvalidTime }
 
@@ -40,6 +41,7 @@ public sealed record BookingAvailability
     public decimal TotalPrice { get; init; }
     public string Currency { get; init; } = "IRR";
     public IReadOnlyDictionary<Guid, List<DateTimeOffset>> SlotsByResource { get; init; } = new Dictionary<Guid, List<DateTimeOffset>>();
+    public IReadOnlyDictionary<Guid, List<AvailabilityResolver.SlotInfo>> AllSlotsByResource { get; init; } = new Dictionary<Guid, List<AvailabilityResolver.SlotInfo>>();
 
     /// <summary>
     /// زمان‌هایی که خدمت کمی (تا ۱۵ دقیقه) بلندتر از فاصله‌ی خالی است. مقدار هر شروع، دقیقه‌ی اضافه است.
@@ -117,6 +119,16 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             && (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= now, cancellationToken);
         if (activeCount >= BookingPolicy.MaxActiveAppointmentsPerCustomer) return Failed(BookingFailure.ActiveLimitReached);
 
+        var effectiveDepositPct = definition.Branch?.DepositPercentage ?? definition.Business?.DepositPercentage ?? 0;
+        var depositRequired = effectiveDepositPct > 0;
+        var depositAmount = depositRequired ? Math.Round((definition.TotalPrice * effectiveDepositPct) / 100m) : 0m;
+
+        byte[]? receiptData = null;
+        if (!string.IsNullOrWhiteSpace(request.DepositReceiptBase64))
+        {
+            try { receiptData = Convert.FromBase64String(request.DepositReceiptBase64); } catch { }
+        }
+
         var appointment = new Appointment
         {
             BranchId = definition.Branch!.Id,
@@ -129,8 +141,14 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             Currency = definition.Currency,
             CustomerNote = request.CustomerNote?.Trim() ?? "",
             OverrunMinutes = overrun,
-            // نوبتی که از فاصله‌ی خالی بلندتر است همیشه باید شعبه تأیید کند تا زمان نهایی را هماهنگ کند.
             Status = definition.Business!.RequiresApproval || overrun > 0 ? AppointmentStatus.Pending : AppointmentStatus.Confirmed,
+            DepositRequired = depositRequired,
+            DepositPercentage = effectiveDepositPct,
+            DepositAmount = depositAmount,
+            DepositTrackingCode = request.DepositTrackingCode?.Trim(),
+            DepositReceiptContentType = receiptData != null ? (request.DepositReceiptContentType ?? "image/jpeg") : null,
+            DepositReceiptData = receiptData,
+            DepositPaidAt = depositRequired && (!string.IsNullOrWhiteSpace(request.DepositTrackingCode) || receiptData != null) ? DateTimeOffset.UtcNow : null,
         };
         foreach (var service in definition.Services)
             appointment.Services.Add(new AppointmentService
@@ -212,13 +230,13 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
         var branch = definition.Branch!;
         if (!BookingPolicy.IsWithinHorizon(date, BranchClock.LocalDate(now, branch.TimeZoneId)))
             return definition with { Failure = BookingFailure.OutsideHorizon };
-        var (strict, flexible) = await SlotMapsAsync(db, definition.Business!.Id, branch,
+        var (strict, flexible, allSlots) = await SlotMapsAsync(db, definition.Business!.Id, branch,
             definition.Resources.Select(x => x.Id).ToList(), date, definition.DurationMinutes, now, null, cancellationToken);
-        return definition with { SlotsByResource = strict, FlexibleByResource = flexible };
+        return definition with { SlotsByResource = strict, FlexibleByResource = flexible, AllSlotsByResource = allSlots };
     }
 
     /// <summary>زمان‌های کاملاً جاشونده و زمان‌های جاشونده با تحمل زمانی برای هر کارمند در یک روز.</summary>
-    private static async Task<(Dictionary<Guid, List<DateTimeOffset>> Strict, Dictionary<Guid, Dictionary<DateTimeOffset, int>> Flexible)> SlotMapsAsync(
+    private static async Task<(Dictionary<Guid, List<DateTimeOffset>> Strict, Dictionary<Guid, Dictionary<DateTimeOffset, int>> Flexible, Dictionary<Guid, List<AvailabilityResolver.SlotInfo>> AllSlots)> SlotMapsAsync(
         AppDbContext db, Guid businessId, Branch branch, IReadOnlyCollection<Guid> resourceIds, DateOnly date, int durationMinutes,
         DateTimeOffset now, Guid? excludeAppointmentId, CancellationToken cancellationToken)
     {
@@ -235,6 +253,7 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             .Select(x => new { x.ResourceId, x.StartsAt, x.EndsAt }).ToListAsync(cancellationToken);
         var strictMap = new Dictionary<Guid, List<DateTimeOffset>>();
         var flexibleMap = new Dictionary<Guid, Dictionary<DateTimeOffset, int>>();
+        var allSlotsMap = new Dictionary<Guid, List<AvailabilityResolver.SlotInfo>>();
         var duration = TimeSpan.FromMinutes(durationMinutes);
         foreach (var id in ids)
         {
@@ -244,8 +263,9 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             strictMap[id] = strict;
             flexibleMap[id] = AvailabilityResolver.FlexibleSlots(intervals, date, branch.TimeZoneId, duration,
                 BookingPolicy.SlotStepMinutes, resourceBusy, now, strict);
+            allSlotsMap[id] = AvailabilityResolver.AllSlots(intervals, date, branch.TimeZoneId, duration, BookingPolicy.SlotStepMinutes, resourceBusy, now);
         }
-        return (strictMap, flexibleMap);
+        return (strictMap, flexibleMap, allSlotsMap);
     }
 
     /// <summary>
@@ -261,7 +281,7 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
         if (appointment is null || appointment.ResourceId is not Guid resourceId || appointment.Status != AppointmentStatus.Pending) return [];
         var now = DateTimeOffset.UtcNow;
         if (!BookingPolicy.IsWithinHorizon(date, BranchClock.LocalDate(now, appointment.Branch.TimeZoneId))) return [];
-        var (strict, flexible) = await SlotMapsAsync(db, appointment.Branch.BusinessId, appointment.Branch, [resourceId], date,
+        var (strict, flexible, _) = await SlotMapsAsync(db, appointment.Branch.BusinessId, appointment.Branch, [resourceId], date,
             FullDurationMinutes(appointment), now, appointmentId, cancellationToken);
         var options = strict[resourceId].Select(x => new RescheduleOption(x, 0))
             .Concat(flexible[resourceId].Select(x => new RescheduleOption(x.Key, x.Value)))
@@ -297,7 +317,7 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             var duration = FullDurationMinutes(appointment);
             var date = BranchClock.LocalDate(start, appointment.Branch.TimeZoneId);
             if (!BookingPolicy.IsWithinHorizon(date, BranchClock.LocalDate(now, appointment.Branch.TimeZoneId))) return ConfirmFailure.InvalidTime;
-            var (strict, flexible) = await SlotMapsAsync(db, appointment.Branch.BusinessId, appointment.Branch, [resourceId], date,
+            var (strict, flexible, _) = await SlotMapsAsync(db, appointment.Branch.BusinessId, appointment.Branch, [resourceId], date,
                 duration, now, appointmentId, cancellationToken);
             var overrun = 0;
             if (!strict[resourceId].Contains(start))

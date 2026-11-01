@@ -14,6 +14,11 @@ data class SlotsResponse(
     val totalPrice: Double = 0.0,
     val currency: String = "IRR",
     val slots: List<Slot> = emptyList(),
+    val depositPercentage: Double? = null,
+    val depositAmount: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
 )
 
 @Serializable
@@ -22,6 +27,8 @@ data class Slot(
     val resourceName: String = "",
     val startsAt: String = "",
     val endsAt: String = "",
+    val isAvailable: Boolean = true,
+    val status: String = "Available", // "Available" | "Booked"
 )
 
 @Serializable
@@ -47,6 +54,12 @@ data class Appointment(
     val cancellationDeadline: String? = null,
     val canReview: Boolean = false,
     val reviewId: String? = null,
+    val depositRequired: Boolean = false,
+    val depositPercentage: Double = 0.0,
+    val depositAmount: Double = 0.0,
+    val depositTrackingCode: String? = null,
+    val depositReceiptUrl: String? = null,
+    val depositPaidAt: String? = null,
 ) {
     val isPending: Boolean get() = status == "Pending"
     val isConfirmed: Boolean get() = status == "Confirmed"
@@ -78,4 +91,7 @@ data class BookingInput(
     val termsAccepted: Boolean,
     val expectedPrice: Double? = null,
     val expectedDurationMinutes: Int? = null,
+    val depositTrackingCode: String? = null,
+    val depositReceiptBase64: String? = null,
+    val depositReceiptContentType: String? = null,
 )

@@ -294,6 +294,96 @@ app.MapPost("/account/change-email", async (
 
 // [feature] سرو کردن عکس پروفایل کاربر. تصویر داخل دیتابیس نگهداری می‌شود،
 // چون مسیر wwwroot در image داکر فقط-خواندنی است و با هر build پاک می‌شود.
+app.MapGet("/media/business/{id:guid}/avatar", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Businesses.AsNoTracking().Where(b => b.Id == id && b.AvatarData != null).Select(b => new { b.AvatarData, b.AvatarContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.AvatarData!, item.AvatarContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/business/{id:guid}/header", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Businesses.AsNoTracking().Where(b => b.Id == id && b.HeaderData != null).Select(b => new { b.HeaderData, b.HeaderContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.HeaderData!, item.HeaderContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/business/gallery/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.Id == id).Select(g => new { g.ImageData, g.ContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ImageData, item.ContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/branch/{id:guid}/avatar", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Branches.AsNoTracking().Where(b => b.Id == id && b.AvatarData != null).Select(b => new { b.AvatarData, b.AvatarContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.AvatarData!, item.AvatarContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/branch/{id:guid}/header", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Branches.AsNoTracking().Where(b => b.Id == id && b.HeaderData != null).Select(b => new { b.HeaderData, b.HeaderContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.HeaderData!, item.HeaderContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/branch/gallery/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.BranchGalleryItems.AsNoTracking().Where(g => g.Id == id).Select(g => new { g.ImageData, g.ContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ImageData, item.ContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/resource/{id:guid}/avatar", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Resources.AsNoTracking().Where(r => r.Id == id && r.AvatarData != null).Select(r => new { r.AvatarData, r.AvatarContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.AvatarData!, item.AvatarContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/resource/gallery/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.ResourceGalleryItems.AsNoTracking().Where(g => g.Id == id).Select(g => new { g.ImageData, g.ContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ImageData, item.ContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/appointment/{id:guid}/receipt", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Appointments.AsNoTracking().Where(a => a.Id == id && a.DepositReceiptData != null).Select(a => new { a.DepositReceiptData, a.DepositReceiptContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.DepositReceiptData!, item.DepositReceiptContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
+app.MapGet("/media/receipt/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.BusinessRequests.AsNoTracking().Where(r => r.Id == id && r.ReceiptImageData != null).Select(r => new { r.ReceiptImageData, r.ReceiptImageContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ReceiptImageData!, item.ReceiptImageContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
 app.MapGet("/media/avatar/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken cancellationToken) =>
 {
     var avatar = await db.Users

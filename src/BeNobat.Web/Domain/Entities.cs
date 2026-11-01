@@ -44,6 +44,17 @@ public sealed class Business : Entity
     public ICollection<Service> Services { get; } = [];
     public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
     public ICollection<Review> Reviews { get; } = [];
+    public string? AvatarContentType { get; set; }
+    public byte[]? AvatarData { get; set; }
+    public string? HeaderContentType { get; set; }
+    public byte[]? HeaderData { get; set; }
+
+    public int? DepositPercentage { get; set; }
+    public string? DepositCardNumber { get; set; }
+    public string? DepositIban { get; set; }
+    public string? DepositAccountHolder { get; set; }
+
+    public ICollection<BusinessGalleryItem> GalleryItems { get; } = [];
 }
 
 public enum CategoryKind { Business, Service }
@@ -83,7 +94,18 @@ public sealed class Branch : Entity
     public ICollection<BranchMembership> Memberships { get; } = [];
     public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
     public ICollection<Review> Reviews { get; } = [];
+    public string? AvatarContentType { get; set; }
+    public byte[]? AvatarData { get; set; }
+    public string? HeaderContentType { get; set; }
+    public byte[]? HeaderData { get; set; }
+
+    public int? DepositPercentage { get; set; }
+    public string? DepositCardNumber { get; set; }
+    public string? DepositIban { get; set; }
+    public string? DepositAccountHolder { get; set; }
+
     public ICollection<BranchService> BranchServices { get; } = [];
+    public ICollection<BranchGalleryItem> GalleryItems { get; } = [];
 }
 
 public sealed class Service : Entity
@@ -149,7 +171,11 @@ public sealed class Resource : Entity
 
     public Branch Branch { get; set; } = null!;
     public ICollection<ServiceResource> ServiceResources { get; } = [];
+    public string? AvatarContentType { get; set; }
+    public byte[]? AvatarData { get; set; }
+
     public ICollection<AvailabilityRule> AvailabilityRules { get; } = [];
+    public ICollection<ResourceGalleryItem> GalleryItems { get; } = [];
 }
 
 public sealed class Appointment : Entity
@@ -163,6 +189,14 @@ public sealed class Appointment : Entity
     public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
     public decimal FinalPrice { get; set; }
     public string Currency { get; set; } = "IRR";
+
+    public bool DepositRequired { get; set; }
+    public int DepositPercentage { get; set; }
+    public decimal DepositAmount { get; set; }
+    public string? DepositReceiptContentType { get; set; }
+    public byte[]? DepositReceiptData { get; set; }
+    public string? DepositTrackingCode { get; set; }
+    public DateTimeOffset? DepositPaidAt { get; set; }
 
     /// <summary>توضیح اختیاری مشتری هنگام رزرو (مثلاً حساسیت‌ها یا درخواست خاص).</summary>
     public string CustomerNote { get; set; } = string.Empty;
@@ -330,4 +364,34 @@ public sealed class BusinessRequest : Entity
             return [];
         }
     }
+}
+
+public sealed class BusinessGalleryItem : Entity
+{
+    public Guid BusinessId { get; set; }
+    public string? Caption { get; set; }
+    public int SortOrder { get; set; }
+    public string ContentType { get; set; } = "image/jpeg";
+    public byte[] ImageData { get; set; } = [];
+    public Business Business { get; set; } = null!;
+}
+
+public sealed class BranchGalleryItem : Entity
+{
+    public Guid BranchId { get; set; }
+    public string? Caption { get; set; }
+    public int SortOrder { get; set; }
+    public string ContentType { get; set; } = "image/jpeg";
+    public byte[] ImageData { get; set; } = [];
+    public Branch Branch { get; set; } = null!;
+}
+
+public sealed class ResourceGalleryItem : Entity
+{
+    public Guid ResourceId { get; set; }
+    public string? Caption { get; set; }
+    public int SortOrder { get; set; }
+    public string ContentType { get; set; } = "image/jpeg";
+    public byte[] ImageData { get; set; } = [];
+    public Resource Resource { get; set; } = null!;
 }

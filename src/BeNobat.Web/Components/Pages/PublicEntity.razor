@@ -14,6 +14,7 @@
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 
 
@@ -45,9 +46,18 @@
 
         <a class="back-link" href="/#businesses">→ بازگشت به فهرست کسب‌وکارها</a>
 
-        <header class="directory-hero">
+        <header class="directory-hero @(!string.IsNullOrEmpty(HeaderUrl) ? "has-header" : "")" style="@(!string.IsNullOrEmpty(HeaderUrl) ? $"background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('{HeaderUrl}'); background-size: cover; background-position: center;" : "")">
 
-            <div class="directory-mark" aria-hidden="true">@Icon</div>
+            <div class="directory-mark" aria-hidden="true" style="@(!string.IsNullOrEmpty(AvatarUrl) ? "padding: 0; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.18); border: 2px solid #ffffff;" : "")">
+                @if (!string.IsNullOrEmpty(AvatarUrl))
+                {
+                    <img src="@AvatarUrl" alt="@Title" style="width:100%;height:100%;object-fit:cover;border-radius:18px;" />
+                }
+                else
+                {
+                    @Icon
+                }
+            </div>
 
             <div class="directory-heading"><span class="directory-kicker">@KindLabel</span><h1 data-i18n-skip>@Title</h1>@if (BusinessId is not null) { <p><span>@SubtitleCategory</span> · <span data-i18n-skip>@Subtitle</span></p> } else if (ProviderId is not null) { <p><span>ارائه‌دهنده در</span> <span data-i18n-skip>@Subtitle</span></p> } else { <p data-i18n-skip>@Subtitle</p> }
 
@@ -57,26 +67,25 @@
 
             </div>
 
-            @if (BusinessIdForBooking is Guid businessId)
-
-            {
-
-                <div class="directory-hero-actions">
-
+            <div class="directory-hero-actions">
+                @if (BusinessIdForBooking is Guid businessId)
+                {
                     <a class="primary-button action-primary" href="@BookingHref(businessId)">رزرو نوبت</a>
 
                     <a class="outline-button action-app" href="@AppDeepLink(businessId)" title="باز کردن مستقیم در اپلیکیشن به‌نوبت">
-
                         <span aria-hidden="true">📱</span><span>باز کردن در اپ</span>
-
                     </a>
                     <button type="button" class="outline-button action-qr" @onclick="() => OpenQrModal()" title="نمایش کد QR و اشتراک‌گذاری">
                         <span aria-hidden="true">📷</span><span>کد QR</span>
                     </button>
-
-                </div>
-
-            }
+                }
+                @if (CanManageMedia)
+                {
+                    <button type="button" class="outline-button action-media" @onclick="() => ShowMediaModal = true" title="تغییر آواتار، تصویر هدر و گالری">
+                        <span aria-hidden="true">🖼️</span><span>مدیریت تصاویر</span>
+                    </button>
+                }
+            </div>
 
         </header>
 
@@ -174,36 +183,77 @@
 
             </div>
 
-            <aside class="directory-panel directory-reviews" aria-labelledby="directory-reviews-title">
+            <div class="directory-sidebar" style="display:flex;flex-direction:column;gap:20px;">
 
-                <div class="review-summary">
-
-                    <div><strong>@(PublishedReviewCount == 0 ? "—" : LocalizedDate.FormatNumber(Average, UiLocale.Language, "0.0"))</strong><span class="stars" aria-hidden="true">@SummaryStars</span></div>
-
-                    <p>@(PublishedReviewCount == 0 ? "هنوز نظری منتشر نشده است" : $"میانگین امتیاز از ۵، بر پایه {LocalizedDate.FormatNumber(PublishedReviewCount, UiLocale.Language)} نظر منتشرشده")</p>
-
-                </div>
-
-                <h2 id="directory-reviews-title">امتیازها و نظرات</h2>
-
-                @if (PublishedReviewCount > Reviews.Count) { <p class="directory-review-limit">@LocalizedDate.FormatNumber(Reviews.Count, UiLocale.Language) نظر اخیر</p> }
-
-                @if (Reviews.Count == 0) { <p class="empty-state">هنوز نظری برای این مورد منتشر نشده است.</p> }
-
-                @foreach (var review in Reviews)
-
+                @if (Gallery.Count > 0)
                 {
-
-                    <article><header><b data-i18n-skip>@review.Author</b><span class="stars" aria-label="@($"{LocalizedDate.FormatNumber(review.Rating, UiLocale.Language)} از ۵ ستاره")">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span></header><small>@LocalizedDate.Format(DateOnly.FromDateTime(review.CreatedAt.UtcDateTime), UiLocale.Language)</small><p data-i18n-skip>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.Reply</span></blockquote> }</article>
-
+                    <section class="directory-panel directory-gallery" aria-labelledby="directory-gallery-title">
+                        <div class="panel-head">
+                            <div>
+                                <h2 id="directory-gallery-title">گالری تصاویر</h2>
+                                <p>@LocalizedDate.FormatNumber(Gallery.Count, UiLocale.Language) تصویر</p>
+                            </div>
+                        </div>
+                        <div class="gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));gap:10px;margin-top:12px;">
+                            @foreach (var photo in Gallery)
+                            {
+                                <div class="gallery-card" @onclick="() => ActiveLightboxItem = photo" style="cursor:pointer;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;background:#f8fafc;aspect-ratio:1/1;position:relative;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:transform .2s ease;" title="@(photo.Caption ?? Title)">
+                                    <img src="@photo.ImageUrl" alt="@(photo.Caption ?? Title)" loading="lazy" style="width:100%;height:100%;object-fit:cover;" />
+                                    @if (!string.IsNullOrWhiteSpace(photo.Caption))
+                                    {
+                                        <span style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.65);color:#fff;font-size:10px;padding:3px 5px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;backdrop-filter:blur(2px);">@photo.Caption</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </section>
                 }
 
-            </aside>
+                <aside class="directory-panel directory-reviews" aria-labelledby="directory-reviews-title">
+
+                    <div class="review-summary">
+
+                        <div><strong>@(PublishedReviewCount == 0 ? "—" : LocalizedDate.FormatNumber(Average, UiLocale.Language, "0.0"))</strong><span class="stars" aria-hidden="true">@SummaryStars</span></div>
+
+                        <p>@(PublishedReviewCount == 0 ? "هنوز نظری منتشر نشده است" : $"میانگین امتیاز از ۵، بر پایه {LocalizedDate.FormatNumber(PublishedReviewCount, UiLocale.Language)} نظر منتشرشده")</p>
+
+                    </div>
+
+                    <h2 id="directory-reviews-title">امتیازها و نظرات</h2>
+
+                    @if (PublishedReviewCount > Reviews.Count) { <p class="directory-review-limit">@LocalizedDate.FormatNumber(Reviews.Count, UiLocale.Language) نظر اخیر</p> }
+
+                    @if (Reviews.Count == 0) { <p class="empty-state">هنوز نظری برای این مورد منتشر نشده است.</p> }
+
+                    @foreach (var review in Reviews)
+
+                    {
+
+                        <article><header><b data-i18n-skip>@review.Author</b><span class="stars" aria-label="@($"{LocalizedDate.FormatNumber(review.Rating, UiLocale.Language)} از ۵ ستاره")">@(new string('★', review.Rating))@(new string('☆', 5 - review.Rating))</span></header><small>@LocalizedDate.Format(DateOnly.FromDateTime(review.CreatedAt.UtcDateTime), UiLocale.Language)</small><p data-i18n-skip>@review.Comment</p>@if (!string.IsNullOrWhiteSpace(review.Reply)) { <blockquote>پاسخ مجموعه: <span data-i18n-skip>@review.Reply</span></blockquote> }</article>
+
+                    }
+
+                </aside>
+
+            </div>
 
         </div>
 
     }
 
+        @if (ActiveLightboxItem is not null)
+        {
+            <div class="modal-backdrop" @onclick="() => ActiveLightboxItem = null" role="dialog" aria-modal="true" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;">
+                <div class="gallery-lightbox-modal" @onclick:stopPropagation style="background:#fff;border-radius:16px;max-width:90vw;max-height:90vh;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative;box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);">
+                    <button type="button" class="modal-close-btn" @onclick="() => ActiveLightboxItem = null" style="position:absolute;top:12px;left:12px;background:#f1f5f9;border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:18px;">×</button>
+                    <img src="@ActiveLightboxItem.ImageUrl" alt="@(ActiveLightboxItem.Caption ?? Title)" style="max-width:80vw;max-height:75vh;border-radius:12px;object-fit:contain;" />
+                    @if (!string.IsNullOrWhiteSpace(ActiveLightboxItem.Caption))
+                    {
+                        <p style="margin-top:12px;font-size:14px;color:#334155;font-weight:600;">@ActiveLightboxItem.Caption</p>
+                    }
+                </div>
+            </div>
+        }
 
         @if (ShowQrModal)
         {
@@ -228,6 +278,114 @@
                         <button type="button" class="primary-button qr-copy-btn" @onclick="CopyShareUrl">
                             @(Copied ? "کپی شد ✓" : "کپی لینک")
                         </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (ShowMediaModal)
+        {
+            <div class="modal-backdrop" @onclick="() => ShowMediaModal = false" role="dialog" aria-modal="true">
+                <div class="form-modal" @onclick:stopPropagation style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <div>
+                            <h2>مدیریت تصاویر و ظاهر مجموعه</h2>
+                            <p class="modal-subtitle">تنظیم آواتار، بنر هدر و عکس‌های گالری @Title</p>
+                        </div>
+                        <button type="button" class="close-button" @onclick="() => ShowMediaModal = false">×</button>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(MediaMessage))
+                    {
+                        <div class="success-notice" style="margin: 12px 20px;">@MediaMessage</div>
+                    }
+                    @if (!string.IsNullOrEmpty(MediaError))
+                    {
+                        <div class="auth-error" style="margin: 12px 20px;">@MediaError</div>
+                    }
+
+                    <div class="modal-body">
+                        <!-- Section 1: Avatar -->
+                        <div class="form-section">
+                            <h3 class="section-title"><span>👤</span> تصویر نماد / آواتار</h3>
+                            <div style="display:flex;align-items:center;gap:16px;margin-top:10px;">
+                                <div style="width:68px;height:68px;border-radius:18px;border:2px solid #cbd5e1;overflow:hidden;background:#f8fafc;display:grid;place-items:center;flex-shrink:0;">
+                                    @if (!string.IsNullOrEmpty(AvatarUrl))
+                                    {
+                                        <img src="@AvatarUrl" alt="Avatar" style="width:100%;height:100%;object-fit:cover;" />
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:28px;font-weight:bold;color:#64748b;">@Icon</span>
+                                    }
+                                </div>
+                                <div style="flex:1;">
+                                    <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled="@IsUploadingMedia" />
+                                    <small style="display:block;margin-top:4px;color:#64748b;">فرمت‌های مجاز: PNG, JPG, WebP, SVG (حداکثر ۵ مگابایت)</small>
+                                </div>
+                                @if (!string.IsNullOrEmpty(AvatarUrl))
+                                {
+                                    <button type="button" class="action-danger" @onclick="RemoveAvatar" disabled="@IsUploadingMedia">حذف</button>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Section 2: Header Banner -->
+                        <div class="form-section">
+                            <h3 class="section-title"><span>🖼️</span> تصویر پس‌زمینه هدر (بنر)</h3>
+                            <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+                                @if (!string.IsNullOrEmpty(HeaderUrl))
+                                {
+                                    <div style="width:100%;height:120px;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;background:#f8fafc;">
+                                        <img src="@HeaderUrl" alt="Header" style="width:100%;height:100%;object-fit:cover;" />
+                                    </div>
+                                }
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div style="flex:1;">
+                                        <InputFile OnChange="UploadHeader" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled="@IsUploadingMedia" />
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(HeaderUrl))
+                                    {
+                                        <button type="button" class="action-danger" @onclick="RemoveHeader" disabled="@IsUploadingMedia">حذف بنر</button>
+                                    }
+                                </div>
+                                <small style="color:#64748b;">نسبت پیشنهادی: ۳ به ۱ (مثلاً ۱۲۰۰ در ۴۰۰ پیکسل)</small>
+                            </div>
+                        </div>
+
+                        <!-- Section 3: Gallery -->
+                        <div class="form-section">
+                            <h3 class="section-title"><span>📸</span> گالری تصاویر</h3>
+                            <div style="display:flex;flex-direction:column;gap:10px;background:#f8fafc;padding:12px;border-radius:12px;border:1px solid #e2e8f0;">
+                                <b>افزودن عکس جدید به گالری</b>
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                                    <InputFile OnChange="OnGalleryFileSelected" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled="@IsUploadingMedia" />
+                                    <input placeholder="عنوان یا توضیح تصویر (اختیاری)..." @bind="NewGalleryCaption" style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid #cbd5e1;" />
+                                    <button type="button" class="action-primary" @onclick="AddGalleryPhoto" disabled="@(SelectedGalleryBytes == null || IsUploadingMedia)">+ ثبت عکس</button>
+                                </div>
+                            </div>
+
+                            @if (Gallery.Count > 0)
+                            {
+                                <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));gap:10px;margin-top:14px;">
+                                    @foreach (var item in Gallery)
+                                    {
+                                        <div style="position:relative;border-radius:10px;overflow:hidden;border:1px solid #cbd5e1;aspect-ratio:1/1;">
+                                            <img src="@item.ImageUrl" alt="@item.Caption" style="width:100%;height:100%;object-fit:cover;" />
+                                            <button type="button" title="حذف این تصویر" @onclick="() => DeleteGalleryPhoto(item.Id)" style="position:absolute;top:4px;left:4px;background:rgba(239,68,68,0.9);color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;display:grid;place-items:center;">×</button>
+                                            @if (!string.IsNullOrWhiteSpace(item.Caption))
+                                            {
+                                                <span style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:2px 4px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;">@item.Caption</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="action-secondary" @onclick="() => ShowMediaModal = false">بستن</button>
                     </div>
                 </div>
             </div>
@@ -297,6 +455,20 @@
     private string BookingQuery = "";
 
     private List<LinkItem> ParentLinks = [], Services = [], Providers = [], Branches = [];
+    private string? AvatarUrl;
+    private string? HeaderUrl;
+    private List<GalleryItemView> Gallery = [];
+    private sealed record GalleryItemView(Guid Id, string? Caption, string ImageUrl);
+    private GalleryItemView? ActiveLightboxItem;
+
+    private bool CanManageMedia;
+    private bool ShowMediaModal;
+    private bool IsUploadingMedia;
+    private string? MediaMessage;
+    private string? MediaError;
+    private byte[]? SelectedGalleryBytes;
+    private string? SelectedGalleryContentType;
+    private string NewGalleryCaption = "";
 
     private List<string> Metadata = [];
 
@@ -351,8 +523,19 @@
         IsLoading = true; NotFound = false; ParentLinks = []; Services = []; Providers = []; Branches = []; Reviews = []; Metadata = [];
 
         Title = Subtitle = SubtitleCategory = Description = KindLabel = BookingQuery = "";
+        AvatarUrl = HeaderUrl = null; Gallery = []; ActiveLightboxItem = null;
 
         BusinessIdForBooking = null; CurrentPath = "/"; PublishedReviewCount = 0; Average = 0;
+
+        try
+        {
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            var p = auth.User;
+            CanManageMedia = p.Identity?.IsAuthenticated == true && (
+                p.IsInRole("Admin") || p.IsInRole("PlatformAdmin") || p.IsInRole("Owner") || p.IsInRole("Staff")
+            );
+        }
+        catch { CanManageMedia = false; }
 
         await using var db = await DbFactory.CreateDbContextAsync();
 
@@ -396,6 +579,9 @@
 
         Providers = (await db.Resources.AsNoTracking().Include(x => x.Branch).Where(x => x.Branch.BusinessId == id && x.Branch.IsApproved && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, x.Branch.Name, $"/provider/{x.Id}")).ToList();
 
+        AvatarUrl = item.AvatarData != null ? $"/media/business/{id}/avatar" : null;
+        HeaderUrl = item.HeaderData != null ? $"/media/business/{id}/header" : null;
+        Gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/business/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.BusinessId == id));
 
     }
@@ -422,6 +608,9 @@
 
         Providers = (await db.Resources.AsNoTracking().Where(x => x.BranchId == id && x.Kind == "staff").OrderBy(x => x.Name).ToListAsync()).Select(x => new LinkItem(x.Name, item.Name, $"/provider/{x.Id}")).ToList();
 
+        AvatarUrl = item.AvatarData != null ? $"/media/branch/{id}/avatar" : (item.Business.AvatarData != null ? $"/media/business/{item.BusinessId}/avatar" : null);
+        HeaderUrl = item.HeaderData != null ? $"/media/branch/{id}/header" : (item.Business.HeaderData != null ? $"/media/business/{item.BusinessId}/header" : null);
+        Gallery = await db.BranchGalleryItems.AsNoTracking().Where(g => g.BranchId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/branch/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.BranchId == id));
 
     }
@@ -446,6 +635,8 @@
 
         Services = branchServices.Select(x => new LinkItem(x.Service.Name, ServiceMetadata(x.Service.DurationMinutes, x.Price ?? x.Service.Price), $"/service/{x.ServiceId}")).ToList();
 
+        AvatarUrl = item.AvatarData != null ? $"/media/resource/{id}/avatar" : null;
+        Gallery = await db.ResourceGalleryItems.AsNoTracking().Where(g => g.ResourceId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/resource/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.Appointment != null && x.Appointment.ResourceId == id));
 
     }
@@ -514,4 +705,280 @@
 
     private sealed record ReviewView(string Author, int Rating, DateTimeOffset CreatedAt, string Comment, string? Reply);
 
+    private async Task UploadAvatar(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            var file = e.File;
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                MediaError = "حجم فایل نباید بیش از ۵ مگابایت باشد.";
+                return;
+            }
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var contentType = file.ContentType.ToLowerInvariant();
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (BusinessId is Guid bId)
+            {
+                var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == bId);
+                if (b != null) { b.AvatarData = bytes; b.AvatarContentType = contentType; await db.SaveChangesAsync(); }
+                AvatarUrl = $"/media/business/{bId}/avatar?t={DateTime.UtcNow.Ticks}";
+            }
+            else if (BranchId is Guid brId)
+            {
+                var br = await db.Branches.FirstOrDefaultAsync(x => x.Id == brId);
+                if (br != null) { br.AvatarData = bytes; br.AvatarContentType = contentType; await db.SaveChangesAsync(); }
+                AvatarUrl = $"/media/branch/{brId}/avatar?t={DateTime.UtcNow.Ticks}";
+            }
+            else if (ProviderId is Guid pId)
+            {
+                var p = await db.Resources.FirstOrDefaultAsync(x => x.Id == pId);
+                if (p != null) { p.AvatarData = bytes; p.AvatarContentType = contentType; await db.SaveChangesAsync(); }
+                AvatarUrl = $"/media/resource/{pId}/avatar?t={DateTime.UtcNow.Ticks}";
+            }
+            MediaMessage = "آواتار با موفقیت به‌روزرسانی شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در بارگذاری تصویر: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveAvatar()
+    {
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (BusinessId is Guid bId)
+            {
+                var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == bId);
+                if (b != null) { b.AvatarData = null; b.AvatarContentType = null; await db.SaveChangesAsync(); }
+            }
+            else if (BranchId is Guid brId)
+            {
+                var br = await db.Branches.FirstOrDefaultAsync(x => x.Id == brId);
+                if (br != null) { br.AvatarData = null; br.AvatarContentType = null; await db.SaveChangesAsync(); }
+            }
+            else if (ProviderId is Guid pId)
+            {
+                var p = await db.Resources.FirstOrDefaultAsync(x => x.Id == pId);
+                if (p != null) { p.AvatarData = null; p.AvatarContentType = null; await db.SaveChangesAsync(); }
+            }
+            AvatarUrl = null;
+            MediaMessage = "آواتار حذف شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در حذف آواتار: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UploadHeader(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            var file = e.File;
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                MediaError = "حجم فایل نباید بیش از ۵ مگابایت باشد.";
+                return;
+            }
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var contentType = file.ContentType.ToLowerInvariant();
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (BusinessId is Guid bId)
+            {
+                var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == bId);
+                if (b != null) { b.HeaderData = bytes; b.HeaderContentType = contentType; await db.SaveChangesAsync(); }
+                HeaderUrl = $"/media/business/{bId}/header?t={DateTime.UtcNow.Ticks}";
+            }
+            else if (BranchId is Guid brId)
+            {
+                var br = await db.Branches.FirstOrDefaultAsync(x => x.Id == brId);
+                if (br != null) { br.HeaderData = bytes; br.HeaderContentType = contentType; await db.SaveChangesAsync(); }
+                HeaderUrl = $"/media/branch/{brId}/header?t={DateTime.UtcNow.Ticks}";
+            }
+            MediaMessage = "تصویر پس‌زمینه هدر به‌روزرسانی شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در بارگذاری بنر هدر: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RemoveHeader()
+    {
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (BusinessId is Guid bId)
+            {
+                var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == bId);
+                if (b != null) { b.HeaderData = null; b.HeaderContentType = null; await db.SaveChangesAsync(); }
+            }
+            else if (BranchId is Guid brId)
+            {
+                var br = await db.Branches.FirstOrDefaultAsync(x => x.Id == brId);
+                if (br != null) { br.HeaderData = null; br.HeaderContentType = null; await db.SaveChangesAsync(); }
+            }
+            HeaderUrl = null;
+            MediaMessage = "تصویر هدر حذف شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در حذف بنر: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnGalleryFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            MediaError = null;
+            var file = e.File;
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                MediaError = "حجم فایل نباید بیش از ۵ مگابایت باشد.";
+                return;
+            }
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            SelectedGalleryBytes = ms.ToArray();
+            SelectedGalleryContentType = file.ContentType.ToLowerInvariant();
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در انتخاب تصویر: " + ex.Message;
+        }
+    }
+
+    private async Task AddGalleryPhoto()
+    {
+        if (SelectedGalleryBytes == null) return;
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var newId = Guid.NewGuid();
+            var caption = string.IsNullOrWhiteSpace(NewGalleryCaption) ? null : NewGalleryCaption.Trim();
+            var ct = SelectedGalleryContentType ?? "image/jpeg";
+
+            if (BusinessId is Guid bId)
+            {
+                var count = await db.BusinessGalleryItems.CountAsync(x => x.BusinessId == bId);
+                db.BusinessGalleryItems.Add(new BusinessGalleryItem
+                {
+                    Id = newId, BusinessId = bId, Caption = caption, ImageData = SelectedGalleryBytes, ContentType = ct, SortOrder = count, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                });
+                await db.SaveChangesAsync();
+                Gallery.Add(new GalleryItemView(newId, caption, $"/media/business/gallery/{newId}"));
+            }
+            else if (BranchId is Guid brId)
+            {
+                var count = await db.BranchGalleryItems.CountAsync(x => x.BranchId == brId);
+                db.BranchGalleryItems.Add(new BranchGalleryItem
+                {
+                    Id = newId, BranchId = brId, Caption = caption, ImageData = SelectedGalleryBytes, ContentType = ct, SortOrder = count, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                });
+                await db.SaveChangesAsync();
+                Gallery.Add(new GalleryItemView(newId, caption, $"/media/branch/gallery/{newId}"));
+            }
+            else if (ProviderId is Guid pId)
+            {
+                var count = await db.ResourceGalleryItems.CountAsync(x => x.ResourceId == pId);
+                db.ResourceGalleryItems.Add(new ResourceGalleryItem
+                {
+                    Id = newId, ResourceId = pId, Caption = caption, ImageData = SelectedGalleryBytes, ContentType = ct, SortOrder = count, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                });
+                await db.SaveChangesAsync();
+                Gallery.Add(new GalleryItemView(newId, caption, $"/media/resource/gallery/{newId}"));
+            }
+            SelectedGalleryBytes = null;
+            NewGalleryCaption = "";
+            MediaMessage = "تصویر با موفقیت به گالری اضافه شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در ثبت تصویر: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteGalleryPhoto(Guid id)
+    {
+        try
+        {
+            IsUploadingMedia = true;
+            MediaError = MediaMessage = null;
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (BusinessId is not null)
+            {
+                var item = await db.BusinessGalleryItems.FirstOrDefaultAsync(x => x.Id == id);
+                if (item != null) { db.BusinessGalleryItems.Remove(item); await db.SaveChangesAsync(); }
+            }
+            else if (BranchId is not null)
+            {
+                var item = await db.BranchGalleryItems.FirstOrDefaultAsync(x => x.Id == id);
+                if (item != null) { db.BranchGalleryItems.Remove(item); await db.SaveChangesAsync(); }
+            }
+            else if (ProviderId is not null)
+            {
+                var item = await db.ResourceGalleryItems.FirstOrDefaultAsync(x => x.Id == id);
+                if (item != null) { db.ResourceGalleryItems.Remove(item); await db.SaveChangesAsync(); }
+            }
+            Gallery.RemoveAll(x => x.Id == id);
+            MediaMessage = "تصویر از گالری حذف شد.";
+        }
+        catch (Exception ex)
+        {
+            MediaError = "خطا در حذف تصویر: " + ex.Message;
+        }
+        finally
+        {
+            IsUploadingMedia = false;
+            StateHasChanged();
+        }
+    }
 }

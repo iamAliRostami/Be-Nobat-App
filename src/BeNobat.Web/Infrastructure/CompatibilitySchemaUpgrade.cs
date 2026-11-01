@@ -196,6 +196,56 @@ public static class CompatibilitySchemaUpgrade
                 ALTER TABLE benobat."Services" ADD CONSTRAINT "CK_Service_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;
             ALTER TABLE benobat."BranchServices" ADD COLUMN IF NOT EXISTS "CancellationNoticeMinutes" integer NULL;
+
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "HeaderContentType" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "HeaderData" bytea NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "DepositPercentage" integer NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "DepositCardNumber" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "DepositIban" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "DepositAccountHolder" text NULL;
+
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "HeaderContentType" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "HeaderData" bytea NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositPercentage" integer NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositCardNumber" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositIban" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositAccountHolder" text NULL;
+
+            ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
+            ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;
+
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositRequired" boolean NOT NULL DEFAULT false;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositPercentage" integer NOT NULL DEFAULT 0;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositAmount" numeric(18,2) NOT NULL DEFAULT 0;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositReceiptContentType" text NULL;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositReceiptData" bytea NULL;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositTrackingCode" text NULL;
+            ALTER TABLE benobat."Appointments" ADD COLUMN IF NOT EXISTS "DepositPaidAt" timestamptz NULL;
+
+            CREATE TABLE IF NOT EXISTS benobat."BusinessGalleryItems" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "BusinessId" uuid NOT NULL, "Caption" text NULL,
+                "SortOrder" integer NOT NULL DEFAULT 0, "ContentType" text NOT NULL, "ImageData" bytea NOT NULL,
+                CONSTRAINT "FK_BusinessGalleryItems_Businesses_BusinessId" FOREIGN KEY ("BusinessId") REFERENCES benobat."Businesses" ("Id") ON DELETE CASCADE);
+            CREATE INDEX IF NOT EXISTS "IX_BusinessGalleryItems_BusinessId_SortOrder" ON benobat."BusinessGalleryItems" ("BusinessId", "SortOrder");
+
+            CREATE TABLE IF NOT EXISTS benobat."BranchGalleryItems" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "BranchId" uuid NOT NULL, "Caption" text NULL,
+                "SortOrder" integer NOT NULL DEFAULT 0, "ContentType" text NOT NULL, "ImageData" bytea NOT NULL,
+                CONSTRAINT "FK_BranchGalleryItems_Branches_BranchId" FOREIGN KEY ("BranchId") REFERENCES benobat."Branches" ("Id") ON DELETE CASCADE);
+            CREATE INDEX IF NOT EXISTS "IX_BranchGalleryItems_BranchId_SortOrder" ON benobat."BranchGalleryItems" ("BranchId", "SortOrder");
+
+            CREATE TABLE IF NOT EXISTS benobat."ResourceGalleryItems" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "ResourceId" uuid NOT NULL, "Caption" text NULL,
+                "SortOrder" integer NOT NULL DEFAULT 0, "ContentType" text NOT NULL, "ImageData" bytea NOT NULL,
+                CONSTRAINT "FK_ResourceGalleryItems_Resources_ResourceId" FOREIGN KEY ("ResourceId") REFERENCES benobat."Resources" ("Id") ON DELETE CASCADE);
+            CREATE INDEX IF NOT EXISTS "IX_ResourceGalleryItems_ResourceId_SortOrder" ON benobat."ResourceGalleryItems" ("ResourceId", "SortOrder");
             DO $$ BEGIN
                 ALTER TABLE benobat."BranchServices" ADD CONSTRAINT "CK_BranchService_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;

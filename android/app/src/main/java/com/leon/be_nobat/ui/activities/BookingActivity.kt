@@ -60,6 +60,24 @@ class BookingActivity : BaseActivity() {
     private var slotsAdapter: SlotsAdapter? = null
     private var windowOffsetDays: Int = 0
     private var hasNavigatedToSuccess: Boolean = false
+    private val pickDepositReceiptLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            lifecycleScope.launch {
+                try {
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes != null) {
+                        val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                        val fileName = uri.lastPathSegment ?: "receipt.jpg"
+                        viewModel.setDepositReceipt(base64, "image/jpeg", fileName)
+                    }
+                } catch (e: Exception) {
+                    showToast("خطا در بارگذاری تصویر فیش واریز")
+                }
+            }
+        }
+    }
 
     override fun setupViews() {
         setupAdminHeader(getString(R.string.book_now)) {
@@ -159,6 +177,10 @@ class BookingActivity : BaseActivity() {
             findViewById<NestedScrollView>(R.id.scrollBooking).smoothScrollTo(0, 0)
         }
 
+        findViewById<View>(R.id.btnUploadDepositReceipt)?.setOnClickListener {
+            pickDepositReceiptLauncher.launch("image/*")
+        }
+
         // Pre-fill user phone if logged in
         lifecycleScope.launch {
             val phone = tokenManager.currentSession()?.user?.phoneNumber
@@ -202,6 +224,16 @@ class BookingActivity : BaseActivity() {
                     return@launch
                 }
 
+                val etDeposit = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etDepositTrackingCode)
+                if (etDeposit != null) {
+                    viewModel.setDepositTrackingCode(etDeposit.text.toString())
+                }
+                if (viewModel.state.value.isDepositRequired &&
+                    viewModel.state.value.depositTrackingCode.isBlank() &&
+                    viewModel.state.value.depositReceiptBase64.isNullOrBlank()) {
+                    showToast("ثبت بیعانه برای این نوبت الزامی است. لطفاً کد پیگیری یا تصویر فیش واریز را وارد کنید.")
+                    return@launch
+                }
                 viewModel.setPhone(findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPhone).text.toString())
                 viewModel.setNote(findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etNote).text.toString())
                 viewModel.setTerms(findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbTerms).isChecked)
@@ -430,6 +462,44 @@ class BookingActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvConfirmTime).text = "$selectedDateDisplay • $atSeparator $selectedTimeDisplay"
         findViewById<TextView>(R.id.tvConfirmPrice).text = PersianUtils.formatPrice(state.totalPrice.toLong())
 
+        // Deposit UI binding
+        val cardDepositPayment = findViewById<View>(R.id.cardDepositPayment)
+        if (state.isDepositRequired) {
+            cardDepositPayment?.isVisible = true
+            findViewById<TextView>(R.id.tvDepositTitle)?.text = "پرداخت بیعانه جهت نهایی‌سازی رزرو (${PersianUtils.toPersianDigits(state.depositPercentage.toInt())}٪)"
+            findViewById<TextView>(R.id.tvDepositAmount)?.text = "مبلغ بیعانه: ${PersianUtils.formatPrice(state.depositAmount.toLong())}"
+
+            val hasBank = !state.depositCardNumber.isNullOrBlank() || !state.depositIban.isNullOrBlank()
+            findViewById<View>(R.id.layoutBankInfo)?.isVisible = hasBank
+            val tvCard = findViewById<TextView>(R.id.tvDepositCardNumber)
+            if (!state.depositCardNumber.isNullOrBlank()) {
+                tvCard.isVisible = true
+                tvCard.text = "شماره کارت: ${state.depositCardNumber}"
+            } else tvCard.isVisible = false
+
+            val tvIban = findViewById<TextView>(R.id.tvDepositIban)
+            if (!state.depositIban.isNullOrBlank()) {
+                tvIban.isVisible = true
+                tvIban.text = "شماره شبا: ${state.depositIban}"
+            } else tvIban.isVisible = false
+
+            val tvHolder = findViewById<TextView>(R.id.tvDepositAccountHolder)
+            if (!state.depositAccountHolder.isNullOrBlank()) {
+                tvHolder.isVisible = true
+                tvHolder.text = "به نام: ${state.depositAccountHolder}"
+            } else tvHolder.isVisible = false
+
+            val tvReceipt = findViewById<TextView>(R.id.tvDepositReceiptSelected)
+            if (!state.depositReceiptFileName.isNullOrBlank()) {
+                tvReceipt?.isVisible = true
+                tvReceipt?.text = "✓ تصویر فیش انتخاب شد: ${state.depositReceiptFileName}"
+            } else {
+                tvReceipt?.isVisible = false
+            }
+        } else {
+            cardDepositPayment?.isVisible = false
+        }
+
         // Terms checkbox sync
         val cbTerms = findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbTerms)
         if (cbTerms.isChecked != state.termsAccepted) {
@@ -648,28 +718,43 @@ class BookingActivity : BaseActivity() {
         inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
             val card: MaterialCardView = itemView.findViewById(R.id.cardSlot)
             val tvTime: TextView = itemView.findViewById(R.id.tvTime)
+            val tvBookedBadge: TextView? = itemView.findViewById(R.id.tvBookedBadge)
 
             fun bind(slot: Slot) {
-                val isSelected = slot.startsAt == getSelectedSlot()?.startsAt
                 tvTime.text = JalaliDateHelper.formatIsoTime(slot.startsAt)
-
+                val isBooked = !slot.isAvailable || slot.status == "Booked"
                 val ctx = itemView.context
                 val colorPrimary = MaterialColors.getColor(card, androidx.appcompat.R.attr.colorPrimary)
                 val colorOnPrimary = MaterialColors.getColor(card, com.google.android.material.R.attr.colorOnPrimary)
                 val colorSurface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorSurface)
                 val colorOnSurface = MaterialColors.getColor(card, com.google.android.material.R.attr.colorOnSurface)
 
-                if (isSelected) {
-                    card.setCardBackgroundColor(colorPrimary)
-                    card.strokeWidth = 0
-                    tvTime.setTextColor(colorOnPrimary)
-                } else {
+                if (isBooked) {
+                    card.isEnabled = false
+                    card.isClickable = false
+                    card.alpha = 0.55f
                     card.setCardBackgroundColor(colorSurface)
                     card.strokeWidth = (1 * ctx.resources.displayMetrics.density).toInt()
                     tvTime.setTextColor(colorOnSurface)
+                    tvBookedBadge?.isVisible = true
+                    card.setOnClickListener(null)
+                } else {
+                    card.isEnabled = true
+                    card.isClickable = true
+                    card.alpha = 1.0f
+                    tvBookedBadge?.isVisible = false
+                    val isSelected = slot.startsAt == getSelectedSlot()?.startsAt
+                    if (isSelected) {
+                        card.setCardBackgroundColor(colorPrimary)
+                        card.strokeWidth = 0
+                        tvTime.setTextColor(colorOnPrimary)
+                    } else {
+                        card.setCardBackgroundColor(colorSurface)
+                        card.strokeWidth = (1 * ctx.resources.displayMetrics.density).toInt()
+                        tvTime.setTextColor(colorOnSurface)
+                    }
+                    card.setOnClickListener { onSelect(slot) }
                 }
-
-                card.setOnClickListener { onSelect(slot) }
             }
         }
 

@@ -31,6 +31,12 @@ import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.ui.view_models.BusinessDetailUiState
 
 import com.leon.be_nobat.ui.view_models.BusinessDetailViewModel
+import com.leon.be_nobat.ui.adapters.GalleryAdapter
+import com.leon.be_nobat.data.remote.BeNobatApiConfig
+import coil.load
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import android.widget.ImageView
 
 import kotlinx.coroutines.launch
 
@@ -49,6 +55,20 @@ class BusinessDetailActivity : BaseActivity() {
 
 
     private lateinit var swipeRefresh: SwipeRefreshLayout
+    private val galleryAdapter = GalleryAdapter { item ->
+        val full = BeNobatApiConfig.resolveMediaUrl(item.imageUrl) ?: item.imageUrl
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(item.caption ?: "تصویر گالری")
+            .setView(ImageView(this).apply {
+                load(full) { crossfade(true) }
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setPadding(24, 24, 24, 24)
+            })
+            .setPositiveButton("بستن", null)
+            .create()
+        dialog.show()
+    }
 
 
 
@@ -99,6 +119,11 @@ class BusinessDetailActivity : BaseActivity() {
         }
 
 
+
+        findViewById<RecyclerView>(R.id.rvGallery)?.apply {
+            layoutManager = LinearLayoutManager(this@BusinessDetailActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = galleryAdapter
+        }
 
         swipeRefresh = findViewById(R.id.swipeRefresh)
 
@@ -237,6 +262,53 @@ class BusinessDetailActivity : BaseActivity() {
         val ratingStr = b.rating?.let { "★ ${PersianUtils.toPersianDigits(it)}" } ?: "—"
 
         findViewById<android.widget.TextView>(R.id.tvStats).text = "$branchStr • $serviceStr • $ratingStr ($reviewStr)"
+
+        // Header Banner
+        val ivHeaderBanner = findViewById<ImageView>(R.id.ivHeaderBanner)
+        val resolvedHeader = BeNobatApiConfig.resolveMediaUrl(b.headerUrl) ?: b.headerUrl
+        if (!resolvedHeader.isNullOrBlank()) {
+            ivHeaderBanner?.isVisible = true
+            ivHeaderBanner?.load(resolvedHeader) {
+                crossfade(true)
+                placeholder(R.drawable.badge_booked_background)
+                error(R.drawable.badge_booked_background)
+            }
+        } else {
+            ivHeaderBanner?.isVisible = false
+        }
+
+        // Avatar
+        val ivAvatar = findViewById<ImageView>(R.id.ivAvatar)
+        val tvAvatarFallback = findViewById<android.widget.TextView>(R.id.tvAvatarFallback)
+        val resolvedAvatar = BeNobatApiConfig.resolveMediaUrl(b.avatarUrl) ?: b.avatarUrl
+        if (!resolvedAvatar.isNullOrBlank()) {
+            ivAvatar?.isVisible = true
+            tvAvatarFallback?.isVisible = false
+            ivAvatar?.load(resolvedAvatar) {
+                crossfade(true)
+                placeholder(R.drawable.badge_booked_background)
+                error(R.drawable.badge_booked_background)
+            }
+        } else {
+            ivAvatar?.isVisible = false
+            tvAvatarFallback?.isVisible = true
+            tvAvatarFallback?.text = b.name.take(1).ifBlank { "ب" }
+        }
+
+        // Gallery
+        val tvGalleryTitle = findViewById<android.widget.TextView>(R.id.tvGalleryTitle)
+        val rvGallery = findViewById<RecyclerView>(R.id.rvGallery)
+        val tvEmptyGallery = findViewById<android.widget.TextView>(R.id.tvEmptyGallery)
+        if (b.gallery.isNotEmpty()) {
+            tvGalleryTitle?.isVisible = true
+            rvGallery?.isVisible = true
+            tvEmptyGallery?.isVisible = false
+            galleryAdapter.submitList(b.gallery)
+        } else {
+            tvGalleryTitle?.isVisible = false
+            rvGallery?.isVisible = false
+            tvEmptyGallery?.isVisible = false
+        }
 
 
 

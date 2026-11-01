@@ -95,11 +95,37 @@ internal fun DemoDatabaseState.slots(
                 start < demoMillis(it.endsAt) && end > demoMillis(it.startsAt)
             }
 
-            if ((!includePastSlots && start <= System.currentTimeMillis()) || !isOpen || isBlocked || isOccupied) null
-            else Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end))
+            if (!isOpen) null
+            else if (!includePastSlots && start <= System.currentTimeMillis()) null
+            else if (isBlocked || isOccupied) {
+                Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end), isAvailable = false, status = "Booked")
+            } else {
+                Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end), isAvailable = true, status = "Available")
+            }
         }.toList()
-    }.let { list ->
-        if (resourceId.isNullOrBlank()) list.distinctBy { it.startsAt } else list
+    }.groupBy { it.startsAt }.map { (startsAt, group) ->
+        if (resourceId.isNullOrBlank()) {
+            group.firstOrNull { it.isAvailable } ?: group.first()
+        } else {
+            group.first()
+        }
     }.sortedBy { it.startsAt }
-    return SlotsResponse(date = date, timeZoneId = branch.timeZoneId, totalDurationMinutes = duration, totalPrice = price, currency = selected.first().currency, slots = results)
+
+    val biz = businesses.firstOrNull { it.id == businessId }
+    val effectiveDepositPct = branch.depositPercentage ?: biz?.depositPercentage ?: 0.0
+    val depositAmount = if (effectiveDepositPct > 0.0) Math.round(price * effectiveDepositPct / 100.0).toDouble() else 0.0
+
+    return SlotsResponse(
+        date = date,
+        timeZoneId = branch.timeZoneId,
+        totalDurationMinutes = duration,
+        totalPrice = price,
+        currency = selected.first().currency,
+        slots = results,
+        depositPercentage = if (effectiveDepositPct > 0.0) effectiveDepositPct else null,
+        depositAmount = if (depositAmount > 0.0) depositAmount else null,
+        depositCardNumber = branch.depositCardNumber ?: biz?.depositCardNumber,
+        depositIban = branch.depositIban ?: biz?.depositIban,
+        depositAccountHolder = branch.depositAccountHolder ?: biz?.depositAccountHolder,
+    )
 }

@@ -111,6 +111,53 @@ public static class AvailabilityResolver
         return result;
     }
 
+    public readonly record struct SlotInfo(DateTimeOffset StartsAt, DateTimeOffset EndsAt, bool IsAvailable, string Status);
+
+    /// <summary>
+    /// تمام بازه‌های زمانی روز کاری اعم از بازه‌های خالی و بازه‌های رزروشده/غیرقابل‌رزرو را تولید می‌کند.
+    /// </summary>
+    public static List<SlotInfo> AllSlots(
+        IEnumerable<TimeInterval> intervals,
+        DateOnly date,
+        string? zoneId,
+        TimeSpan duration,
+        int stepMinutes,
+        IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> busy,
+        DateTimeOffset nowUtc)
+    {
+        if (duration <= TimeSpan.Zero || duration > TimeSpan.FromDays(1)) return [];
+        var busyList = busy.ToList();
+        var step = Math.Max(5, stepMinutes);
+        var seen = new HashSet<DateTimeOffset>();
+        var result = new List<SlotInfo>();
+        var merged = Merge(intervals);
+        var zone = BranchClock.Zone(zoneId);
+        var openUtc = UtcIntervals(merged, date, zone);
+
+        foreach (var interval in merged)
+        {
+            var from = date.ToDateTime(interval.Start, DateTimeKind.Unspecified);
+            var to = IsEndOfDay(interval.End) ? date.AddDays(1).ToDateTime(TimeOnly.MinValue) : date.ToDateTime(interval.End);
+
+            for (var local = from; local < to; local = local.AddMinutes(step))
+            {
+                foreach (var start in BranchClock.LocalInstants(local, zone))
+                {
+                    if (!seen.Add(start)) continue;
+                    var end = start + duration;
+                    if (!openUtc.Any(x => x.Start <= start && end <= x.End)) continue;
+                    var isBooked = busyList.Any(b => BookingPolicy.Overlaps(start, end, b.Start, b.End));
+                    var isTooSoon = !BookingPolicy.IsBookable(start, nowUtc);
+                    var isAvailable = !isBooked && !isTooSoon;
+                    var status = isBooked ? "Booked" : isTooSoon ? "Unavailable" : "Available";
+                    result.Add(new SlotInfo(start, end, isAvailable, status));
+                }
+            }
+        }
+
+        return result.OrderBy(x => x.StartsAt).ToList();
+    }
+
     /// <summary>
     /// از بازه‌های ساعتی، زمان‌های شروع قابل رزرو را می‌سازد. همه‌ی خروجی‌ها UTC هستند.
     /// </summary>

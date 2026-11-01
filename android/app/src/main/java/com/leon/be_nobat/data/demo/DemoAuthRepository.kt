@@ -175,4 +175,26 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
             s.copy(businessRequests = listOf(req) + s.businessRequests) to req
         }
     }
+
+
+    override suspend fun getPlatformPricing(): Result<PlatformPricing> = runCatching {
+        simulateNetworkDelay()
+        dataStore.read { it.platformPricing }
+    }
+
+    override suspend fun uploadBusinessRequestReceipt(input: ReceiptUploadInput): Result<BusinessRequest> = runCatching {
+        simulateNetworkDelay()
+        val actor = current()
+        dataStore.update { s ->
+            val existing = s.businessRequests.firstOrNull { it.userId == actor.id }
+                ?: error("درخواست کسب‌وکاری یافت نشد.")
+            val updated = existing.copy(
+                receiptTrackingCode = input.trackingCode?.trim()?.ifBlank { null },
+                receiptUploadedAt = demoNow(),
+                hasReceiptImage = input.imageBase64.isNotBlank() || input.dataBase64.isNotBlank(),
+                receiptImageBase64 = input.imageBase64.ifBlank { input.dataBase64 }
+            )
+            s.copy(businessRequests = s.businessRequests.map { if (it.id == updated.id) updated else it }) to updated
+        }
+    }
 }

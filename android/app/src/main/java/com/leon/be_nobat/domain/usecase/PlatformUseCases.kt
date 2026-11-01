@@ -117,3 +117,11 @@ class PlatformRejectBusinessRequestUseCase(private val repo: PlatformRepository)
 class PlatformApproveBranchUseCase(private val repo: PlatformRepository) {
     suspend operator fun invoke(id: String) = repo.approveBranch(id)
 }
+
+class PlatformGetPricingUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke() = repo.getPlatformPricing()
+}
+
+class PlatformUpdatePricingUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(input: com.leon.be_nobat.domain.model.PlatformPricingInput) = repo.updatePlatformPricing(input)
+}

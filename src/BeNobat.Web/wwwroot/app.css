@@ -1127,7 +1127,15 @@ html[data-theme="dark"] .review-list blockquote{background:var(--primary-contain
 .directory-page{width:min(100%,1184px);margin-inline:auto;padding:32px 20px 64px;color:var(--on-surface)}
 .directory-page>.back-link{display:inline-flex;align-items:center;min-height:36px;color:var(--on-surface-variant);font-size:12px}
 .directory-hero{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:22px;margin-block:16px 20px;padding:28px;border:1px solid var(--outline-soft);border-radius:20px;background:var(--surface)}
+.directory-hero.has-header{position:relative;background-size:cover;background-position:center;color:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,0.18);border:none}
+.directory-hero.has-header h1{color:#ffffff;text-shadow:0 2px 4px rgba(0,0,0,0.6)}
+.directory-hero.has-header p{color:rgba(255,255,255,0.92);text-shadow:0 1px 3px rgba(0,0,0,0.6)}
+.directory-hero.has-header .directory-kicker{color:#86efac;text-shadow:0 1px 3px rgba(0,0,0,0.7);font-weight:700}
+.directory-hero.has-header .directory-meta>span{background:rgba(0,0,0,0.5);color:#ffffff;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(6px)}
+.directory-hero.has-header .outline-button{background:rgba(255,255,255,0.92);color:#0f172a;border:1px solid #ffffff}
+.directory-hero.has-header .outline-button:hover{background:#ffffff}
 .directory-mark{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;background:var(--primary-container);color:var(--primary);font-size:36px;font-weight:700}
+.directory-hero.has-header .directory-mark{background:#ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.25);border:2px solid #ffffff}
 .directory-heading{min-width:0;overflow-wrap:anywhere}
 .directory-kicker{font-size:12px;font-weight:600;color:var(--primary)}
 .directory-hero h1{margin:4px 0 8px;font-size:clamp(23px,2.4vw,32px);line-height:1.6}
@@ -1701,4 +1709,133 @@ html[data-theme="dark"] .cancellation-notice-editor small {
 }
 .rules-modal-actions .action-secondary:hover {
   background: var(--surface-raised, #f1f5f9) !important;
+}
+
+
+/* ===== Booked Slot Styling ===== */
+.time-grid button.slot-booked {
+    background: #f1f3f4;
+    border: 1px solid #dadce0;
+    color: #80868b;
+    cursor: not-allowed;
+    opacity: 0.75;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+}
+.time-grid button.slot-booked:hover {
+    background: #f1f3f4;
+    border-color: #dadce0;
+}
+.slot-booked-badge {
+    font-size: 9px;
+    color: #d93025;
+    background: #fce8e6;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    font-weight: 500;
+}
+html[data-theme="dark"] .time-grid button.slot-booked {
+    background: #252a2e;
+    border-color: #3c4043;
+    color: #9aa0a6;
+}
+html[data-theme="dark"] .slot-booked-badge {
+    background: rgba(217, 48, 37, 0.2);
+    color: #f28b82;
+}
+
+/* ===== Deposit Payment Card ===== */
+.deposit-box {
+    background: #fef8f0;
+    border: 1.5px solid #f6c88f;
+    border-radius: 14px;
+    padding: 18px;
+    margin: 18px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+html[data-theme="dark"] .deposit-box {
+    background: #2b2518;
+    border-color: #634b1a;
+}
+.deposit-box-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.deposit-box-header i {
+    font-size: 26px;
+    font-style: normal;
+}
+.deposit-box-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #8c4a00;
+}
+html[data-theme="dark"] .deposit-box-header h4 {
+    color: #f6c88f;
+}
+.deposit-box-header p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--on-surface);
+}
+.deposit-bank-info {
+    background: #fff;
+    border: 1px solid #f0dec5;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+html[data-theme="dark"] .deposit-bank-info {
+    background: #1e1e1e;
+    border-color: #443c2c;
+}
+.deposit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+.deposit-row small {
+    color: var(--on-surface-variant);
+}
+.deposit-row strong {
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+.deposit-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.booking-file-input {
+    padding: 8px;
+    border: 1px dashed #c0b096;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+}
+html[data-theme="dark"] .booking-file-input {
+    background: #1e1e1e;
+    border-color: #554832;
+    color: #e0e0e0;
+}
+.receipt-file-badge {
+    font-size: 12px;
+    color: #1e7e34;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }

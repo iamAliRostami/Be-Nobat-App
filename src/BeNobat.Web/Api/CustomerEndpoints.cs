@@ -18,8 +18,26 @@ public static class CustomerEndpoints
             var result = await booking.GetAvailabilityAsync(businessId, branchId, ids, resourceId, date, ct);
             if (!result.Success) return Failure(result.Failure!.Value);
             var providers = result.Resources.ToDictionary(r => r.Id, r => r.Name);
-            var slots = result.SlotsByResource.SelectMany(pair => pair.Value.Select(start => new SlotDto(pair.Key, providers.GetValueOrDefault(pair.Key) ?? "", start, start.AddMinutes(result.DurationMinutes)))).OrderBy(s => s.StartsAt).ThenBy(s => s.ResourceName).ToArray();
-            return Results.Ok(new { date, timeZoneId = result.Branch!.TimeZoneId, totalDurationMinutes = result.DurationMinutes, totalPrice = result.TotalPrice, result.Currency, slots });
+            var effectiveDepositPct = result.Branch?.DepositPercentage ?? result.Business?.DepositPercentage ?? 0;
+            var depositAmount = effectiveDepositPct > 0 ? Math.Round((result.TotalPrice * effectiveDepositPct) / 100m) : 0m;
+            var depositCardNumber = result.Branch?.DepositCardNumber ?? result.Business?.DepositCardNumber;
+            var depositIban = result.Branch?.DepositIban ?? result.Business?.DepositIban;
+            var depositAccountHolder = result.Branch?.DepositAccountHolder ?? result.Business?.DepositAccountHolder;
+
+            var slots = result.AllSlotsByResource.SelectMany(pair => pair.Value.Select(slot => new SlotDto(pair.Key, providers.GetValueOrDefault(pair.Key) ?? "", slot.StartsAt, slot.EndsAt, slot.IsAvailable, slot.Status))).OrderBy(s => s.StartsAt).ThenBy(s => s.ResourceName).ToArray();
+            return Results.Ok(new {
+                date,
+                timeZoneId = result.Branch!.TimeZoneId,
+                totalDurationMinutes = result.DurationMinutes,
+                totalPrice = result.TotalPrice,
+                result.Currency,
+                depositPercentage = effectiveDepositPct,
+                depositAmount,
+                depositCardNumber,
+                depositIban,
+                depositAccountHolder,
+                slots
+            });
         }).AllowAnonymous();
         var customer = root.MapGroup("").RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = MobileAuthentication.Scheme });
         customer.MapGet("/favorites", async (ApiScope scope, AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>
@@ -148,6 +166,6 @@ public static class CustomerEndpoints
         a.Services.Count > 0 ? a.Services.Select(s => s.Service.Name).ToArray() : [a.Service.Name], a.ResourceId, a.Resource?.Name, a.StartsAt, a.EndsAt, a.Status.ToString(), a.FinalPrice,
         a.Currency, a.CustomerNote, a.TrackingCode, BookingPolicy.CanCustomerCancel(a, DateTimeOffset.UtcNow), review == null && a.Branch.DeletedAt == null && a.Branch.Business.DeletedAt == null && BookingPolicy.CanCustomerReview(a, DateTimeOffset.UtcNow), review, CancellationPolicy.NoticeMinutes(a), CancellationPolicy.Deadline(a));
 }
-public sealed record SlotDto(Guid ResourceId, string ResourceName, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
-public sealed record BookingInput(Guid BusinessId, Guid BranchId, Guid[]? ServiceIds, Guid? ResourceId, DateTimeOffset StartsAt, string? PhoneNumber, string? CustomerNote, bool TermsAccepted, decimal? ExpectedPrice = null, int? ExpectedDurationMinutes = null);
+public sealed record SlotDto(Guid ResourceId, string ResourceName, DateTimeOffset StartsAt, DateTimeOffset EndsAt, bool IsAvailable = true, string Status = "Available");
+public sealed record BookingInput(Guid BusinessId, Guid BranchId, Guid[]? ServiceIds, Guid? ResourceId, DateTimeOffset StartsAt, string? PhoneNumber, string? CustomerNote, bool TermsAccepted, decimal? ExpectedPrice = null, int? ExpectedDurationMinutes = null, string? DepositTrackingCode = null, string? DepositReceiptBase64 = null, string? DepositReceiptContentType = null);
 public sealed record ReviewInput(int Rating, string? Comment);

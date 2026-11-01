@@ -194,6 +194,28 @@ class ProfileViewModel(
             .onFailure { e -> _state.value = _state.value.copy(uploadingAvatar = false, error = e.message) }
     }
 
+    fun loadPricing() = viewModelScope.launch {
+        getPlatformPricingUseCase()
+            .onSuccess { pricing -> _state.value = _state.value.copy(pricing = pricing) }
+            .onFailure { e -> _state.value = _state.value.copy(error = e.message) }
+    }
+
+    fun uploadReceipt(input: ReceiptUploadInput) = viewModelScope.launch {
+        _state.value = _state.value.copy(uploadingReceipt = true, error = null, message = null)
+        val normalizedInput = if (input.imageBase64.isNotBlank()) input else input.copy(imageBase64 = input.dataBase64)
+        uploadReceiptUseCase(normalizedInput)
+            .onSuccess { req ->
+                _state.value = _state.value.copy(
+                    uploadingReceipt = false,
+                    businessRequest = req,
+                    message = "receipt_uploaded"
+                )
+            }
+            .onFailure { e ->
+                _state.value = _state.value.copy(uploadingReceipt = false, error = e.message)
+            }
+    }
+
     fun logout() = viewModelScope.launch { logoutUseCase() }
 
     fun clearMessages() {

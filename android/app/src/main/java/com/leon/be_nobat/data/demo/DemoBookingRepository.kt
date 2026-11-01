@@ -53,6 +53,7 @@ class DemoBookingRepository(
             val primarySlot = slots.slots.firstOrNull { it.startsAt == input.startsAt }
                 ?: slots.slots.firstOrNull { it.startsAt.take(16) == input.startsAt.take(16) }
             val slot: Slot = primarySlot ?: error("این زمان دیگر قابل رزرو نیست.")
+            require(slot.isAvailable) { "این زمان قبلاً رزرو شده است." }
             val biz = state.businesses.firstOrNull { it.id == input.businessId }
             val branch = state.branches.firstOrNull { it.id == input.branchId }
             val services = state.services.filter { input.serviceIds.contains(it.id) }
@@ -65,6 +66,15 @@ class DemoBookingRepository(
 
             require(input.expectedDurationMinutes == null || input.expectedDurationMinutes == slots.totalDurationMinutes)
             val endsAt = slot.endsAt
+
+            val effectiveDepositPct = branch?.depositPercentage ?: biz?.depositPercentage ?: 0.0
+            val depositRequired = effectiveDepositPct > 0.0
+            val depositAmount = if (depositRequired) Math.round(price * effectiveDepositPct / 100.0).toDouble() else 0.0
+            if (depositRequired) {
+                require(!input.depositTrackingCode.isNullOrBlank() || !input.depositReceiptBase64.isNullOrBlank()) {
+                    "ثبت بیعانه برای این نوبت الزامی است. لطفاً کد رهگیری یا فیش واریز را وارد کنید."
+                }
+            }
 
             val managementAppt = ManagementAppointment(
                 id = newId,
@@ -90,6 +100,12 @@ class DemoBookingRepository(
                 serviceName = services.firstOrNull()?.name.orEmpty(),
                 timeZoneId = "Asia/Tehran",
                 trackingCode = tracking,
+                depositRequired = depositRequired,
+                depositPercentage = effectiveDepositPct,
+                depositAmount = depositAmount,
+                depositTrackingCode = input.depositTrackingCode?.trim(),
+                depositReceiptUrl = if (!input.depositReceiptBase64.isNullOrBlank()) "https://demo.benobat.ir/receipts/$newId.jpg" else null,
+                depositPaidAt = if (depositRequired) demoNow() else null,
             )
 
             val updatedAppointments = listOf(managementAppt) + state.appointments
@@ -235,6 +251,12 @@ class DemoBookingRepository(
             cancellationDeadline = com.leon.be_nobat.domain.CancellationPolicy.deadline(startsAt, notice),
             canReview = canReview,
             reviewId = existingReviewId,
+            depositRequired = depositRequired,
+            depositPercentage = depositPercentage,
+            depositAmount = depositAmount,
+            depositTrackingCode = depositTrackingCode,
+            depositReceiptUrl = depositReceiptUrl,
+            depositPaidAt = depositPaidAt,
         )
     }
 }

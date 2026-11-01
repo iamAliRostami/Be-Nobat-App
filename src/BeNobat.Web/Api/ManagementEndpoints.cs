@@ -23,6 +23,22 @@ public static class ManagementEndpoints
         admin.MapGet("/context", ManagementContext);
         admin.MapGet("/accounts", LookupAccount);
         admin.MapGet("/businesses", ListBusinesses);
+        admin.MapPost("/businesses/{id:guid}/avatar", UploadBusinessAvatar);
+        admin.MapPost("/businesses/{id:guid}/header", UploadBusinessHeader);
+        admin.MapGet("/businesses/{id:guid}/gallery", ListBusinessGallery);
+        admin.MapPost("/businesses/{id:guid}/gallery", AddBusinessGalleryItem);
+        admin.MapDelete("/businesses/gallery/{id:guid}", DeleteBusinessGalleryItem);
+
+        admin.MapPost("/branches/{id:guid}/avatar", UploadBranchAvatar);
+        admin.MapPost("/branches/{id:guid}/header", UploadBranchHeader);
+        admin.MapGet("/branches/{id:guid}/gallery", ListBranchGallery);
+        admin.MapPost("/branches/{id:guid}/gallery", AddBranchGalleryItem);
+        admin.MapDelete("/branches/gallery/{id:guid}", DeleteBranchGalleryItem);
+
+        admin.MapPost("/resources/{id:guid}/avatar", UploadResourceAvatar);
+        admin.MapGet("/resources/{id:guid}/gallery", ListResourceGallery);
+        admin.MapPost("/resources/{id:guid}/gallery", AddResourceGalleryItem);
+        admin.MapDelete("/resources/gallery/{id:guid}", DeleteResourceGalleryItem);
         admin.MapGet("/businesses/{id:guid}", GetBusiness);
         admin.MapPut("/businesses/{id:guid}", UpdateBusiness);
         admin.MapGet("/branches", ListBranches);
@@ -1117,7 +1133,8 @@ public static class ManagementEndpoints
         new ManagementAppointmentDto(a.Id, a.BranchId, a.Branch.BusinessId, a.ServiceId, a.ResourceId, a.CustomerId, a.StartsAt, a.EndsAt,
             a.Status.ToString(), a.FinalPrice, a.Currency, a.CustomerNote, a.Branch.Name, a.Service.Name, a.Resource == null ? null : a.Resource.Name,
             a.Customer.DisplayName, a.Customer.Email, a.Customer.PhoneNumber, a.Branch.Business.Name, a.Branch.TimeZoneId,
-            a.Services.Where(s => s.DeletedAt == null).OrderBy(s => s.Id).Select(s => s.Service.Name).ToArray(), a.TrackingCode));
+            a.Services.Where(s => s.DeletedAt == null).OrderBy(s => s.Id).Select(s => s.Service.Name).ToArray(), a.TrackingCode,
+            a.DepositRequired, a.DepositPercentage, a.DepositAmount, a.DepositTrackingCode, a.DepositPaidAt, a.DepositReceiptData != null));
 
     private static async Task<IResult> ListAppointments(ApiScope scope, CancellationToken ct, Guid? businessId = null, Guid? branchId = null, Guid? resourceId = null,
         Guid? customerId = null, DateTimeOffset? from = null, DateTimeOffset? to = null, DateOnly? date = null, string? status = null, int page = 1, int pageSize = 25)
@@ -1661,15 +1678,163 @@ public static class ManagementEndpoints
         await db.SaveChangesAsync(ct);
         return Results.Ok(ToBusinessRequestDto(req, null, null, null));
     }
+    private static async Task<IResult> UploadBusinessAvatar(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBusiness(id)) return Denied();
+        var biz = await db.Businesses.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (biz is null) return Missing();
+        if (string.IsNullOrWhiteSpace(input.Data)) { biz.AvatarData = null; biz.AvatarContentType = null; }
+        else { try { biz.AvatarData = Convert.FromBase64String(input.Data); biz.AvatarContentType = input.ContentType ?? "image/jpeg"; } catch { return Invalid("Invalid image data."); } }
+        biz.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { avatarUrl = biz.AvatarData != null ? $"/media/business/{id}/avatar" : null });
+    }
+
+    private static async Task<IResult> UploadBusinessHeader(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBusiness(id)) return Denied();
+        var biz = await db.Businesses.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (biz is null) return Missing();
+        if (string.IsNullOrWhiteSpace(input.Data)) { biz.HeaderData = null; biz.HeaderContentType = null; }
+        else { try { biz.HeaderData = Convert.FromBase64String(input.Data); biz.HeaderContentType = input.ContentType ?? "image/jpeg"; } catch { return Invalid("Invalid image data."); } }
+        biz.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { headerUrl = biz.HeaderData != null ? $"/media/business/{id}/header" : null });
+    }
+
+    private static async Task<IResult> ListBusinessGallery(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var items = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/business/gallery/{g.Id}")).ToListAsync(ct);
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> AddBusinessGalleryItem(Guid id, AddGalleryItemInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBusiness(id)) return Denied();
+        if (string.IsNullOrWhiteSpace(input.ImageBase64)) return Invalid("Image data is required.");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(input.ImageBase64); } catch { return Invalid("Invalid image data."); }
+        var item = new BusinessGalleryItem { BusinessId = id, Caption = input.Caption?.Trim(), SortOrder = input.SortOrder, ContentType = input.ContentType ?? "image/jpeg", ImageData = bytes };
+        db.BusinessGalleryItems.Add(item);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new GalleryItemDto(item.Id, item.Caption, item.SortOrder, $"/media/business/gallery/{item.Id}"));
+    }
+
+    private static async Task<IResult> DeleteBusinessGalleryItem(Guid id, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        var item = await db.BusinessGalleryItems.FirstOrDefaultAsync(g => g.Id == id, ct);
+        if (item is null) return Missing();
+        if (!await scope.CanManageBusiness(item.BusinessId)) return Denied();
+        db.BusinessGalleryItems.Remove(item);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> UploadBranchAvatar(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBranch(id)) return Denied();
+        var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (branch is null) return Missing();
+        if (string.IsNullOrWhiteSpace(input.Data)) { branch.AvatarData = null; branch.AvatarContentType = null; }
+        else { try { branch.AvatarData = Convert.FromBase64String(input.Data); branch.AvatarContentType = input.ContentType ?? "image/jpeg"; } catch { return Invalid("Invalid image data."); } }
+        branch.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { avatarUrl = branch.AvatarData != null ? $"/media/branch/{id}/avatar" : null });
+    }
+
+    private static async Task<IResult> UploadBranchHeader(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBranch(id)) return Denied();
+        var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (branch is null) return Missing();
+        if (string.IsNullOrWhiteSpace(input.Data)) { branch.HeaderData = null; branch.HeaderContentType = null; }
+        else { try { branch.HeaderData = Convert.FromBase64String(input.Data); branch.HeaderContentType = input.ContentType ?? "image/jpeg"; } catch { return Invalid("Invalid image data."); } }
+        branch.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { headerUrl = branch.HeaderData != null ? $"/media/branch/{id}/header" : null });
+    }
+
+    private static async Task<IResult> ListBranchGallery(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var items = await db.BranchGalleryItems.AsNoTracking().Where(g => g.BranchId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/branch/gallery/{g.Id}")).ToListAsync(ct);
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> AddBranchGalleryItem(Guid id, AddGalleryItemInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBranch(id)) return Denied();
+        if (string.IsNullOrWhiteSpace(input.ImageBase64)) return Invalid("Image data is required.");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(input.ImageBase64); } catch { return Invalid("Invalid image data."); }
+        var item = new BranchGalleryItem { BranchId = id, Caption = input.Caption?.Trim(), SortOrder = input.SortOrder, ContentType = input.ContentType ?? "image/jpeg", ImageData = bytes };
+        db.BranchGalleryItems.Add(item);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new GalleryItemDto(item.Id, item.Caption, item.SortOrder, $"/media/branch/gallery/{item.Id}"));
+    }
+
+    private static async Task<IResult> DeleteBranchGalleryItem(Guid id, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        var item = await db.BranchGalleryItems.FirstOrDefaultAsync(g => g.Id == id, ct);
+        if (item is null) return Missing();
+        if (!await scope.CanManageBranch(item.BranchId)) return Denied();
+        db.BranchGalleryItems.Remove(item);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> UploadResourceAvatar(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        var resource = await db.Resources.FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (resource is null) return Missing();
+        if (!await scope.CanManageBranch(resource.BranchId)) return Denied();
+        if (string.IsNullOrWhiteSpace(input.Data)) { resource.AvatarData = null; resource.AvatarContentType = null; }
+        else { try { resource.AvatarData = Convert.FromBase64String(input.Data); resource.AvatarContentType = input.ContentType ?? "image/jpeg"; } catch { return Invalid("Invalid image data."); } }
+        resource.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { avatarUrl = resource.AvatarData != null ? $"/media/resource/{id}/avatar" : null });
+    }
+
+    private static async Task<IResult> ListResourceGallery(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var items = await db.ResourceGalleryItems.AsNoTracking().Where(g => g.ResourceId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/resource/gallery/{g.Id}")).ToListAsync(ct);
+        return Results.Ok(items);
+    }
+
+    private static async Task<IResult> AddResourceGalleryItem(Guid id, AddGalleryItemInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        var resource = await db.Resources.FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (resource is null) return Missing();
+        if (!await scope.CanManageBranch(resource.BranchId)) return Denied();
+        if (string.IsNullOrWhiteSpace(input.ImageBase64)) return Invalid("Image data is required.");
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(input.ImageBase64); } catch { return Invalid("Invalid image data."); }
+        var item = new ResourceGalleryItem { ResourceId = id, Caption = input.Caption?.Trim(), SortOrder = input.SortOrder, ContentType = input.ContentType ?? "image/jpeg", ImageData = bytes };
+        db.ResourceGalleryItems.Add(item);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new GalleryItemDto(item.Id, item.Caption, item.SortOrder, $"/media/resource/gallery/{item.Id}"));
+    }
+
+    private static async Task<IResult> DeleteResourceGalleryItem(Guid id, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        var item = await db.ResourceGalleryItems.Include(g => g.Resource).FirstOrDefaultAsync(g => g.Id == id, ct);
+        if (item is null) return Missing();
+        if (!await scope.CanManageBranch(item.Resource.BranchId)) return Denied();
+        db.ResourceGalleryItems.Remove(item);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
+    }
+
 }
 
 public sealed record ManagementActiveInput(bool Active);
-public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null, int? CancellationNoticeMinutes = null);
-public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120);
-public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null);
-public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null);
-public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null);
-public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active);
+public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
+public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
+public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
+public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
+public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null, string? AvatarBase64 = null);
+public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active, string? AvatarUrl = null);
+public sealed record ImageUploadInput(string? Data, string? ContentType);
+public sealed record AddGalleryItemInput(string ImageBase64, string? ContentType = "image/jpeg", string? Caption = null, int SortOrder = 0);
 public sealed record ManagementMembershipInput(Guid BranchId, Guid UserId, string Role = AppRoles.Staff);
 public sealed record ManagementMembershipDto(Guid Id, Guid BranchId, Guid UserId, string Role, string DisplayName, string? Email);
 public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, int Visits = 0, double? Rating = null, string? Role = null, string? BranchName = null);
@@ -1685,7 +1850,7 @@ public sealed record ManagementContextMembership(Guid BranchId, Guid BusinessId,
 public sealed record ManagementAvailabilityInput(Guid BusinessId, DateOnly EffectiveDate, TimeOnly StartsAt, TimeOnly EndsAt, Guid? BranchId = null, Guid? ResourceId = null, bool IsAvailable = true);
 public sealed record ManagementAvailabilityDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid? ResourceId, DateOnly? EffectiveDate, string DayOfWeek, TimeOnly StartsAt, TimeOnly EndsAt, bool IsAvailable, string? BusinessName = null, string? BranchName = null, string? ResourceName = null);
 public sealed record ManagementStatusInput(string Status);
-public sealed record ManagementAppointmentDto(Guid Id, Guid BranchId, Guid BusinessId, Guid ServiceId, Guid? ResourceId, Guid CustomerId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, decimal FinalPrice, string Currency, string CustomerNote, string BranchName, string ServiceName, string? ResourceName, string CustomerName, string? CustomerEmail, string? CustomerPhoneNumber, string BusinessName, string TimeZoneId, string[] ServiceNames, string TrackingCode)
+public sealed record ManagementAppointmentDto(Guid Id, Guid BranchId, Guid BusinessId, Guid ServiceId, Guid? ResourceId, Guid CustomerId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, decimal FinalPrice, string Currency, string CustomerNote, string BranchName, string ServiceName, string? ResourceName, string CustomerName, string? CustomerEmail, string? CustomerPhoneNumber, string BusinessName, string TimeZoneId, string[] ServiceNames, string TrackingCode, bool DepositRequired = false, int DepositPercentage = 0, decimal DepositAmount = 0, string? DepositTrackingCode = null, DateTimeOffset? DepositPaidAt = null, bool HasDepositReceipt = false)
 {
     public string[] ServiceNames { get; init; } = ServiceNames.Length == 0 ? [ServiceName] : ServiceNames;
 }

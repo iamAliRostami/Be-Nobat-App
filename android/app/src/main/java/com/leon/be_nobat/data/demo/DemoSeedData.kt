@@ -4,6 +4,7 @@ import com.leon.be_nobat.domain.model.ManagementAppointment
 import com.leon.be_nobat.domain.model.ManagementAvailability
 import com.leon.be_nobat.domain.model.ManagementBranch
 import com.leon.be_nobat.domain.model.ManagementBranchService
+import com.leon.be_nobat.domain.model.GalleryItem
 import com.leon.be_nobat.domain.model.ManagementBusiness
 import com.leon.be_nobat.domain.model.ManagementCatalog
 import com.leon.be_nobat.domain.model.ManagementCategory
@@ -126,6 +127,17 @@ object DemoSeedData {
                 description = "مجموعه تخصصی پیرایش و مراقبت پوست آقایان دیپلمات با فضایی آرام و کادری حرفه‌ای در منطقه سعادت‌آباد.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
+                depositPercentage = 20.0,
+                depositCardNumber = "۶۰۳۷-۹۹۷۵-۱۱۱۱-۲۲۲۲",
+                depositIban = "IR120170000000111122223333",
+                depositAccountHolder = "سالن دیپلمات",
+                gallery = listOf(
+                    GalleryItem("gal_1", "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop", "محیط اختصاصی اصلاح"),
+                    GalleryItem("gal_2", "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600&auto=format&fit=crop", "بخش شستشو و ماساژ"),
+                    GalleryItem("gal_3", "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop", "تجهیزات مدرن")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_labkhand",
@@ -136,6 +148,16 @@ object DemoSeedData {
                 description = "خدمات تخصصی ایمپلنت، ارتودنسی، کامپوزیت و درمان ریشه با پیشرفته‌ترین تجهیزات دیجیتال.",
                 requiresApproval = true,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&auto=format&fit=crop",
+                depositPercentage = 30.0,
+                depositCardNumber = "۶۲۱۹-۸۶۱۰-۳۳۳۳-۴۴۴۴",
+                depositIban = "IR980560000000333344445555",
+                depositAccountHolder = "دکتر لبخند",
+                gallery = listOf(
+                    GalleryItem("gal_4", "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&auto=format&fit=crop", "یونیت دندانپزشکی دیجیتال"),
+                    GalleryItem("gal_5", "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop", "اتاق استریل مجهز")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_negin",
@@ -146,6 +168,16 @@ object DemoSeedData {
                 description = "ارائه خدمات تخصصی عروس، رنگ و لایت، ناخن، مژه و میکاپ با برترین متریال‌های اروپایی.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop",
+                depositPercentage = 15.0,
+                depositCardNumber = "۵۰۲۲-۲۹۱۰-۵۵۵۵-۶۶۶۶",
+                depositIban = "IR330540000000555566667777",
+                depositAccountHolder = "مجموعه زیبایی نگین",
+                gallery = listOf(
+                    GalleryItem("gal_6", "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&auto=format&fit=crop", "سالن اصلی"),
+                    GalleryItem("gal_7", "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&auto=format&fit=crop", "میزهای لاین ناخن")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_afarinesh",

@@ -131,4 +131,17 @@ class AuthRepositoryImpl(
 
     private fun encodeJsonObject(block: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit): JsonObject =
         buildJsonObject(block)
+
+    override suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing> = runCatching {
+        api.getPlatformPricing<com.leon.be_nobat.domain.model.PlatformPricing>().getOrThrow()
+    }.recoverCatching { throw AuthException.fromApi(it) }
+
+    override suspend fun uploadBusinessRequestReceipt(input: com.leon.be_nobat.domain.model.ReceiptUploadInput): Result<com.leon.be_nobat.domain.model.BusinessRequest> = runCatching {
+        val body = encodeJsonObject {
+            put("imageBase64", input.imageBase64.ifBlank { input.dataBase64 })
+            put("contentType", input.contentType)
+            if (input.trackingCode != null) put("trackingCode", input.trackingCode)
+        }
+        api.uploadBusinessRequestReceipt<com.leon.be_nobat.domain.model.BusinessRequest>(body).getOrThrow()
+    }.recoverCatching { throw AuthException.fromApi(it) }
 }

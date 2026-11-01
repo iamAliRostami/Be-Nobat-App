@@ -11,7 +11,10 @@ public static class PublicEndpoints
     public static readonly Expression<Func<Business, BusinessDto>> BusinessProjection = b => new BusinessDto(b.Id, b.Name, b.Slug, b.Category, b.City, b.Description, b.RequiresApproval,
         b.Branches.Count(x => x.DeletedAt == null), b.Services.Count(x => x.DeletedAt == null),
         b.Reviews.Where(r => r.Status == ReviewStatus.Published && r.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null)).Average(r => (double?)r.Rating),
-        b.Reviews.Count(r => r.Status == ReviewStatus.Published && r.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null)));
+        b.Reviews.Count(r => r.Status == ReviewStatus.Published && r.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null)),
+        b.AvatarData != null ? $"/media/business/{b.Id}/avatar" : null,
+        b.HeaderData != null ? $"/media/business/{b.Id}/header" : null,
+        b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder);
     public static RouteGroupBuilder MapPublicEndpoints(this RouteGroupBuilder root)
     {
         root.MapGet("/categories", async (AppDbContext db, CancellationToken ct) => Results.Ok(new { items = await db.CategoryDefinitions.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.SortOrder).ThenBy(c => c.Name).Select(c => new { c.Id, c.Name, kind = c.Kind.ToString(), c.SortOrder }).ToListAsync(ct) })).AllowAnonymous();
@@ -42,10 +45,11 @@ public static class PublicEndpoints
         {
             var business = await db.Businesses.AsNoTracking().Where(b => b.Id == businessId).Select(BusinessProjection).FirstOrDefaultAsync(ct);
             if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
-            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct);
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder)).ToListAsync(ct);
             var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == businessId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
             var reviews = await PublicReviews(db, businessId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
-            return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews));
+            var gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == businessId).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/business/gallery/{g.Id}")).ToListAsync(ct);
+            return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews, business.AvatarUrl, business.HeaderUrl, business.DepositPercentage, business.DepositCardNumber, business.DepositIban, business.DepositAccountHolder, gallery));
         }).AllowAnonymous();
         root.MapGet("/businesses/by-slug/{slug}", async (string slug, AppDbContext db, CancellationToken ct) =>
         {
@@ -53,10 +57,11 @@ public static class PublicEndpoints
             var business = await db.Businesses.AsNoTracking().Where(b => b.Slug == normalizedSlug && b.DeletedAt == null).Select(BusinessProjection).FirstOrDefaultAsync(ct);
             if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
             var actualId = business.Id;
-            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == actualId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour)).ToListAsync(ct);
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == actualId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder)).ToListAsync(ct);
             var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == actualId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
             var reviews = await PublicReviews(db, actualId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
-            return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews));
+            var gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == actualId).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/business/gallery/{g.Id}")).ToListAsync(ct);
+            return Results.Ok(new BusinessDetailDto(business.Id, business.Name, business.Slug, business.Category, business.City, business.Description, business.RequiresApproval, business.BranchCount, business.ServiceCount, business.Rating, business.ReviewCount, branches, services, reviews, business.AvatarUrl, business.HeaderUrl, business.DepositPercentage, business.DepositCardNumber, business.DepositIban, business.DepositAccountHolder, gallery));
         }).AllowAnonymous();
         root.MapGet("/businesses/{businessId:guid}/reviews", async (Guid businessId, AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>
         {
@@ -89,4 +94,4 @@ public static class PublicEndpoints
     }
     private static IQueryable<Review> PublicReviews(AppDbContext db, Guid businessId) => db.Reviews.AsNoTracking().Where(r => r.BusinessId == businessId && r.Status == ReviewStatus.Published && r.Business.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null));
 }
-public sealed record BusinessDetailDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, IReadOnlyList<BranchDto> Branches, IReadOnlyList<ServiceDto> Services, IReadOnlyList<PublicReviewDto> Reviews);
+public sealed record BusinessDetailDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, IReadOnlyList<BranchDto> Branches, IReadOnlyList<ServiceDto> Services, IReadOnlyList<PublicReviewDto> Reviews, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);

@@ -106,3 +106,16 @@ class SubmitBusinessRequestUseCase(
     suspend operator fun invoke(input: com.leon.be_nobat.domain.model.BusinessRequestInput) =
         repository.submitBusinessRequest(input)
 }
+
+class GetPlatformPricingUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke() = repository.getPlatformPricing()
+}
+
+class UploadReceiptUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke(input: com.leon.be_nobat.domain.model.ReceiptUploadInput) =
+        repository.uploadBusinessRequestReceipt(input)
+}

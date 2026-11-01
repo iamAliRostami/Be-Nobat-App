@@ -284,7 +284,7 @@ class BusinessUpgradeActivity : BaseActivity() {
                     layoutExtra?.isVisible = true
                     tvExtraTitle?.text = getString(R.string.platform_request_other_branches, req!!.additionalBranches.size)
                     tvExtraList?.text = req.additionalBranches.joinToString("\n") { br ->
-                        "• " + if (br.address.isNotBlank()) " ()" else ""
+                        "• ${br.name}" + if (br.address.isNotBlank()) " (${br.address})" else ""
                     }
                 } else {
                     layoutExtra?.isVisible = false

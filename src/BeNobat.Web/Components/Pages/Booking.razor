@@ -82,13 +82,30 @@ else
                             <button type="button" class="cal-nav next" disabled="@(!CanGoNext)" aria-label="@LocalizedDate.Choose(Language, "هفته بعد", "الأسبوع التالي", "Next week")" @onclick="() => ShiftWindow(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></button>
                         </div>
                     </details>
-                    <h3 class="time-title">زمان‌های خالی <small>@Slots.Count زمان موجود</small></h3>
+                    <h3 class="time-title">زمان‌های نوبت‌دهی <small>@DisplaySlots.Count(x => x.IsAvailable) زمان خالی</small></h3>
                     @if (ProviderChoice.Length == 0) { <p class="empty-state">ابتدا کارمند ارائه‌دهنده را انتخاب کنید.</p> }
-                    else if (IsLoadingSlots) { <p class="empty-state">در حال بررسی زمان‌های خالی…</p> }
-                    else if (Slots.Count == 0) { <p class="empty-state">برای این روز زمان خالی وجود ندارد. روز دیگری را انتخاب کنید@(NextAvailableDate is DateOnly next ? $" — نزدیک‌ترین روز خالی: {LocalizedDate.Format(next, Language)}" : "").@if (NextAvailableDate is DateOnly jump) { <button type="button" class="link-button" @onclick="() => SelectDate(jump)">برو به آن روز</button> }</p> }
+                    else if (IsLoadingSlots) { <p class="empty-state">در حال بررسی زمان‌ها…</p> }
+                    else if (DisplaySlots.Count == 0) { <p class="empty-state">برای این روز زمان کاری وجود ندارد. روز دیگری را انتخاب کنید@(NextAvailableDate is DateOnly next ? $" — نزدیک‌ترین روز خالی: {LocalizedDate.Format(next, Language)}" : "").@if (NextAvailableDate is DateOnly jump) { <button type="button" class="link-button" @onclick="() => SelectDate(jump)">برو به آن روز</button> }</p> }
                     else
                     {
-                        <div class="time-grid">@foreach (var slot in Slots) { <button type="button" class="@(SelectedSlot == slot ? "selected" : "") @(IsFlexibleSlot(slot) ? "flex-slot" : "")" aria-pressed="@(SelectedSlot == slot ? "true" : "false")" title="@(IsFlexibleSlot(slot) ? "نیازمند هماهنگی با شعبه" : "")" @onclick="() => PickSlot(slot)">@BranchClock.FormatTime(slot, SelectedBranch?.TimeZoneId, Language)@(IsFlexibleSlot(slot) ? " ◔" : "")</button> }</div>
+                        <div class="time-grid">
+                            @foreach (var slot in DisplaySlots)
+                            {
+                                @if (slot.IsAvailable)
+                                {
+                                    <button type="button" class="@(SelectedSlot == slot.StartsAt ? "selected" : "") @(slot.IsFlexible ? "flex-slot" : "")" aria-pressed="@(SelectedSlot == slot.StartsAt ? "true" : "false")" title="@(slot.IsFlexible ? "نیازمند هماهنگی با شعبه" : "")" @onclick="() => PickSlot(slot.StartsAt)">
+                                        @BranchClock.FormatTime(slot.StartsAt, SelectedBranch?.TimeZoneId, Language)@(slot.IsFlexible ? " ◔" : "")
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="slot-booked" disabled aria-disabled="true" title="این زمان رزرو شده است">
+                                        <span>@BranchClock.FormatTime(slot.StartsAt, SelectedBranch?.TimeZoneId, Language)</span>
+                                        <span class="slot-booked-badge">رزرو شده</span>
+                                    </button>
+                                }
+                            }
+                        </div>
                         @if (Slots.Any(IsFlexibleSlot))
                         {
                             <p class="booking-login-hint">زمان‌های دارای «◔» کمی کوتاه‌تر از مدت خدمت شما هستند (حداکثر @BookingPolicy.OverrunToleranceMinutes دقیقه). با انتخاب آن‌ها درخواست شما به شعبه می‌رسد و شعبه زمان نهایی را تأیید می‌کند.</p>
@@ -120,6 +137,46 @@ else
                     <label class="booking-note">توضیح برای مجموعه (اختیاری)
                         <textarea class="booking-field" rows="3" disabled="@IsBooking" maxlength="500" placeholder="هر نکته‌ای که مجموعه باید بداند…" @bind="CustomerNote" @bind:event="oninput"></textarea>
                     </label>
+                    @if (IsDepositRequired)
+                    {
+                        <div class="deposit-box">
+                            <div class="deposit-box-header">
+                                <i>💳</i>
+                                <div>
+                                    <h4>پرداخت بیعانه جهت نهایی‌سازی رزرو (@EffectiveDepositPercentage٪)</h4>
+                                    <p>مبلغ بیعانه: <strong>@DepositAmount.ToString("N0") تومان</strong></p>
+                                </div>
+                            </div>
+                            <div class="deposit-bank-info">
+                                @if (!string.IsNullOrWhiteSpace(DepositCardNumber))
+                                {
+                                    <div class="deposit-row"><small>شماره کارت جهت واریز:</small><strong dir="ltr">@DepositCardNumber</strong></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(DepositIban))
+                                {
+                                    <div class="deposit-row"><small>شماره شبا:</small><strong dir="ltr">@DepositIban</strong></div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(DepositAccountHolder))
+                                {
+                                    <div class="deposit-row"><small>به نام:</small><strong>@DepositAccountHolder</strong></div>
+                                }
+                            </div>
+                            <div class="deposit-form-fields">
+                                <label class="booking-note">
+                                    کد رهگیری / شماره پیگیری واریز
+                                    <input class="booking-field" type="text" dir="ltr" placeholder="کد رهگیری فیش واریز..." @bind="DepositTrackingCode" />
+                                </label>
+                                <label class="booking-note">
+                                    بارگذاری تصویر فیش واریز
+                                    <InputFile OnChange="OnDepositReceiptSelected" accept="image/*" class="booking-file-input" />
+                                </label>
+                                @if (!string.IsNullOrWhiteSpace(DepositReceiptFileName))
+                                {
+                                    <div class="receipt-file-badge">✓ تصویر فیش انتخاب شد: @DepositReceiptFileName</div>
+                                }
+                            </div>
+                        </div>
+                    }
                     @if (SelectedSlot is DateTimeOffset chosenSlot && IsFlexibleSlot(chosenSlot))
                     {
                         <p class="booking-login-hint">این زمان کمی کوتاه‌تر از مدت خدمت شماست؛ شعبه درخواست را بررسی می‌کند و در صورت نیاز چند دقیقه زمان را جابه‌جا می‌کند. نتیجه در «نوبت‌های من» نمایش داده می‌شود.</p>
@@ -222,8 +279,21 @@ else
     private Dictionary<Guid, List<DateTimeOffset>> SlotsByResource = new();
     // زمان‌هایی که فقط با «تحمل زمانی» جا می‌شوند (کارمند ← زمان ← دقیقه‌ی اضافه).
     private Dictionary<Guid, Dictionary<DateTimeOffset, int>> FlexibleByResource = new();
+    public sealed record DisplaySlot(DateTimeOffset StartsAt, bool IsAvailable, string Status, bool IsFlexible);
     private List<DateTimeOffset> Slots = [];
+    private List<DisplaySlot> DisplaySlots = [];
     private DateOnly? NextAvailableDate;
+    private string DepositTrackingCode = "";
+    private string? DepositReceiptBase64;
+    private string? DepositReceiptContentType;
+    private string? DepositReceiptFileName;
+
+    private decimal EffectiveDepositPercentage => SelectedBranch?.DepositPercentage ?? Business?.DepositPercentage ?? 0m;
+    private bool IsDepositRequired => EffectiveDepositPercentage > 0;
+    private decimal DepositAmount => IsDepositRequired && SelectedPrice.HasValue ? Math.Round(SelectedPrice.Value * EffectiveDepositPercentage / 100m) : 0m;
+    private string DepositCardNumber => SelectedBranch?.DepositCardNumber ?? Business?.DepositCardNumber ?? "";
+    private string DepositIban => SelectedBranch?.DepositIban ?? Business?.DepositIban ?? "";
+    private string DepositAccountHolder => SelectedBranch?.DepositAccountHolder ?? Business?.DepositAccountHolder ?? "";
     private string? ErrorMessage;
     private bool IsLoadingSlots;
     private int SlotsLoadVersion;
@@ -479,6 +549,7 @@ else
     {
         var version = ++SlotsLoadVersion;
         Slots = [];
+        DisplaySlots = [];
         SlotsByResource = new();
         FlexibleByResource = new();
         NextAvailableDate = null;
@@ -515,6 +586,31 @@ else
             Slots = SlotsByResource.Values.SelectMany(x => x)
                 .Concat(FlexibleByResource.Values.SelectMany(x => x.Keys))
                 .Distinct().OrderBy(x => x).ToList();
+
+            var allCandidateSlots = new List<DisplaySlot>();
+            if (SelectedResourceId is Guid fixedResId)
+            {
+                if (availability.AllSlotsByResource.TryGetValue(fixedResId, out var rSlots))
+                {
+                    allCandidateSlots = rSlots.Select(s => new DisplaySlot(s.StartsAt, s.IsAvailable, s.Status, IsFlexibleSlot(s.StartsAt))).OrderBy(s => s.StartsAt).ToList();
+                }
+            }
+            else
+            {
+                var allStarts = availability.AllSlotsByResource.Values.SelectMany(x => x).Select(x => x.StartsAt).Distinct().OrderBy(x => x).ToList();
+                foreach (var start in allStarts)
+                {
+                    var isAvail = Slots.Contains(start);
+                    var flex = IsFlexibleSlot(start);
+                    allCandidateSlots.Add(new DisplaySlot(start, isAvail, isAvail ? "Available" : "Booked", flex));
+                }
+            }
+            if (allCandidateSlots.Count == 0 && Slots.Count > 0)
+            {
+                allCandidateSlots = Slots.Select(s => new DisplaySlot(s, true, "Available", IsFlexibleSlot(s))).ToList();
+            }
+            DisplaySlots = allCandidateSlots;
+
             if (SelectedSlot is DateTimeOffset kept && !Slots.Contains(kept)) SelectedSlot = null;
             if (Slots.Count == 0)
             {
@@ -664,11 +760,18 @@ else
         if (ProviderChoice.Length == 0) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; Step = 2; return; }
         if (CurrentSecurityStamp is null) { ErrorMessage = "نشست شما منقضی شده است؛ دوباره وارد حساب شوید."; return; }
 
+        if (IsDepositRequired && string.IsNullOrWhiteSpace(DepositTrackingCode) && string.IsNullOrWhiteSpace(DepositReceiptBase64))
+        {
+            ErrorMessage = "ثبت بیعانه برای این نوبت الزامی است. لطفاً کد پیگیری یا تصویر فیش واریز را الصاق فرمایید.";
+            return;
+        }
+
         var note = CustomerNote.Trim();
         if (note.Length > 500) note = note[..500];
         var result = await BookingService.BookAsync(userId, new AppointmentBookingRequest(
             BusinessId, SelectedBranchId, SelectedServiceIds.ToArray(), AnyProvider ? null : SelectedResourceId,
-            SelectedSlot.Value, normalized, note, TermsAccepted, SelectedPrice, SelectedDuration, CurrentSecurityStamp));
+            SelectedSlot.Value, normalized, note, TermsAccepted, SelectedPrice, SelectedDuration, CurrentSecurityStamp,
+            DepositTrackingCode, DepositReceiptBase64, DepositReceiptContentType));
         if (!result.Success)
         {
             var failure = result.Failure!.Value;
@@ -720,6 +823,23 @@ else
     };
 
     // از خودِ لحظه ساخته می‌شود (نه از هفته‌ی نمایش‌داده‌شده) و همیشه با منطقه‌ی زمانی شعبه و تقویم زبان فعال.
+    private async Task OnDepositReceiptSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            ErrorMessage = "حجم تصویر فیش واریز نباید بیشتر از ۵ مگابایت باشد.";
+            return;
+        }
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        DepositReceiptBase64 = Convert.ToBase64String(ms.ToArray());
+        DepositReceiptContentType = file.ContentType;
+        DepositReceiptFileName = file.Name;
+        ErrorMessage = null;
+    }
+
     private string FormatSelectedTime() =>
         SelectedSlot is null ? "" : BranchClock.FormatDateTime(SelectedSlot.Value, ZoneId, Language);
 }

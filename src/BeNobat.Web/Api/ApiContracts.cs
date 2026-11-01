@@ -98,11 +98,14 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
 }
 
 public sealed record UserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string? AvatarUrl, IReadOnlyList<string> Roles);
-public sealed record BusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount);
-public sealed record BranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour);
+public sealed record GalleryItemDto(Guid Id, string? Caption, int SortOrder, string ImageUrl);
+
+public sealed record BusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
+public sealed record BranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
 public sealed record ServiceDto(Guid Id, Guid BusinessId, string Name, string Description, int DurationMinutes, decimal Price, string Currency);
-public sealed record ProviderDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId);
+public sealed record ProviderDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, string? AvatarUrl = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
 public sealed record PublicReviewDto(Guid Id, int Rating, string Comment, string? ManagerReply, string CustomerName, DateTimeOffset CreatedAt);
 public sealed record AppointmentDto(Guid Id, Guid BusinessId, string BusinessName, Guid BranchId, string BranchName, string TimeZoneId,
     IReadOnlyList<string> ServiceNames, Guid? ResourceId, string? ResourceName, DateTimeOffset StartsAt, DateTimeOffset EndsAt,
-    string Status, decimal FinalPrice, string Currency, string CustomerNote, string TrackingCode, bool CanCancel, bool CanReview, Guid? ReviewId, int CancellationNoticeMinutes = 120, DateTimeOffset? CancellationDeadline = null);
+    string Status, decimal FinalPrice, string Currency, string CustomerNote, string TrackingCode, bool CanCancel, bool CanReview, Guid? ReviewId, int CancellationNoticeMinutes = 120, DateTimeOffset? CancellationDeadline = null,
+    bool DepositRequired = false, int DepositPercentage = 0, decimal DepositAmount = 0, string? DepositTrackingCode = null, DateTimeOffset? DepositPaidAt = null, bool HasDepositReceipt = false);
