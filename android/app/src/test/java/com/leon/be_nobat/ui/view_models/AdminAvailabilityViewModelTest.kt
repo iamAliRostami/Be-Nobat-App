@@ -302,6 +302,8 @@ class AdminAvailabilityViewModelTest {
         override suspend fun setBranchActive(id: String, active: Boolean): Result<ManagementBranch> = TODO()
         override suspend fun deleteBranch(id: String): Result<Unit> = TODO()
         override suspend fun approveBranch(id: String): Result<ManagementBranch> = TODO()
+        override suspend fun uploadBranchReceipt(branchId: String, input: com.leon.be_nobat.domain.model.ReceiptUploadInput): Result<ManagementBranch> = TODO()
+        override suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing> = TODO()
 
         override suspend fun listResources(
             branchId: String?,

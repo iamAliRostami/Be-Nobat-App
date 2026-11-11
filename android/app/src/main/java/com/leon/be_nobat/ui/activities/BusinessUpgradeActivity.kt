@@ -251,8 +251,17 @@ class BusinessUpgradeActivity : BaseActivity() {
                 cardIntroInfo?.isVisible = false
                 formFieldsContainer?.isVisible = false
 
-                findViewById<TextView>(R.id.tvPendingDescMsg)?.text =
-                    getString(R.string.business_request_pending_detail_msg, req?.businessName.orEmpty())
+                val tvPendingHeader = findViewById<TextView>(R.id.tvPendingHeader)
+                val tvPendingDescMsg = findViewById<TextView>(R.id.tvPendingDescMsg)
+                if (req?.hasReceipt == true) {
+                    tvPendingHeader?.text = getString(R.string.business_request_pending_header)
+                    tvPendingDescMsg?.text =
+                        getString(R.string.business_request_pending_detail_msg, req.businessName)
+                } else {
+                    tvPendingHeader?.text = getString(R.string.business_request_pending_payment_header)
+                    tvPendingDescMsg?.text =
+                        getString(R.string.business_request_pending_payment_msg, req?.businessName.orEmpty())
+                }
                 findViewById<TextView>(R.id.tvPendingBizName)?.text = req?.businessName.orEmpty()
                 findViewById<TextView>(R.id.tvPendingCategory)?.text = req?.category.orEmpty()
                 findViewById<TextView>(R.id.tvPendingCity)?.text = req?.city.orEmpty()
@@ -358,11 +367,22 @@ class BusinessUpgradeActivity : BaseActivity() {
                 btnCancelResubmit?.isVisible = isRejected && isEditingResubmit
 
                 if (!initializedFromState) {
-                    initializedFromState = true
                     if (req != null) {
+                        initializedFromState = true
                         prefillFormFromRequest()
-                    } else if (!state.phoneNumber.isNullOrBlank()) {
-                        findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(state.phoneNumber)
+                    } else {
+                        val userPhone = state.phoneNumber.ifBlank { state.user?.phoneNumber.orEmpty() }
+                        if (userPhone.isNotBlank()) {
+                            initializedFromState = true
+                            findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(userPhone)
+                        }
+                    }
+                }
+                val etPhone = findViewById<TextInputEditText>(R.id.etReqContactPhone)
+                if (etPhone?.text.isNullOrBlank()) {
+                    val userPhone = state.phoneNumber.ifBlank { state.user?.phoneNumber.orEmpty() }
+                    if (userPhone.isNotBlank()) {
+                        etPhone?.setText(userPhone)
                     }
                 }
             }
@@ -388,8 +408,8 @@ class BusinessUpgradeActivity : BaseActivity() {
             viewModel.clearMessages()
         }
     }
-    private fun formatPrice(price: Long): String {
-        return NumberFormat.getNumberInstance(Locale("fa", "IR")).format(price)
+    private fun formatPrice(price: Number): String {
+        return NumberFormat.getNumberInstance(Locale("fa", "IR")).format(price.toLong())
     }
 
     private fun collectExtraBranches(): List<RequestedBranch> {

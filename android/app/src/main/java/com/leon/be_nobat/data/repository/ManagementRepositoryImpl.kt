@@ -94,6 +94,12 @@ class ManagementRepositoryImpl(
     override suspend fun deleteBranch(id: String): Result<Unit> = api.adminDeleteBranch(id)
     override suspend fun approveBranch(id: String): Result<ManagementBranch> = api.platformApproveBranch(id)
 
+    override suspend fun uploadBranchReceipt(branchId: String, input: com.leon.be_nobat.domain.model.ReceiptUploadInput): Result<ManagementBranch> =
+        api.adminUploadBranchReceipt(branchId, encode(input))
+
+    override suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing> =
+        api.getPlatformPricing()
+
     // ---------- resources ----------
     override suspend fun listResources(
         branchId: String?, businessId: String?, includeInactive: Boolean?, page: Int, pageSize: Int,

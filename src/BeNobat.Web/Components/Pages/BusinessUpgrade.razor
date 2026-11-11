@@ -1,0 +1,665 @@
+@page "/account/business-upgrade"
+@page "/business-upgrade"
+@layout Layout.PublicLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject ILogger<BusinessUpgrade> Logger
+
+<PageTitle>درخواست کسب‌وکار و ارتقا | به‌نوبت</PageTitle>
+
+<div class="account-page">
+    <AccountMenu UserId="@User?.Id" DisplayName="@User?.DisplayName" Email="@User?.Email"
+                 AvatarContentType="@User?.AvatarContentType" ConcurrencyStamp="@User?.ConcurrencyStamp" />
+    <div class="account-content profile-account-content">
+        <section class="profile-page" aria-labelledby="upgrade-heading">
+            <div class="page-title">
+                <div>
+                    <h1 id="upgrade-heading">ارتقا به مدیر کسب‌وکار</h1>
+                    <p>با ثبت اطلاعات کسب‌وکار و شعب، می‌توانید خدمات، تقویم و نوبت‌های خود را به صورت هوشمند مدیریت کنید.</p>
+                </div>
+                <div>
+                    <a href="/account/profile" class="action-secondary" style="font-size:0.85rem; padding:0.4rem 0.8rem; text-decoration:none;">بازگشت به حساب کاربری</a>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+            {
+                <div class="success-notice" role="status" style="margin-bottom:1rem;">@SuccessMessage</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+            {
+                <div class="auth-error" role="alert" style="margin-bottom:1rem;">@ErrorMessage</div>
+            }
+
+            @if (IsLoading)
+            {
+                <div style="padding:2rem; text-align:center; color:#64748b;">در حال دریافت اطلاعات...</div>
+            }
+            else if (IsAlreadyManager)
+            {
+                <article class="admin-panel profile-form profile-card">
+                    <header class="profile-card-head">
+                        <h2>مدیر فعال سامانه</h2>
+                    </header>
+                    <div style="display:flex; align-items:center; gap:0.75rem; margin:1rem 0; flex-wrap:wrap;">
+                        <span class="status confirmed" style="font-size:0.85rem; font-weight:700; padding:0.35rem 0.85rem; border-radius:999px; background:#e6f4ea; color:#137333;">مدیر فعال</span>
+                        <span style="color:#475569; font-size:0.92rem;">حساب کاربری شما دارای دسترسی مدیریت کسب‌وکار است و می‌توانید نوبت‌ها، خدمات و شعب خود را مدیریت نمایید.</span>
+                    </div>
+                    <div class="profile-card-actions">
+                        <a class="primary-button action-primary" href="/admin" style="display:inline-block; text-align:center; text-decoration:none;">ورود به پنل مدیریت</a>
+                    </div>
+                </article>
+            }
+            else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Pending)
+            {
+                @* مرحله در انتظار پرداخت و تأیید مدیر *@
+                <div style="display:grid; gap:1.25rem;">
+                    @* بنر وضعیت درخواست *@
+                    <div style="background:@(LatestRequest.ReceiptImageData != null ? "#ecfdf5" : "#fffbeb"); border:1px solid @(LatestRequest.ReceiptImageData != null ? "#a7f3d0" : "#fde68a"); border-radius:12px; padding:1.2rem; color:@(LatestRequest.ReceiptImageData != null ? "#065f46" : "#92400e");">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">
+                            <div style="display:flex; align-items:center; gap:0.6rem; font-weight:700; font-size:1rem;">
+                                <span>@(LatestRequest.ReceiptImageData != null ? "⏳" : "💳")</span>
+                                <span>@(LatestRequest.ReceiptImageData != null ? "درخواست شما در انتظار بررسی مدیریت سامانه است" : "در انتظار پرداخت تعرفه و ارسال فیش واریزی")</span>
+                            </div>
+                            <span style="font-size:0.78rem; font-weight:600; padding:0.25rem 0.65rem; border-radius:999px; background:@(LatestRequest.ReceiptImageData != null ? "#d1fae5" : "#fef3c7"); color:@(LatestRequest.ReceiptImageData != null ? "#047857" : "#b45309");">
+                                @(LatestRequest.ReceiptImageData != null ? "فیش ارسال شد — در صف بررسی" : "در انتظار پرداخت")
+                            </span>
+                        </div>
+                        <p style="margin:0.25rem 0 0; font-size:0.88rem; line-height:1.6;">
+                            @(LatestRequest.ReceiptImageData != null
+                                ? $"فیش واریزی شما برای درخواست کسب‌وکار «{LatestRequest.BusinessName}» با موفقیت دریافت شد. پس از بررسی و تأیید توسط مدیریت سامانه، دسترسی مدیریت فعال خواهد شد."
+                                : $"اطلاعات کسب‌وکار «{LatestRequest.BusinessName}» ثبت شده است. لطفاً مبلغ کل تعرفه را طبق تعداد شعب به اطلاعات حساب واریز کرده و تصویر فیش واریزی را در فرم زیر ارسال نمایید.")
+                        </p>
+                    </div>
+
+                    @* مشخصات کسب‌وکار و محاسبه تعرفه *@
+                    <article class="admin-panel profile-form profile-card">
+                        <header class="profile-card-head">
+                            <h2>مشخصات کسب‌وکار و تعرفه محاسبه‌شده</h2>
+                        </header>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; font-size:0.88rem; margin:0.5rem 0;">
+                            <div><span style="color:#64748b;">نام کسب‌وکار:</span> <b>@LatestRequest.BusinessName</b></div>
+                            <div><span style="color:#64748b;">دسته‌بندی:</span> @LatestRequest.Category</div>
+                            <div><span style="color:#64748b;">شهر:</span> @LatestRequest.City</div>
+                            <div><span style="color:#64748b;">شماره تماس:</span> <span dir="ltr">@LatestRequest.ContactPhone</span></div>
+                            <div><span style="color:#64748b;">شعبه اول:</span> @LatestRequest.FirstBranchName (@LatestRequest.FirstBranchAddress)</div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(LatestRequest.Description))
+                        {
+                            <div style="margin-top:0.5rem; font-size:0.85rem; color:#475569; background:#f8fafc; padding:0.75rem; border-radius:8px;">
+                                <span style="font-weight:600; color:#64748b;">توضیحات:</span> @LatestRequest.Description
+                            </div>
+                        }
+
+                        @* لیست سایر شعب *@
+                        @if (LatestRequest.GetAdditionalBranches().Count > 0)
+                        {
+                            <div style="margin-top:1rem; border-top:1px dashed #e2e8f0; padding-top:0.75rem;">
+                                <div style="font-weight:600; font-size:0.85rem; color:#475569; margin-bottom:0.5rem;">
+                                    سایر شعب ثبت‌شده (@LatestRequest.GetAdditionalBranches().Count شعبه):
+                                </div>
+                                <ul style="margin:0; padding-right:1.25rem; font-size:0.85rem; color:#334155;">
+                                    @foreach (var br in LatestRequest.GetAdditionalBranches())
+                                    {
+                                        <li style="margin-bottom:0.25rem;">
+                                            <b>@br.Name</b> @(!string.IsNullOrWhiteSpace(br.Address) ? $"({br.Address})" : "")
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        @* کادر رقم قابل پرداخت براساس تعداد شعب *@
+                        <div style="margin-top:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                            <div>
+                                <div style="font-size:0.82rem; color:#166534;">تعداد کل شعب: <b>@LatestRequest.TotalBranchesCount شعبه</b> (۱ شعبه اصلی + @(LatestRequest.TotalBranchesCount - 1) شعبه دیگر)</div>
+                                <div style="font-size:0.8rem; color:#15803d; margin-top:2px;">
+                                    تعرفه پایه: @LocalizedDate.FormatNumber(LatestRequest.BasePrice, UiLocale.Language) تومان
+                                    @if (LatestRequest.TotalBranchesCount > 1)
+                                    {
+                                        <span> + شعب مازاد (@(LatestRequest.TotalBranchesCount - 1) × @LocalizedDate.FormatNumber(LatestRequest.ExtraBranchPrice, UiLocale.Language) تومان)</span>
+                                    }
+                                </div>
+                            </div>
+                            <div style="text-align:left;">
+                                <div style="font-size:0.75rem; color:#166534; font-weight:600;">مبلغ کل قابل پرداخت:</div>
+                                <div style="font-size:1.35rem; font-weight:800; color:#15803d;">
+                                    @LocalizedDate.FormatNumber(LatestRequest.TotalFee, UiLocale.Language) <small style="font-size:0.75rem; font-weight:600;">تومان</small>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    @* اطلاعات واریز و بانکی *@
+                    <article class="admin-panel profile-form profile-card">
+                        <header class="profile-card-head">
+                            <h2>اطلاعات حساب بانکی جهت واریز</h2>
+                        </header>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin:0.75rem 0; font-size:0.88rem;">
+                            @if (!string.IsNullOrWhiteSpace(Pricing.CardNumber))
+                            {
+                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                    <div style="color:#64748b; font-size:0.78rem;">شماره کارت:</div>
+                                    <div style="font-size:1.05rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.CardNumber</div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Pricing.Iban))
+                            {
+                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                    <div style="color:#64748b; font-size:0.78rem;">شماره شبا:</div>
+                                    <div style="font-size:0.95rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.Iban</div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Pricing.AccountHolder))
+                            {
+                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                    <div style="color:#64748b; font-size:0.78rem;">به نام:</div>
+                                    <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:3px;">@Pricing.AccountHolder</div>
+                                </div>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Pricing.PaymentInstructions))
+                        {
+                            <div style="font-size:0.84rem; color:#475569; line-height:1.6; background:#f1f5f9; padding:0.6rem 0.85rem; border-radius:8px;">
+                                💡 <b>راهنما:</b> @Pricing.PaymentInstructions
+                            </div>
+                        }
+                    </article>
+
+                    @* فرم ارسال یا تغییر فیش واریزی *@
+                    <article class="admin-panel profile-form profile-card">
+                        <header class="profile-card-head">
+                            <h2>ارسال تصویر فیش واریزی</h2>
+                        </header>
+
+                        @if (LatestRequest.ReceiptImageData != null && LatestRequest.ReceiptImageData.Length > 0)
+                        {
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+                                    <span style="color:#059669; font-weight:700; font-size:0.9rem;">✓ فیش واریزی با موفقیت بارگذاری شده است</span>
+                                    @if (LatestRequest.ReceiptUploadedAt.HasValue)
+                                    {
+                                        <span style="color:#64748b; font-size:0.8rem;">تاریخ ارسال: @LocalizedDate.Format(DateOnly.FromDateTime(LatestRequest.ReceiptUploadedAt.Value.DateTime), UiLocale.Language)</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(LatestRequest.ReceiptTrackingCode))
+                                {
+                                    <div style="font-size:0.85rem; color:#334155; margin-bottom:0.75rem;">
+                                        کد پیگیری / ارجاع: <b dir="ltr" style="font-family:monospace;">@LatestRequest.ReceiptTrackingCode</b>
+                                    </div>
+                                }
+                                <div>
+                                    <img src="data:@(LatestRequest.ReceiptImageContentType ?? "image/jpeg");base64,@Convert.ToBase64String(LatestRequest.ReceiptImageData)"
+                                         alt="تصویر فیش واریزی"
+                                         style="max-width:320px; width:100%; max-height:240px; object-fit:contain; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff;" />
+                                </div>
+                            </div>
+                        }
+
+                        <p style="font-size:0.84rem; color:#64748b; margin-bottom:0.75rem;">
+                            @(LatestRequest.ReceiptImageData != null ? "در صورت تمایل به تغییر یا اصلاح فیش واریزی، فایل جدید را در زیر انتخاب و ذخیره کنید:" : "تصویر فیش انتقال وجه یا اسکرین‌شات رسید همراه با کد رهگیری را ثبت نمایید:")
+                        </p>
+
+                        <div class="profile-fields">
+                            <label>
+                                <span>کد رهگیری یا شماره ارجاع فیش</span>
+                                <input maxlength="50" placeholder="مثلاً: ۱۲۳۴۵۶۷۸ یا شماره پیگیری تراکنش" @bind="ReceiptTrackingCode" disabled="@IsUploadingReceipt" />
+                            </label>
+                            <label>
+                                <span>انتخاب تصویر فیش واریزی <strong class="req">*</strong></span>
+                                <InputFile OnChange="OnReceiptFileSelected" accept="image/png,image/jpeg,image/webp" disabled="@IsUploadingReceipt" />
+                            </label>
+                            @if (!string.IsNullOrWhiteSpace(ReceiptFileName))
+                            {
+                                <div style="font-size:0.8rem; color:#059669;">فایل انتخاب شده: @ReceiptFileName (@((ReceiptFileBytes?.Length ?? 0) / 1024) کیلوبایت)</div>
+                            }
+                        </div>
+
+                        <div class="profile-card-actions" style="margin-top:1rem;">
+                            <button type="button" class="primary-button action-primary" disabled="@(IsUploadingReceipt || ReceiptFileBytes == null)" @onclick="SubmitReceipt">
+                                @(IsUploadingReceipt ? "در حال ارسال فیش..." : (LatestRequest.ReceiptImageData != null ? "بروزرسانی تصویر فیش" : "ثبت فیش واریزی"))
+                            </button>
+                        </div>
+                    </article>
+                </div>
+            }
+            else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Rejected && !IsEditingResubmit)
+            {
+                <article class="admin-panel profile-form profile-card">
+                    <div style="background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:10px; padding:1.25rem; margin-bottom:1.25rem;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; font-weight:700; font-size:1rem; margin-bottom:0.5rem;">
+                            <span>❌</span>
+                            <span>درخواست قبلی شما رد شد</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(LatestRequest.ReviewNote))
+                        {
+                            <p style="margin:0.25rem 0 0; font-size:0.88rem; line-height:1.6; color:#b91c1c;">
+                                <b>توضیح مدیریت:</b> @LatestRequest.ReviewNote
+                            </p>
+                        }
+                    </div>
+                    <div class="profile-card-actions">
+                        <button type="button" class="primary-button action-primary" @onclick="StartResubmit">ویرایش و ارسال مجدد درخواست</button>
+                    </div>
+                </article>
+            }
+            else
+            {
+                @* فرم درخواست ارتقا و ثبت کسب‌وکار با امکان افزودن چند شعبه *@
+                <article class="admin-panel profile-form profile-card">
+                    <header class="profile-card-head">
+                        <h2>فرم ثبت کسب‌وکار و شعب</h2>
+                    </header>
+                    <p style="font-size:0.875rem; color:#64748b; margin-bottom:1.25rem; line-height:1.7;">
+                        اطلاعات کسب‌وکار و شعبه‌های خود را وارد کنید. پس از ثبت، رقم تعرفه بر اساس تعداد شعب محاسبه شده و به مرحله پرداخت و ارسال فیش منتقل خواهید شد.
+                    </p>
+
+                    <EditForm Model="BusinessForm" OnValidSubmit="HandleSubmitRequest">
+                        <div class="profile-fields">
+                            <label>
+                                <span>نام کسب‌وکار <strong class="req">*</strong></span>
+                                <input required maxlength="100" placeholder="مثال: سالن زیبایی پروانه" @bind="BusinessForm.BusinessName" disabled="@IsSubmitting" />
+                            </label>
+
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                                <label>
+                                    <span>دسته‌بندی <strong class="req">*</strong></span>
+                                    <select @bind="BusinessForm.Category" disabled="@IsSubmitting" required>
+                                        <option value="">— انتخاب دسته‌بندی —</option>
+                                        @foreach (var cat in Categories)
+                                        {
+                                            <option value="@cat">@cat</option>
+                                        }
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>شهر <strong class="req">*</strong></span>
+                                    <input required maxlength="50" placeholder="مثال: تهران" @bind="BusinessForm.City" disabled="@IsSubmitting" />
+                                </label>
+                            </div>
+
+                            <label>
+                                <span>شماره تماس کسب‌وکار <strong class="req">*</strong></span>
+                                <input type="tel" required maxlength="14" dir="ltr" placeholder="مثلاً ۰۲۱۱۲۳۴۵۶۷۸ یا ۰۹۱۲..." @bind="BusinessForm.Phone" disabled="@IsSubmitting" />
+                            </label>
+
+                            <label>
+                                <span>توضیحات کسب‌وکار</span>
+                                <textarea rows="2" maxlength="1000" placeholder="توضیح مختصری درباره خدمات و زمینه فعالیت..." @bind="BusinessForm.Description" disabled="@IsSubmitting"></textarea>
+                            </label>
+
+                            @* اطلاعات شعبه اول *@
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-top:0.5rem;">
+                                <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.4rem;">
+                                    <span>📍</span>
+                                    <span>شعبه اول (شعبه اصلی)</span>
+                                </div>
+                                <div style="display:grid; gap:0.75rem;">
+                                    <label>
+                                        <span>نام اولین شعبه <strong class="req">*</strong></span>
+                                        <input required maxlength="100" placeholder="مثال: شعبه مرکزی" @bind="BusinessForm.FirstBranchName" disabled="@IsSubmitting" />
+                                    </label>
+                                    <label>
+                                        <span>نشانی اولین شعبه <strong class="req">*</strong></span>
+                                        <input required maxlength="250" placeholder="مثال: خیابان ولیعصر، پلاک ۱۰" @bind="BusinessForm.FirstBranchAddress" disabled="@IsSubmitting" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            @* بخش افزودن شعب اضافه *@
+                            <div style="margin-top:0.5rem;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                                    <div style="font-weight:700; font-size:0.9rem; color:#334155;">شعب دیگر کسب‌وکار</div>
+                                    <button type="button" class="action-secondary" style="font-size:0.8rem; padding:0.35rem 0.75rem;" disabled="@IsSubmitting" @onclick="AddExtraBranch">
+                                        ➕ افزودن شعبه دیگر
+                                    </button>
+                                </div>
+
+                                @if (ExtraBranches.Count > 0)
+                                {
+                                    <div style="display:grid; gap:0.75rem;">
+                                        @for (var i = 0; i < ExtraBranches.Count; i++)
+                                        {
+                                            var idx = i;
+                                            var branch = ExtraBranches[idx];
+                                            <div style="background:#fdfcf9; border:1px solid #fed7aa; border-radius:10px; padding:0.85rem;">
+                                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                                                    <span style="font-weight:700; font-size:0.85rem; color:#9a3412;">شعبه @(idx + 2)</span>
+                                                    <button type="button" class="action-danger" style="font-size:0.75rem; padding:0.2rem 0.5rem;" disabled="@IsSubmitting" @onclick="() => RemoveExtraBranch(idx)">
+                                                        حذف
+                                                    </button>
+                                                </div>
+                                                <div style="display:grid; gap:0.5rem;">
+                                                    <label>
+                                                        <span>نام شعبه <strong class="req">*</strong></span>
+                                                        <input required maxlength="100" placeholder="مثال: شعبه سعادت‌آباد" @bind="branch.Name" disabled="@IsSubmitting" />
+                                                    </label>
+                                                    <label>
+                                                        <span>نشانی شعبه <strong class="req">*</strong></span>
+                                                        <input required maxlength="250" placeholder="مثال: میدان کاج، خیابان سرو غربی، پلاک ۲" @bind="branch.Address" disabled="@IsSubmitting" />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="font-size:0.82rem; color:#94a3b8; font-style:italic; padding:0.25rem 0;">
+                                        در صورت داشتن بیش از یک شعبه، دکمه «افزودن شعبه دیگر» را بزنید.
+                                    </div>
+                                }
+                            </div>
+
+                            @* کارت آنلاین محاسبه رقم تعرفه *@
+                            <div style="margin-top:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:1.1rem;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+                                    <div>
+                                        <div style="font-weight:700; font-size:0.92rem; color:#166534;">محاسبه هزینه تعرفه ثبت کسب‌وکار</div>
+                                        <div style="font-size:0.82rem; color:#15803d; margin-top:2px;">
+                                            تعرفه پایه (۱ شعبه): @LocalizedDate.FormatNumber(Pricing.BaseBusinessPrice, UiLocale.Language) تومان
+                                            @if (ExtraBranches.Count > 0)
+                                            {
+                                                <span> + @ExtraBranches.Count شعبه اضافه (@LocalizedDate.FormatNumber(ExtraBranches.Count * Pricing.ExtraBranchPrice, UiLocale.Language) تومان)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div style="text-align:left;">
+                                        <div style="font-size:0.75rem; color:#166534;">مبلغ قابل پرداخت:</div>
+                                        <div style="font-size:1.4rem; font-weight:800; color:#15803d;">
+                                            @LocalizedDate.FormatNumber(LiveTotalFee, UiLocale.Language) <small style="font-size:0.75rem;">تومان</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="font-size:0.8rem; color:#15803d; border-top:1px dashed #bbf7d0; padding-top:0.5rem;">
+                                    تعداد کل شعب: <b>@(1 + ExtraBranches.Count) شعبه</b> • پس از ثبت، به مرحله بارگذاری فیش واریزی منتقل خواهید شد.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-card-actions" style="margin-top:1.25rem;">
+                            <button type="submit" disabled="@IsSubmitting" class="primary-button action-primary">
+                                @(IsSubmitting ? "در حال ثبت درخواست..." : "ثبت درخواست و انتقال به مرحله پرداخت")
+                            </button>
+                            @if (IsEditingResubmit)
+                            {
+                                <button type="button" class="action-secondary" disabled="@IsSubmitting" @onclick="CancelResubmit">انصراف</button>
+                            }
+                        </div>
+                    </EditForm>
+                </article>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private AppUser? User { get; set; }
+    private BusinessRequest? LatestRequest { get; set; }
+    private PlatformPricingSettings Pricing { get; set; } = new();
+    private List<string> Categories { get; set; } = [];
+    private bool IsAlreadyManager { get; set; }
+    private bool IsLoading { get; set; } = true;
+    private bool IsSubmitting { get; set; }
+    private bool IsUploadingReceipt { get; set; }
+    private bool IsEditingResubmit { get; set; }
+
+    private string? SuccessMessage { get; set; }
+    private string? ErrorMessage { get; set; }
+
+    private BusinessUpgradeModel BusinessForm { get; set; } = new();
+    private List<RequestedBranchItem> ExtraBranches { get; set; } = [];
+
+    private string? ReceiptTrackingCode { get; set; }
+    private byte[]? ReceiptFileBytes { get; set; }
+    private string? ReceiptFileContentType { get; set; }
+    private string? ReceiptFileName { get; set; }
+
+    private decimal LiveTotalFee => Pricing.BaseBusinessPrice + (ExtraBranches.Count * Pricing.ExtraBranchPrice);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+        SuccessMessage = ErrorMessage = null;
+        try
+        {
+            var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var principal = auth.User;
+            var userIdStr = principal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+            {
+                NavigationManager.NavigateTo("/account/login");
+                return;
+            }
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            User = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (User is null) return;
+
+            Pricing = await db.GetPlatformPricingAsync();
+
+            var catList = await db.CategoryDefinitions.AsNoTracking()
+                .Where(c => c.Kind == CategoryKind.Business && c.IsActive)
+                .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
+                .Select(c => c.Name).ToListAsync();
+            Categories = catList.Count > 0 ? catList : [
+                "زیبایی و آرایش", "پیرایش آقایان", "پزشکی", "دندانپزشکی", "فیزیوتراپی و توان‌بخشی",
+                "ماساژ و تندرستی", "مشاوره و روان‌شناسی", "ورزش و تناسب اندام", "دامپزشکی",
+                "آموزش", "خدمات خودرو", "خدمات منزل", "عمومی"
+            ];
+
+            IsAlreadyManager = principal.IsInRole(AppRoles.Owner)
+                || principal.IsInRole(AppRoles.Manager)
+                || principal.IsInRole(AppRoles.PlatformAdmin)
+                || await db.BranchMemberships.AnyAsync(m => m.UserId == userId && m.Role == AppRoles.Owner);
+
+            LatestRequest = await db.BusinessRequests.AsNoTracking()
+                .Where(r => r.UserId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (LatestRequest is null)
+            {
+                BusinessForm.Phone = User.PhoneNumber ?? "";
+            }
+            else
+            {
+                ReceiptTrackingCode = LatestRequest.ReceiptTrackingCode;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load business upgrade data.");
+            ErrorMessage = "خطا در بارگذاری اطلاعات سامانه.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void AddExtraBranch()
+    {
+        ExtraBranches.Add(new RequestedBranchItem());
+    }
+
+    private void RemoveExtraBranch(int index)
+    {
+        if (index >= 0 && index < ExtraBranches.Count)
+        {
+            ExtraBranches.RemoveAt(index);
+        }
+    }
+
+    private void StartResubmit()
+    {
+        if (LatestRequest is null) return;
+        BusinessForm = new BusinessUpgradeModel
+        {
+            BusinessName = LatestRequest.BusinessName,
+            Category = LatestRequest.Category,
+            City = LatestRequest.City,
+            Phone = LatestRequest.ContactPhone,
+            Description = LatestRequest.Description,
+            FirstBranchName = LatestRequest.FirstBranchName,
+            FirstBranchAddress = LatestRequest.FirstBranchAddress,
+        };
+        ExtraBranches = LatestRequest.GetAdditionalBranches().Select(b => new RequestedBranchItem { Name = b.Name, Address = b.Address }).ToList();
+        IsEditingResubmit = true;
+    }
+
+    private void CancelResubmit()
+    {
+        IsEditingResubmit = false;
+    }
+
+    private async Task HandleSubmitRequest()
+    {
+        if (User is null || IsSubmitting) return;
+        IsSubmitting = true;
+        SuccessMessage = ErrorMessage = null;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            var pricing = await db.GetPlatformPricingAsync();
+            var validExtra = ExtraBranches
+                .Where(b => !string.IsNullOrWhiteSpace(b.Name))
+                .Select(b => new RequestedBranchItem { Name = b.Name.Trim(), Address = b.Address?.Trim() ?? "" })
+                .ToList();
+
+            var totalBranches = 1 + validExtra.Count;
+            var totalFee = pricing.BaseBusinessPrice + (pricing.ExtraBranchPrice * validExtra.Count);
+            var additionalJson = validExtra.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(validExtra) : null;
+
+            var req = new BusinessRequest
+            {
+                UserId = User.Id,
+                BusinessName = BusinessForm.BusinessName.Trim(),
+                Category = string.IsNullOrWhiteSpace(BusinessForm.Category) ? "عمومی" : BusinessForm.Category.Trim(),
+                City = string.IsNullOrWhiteSpace(BusinessForm.City) ? "تهران" : BusinessForm.City.Trim(),
+                Description = BusinessForm.Description?.Trim() ?? "",
+                ContactPhone = string.IsNullOrWhiteSpace(BusinessForm.Phone) ? (User.PhoneNumber ?? "") : BusinessForm.Phone.Trim(),
+                FirstBranchName = string.IsNullOrWhiteSpace(BusinessForm.FirstBranchName) ? "شعبه مرکزی" : BusinessForm.FirstBranchName.Trim(),
+                FirstBranchAddress = BusinessForm.FirstBranchAddress?.Trim() ?? "",
+                AdditionalBranchesJson = additionalJson,
+                BasePrice = pricing.BaseBusinessPrice,
+                ExtraBranchPrice = pricing.ExtraBranchPrice,
+                TotalBranchesCount = totalBranches,
+                TotalFee = totalFee,
+                Status = BusinessRequestStatus.Pending,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+
+            db.BusinessRequests.Add(req);
+            await db.SaveChangesAsync();
+
+            LatestRequest = req;
+            IsEditingResubmit = false;
+            SuccessMessage = "درخواست شما با موفقیت ثبت شد و اکنون در مرحله پرداخت تعرفه قرار دارد. لطفاً فیش واریزی را ارسال فرمایید.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to submit business request.");
+            ErrorMessage = "خطا در ثبت درخواست کسب‌وکار.";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task OnReceiptFileSelected(InputFileChangeEventArgs e)
+    {
+        ReceiptFileBytes = null;
+        ReceiptFileContentType = null;
+        ReceiptFileName = null;
+        ErrorMessage = null;
+
+        var file = e.File;
+        if (file is null) return;
+
+        if (file.Size > 4 * 1024 * 1024)
+        {
+            ErrorMessage = "حجم فایل فیش واریزی نباید بیشتر از ۴ مگابایت باشد.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(4 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ReceiptFileBytes = ms.ToArray();
+            ReceiptFileContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            ReceiptFileName = file.Name;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to read receipt file.");
+            ErrorMessage = "خطا در خواندن فایل فیش.";
+        }
+    }
+
+    private async Task SubmitReceipt()
+    {
+        if (LatestRequest is null || ReceiptFileBytes == null || IsUploadingReceipt) return;
+        IsUploadingReceipt = true;
+        SuccessMessage = ErrorMessage = null;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var req = await db.BusinessRequests.FirstOrDefaultAsync(r => r.Id == LatestRequest.Id);
+            if (req is null)
+            {
+                ErrorMessage = "درخواست یافت نشد.";
+                return;
+            }
+
+            req.ReceiptImageData = ReceiptFileBytes;
+            req.ReceiptImageContentType = ReceiptFileContentType ?? "image/jpeg";
+            req.ReceiptTrackingCode = ReceiptTrackingCode?.Trim();
+            req.ReceiptUploadedAt = DateTimeOffset.UtcNow;
+            req.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            LatestRequest = req;
+            ReceiptFileBytes = null;
+            ReceiptFileName = null;
+            SuccessMessage = "تصویر فیش واریزی با موفقیت ثبت شد و درخواست شما در صف بررسی مدیر سامانه قرار گرفت.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to upload receipt.");
+            ErrorMessage = "خطا در ذخیره فیش واریزی.";
+        }
+        finally
+        {
+            IsUploadingReceipt = false;
+        }
+    }
+
+    public sealed class BusinessUpgradeModel
+    {
+        public string BusinessName { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string FirstBranchName { get; set; } = "شعبه اصلی";
+        public string FirstBranchAddress { get; set; } = string.Empty;
+    }
+}

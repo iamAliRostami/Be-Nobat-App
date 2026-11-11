@@ -14,12 +14,12 @@ import java.util.Locale
 
 class AdminAnalyticsBreakdownAdapter(
     private var items: List<ManagementBreakdownItem> = emptyList(),
-    private var maxRevenue: Long = 1L,
+    private var maxRevenue: Double = 1.0,
 ) : RecyclerView.Adapter<AdminAnalyticsBreakdownAdapter.ViewHolder>() {
 
     fun submitList(newItems: List<ManagementBreakdownItem>) {
         items = newItems
-        maxRevenue = maxOf(1L, newItems.maxOfOrNull { it.revenue } ?: 1L)
+        maxRevenue = maxOf(1.0, newItems.maxOfOrNull { it.revenue } ?: 1.0)
         notifyDataSetChanged()
     }
 
@@ -43,7 +43,7 @@ class AdminAnalyticsBreakdownAdapter(
         private val tvRate: TextView = itemView.findViewById(R.id.tvBreakdownRate)
         private val pbProgress: ProgressBar = itemView.findViewById(R.id.pbBreakdownProgress)
 
-        fun bind(item: ManagementBreakdownItem, maxRevenue: Long) {
+        fun bind(item: ManagementBreakdownItem, maxRevenue: Double) {
             val ctx = itemView.context
             tvName.text = item.name
             val sub = item.branchName ?: item.businessName
@@ -55,7 +55,7 @@ class AdminAnalyticsBreakdownAdapter(
             }
 
             val nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("fa-IR"))
-            tvRevenue.text = ctx.getString(R.string.analytics_revenue_value, nf.format(item.revenue))
+            tvRevenue.text = ctx.getString(R.string.analytics_revenue_value, nf.format(item.revenue.toLong()))
 
             val hours = String.format(Locale.forLanguageTag("fa-IR"), "%.1f", item.workMinutes / 60.0)
             tvHours.text = ctx.getString(R.string.analytics_hours_value, hours)

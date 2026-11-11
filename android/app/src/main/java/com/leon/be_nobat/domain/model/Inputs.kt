@@ -70,6 +70,12 @@ data class ManagementBusinessInput(
     val firstBranchAddress: String? = null,
     val firstBranchWeeklyHours: List<WeeklyTimeRange>? = null,
     val cancellationNoticeMinutes: Int? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
@@ -82,6 +88,12 @@ data class ManagementBranchInput(
     val closeHour: Int = 20,
     val weeklyHours: List<WeeklyTimeRange>? = null,
     val cancellationNoticeMinutes: Int? = null,
+    val depositPercentage: Double? = null,
+    val depositCardNumber: String? = null,
+    val depositIban: String? = null,
+    val depositAccountHolder: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
@@ -216,12 +228,28 @@ data class BusinessRequestInput(
 
 @Serializable
 data class PlatformPricingInput(
-    val baseBusinessPrice: Long = 500_000L,
-    val extraBranchPrice: Long = 200_000L,
+    val baseBusinessPrice: Double = 500_000.0,
+    val extraBranchPrice: Double = 200_000.0,
     val cardNumber: String = "",
     val iban: String = "",
     val accountHolder: String = "",
     val paymentInstructions: String = "",
+    val address: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val phone: String = "",
+    val supportPhone: String = "",
+    val mobile: String = "",
+    val email: String = "",
+    val infoEmail: String = "",
+    val bankName: String = "",
+    val accountNumber: String = "",
+    val workingHoursWeekdays: String = "",
+    val workingHoursThursdays: String = "",
+    val workingHoursHolidays: String = "",
+    val telegram: String = "",
+    val instagram: String = "",
+    val eitaa: String = "",
 ) {
     val bankCardNumber: String get() = cardNumber
     val bankIban: String get() = iban

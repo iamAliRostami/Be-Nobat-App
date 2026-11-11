@@ -9,6 +9,7 @@ object PersianUtils {
     private val ARABIC_DIGITS = charArrayOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
 
     fun isEnglishLocale(): Boolean = AppLocaleManager.isEnglish()
+    fun isArabicLocale(): Boolean = AppLocaleManager.isArabic()
 
     fun toEnglishDigits(text: String?): String {
         if (text.isNullOrEmpty()) return ""
@@ -23,10 +24,26 @@ object PersianUtils {
         return String(chars)
     }
 
+    fun toArabicDigits(text: String?): String {
+        if (text.isNullOrEmpty()) return ""
+        val chars = text.toCharArray()
+        for (i in chars.indices) {
+            val c = chars[i]
+            when (c) {
+                in '0'..'9' -> chars[i] = ARABIC_DIGITS[c - '0']
+                in '۰'..'۹' -> chars[i] = ARABIC_DIGITS[c - '۰']
+            }
+        }
+        return String(chars)
+    }
+
     fun toPersianDigits(text: String?): String {
         if (text.isNullOrEmpty()) return ""
         if (isEnglishLocale()) {
             return toEnglishDigits(text)
+        }
+        if (isArabicLocale()) {
+            return toArabicDigits(text)
         }
         val chars = text.toCharArray()
         for (i in chars.indices) {
@@ -59,11 +76,12 @@ object PersianUtils {
         val raw = amount.toDouble()
         val curClean = currency?.trim()?.uppercase()
         val isEn = isEnglishLocale()
+        val isAr = isArabicLocale()
         val (tomanAmount, label) = when {
-            curClean == "IRT" || curClean == "TOMAN" || currency?.trim() == "تومان" -> raw to (if (isEn) "Toman" else "تومان")
+            curClean == "IRT" || curClean == "TOMAN" || currency?.trim() == "تومان" -> raw to (if (isEn) "Toman" else if (isAr) "تومان" else "تومان")
             curClean == "USD" || curClean == "$" -> raw to "$"
             curClean == "EUR" || curClean == "€" -> raw to "€"
-            else -> (raw / 10.0) to (if (isEn) "Toman" else "تومان")
+            else -> (raw / 10.0) to (if (isEn) "Toman" else if (isAr) "تومان" else "تومان")
         }
         val formatted = NumberFormat.getNumberInstance(Locale.US).format(tomanAmount.toLong())
         return if (isEn) {
@@ -76,6 +94,8 @@ object PersianUtils {
     fun formatDuration(minutes: Int): String {
         return if (isEnglishLocale()) {
             "$minutes min"
+        } else if (isArabicLocale()) {
+            "${toPersianDigits(minutes)} دقيقة"
         } else {
             "${toPersianDigits(minutes)} دقیقه"
         }

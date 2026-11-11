@@ -25,40 +25,55 @@ sealed interface LoginIdentifier {
         private val emailPattern = Regex("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", RegexOption.IGNORE_CASE)
         private val iranianMobilePattern = Regex("^(?:\\+98|0098|98|0)?9\\d{9}$")
 
+        private fun toLatinDigit(ch: Char): Char = when (ch) {
+            in '\u06F0'..'\u06F9' -> '0' + (ch - '\u06F0')
+            in '\u0660'..'\u0669' -> '0' + (ch - '\u0660')
+            else -> ch
+        }
+
+        fun normalizeIranianMobileDigits(value: String): String =
+            value.map(::toLatinDigit).joinToString("")
+                .replace(" ", "")
+                .replace("-", "")
+                .trim()
+
         fun parse(rawValue: String): Result<LoginIdentifier> {
             val normalized = rawValue.trim()
+            val cleanDigits = normalizeIranianMobileDigits(normalized)
             return when {
                 emailPattern.matches(normalized) -> Result.success(Email(normalized.lowercase()))
-                iranianMobilePattern.matches(normalized) -> Result.success(
-                    Mobile(normalizeIranianMobileForRegister(normalized))
+                iranianMobilePattern.matches(cleanDigits) -> Result.success(
+                    Mobile(normalizeIranianMobileForRegister(cleanDigits))
                 )
                 else -> Result.failure(AuthException.InvalidIdentifier)
             }
         }
 
-        fun isIranianMobile(value: String): Boolean = iranianMobilePattern.matches(value.trim())
+        fun isIranianMobile(value: String): Boolean = iranianMobilePattern.matches(normalizeIranianMobileDigits(value))
         fun isValidEmail(value: String): Boolean = emailPattern.matches(value.trim())
 
         /** Iranian mobile canonical form: `+989XXXXXXXXX`. */
         fun normalizeIranianMobile(value: String): String {
+            val clean = normalizeIranianMobileDigits(value)
             val nationalNumber = when {
-                value.startsWith("0098") -> value.removePrefix("0098")
-                value.startsWith("+98") -> value.removePrefix("+98")
-                value.startsWith("98") -> value.removePrefix("98")
-                value.startsWith("0") -> value.removePrefix("0")
-                else -> value
+                clean.startsWith("0098") -> clean.removePrefix("0098")
+                clean.startsWith("+98") -> clean.removePrefix("+98")
+                clean.startsWith("98") -> clean.removePrefix("98")
+                clean.startsWith("0") -> clean.removePrefix("0")
+                else -> clean
             }
             return "+98$nationalNumber"
         }
 
         /** Iranian mobile as required by `/auth/register`: `09XXXXXXXXX`. */
         fun normalizeIranianMobileForRegister(value: String): String {
+            val clean = normalizeIranianMobileDigits(value)
             val national = when {
-                value.startsWith("0098") -> value.removePrefix("0098")
-                value.startsWith("+98") -> value.removePrefix("+98")
-                value.startsWith("98") -> value.removePrefix("98")
-                value.startsWith("0") -> value.removePrefix("0")
-                else -> value
+                clean.startsWith("0098") -> clean.removePrefix("0098")
+                clean.startsWith("+98") -> clean.removePrefix("+98")
+                clean.startsWith("98") -> clean.removePrefix("98")
+                clean.startsWith("0") -> clean.removePrefix("0")
+                else -> clean
             }
             return "0$national"
         }
@@ -75,6 +90,10 @@ sealed class AuthException : Exception() {
     override fun fillInStackTrace(): Throwable = this
 
     data object InvalidIdentifier : AuthException()
+    data object InvalidDisplayName : AuthException()
+    data object InvalidPhone : AuthException()
+    data object InvalidEmail : AuthException()
+    data class InvalidInput(override val message: String) : AuthException()
     data object EmptyPassword : AuthException()
     data object WeakPassword : AuthException()
     data object InvalidCredentials : AuthException()
@@ -129,7 +148,7 @@ sealed class AuthException : Exception() {
                         "unauthorized" -> Unauthorized
                         "forbidden" -> Forbidden
                         "not_found" -> NotFound
-                        "invalid_input" -> InvalidIdentifier
+                        "invalid_input" -> if (!throwable.message.isNullOrBlank()) InvalidInput(throwable.message) else InvalidIdentifier
                         else -> Unexpected
                     }
                 }

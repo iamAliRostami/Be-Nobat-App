@@ -88,6 +88,14 @@ public static class LocalizedDate
 
     public static string FormatTime(DateTimeOffset value, string language) => LocalizeDigits(value.ToString("HH:mm", CultureInfo.InvariantCulture), language);
 
+    public static string FormatDateTime(DateTimeOffset value, string language)
+    {
+        var local = value.ToLocalTime();
+        var date = DateOnly.FromDateTime(local.DateTime);
+        var time = TimeOnly.FromTimeSpan(local.TimeOfDay);
+        return $"{Format(date, language)} - {FormatTime(time, language)}";
+    }
+
     public static string FormatNumber(IFormattable value, string language, string? format = null) =>
         LocalizeDigits(value.ToString(format, CultureInfo.InvariantCulture) ?? "", language);
 

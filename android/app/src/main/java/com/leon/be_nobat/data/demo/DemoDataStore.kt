@@ -22,13 +22,51 @@ class DemoDataStore(private val directory: File, private val json: Json) {
         if (!storageFile.exists() && backup.exists()) runCatching { backup.renameTo(storageFile) }
         val loaded = if (storageFile.exists()) {
             runCatching {
-                json.decodeFromString(DemoDatabaseState.serializer(), storageFile.readText())
+                val existing = json.decodeFromString(DemoDatabaseState.serializer(), storageFile.readText())
+                enrichWithMedia(existing)
             }.getOrElse {
                 DemoSeedData.createInitialState().also(::persist)
             }
         } else DemoSeedData.createInitialState().also(::persist)
         state = loaded
         return loaded
+    }
+
+    private fun enrichWithMedia(state: DemoDatabaseState): DemoDatabaseState {
+        val initial = DemoSeedData.createInitialState()
+        val bizMap = initial.businesses.associateBy { it.id }
+        val branchMap = initial.branches.associateBy { it.id }
+        var modified = false
+
+        val newBusinesses = state.businesses.map { b ->
+            val seed = bizMap[b.id]
+            if (seed != null && (b.avatarUrl.isNullOrBlank() || b.headerUrl.isNullOrBlank() || b.gallery.isEmpty())) {
+                modified = true
+                b.copy(
+                    avatarUrl = b.avatarUrl ?: seed.avatarUrl,
+                    headerUrl = b.headerUrl ?: seed.headerUrl,
+                    gallery = if (b.gallery.isEmpty()) seed.gallery else b.gallery
+                )
+            } else b
+        }
+
+        val newBranches = state.branches.map { br ->
+            val seed = branchMap[br.id]
+            if (seed != null && (br.avatarUrl.isNullOrBlank() || br.headerUrl.isNullOrBlank() || br.gallery.isEmpty())) {
+                modified = true
+                br.copy(
+                    avatarUrl = br.avatarUrl ?: seed.avatarUrl,
+                    headerUrl = br.headerUrl ?: seed.headerUrl,
+                    gallery = if (br.gallery.isEmpty()) seed.gallery else br.gallery
+                )
+            } else br
+        }
+
+        return if (modified) {
+            val updated = state.copy(businesses = newBusinesses, branches = newBranches)
+            persist(updated)
+            updated
+        } else state
     }
 
     private fun persist(value: DemoDatabaseState) {

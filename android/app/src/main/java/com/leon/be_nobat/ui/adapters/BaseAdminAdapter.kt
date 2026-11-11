@@ -1,4 +1,4 @@
-﻿package com.leon.be_nobat.ui.adapters
+package com.leon.be_nobat.ui.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -23,12 +23,33 @@ abstract class BaseAdminAdapter<T>(
     }
 
     override fun onBindViewHolder(holder: AdminViewHolder, position: Int) {
-        holder.binding.viewStatusIndicator.visibility = android.view.View.GONE
-        holder.binding.btnQrCode.visibility = android.view.View.GONE
-        holder.binding.btnAction3.visibility = android.view.View.GONE
-        val primaryColor = com.google.android.material.color.MaterialColors.getColor(holder.binding.btnAction1, androidx.appcompat.R.attr.colorPrimary)
-        holder.binding.btnAction1.setTextColor(primaryColor)
-        holder.binding.btnAction1.strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+        val b = holder.binding
+        b.viewStatusIndicator.visibility = android.view.View.GONE
+        b.btnQrCode.visibility = android.view.View.GONE
+        b.btnAction3.visibility = android.view.View.GONE
+        b.btnAction3.icon = null
+        b.btnAction1.icon = null
+        b.btnAction2.icon = null
+        b.actionRow.visibility = android.view.View.VISIBLE
+
+        val context = b.root.context
+        val density = context.resources.displayMetrics.density
+        val primaryColor = com.google.android.material.color.MaterialColors.getColor(b.btnAction1, androidx.appcompat.R.attr.colorPrimary)
+        val onPrimaryColor = com.google.android.material.color.MaterialColors.getColor(b.btnAction2, com.google.android.material.R.attr.colorOnPrimary)
+
+        // Reset btnAction1 default (Outlined)
+        b.btnAction1.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+        b.btnAction1.setTextColor(primaryColor)
+        b.btnAction1.iconTint = android.content.res.ColorStateList.valueOf(primaryColor)
+        b.btnAction1.strokeColor = android.content.res.ColorStateList.valueOf(primaryColor)
+        b.btnAction1.strokeWidth = (1 * density).toInt()
+
+        // Reset btnAction2 default (Filled Primary)
+        b.btnAction2.backgroundTintList = android.content.res.ColorStateList.valueOf(primaryColor)
+        b.btnAction2.setTextColor(onPrimaryColor)
+        b.btnAction2.iconTint = android.content.res.ColorStateList.valueOf(onPrimaryColor)
+        b.btnAction2.strokeWidth = 0
+
         bindHolder(holder, getItem(position))
     }
 

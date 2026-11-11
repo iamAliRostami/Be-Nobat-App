@@ -3,13 +3,17 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@style/Widget.BeNobat.Card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="6dp"
+    android:layout_marginStart="8dp"
     android:layout_marginTop="6dp"
-    android:layout_marginEnd="6dp"
-    android:layout_marginBottom="6dp">
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:cardBackgroundColor="?attr/colorSurface">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -37,141 +41,189 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvBusiness"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorOnSurface"
+                    tools:text="کلینیک پارس" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:gravity="center"
+                    android:fontFamily="@font/app_font"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:includeFontPadding="false"
+                    android:singleLine="true"
+                    android:background="@drawable/bg_status_badge_confirmed"
+                    android:textColor="@color/status_confirmed_text"
+                    tools:text="تأیید شده" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/tvBusiness"
-                android:layout_width="0dp"
+                android:id="@+id/tvBranch"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:textAppearance="@style/TextAppearance.BeNobat.Headline"
-                tools:text="کلینیک پارس" />
-
-            <TextView
-                android:id="@+id/tvStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
-                android:gravity="center"
-                android:fontFamily="@font/app_font"
-                android:textSize="11.5sp"
-                android:textStyle="bold"
-                android:includeFontPadding="false"
-                android:singleLine="true"
-                android:background="@drawable/bg_status_badge_confirmed"
-                android:textColor="@color/status_confirmed_text"
-                tools:text="تأیید شده" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/tvBranch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-            tools:text="شعبه مرکزی" />
-
-        <TextView
-            android:id="@+id/tvServices"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body"
-            tools:text="ویزیت، آزمایش" />
-
-        <TextView
-            android:id="@+id/tvProvider"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-            tools:text="دکتر رضایی" />
-
-        <TextView
-            android:id="@+id/tvTime"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body"
-            tools:text="1404/07/15 - 10:30" />
-
-        <TextView
-            android:id="@+id/tvCancellationDeadline"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/tvPrice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-            tools:text="15,000 تومان" />
-
-        <LinearLayout
-            android:id="@+id/layoutTrackingCode"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvTrackingCode"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_marginTop="5dp"
                 android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                tools:text="کد پیگیری: ABC12345" />
+                android:textSize="12.5sp"
+                tools:text="شعبه مرکزی" />
 
-            <ImageView
-                android:id="@+id/btnCopyTrackingCode"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/copy_tracking_code"
-                android:padding="5dp"
-                android:src="@drawable/ic_copy"
-                app:tint="?attr/colorPrimary" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="8dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCancel"
-                style="@style/Widget.BeNobat.Button.Outlined"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/tvServices"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/cancel_appointment"
-                android:visibility="gone" />
+                android:layout_marginTop="5dp"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="ویزیت، آزمایش" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnReview"
-                style="@style/Widget.BeNobat.Button"
-                android:layout_width="0dp"
+            <TextView
+                android:id="@+id/tvProvider"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/add_review"
-                android:visibility="gone" />
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                android:textSize="12.5sp"
+                tools:text="دکتر رضایی" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_calendar"
+                    app:tint="?attr/colorPrimary" />
+
+                <TextView
+                    android:id="@+id/tvTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:fontFamily="@font/app_font"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="1404/07/15 - 10:30" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvCancellationDeadline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                android:textSize="11.5sp"
+                android:textColor="@color/status_pending_text" />
+
+            <TextView
+                android:id="@+id/tvPrice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="@font/app_font"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="۱۵,۰۰۰ تومان" />
+
+            <!-- Tracking Code Box -->
+            <LinearLayout
+                android:id="@+id/layoutTrackingCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_chip_muted"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="5dp"
+                android:paddingBottom="5dp">
+
+                <TextView
+                    android:id="@+id/tvTrackingCode"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/app_font"
+                    android:textSize="12sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="کد پیگیری: ABC12345" />
+
+                <ImageView
+                    android:id="@+id/btnCopyTrackingCode"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/copy_tracking_code"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_copy"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+
+            <!-- Actions Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancel"
+                    style="@style/Widget.BeNobat.Button.Outlined"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:minHeight="38dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:textSize="12.5sp"
+                    android:text="@string/cancel_appointment"
+                    app:cornerRadius="12dp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReview"
+                    style="@style/Widget.BeNobat.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:minHeight="38dp"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:textSize="12.5sp"
+                    android:text="@string/add_review"
+                    app:cornerRadius="12dp"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

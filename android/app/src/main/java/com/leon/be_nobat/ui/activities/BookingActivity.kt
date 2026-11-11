@@ -229,9 +229,8 @@ class BookingActivity : BaseActivity() {
                     viewModel.setDepositTrackingCode(etDeposit.text.toString())
                 }
                 if (viewModel.state.value.isDepositRequired &&
-                    viewModel.state.value.depositTrackingCode.isBlank() &&
                     viewModel.state.value.depositReceiptBase64.isNullOrBlank()) {
-                    showToast("ثبت بیعانه برای این نوبت الزامی است. لطفاً کد پیگیری یا تصویر فیش واریز را وارد کنید.")
+                    showToast("ثبت بیعانه برای این نوبت الزامی است. لطفاً تصویر فیش واریز را الصاق کنید.")
                     return@launch
                 }
                 viewModel.setPhone(findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPhone).text.toString())
@@ -427,7 +426,14 @@ class BookingActivity : BaseActivity() {
 
         // Time slots grid (Step 2)
         val rawSlots = state.slots?.slots ?: emptyList()
-        val slots = rawSlots.distinctBy { it.startsAt }
+        val filteredRaw = if (!state.selectedProviderId.isNullOrBlank()) {
+            rawSlots.filter { it.resourceId == state.selectedProviderId }
+        } else {
+            rawSlots
+        }
+        val slots = filteredRaw.groupBy { it.startsAt }.map { (_, group) ->
+            group.firstOrNull { it.isAvailable } ?: group.first()
+        }.sortedBy { it.startsAt }
         slotsAdapter?.submitList(slots)
         findViewById<View>(R.id.progressSlots).isVisible = state.loadingSlots
         findViewById<View>(R.id.tvNoSlots).isVisible = (state.slots != null && slots.isEmpty() && !state.loadingSlots)
@@ -435,7 +441,8 @@ class BookingActivity : BaseActivity() {
         val badge = findViewById<TextView>(R.id.tvSlotsCountBadge)
         if (!state.loadingSlots && slots.isNotEmpty()) {
             badge.isVisible = true
-            badge.text = getString(R.string.booking_available_slots_count, PersianUtils.toPersianDigits(slots.size))
+            val availCount = slots.count { it.isAvailable }
+            badge.text = getString(R.string.booking_available_slots_count, PersianUtils.toPersianDigits(availCount))
         } else {
             badge.isVisible = false
         }
@@ -513,7 +520,8 @@ class BookingActivity : BaseActivity() {
             state.termsAccepted &&
             state.selectedSlot != null &&
             state.selectedServices.isNotEmpty() &&
-            state.date.isNotBlank()
+            state.date.isNotBlank() &&
+            (!state.isDepositRequired || !state.depositReceiptBase64.isNullOrBlank())
         btnConfirm.isEnabled = canConfirm
         btnConfirm.alpha = if (canConfirm) 1.0f else 0.5f
 

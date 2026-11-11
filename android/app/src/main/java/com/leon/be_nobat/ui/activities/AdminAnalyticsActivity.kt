@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
@@ -18,6 +19,8 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.leon.be_nobat.R
 import com.leon.be_nobat.helpers.PersianUtils
+import com.leon.be_nobat.helpers.JalaliDateHelper
+import java.util.Calendar
 import com.leon.be_nobat.domain.model.ManagementAnalyticsSummary
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.adapters.AdminAnalyticsBreakdownAdapter
@@ -123,6 +126,10 @@ class AdminAnalyticsActivity : BaseActivity() {
         renderTabs(state.activeTab)
         renderActiveFiltersLabel(state)
 
+        if (!state.error.isNullOrBlank() && !state.loading) {
+            Toast.makeText(this, state.error, Toast.LENGTH_LONG).show()
+        }
+
         val data = state.analytics
         if (data != null) {
             renderMetrics(data)
@@ -201,7 +208,7 @@ class AdminAnalyticsActivity : BaseActivity() {
 
     private fun renderMetrics(data: ManagementAnalyticsSummary) {
         val nf = NumberFormat.getNumberInstance(Locale.forLanguageTag("fa-IR"))
-        tvTotalRevenue.text = nf.format(data.totalRevenue)
+        tvTotalRevenue.text = nf.format(data.totalRevenue.toLong())
 
         val hours = String.format(Locale.forLanguageTag("fa-IR"), "%.1f", data.totalWorkHours)
         tvTotalWorkHours.text = hours
@@ -225,7 +232,7 @@ class AdminAnalyticsActivity : BaseActivity() {
         val trend = data.trend
         if (trend.isEmpty()) return
 
-        val maxRevenue = maxOf(1L, trend.maxOf { it.revenue })
+        val maxRevenue = maxOf(1.0, trend.maxOf { it.revenue })
         val density = resources.displayMetrics.density
 
         trend.forEach { item ->
@@ -241,14 +248,14 @@ class AdminAnalyticsActivity : BaseActivity() {
             }
 
             val apptCountText = TextView(this).apply {
-                text = if (item.completed > 0) item.completed.toString() else ""
+                text = if (item.completed > 0) PersianUtils.toPersianDigits(item.completed) else ""
                 textSize = 9f
                 gravity = Gravity.CENTER
                 setTextColor(ContextCompat.getColor(this@AdminAnalyticsActivity, R.color.colorPrimary))
             }
             barLayout.addView(apptCountText)
 
-            val heightRatio = if (maxRevenue > 0) (item.revenue.toFloat() / maxRevenue).coerceIn(0.08f, 1.0f) else 0.08f
+            val heightRatio = if (maxRevenue > 0) (item.revenue / maxRevenue).toFloat().coerceIn(0.08f, 1.0f) else 0.08f
             val barHeight = ((140 - 45) * density * heightRatio).toInt().coerceAtLeast((10 * density).toInt())
 
             val barView = View(this).apply {
@@ -263,7 +270,26 @@ class AdminAnalyticsActivity : BaseActivity() {
             barLayout.addView(barView)
 
             val dateText = TextView(this).apply {
-                text = item.date.takeLast(5).replace("-", "/")
+                val cal = JalaliDateHelper.parseIsoToCalendar(item.date)
+                val formattedDate = if (cal != null) {
+                    if (PersianUtils.isEnglishLocale()) {
+                        "%02d/%02d".format(Locale.US, cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH))
+                    } else {
+                        val j = JalaliDateHelper.gregorianToJalali(
+                            cal.get(Calendar.YEAR),
+                            cal.get(Calendar.MONTH) + 1,
+                            cal.get(Calendar.DAY_OF_MONTH)
+                        )
+                        "${PersianUtils.toPersianDigits("%02d".format(Locale.US, j.month))}/${PersianUtils.toPersianDigits("%02d".format(Locale.US, j.day))}"
+                    }
+                } else {
+                    if (PersianUtils.isEnglishLocale()) {
+                        item.date.takeLast(5).replace("-", "/")
+                    } else {
+                        PersianUtils.toPersianDigits(item.date.takeLast(5).replace("-", "/"))
+                    }
+                }
+                text = formattedDate
                 textSize = 9f
                 gravity = Gravity.CENTER
                 setTextColor(ContextCompat.getColor(this@AdminAnalyticsActivity, R.color.colorOnSurfaceVariant))

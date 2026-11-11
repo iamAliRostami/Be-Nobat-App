@@ -39,13 +39,17 @@ public static class PublicEndpoints
             if (!string.IsNullOrWhiteSpace(category)) query = query.Where(b => b.Category == category.Trim());
             if (!string.IsNullOrWhiteSpace(city)) { var pattern = TextSearch.LikePatterns(city)[0]; query = query.Where(b => EF.Functions.ILike(b.City, pattern)); }
             var (p, size) = ApiResults.Pagination(page, pageSize);
-            return Results.Ok(new ApiPage<BusinessDto>(await query.OrderBy(b => b.Name).ThenBy(b => b.Id).Skip((p - 1) * size).Take(size).Select(BusinessProjection).ToListAsync(ct), p, size, await query.CountAsync(ct)));
+            var orderedQuery = patterns.Length > 0
+                ? query.OrderBy(b => b.Name).ThenBy(b => b.Id)
+                : query.OrderByDescending(b => b.Reviews.Count(r => r.Status == ReviewStatus.Published && r.DeletedAt == null))
+                       .ThenByDescending(b => b.CreatedAt);
+            return Results.Ok(new ApiPage<BusinessDto>(await orderedQuery.Skip((p - 1) * size).Take(size).Select(BusinessProjection).ToListAsync(ct), p, size, await query.CountAsync(ct)));
         }).AllowAnonymous();
         root.MapGet("/businesses/{businessId:guid}", async (Guid businessId, AppDbContext db, CancellationToken ct) =>
         {
             var business = await db.Businesses.AsNoTracking().Where(b => b.Id == businessId).Select(BusinessProjection).FirstOrDefaultAsync(ct);
             if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
-            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder)).ToListAsync(ct);
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == businessId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder, null, b.Latitude, b.Longitude)).ToListAsync(ct);
             var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == businessId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
             var reviews = await PublicReviews(db, businessId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
             var gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == businessId).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/business/gallery/{g.Id}")).ToListAsync(ct);
@@ -57,7 +61,7 @@ public static class PublicEndpoints
             var business = await db.Businesses.AsNoTracking().Where(b => b.Slug == normalizedSlug && b.DeletedAt == null).Select(BusinessProjection).FirstOrDefaultAsync(ct);
             if (business is null) return ApiResults.Error("not_found", "Business was not found.", 404);
             var actualId = business.Id;
-            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == actualId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder)).ToListAsync(ct);
+            var branches = await db.Branches.AsNoTracking().Where(b => b.BusinessId == actualId && b.IsApproved).OrderBy(b => b.Name).Select(b => new BranchDto(b.Id, b.BusinessId, b.Name, b.Address, b.TimeZoneId, b.OpenHour, b.CloseHour, b.AvatarData != null ? $"/media/branch/{b.Id}/avatar" : null, b.HeaderData != null ? $"/media/branch/{b.Id}/header" : null, b.DepositPercentage, b.DepositCardNumber, b.DepositIban, b.DepositAccountHolder, null, b.Latitude, b.Longitude)).ToListAsync(ct);
             var services = await db.Services.AsNoTracking().Where(s => s.BusinessId == actualId && s.BranchServices.Any(bs => bs.DeletedAt == null && bs.Branch.DeletedAt == null && bs.Branch.IsApproved)).OrderBy(s => s.Name).Select(s => new ServiceDto(s.Id, s.BusinessId, s.Name, s.Description, s.DurationMinutes, s.Price, s.Currency)).ToListAsync(ct);
             var reviews = await PublicReviews(db, actualId).OrderByDescending(r => r.CreatedAt).Take(20).Select(r => new PublicReviewDto(r.Id, r.Rating, r.Comment, r.ManagerReply, r.Customer.DisplayName, r.CreatedAt)).ToListAsync(ct);
             var gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == actualId).OrderBy(g => g.SortOrder).Select(g => new GalleryItemDto(g.Id, g.Caption, g.SortOrder, $"/media/business/gallery/{g.Id}")).ToListAsync(ct);
@@ -90,8 +94,88 @@ public static class PublicEndpoints
             foreach (var id in ids) query = query.Where(r => r.ServiceResources.Any(sr => sr.ServiceId == id && sr.DeletedAt == null));
             return Results.Ok(new { items = await query.OrderBy(r => r.Name).Select(r => new ProviderDto(r.Id, r.BranchId, r.Name, r.Kind, r.UserId)).ToListAsync(ct) });
         }).AllowAnonymous();
+
+        root.MapGet("/contact-info", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var p = await db.GetPlatformPricingAsync(ct);
+            return Results.Ok(new PlatformContactInfoDto(
+                Phone: p.Phone,
+                SupportPhone: p.SupportPhone,
+                Mobile: p.Mobile,
+                Email: p.Email,
+                Address: p.Address,
+                WorkingHoursWeekdays: p.WorkingHoursWeekdays,
+                WorkingHoursThursdays: p.WorkingHoursThursdays,
+                WorkingHoursHolidays: p.WorkingHoursHolidays,
+                Telegram: p.Telegram,
+                Eitaa: p.Eitaa,
+                Instagram: p.Instagram,
+                Latitude: p.Latitude,
+                Longitude: p.Longitude,
+                InfoEmail: p.InfoEmail,
+                BankName: p.BankName,
+                CardNumber: p.CardNumber,
+                Iban: p.Iban,
+                AccountHolder: p.AccountHolder
+            ));
+        }).AllowAnonymous();
+
+        root.MapPost("/contact", async (ContactMessageInput input, HttpContext http, AppDbContext db, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length < 2)
+                return ApiResults.Error("invalid_name", "نام و نام خانوادگی را وارد کنید.");
+            if (string.IsNullOrWhiteSpace(input.ContactInfo) || input.ContactInfo.Trim().Length < 5)
+                return ApiResults.Error("invalid_contact", "شماره تماس یا ایمیل معتبر وارد کنید.");
+            if (string.IsNullOrWhiteSpace(input.Message) || input.Message.Trim().Length < 5)
+                return ApiResults.Error("invalid_message", "متن پیام را وارد کنید.");
+
+            Guid? userId = null;
+            if (http.User.Identity?.IsAuthenticated == true &&
+                Guid.TryParse(http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid))
+            {
+                userId = uid;
+            }
+
+            var msg = new ContactMessage
+            {
+                UserId = userId,
+                Name = input.Name.Trim(),
+                ContactInfo = input.ContactInfo.Trim(),
+                Subject = string.IsNullOrWhiteSpace(input.Subject) ? "پشتیبانی" : input.Subject.Trim(),
+                Message = input.Message.Trim(),
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            db.ContactMessages.Add(msg);
+            await db.SaveChangesAsync(ct);
+
+            return Results.Ok(new { message = "پیام شما با موفقیت ثبت شد و به زودی بررسی خواهد شد.", id = msg.Id });
+        }).AllowAnonymous();
+
         return root;
     }
     private static IQueryable<Review> PublicReviews(AppDbContext db, Guid businessId) => db.Reviews.AsNoTracking().Where(r => r.BusinessId == businessId && r.Status == ReviewStatus.Published && r.Business.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null));
 }
+public sealed record ContactMessageInput(string Name, string ContactInfo, string? Subject, string Message);
+public sealed record PlatformContactInfoDto(
+    string Phone,
+    string SupportPhone,
+    string Mobile,
+    string Email,
+    string Address,
+    string WorkingHoursWeekdays,
+    string WorkingHoursThursdays,
+    string WorkingHoursHolidays,
+    string Telegram,
+    string Eitaa,
+    string Instagram,
+    double? Latitude = null,
+    double? Longitude = null,
+    string? InfoEmail = null,
+    string? BankName = null,
+    string? CardNumber = null,
+    string? Iban = null,
+    string? AccountHolder = null
+);
 public sealed record BusinessDetailDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, IReadOnlyList<BranchDto> Branches, IReadOnlyList<ServiceDto> Services, IReadOnlyList<PublicReviewDto> Reviews, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);

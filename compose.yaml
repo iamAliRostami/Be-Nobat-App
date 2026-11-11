@@ -34,7 +34,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      DataProtection__KeysPath: /keys
       Seed__DemoPassword: Demo123456
+    volumes:
+      - dataprotection_keys:/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,7 +49,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      DataProtection__KeysPath: /keys
       Seed__DemoPassword: Demo123456
+    volumes:
+      - dataprotection_keys:/keys
     depends_on:
       postgres:
         condition: service_healthy

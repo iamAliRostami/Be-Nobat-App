@@ -82,6 +82,8 @@ public sealed class Branch : Entity
     public Guid BusinessId { get; set; }
     public required string Name { get; set; }
     public string Address { get; set; } = string.Empty;
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     public string TimeZoneId { get; set; } = "Asia/Tehran";
     public int OpenHour { get; set; } = 9;
     public int CloseHour { get; set; } = 18;
@@ -103,6 +105,12 @@ public sealed class Branch : Entity
     public string? DepositCardNumber { get; set; }
     public string? DepositIban { get; set; }
     public string? DepositAccountHolder { get; set; }
+
+    public decimal? Fee { get; set; }
+    public string? ReceiptImageContentType { get; set; }
+    public byte[]? ReceiptImageData { get; set; }
+    public string? ReceiptTrackingCode { get; set; }
+    public DateTimeOffset? ReceiptUploadedAt { get; set; }
 
     public ICollection<BranchService> BranchServices { get; } = [];
     public ICollection<BranchGalleryItem> GalleryItems { get; } = [];
@@ -317,6 +325,23 @@ public sealed class PlatformPricingSettings : Entity
     public string Iban { get; set; } = "IR120170000000123456789012";
     public string AccountHolder { get; set; } = "سامانه نوبت‌دهی به‌نوبت";
     public string PaymentInstructions { get; set; } = "لطفاً پس از واریز مبلغ کل به شماره کارت یا شبای فوق، تصویر فیش واریز را در این بخش بارگذاری نمایید.";
+
+    public string Address { get; set; } = "اصفهان، خیابان شریعتی، مجتمع تجاری اداری به‌نوبت، طبقه ۴، واحد ۴۰۲";
+    public double? Latitude { get; set; } = 32.6546;
+    public double? Longitude { get; set; } = 51.6680;
+    public string Phone { get; set; } = "021-91002424";
+    public string SupportPhone { get; set; } = "021-91002425";
+    public string Mobile { get; set; } = "09134588221";
+    public string Email { get; set; } = "support@benobat.ir";
+    public string InfoEmail { get; set; } = "info@benobat.ir";
+    public string BankName { get; set; } = "بانک ملت";
+    public string AccountNumber { get; set; } = "";
+    public string WorkingHoursWeekdays { get; set; } = "شنبه تا چهارشنبه: 8:30 الی 18:00";
+    public string WorkingHoursThursdays { get; set; } = "پنج‌شنبه‌ها: 8:30 الی 13:00";
+    public string WorkingHoursHolidays { get; set; } = "روزهای تعطیل: پشتیبانی آنلاین از طریق تیکت";
+    public string Telegram { get; set; } = "benobat_support";
+    public string Instagram { get; set; } = "benobat.official";
+    public string Eitaa { get; set; } = "benobat_support";
 }
 
 /// <summary>
@@ -394,4 +419,40 @@ public sealed class ResourceGalleryItem : Entity
     public string ContentType { get; set; } = "image/jpeg";
     public byte[] ImageData { get; set; } = [];
     public Resource Resource { get; set; } = null!;
+}
+
+public sealed class ContactMessage : Entity
+{
+    public Guid? UserId { get; set; }
+    public required string Name { get; set; }
+    public required string ContactInfo { get; set; }
+    public string Subject { get; set; } = "پشتیبانی";
+    public required string Message { get; set; }
+    public bool IsRead { get; set; } = false;
+    public string? AdminReply { get; set; }
+    public DateTimeOffset? RepliedAt { get; set; }
+
+    public AppUser? User { get; set; }
+}
+
+public sealed class AdminBroadcastMessage : Entity
+{
+    public Guid SenderId { get; set; }
+    public Guid? TargetUserId { get; set; }
+    public required string Title { get; set; }
+    public required string Content { get; set; }
+    public string Priority { get; set; } = "Normal";
+
+    public AppUser Sender { get; set; } = null!;
+    public AppUser? TargetUser { get; set; }
+}
+
+public sealed class AdminMessageRead : Entity
+{
+    public Guid MessageId { get; set; }
+    public Guid UserId { get; set; }
+    public DateTimeOffset ReadAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public AdminBroadcastMessage Message { get; set; } = null!;
+    public AppUser User { get; set; } = null!;
 }

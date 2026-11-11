@@ -19,6 +19,15 @@
                     android:id="@+id/drawer_calendar"
                     android:icon="@drawable/ic_calendar"
                     android:title="@string/admin_calendar" />
+                <item
+                    android:id="@+id/drawer_system_messages"
+                    android:icon="@drawable/ic_appointment_notification"
+                    android:title="@string/drawer_system_messages" />
+                <item
+                    android:id="@+id/drawer_platform_messages"
+                    android:icon="@drawable/ic_contact_support"
+                    android:title="@string/drawer_platform_messages"
+                    android:visible="false" />
             </group>
         </menu>
     </item>
@@ -72,6 +81,10 @@
                     android:icon="@drawable/ic_platform"
                     android:title="@string/platform_businesses" />
                 <item
+                    android:id="@+id/drawer_platform_requests"
+                    android:icon="@drawable/ic_document"
+                    android:title="@string/drawer_platform_requests" />
+                <item
                     android:id="@+id/drawer_platform_catalog"
                     android:icon="@drawable/ic_document"
                     android:title="@string/platform_catalog" />
@@ -84,9 +97,13 @@
                     android:icon="@drawable/ic_customers"
                     android:title="@string/platform_access" />
                 <item
-                    android:id="@+id/drawer_platform_requests"
-                    android:icon="@drawable/ic_document"
-                    android:title="@string/drawer_platform_requests" />
+                    android:id="@+id/drawer_platform_announcements"
+                    android:icon="@drawable/ic_announcement"
+                    android:title="@string/drawer_platform_announcements" />
+                <item
+                    android:id="@+id/drawer_platform_settings"
+                    android:icon="@drawable/ic_settings"
+                    android:title="@string/drawer_platform_settings" />
             </group>
         </menu>
     </item>

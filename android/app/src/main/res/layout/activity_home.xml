@@ -203,7 +203,7 @@
 
                             <!-- Shortcut 1: Top Centers -->
                             <LinearLayout
-                                android:id="@+id/btnShortcutTopCenters"
+                                android:id="@+id/btnShortcutContact"
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
@@ -224,7 +224,7 @@
                                         android:layout_height="22dp"
                                         android:layout_gravity="center"
                                         android:contentDescription="@null"
-                                        android:src="@drawable/ic_star_filled"
+                                        android:src="@drawable/ic_contact_support"
                                         app:tint="@color/shortcut_blue_fg" />
                                 </FrameLayout>
 
@@ -238,7 +238,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_top_centers"
+                                        android:text="@string/home_shortcut_contact"
                                         android:textColor="?attr/colorOnSurface"
                                         android:textSize="12sp"
                                         android:textStyle="bold" />
@@ -246,7 +246,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="@string/home_shortcut_top_centers_sub"
+                                        android:text="@string/home_shortcut_contact_sub"
                                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                                         android:textSize="10sp" />
                                 </LinearLayout>

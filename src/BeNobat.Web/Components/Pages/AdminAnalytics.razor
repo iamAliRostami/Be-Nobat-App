@@ -1,10 +1,11 @@
-﻿@page "/admin/analytics"
+@page "/admin/analytics"
 @attribute [Authorize(Policy = Policies.ManageAppointments)]
 @rendermode InteractiveServer
 @inject AppDbContext Db
 @inject AdminAccessScope Access
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject UiLocale UiLocale
 @using System.Globalization
 
 <PageTitle>آمار و گزارش‌ها | به‌نوبت</PageTitle>
@@ -24,7 +25,7 @@
                 <option value="">همه کسب‌وکارها</option>
                 @foreach (var biz in FilterBusinesses)
                 {
-                    <option value="@biz.Id">@biz.Name</option>
+                    <option value="@biz.Id" data-i18n-skip>@biz.Name</option>
                 }
             </select>
         </label>
@@ -33,7 +34,7 @@
                 <option value="">همه شعب</option>
                 @foreach (var branch in FilterBranches)
                 {
-                    <option value="@branch.Id">@branch.Name</option>
+                    <option value="@branch.Id" data-i18n-skip>@branch.Name</option>
                 }
             </select>
         </label>
@@ -42,7 +43,7 @@
                 <option value="">همه کارکنان</option>
                 @foreach (var res in FilterResources)
                 {
-                    <option value="@res.Id">@res.Name</option>
+                    <option value="@res.Id" data-i18n-skip>@res.Name</option>
                 }
             </select>
         </label>
@@ -62,28 +63,28 @@
             <i class="green">◈</i>
             <div>
                 <small>درآمد کل</small>
-                <strong>@LocalizedDate.FormatNumber(TotalRevenue, "fa", "N0") <span style="font-size: 0.7em; font-weight: normal;">تومان</span></strong>
+                <strong>@LocalizedDate.FormatNumber(TotalRevenue, UiLocale.Language, "N0") <span style="font-size: 0.7em; font-weight: normal;">تومان</span></strong>
             </div>
         </div>
         <div class="stat-card-link">
             <i class="blue">◷</i>
             <div>
                 <small>ساعات کاری</small>
-                <strong>@LocalizedDate.FormatNumber(TotalWorkHours, "fa") <span style="font-size: 0.7em; font-weight: normal;">ساعت</span></strong>
+                <strong>@LocalizedDate.FormatNumber(TotalWorkHours, UiLocale.Language) <span style="font-size: 0.7em; font-weight: normal;">ساعت</span></strong>
             </div>
         </div>
         <div class="stat-card-link">
             <i class="purple">✓</i>
             <div>
                 <small>نوبت‌های تکمیل‌شده</small>
-                <strong>@LocalizedDate.FormatNumber(CompletedCount, "fa") <span style="font-size: 0.7em; font-weight: normal;">از @LocalizedDate.FormatNumber(TotalCount, "fa")</span></strong>
+                <strong>@LocalizedDate.FormatNumber(CompletedCount, UiLocale.Language) <span style="font-size: 0.7em; font-weight: normal;">از @LocalizedDate.FormatNumber(TotalCount, UiLocale.Language)</span></strong>
             </div>
         </div>
         <div class="stat-card-link">
             <i class="orange">▥</i>
             <div>
                 <small>نرخ موفقیت</small>
-                <strong>@(TotalCount > 0 ? LocalizedDate.FormatNumber(Math.Round((double)CompletedCount * 100 / TotalCount), "fa") : "۰")٪</strong>
+                <strong>@(TotalCount > 0 ? LocalizedDate.FormatNumber(Math.Round((double)CompletedCount * 100 / TotalCount), UiLocale.Language) : "۰")٪</strong>
             </div>
         </div>
     </div>
@@ -146,19 +147,19 @@
                 <article class="availability-row" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div>
-                            <strong style="font-size: 15px;">@s.Name</strong>
-                            <small class="entity-meta" style="margin-right: 8px;">@s.BranchName</small>
+                            <strong style="font-size: 15px;" data-i18n-skip>@s.Name</strong>
+                            <small class="entity-meta" style="margin-right: 8px;" data-i18n-skip>@s.BranchName</small>
                         </div>
                         <div style="text-align: left;">
-                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(s.Revenue, "fa", "N0") تومان</strong>
-                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(s.Hours, "fa") ساعت کار@if (TotalRevenue > 0 && revPercent > 0) { <span> • @LocalizedDate.FormatNumber(revPercent, "fa")٪ درآمد کل</span> })</span>
+                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(s.Revenue, UiLocale.Language, "N0") تومان</strong>
+                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(s.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
                             <div style="width: @(completionPercent)%; height: 100%; background: #10b981; border-radius: 4px;"></div>
                         </div>
-                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(s.CompletedCount, "fa") از @LocalizedDate.FormatNumber(s.TotalCount, "fa") نوبت (@LocalizedDate.FormatNumber(completionPercent, "fa")٪)</span>
+                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(s.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(s.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
                     </div>
                 </article>
             }
@@ -178,19 +179,19 @@
                 <article class="availability-row" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                         <div>
-                            <strong style="font-size: 15px;">@b.Name</strong>
-                            <small class="entity-meta" style="margin-right: 8px;">@b.BusinessName</small>
+                            <strong style="font-size: 15px;" data-i18n-skip>@b.Name</strong>
+                            <small class="entity-meta" style="margin-right: 8px;" data-i18n-skip>@b.BusinessName</small>
                         </div>
                         <div style="text-align: left;">
-                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(b.Revenue, "fa", "N0") تومان</strong>
-                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(b.Hours, "fa") ساعت کار@if (TotalRevenue > 0 && revPercent > 0) { <span> • @LocalizedDate.FormatNumber(revPercent, "fa")٪ درآمد کل</span> })</span>
+                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(b.Revenue, UiLocale.Language, "N0") تومان</strong>
+                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(b.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
                             <div style="width: @(completionPercent)%; height: 100%; background: #3b82f6; border-radius: 4px;"></div>
                         </div>
-                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(b.CompletedCount, "fa") از @LocalizedDate.FormatNumber(b.TotalCount, "fa") نوبت (@LocalizedDate.FormatNumber(completionPercent, "fa")٪)</span>
+                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(b.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(b.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
                     </div>
                 </article>
             }
@@ -205,17 +206,17 @@
                 var revPercent = TotalRevenue > 0 ? (int)((biz.Revenue * 100) / TotalRevenue) : 0;
                 <article class="availability-row" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <strong style="font-size: 15px;">@biz.Name</strong>
+                        <strong style="font-size: 15px;" data-i18n-skip>@biz.Name</strong>
                         <div style="text-align: left;">
-                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(biz.Revenue, "fa", "N0") تومان</strong>
-                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(biz.Hours, "fa") ساعت کار@if (TotalRevenue > 0 && revPercent > 0) { <span> • @LocalizedDate.FormatNumber(revPercent, "fa")٪ درآمد کل</span> })</span>
+                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(biz.Revenue, UiLocale.Language, "N0") تومان</strong>
+                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(biz.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
                             <div style="width: @(completionPercent)%; height: 100%; background: #8b5cf6; border-radius: 4px;"></div>
                         </div>
-                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(biz.CompletedCount, "fa") از @LocalizedDate.FormatNumber(biz.TotalCount, "fa") نوبت (@LocalizedDate.FormatNumber(completionPercent, "fa")٪)</span>
+                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(biz.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(biz.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
                     </div>
                 </article>
             }
@@ -289,7 +290,7 @@
         if (int.TryParse(PeriodFilter, out var days) && days > 0)
         {
             var cutoff = DateTimeOffset.UtcNow.AddDays(-days);
-            query = query.Where(a => a.StartsAt >= cutoff);
+            query = query.Where(a => a.StartsAt >= cutoff && a.StartsAt <= DateTimeOffset.UtcNow);
         }
 
         var appts = await query.ToListAsync();
@@ -301,80 +302,157 @@
         var totalMinutes = completed.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
         TotalWorkHours = Math.Round(totalMinutes / 60.0, 1);
 
-        // Staff Breakdown
-        StaffStats = appts
-            .Where(a => a.Resource != null)
-            .GroupBy(a => a.Resource!)
-            .Select(g =>
+        // Staff Breakdown - aggregated by Resource ID
+        var apptsByStaff = appts.Where(a => a.ResourceId != null).GroupBy(a => a.ResourceId!.Value).ToDictionary(g => g.Key, g => g.ToList());
+        var staffList = FilterResources.ToList();
+        var listedStaffIds = staffList.Select(r => r.Id).ToHashSet();
+
+        StaffStats = staffList
+            .Select(r =>
             {
-                var comp = g.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                var rAppts = apptsByStaff.GetValueOrDefault(r.Id, []);
+                var comp = rAppts.Where(a => a.Status == AppointmentStatus.Completed).ToList();
                 var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
+                var br = Branches.FirstOrDefault(b => b.Id == r.BranchId);
                 return new StatItem(
-                    g.Key.Id,
-                    g.Key.Name,
-                    g.First().Branch?.Name ?? "",
-                    g.First().Branch?.Name ?? "",
-                    g.First().Branch?.Business?.Name ?? "",
-                    g.Count(),
+                    r.Id,
+                    r.Name,
+                    br?.Name ?? "",
+                    br?.Name ?? "",
+                    br?.Business?.Name ?? "",
+                    rAppts.Count,
                     comp.Count,
                     comp.Sum(a => a.FinalPrice),
                     Math.Round(mins / 60.0, 1)
                 );
             })
+            .Concat(
+                apptsByStaff.Where(kvp => !listedStaffIds.Contains(kvp.Key)).Select(kvp =>
+                {
+                    var comp = kvp.Value.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                    var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
+                    var first = kvp.Value.First();
+                    return new StatItem(
+                        kvp.Key,
+                        first.Resource?.Name ?? "نامشخص",
+                        first.Branch?.Name ?? "",
+                        first.Branch?.Name ?? "",
+                        first.Branch?.Business?.Name ?? "",
+                        kvp.Value.Count,
+                        comp.Count,
+                        comp.Sum(a => a.FinalPrice),
+                        Math.Round(mins / 60.0, 1)
+                    );
+                })
+            )
+            .Where(s => s.TotalCount > 0 || !appts.Any())
             .OrderByDescending(x => x.Revenue)
+            .ThenByDescending(x => x.TotalCount)
             .ToList();
 
-        // Branch Breakdown
-        BranchStats = appts
-            .GroupBy(a => a.Branch)
-            .Select(g =>
+        // Branch Breakdown - aggregated by Branch ID
+        var apptsByBranch = appts.GroupBy(a => a.BranchId).ToDictionary(g => g.Key, g => g.ToList());
+        var branchList = FilterBranches.ToList();
+        var listedBranchIds = branchList.Select(b => b.Id).ToHashSet();
+
+        BranchStats = branchList
+            .Select(b =>
             {
-                var comp = g.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                var bAppts = apptsByBranch.GetValueOrDefault(b.Id, []);
+                var comp = bAppts.Where(a => a.Status == AppointmentStatus.Completed).ToList();
                 var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
                 return new StatItem(
-                    g.Key.Id,
-                    g.Key.Name,
-                    g.Key.Business?.Name ?? "",
-                    g.Key.Name,
-                    g.Key.Business?.Name ?? "",
-                    g.Count(),
+                    b.Id,
+                    b.Name,
+                    b.Business?.Name ?? "",
+                    b.Name,
+                    b.Business?.Name ?? "",
+                    bAppts.Count,
                     comp.Count,
                     comp.Sum(a => a.FinalPrice),
                     Math.Round(mins / 60.0, 1)
                 );
             })
+            .Concat(
+                apptsByBranch.Where(kvp => !listedBranchIds.Contains(kvp.Key)).Select(kvp =>
+                {
+                    var comp = kvp.Value.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                    var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
+                    var first = kvp.Value.First();
+                    return new StatItem(
+                        kvp.Key,
+                        first.Branch?.Name ?? "نامشخص",
+                        first.Branch?.Business?.Name ?? "",
+                        first.Branch?.Name ?? "نامشخص",
+                        first.Branch?.Business?.Name ?? "",
+                        kvp.Value.Count,
+                        comp.Count,
+                        comp.Sum(a => a.FinalPrice),
+                        Math.Round(mins / 60.0, 1)
+                    );
+                })
+            )
+            .Where(b => b.TotalCount > 0 || !appts.Any())
             .OrderByDescending(x => x.Revenue)
+            .ThenByDescending(x => x.TotalCount)
             .ToList();
 
-        // Business Breakdown
-        BusinessStats = appts
-            .GroupBy(a => a.Branch.Business)
-            .Select(g =>
+        // Business Breakdown - aggregated by Business ID
+        var apptsByBiz = appts.GroupBy(a => a.Branch.BusinessId).ToDictionary(g => g.Key, g => g.ToList());
+        var bizList = FilterBusinesses.ToList();
+        var listedBizIds = bizList.Select(b => b.Id).ToHashSet();
+
+        BusinessStats = bizList
+            .Select(biz =>
             {
-                var comp = g.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                var bAppts = apptsByBiz.GetValueOrDefault(biz.Id, []);
+                var comp = bAppts.Where(a => a.Status == AppointmentStatus.Completed).ToList();
                 var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
                 return new StatItem(
-                    g.Key.Id,
-                    g.Key.Name,
+                    biz.Id,
+                    biz.Name,
                     "",
                     "",
-                    g.Key.Name,
-                    g.Count(),
+                    biz.Name,
+                    bAppts.Count,
                     comp.Count,
                     comp.Sum(a => a.FinalPrice),
                     Math.Round(mins / 60.0, 1)
                 );
             })
+            .Concat(
+                apptsByBiz.Where(kvp => !listedBizIds.Contains(kvp.Key)).Select(kvp =>
+                {
+                    var comp = kvp.Value.Where(a => a.Status == AppointmentStatus.Completed).ToList();
+                    var mins = comp.Sum(a => Math.Max(0, (a.EndsAt - a.StartsAt).TotalMinutes));
+                    var first = kvp.Value.First();
+                    return new StatItem(
+                        kvp.Key,
+                        first.Branch?.Business?.Name ?? "نامشخص",
+                        "",
+                        "",
+                        first.Branch?.Business?.Name ?? "نامشخص",
+                        kvp.Value.Count,
+                        comp.Count,
+                        comp.Sum(a => a.FinalPrice),
+                        Math.Round(mins / 60.0, 1)
+                    );
+                })
+            )
+            .Where(b => b.TotalCount > 0 || !appts.Any())
             .OrderByDescending(x => x.Revenue)
+            .ThenByDescending(x => x.TotalCount)
             .ToList();
 
         // Daily trend (last 14 days)
-        var minDate = DateTimeOffset.UtcNow.AddDays(-13).Date;
+        var tehran = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tehran");
+        var nowTehran = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, tehran).Date;
+        var minDate = nowTehran.AddDays(-13);
         DailyTrend = Enumerable.Range(0, 14)
             .Select(i => minDate.AddDays(i))
             .Select(d =>
             {
-                var dayAppts = appts.Where(a => a.StartsAt.Date == d).ToList();
+                var dayAppts = appts.Where(a => TimeZoneInfo.ConvertTime(a.StartsAt, tehran).Date == d).ToList();
                 var dayComp = dayAppts.Where(a => a.Status == AppointmentStatus.Completed).ToList();
                 var jDate = LocalizedDate.DayAndMonth(DateOnly.FromDateTime(d), "fa");
                 return new DayTrendItem(

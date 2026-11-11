@@ -168,5 +168,7 @@ class PlatformCategoriesViewModelTest {
         override suspend fun approveBusinessRequest(id: String): Result<BusinessRequest> = TODO()
         override suspend fun rejectBusinessRequest(id: String, input: ReviewBusinessRequestInput): Result<BusinessRequest> = TODO()
         override suspend fun approveBranch(id: String): Result<ManagementBranch> = TODO()
+        override suspend fun getPlatformPricing(): Result<PlatformPricing> = Result.success(PlatformPricing())
+        override suspend fun updatePlatformPricing(input: PlatformPricingInput): Result<PlatformPricing> = Result.success(PlatformPricing())
     }
 }

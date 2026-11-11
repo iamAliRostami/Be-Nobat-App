@@ -91,6 +91,10 @@ public static class ManagementEndpoints
         admin.MapPost("/customer-reviews", CreateCustomerReview);
         admin.MapPut("/customer-reviews/{id:guid}", UpdateCustomerReview);
         admin.MapDelete("/customer-reviews/{id:guid}", DeleteCustomerReview);
+        admin.MapGet("/system-messages", ListSystemMessages);
+        admin.MapPost("/system-messages/{id:guid}/read", MarkSystemMessageRead);
+        admin.MapPost("/system-messages/read-all", MarkAllSystemMessagesRead);
+        admin.MapGet("/sidebar-badges", GetSidebarBadges);
 
         var platform = root.MapGroup("/platform").WithTags("Platform")
             .RequireAuthorization(policy => policy.AddAuthenticationSchemes("MobileBearer")
@@ -119,12 +123,24 @@ public static class ManagementEndpoints
         platform.MapPut("/users/{id:guid}/roles", SetUserRoles);
         platform.MapPut("/users/{id:guid}/active", SetUserActive);
         platform.MapPost("/users/{id:guid}/reset-password", ResetUserPassword);
-        platform.MapGet("/pricing", GetPlatformPricing);
-        platform.MapPost("/pricing", UpdatePlatformPricing);
+        platform.MapGet("/pricing", GetPlatformSettings);
+        platform.MapPost("/pricing", UpdatePlatformSettings);
+        platform.MapPut("/pricing", UpdatePlatformSettings);
+        platform.MapGet("/settings", GetPlatformSettings);
+        platform.MapPost("/settings", UpdatePlatformSettings);
+        platform.MapPut("/settings", UpdatePlatformSettings);
         platform.MapGet("/business-requests", ListBusinessRequests);
         platform.MapPost("/business-requests/{id:guid}/approve", ApproveBusinessRequest);
         platform.MapPost("/business-requests/{id:guid}/reject", RejectBusinessRequest);
         platform.MapPost("/branches/{id:guid}/approve", ApproveBranch);
+        platform.MapGet("/contact-messages", ListContactMessages);
+        platform.MapPut("/contact-messages/{id:guid}/read", MarkContactMessageRead);
+        platform.MapPost("/contact-messages/read-all", MarkAllContactMessagesRead);
+        platform.MapPut("/contact-messages/{id:guid}/reply", ReplyContactMessage);
+        platform.MapDelete("/contact-messages/{id:guid}", DeleteContactMessage);
+        platform.MapGet("/announcements", ListAnnouncements);
+        platform.MapPost("/announcements", CreateAnnouncement);
+        platform.MapDelete("/announcements/{id:guid}", DeleteAnnouncement);
         return root;
     }
 
@@ -465,8 +481,12 @@ public static class ManagementEndpoints
                 ? x.AvailabilityRules.Where(r => r.DeletedAt == null && r.ResourceId == null && r.EffectiveDate == null && r.IsAvailable)
                     .Select(r => new WeeklyTimeRange { DayOfWeek = (int)r.DayOfWeek, StartsAt = r.StartsAt, EndsAt = r.EndsAt }).ToList() : null,
             x.Business.Name,
-            x.IsApproved, x.CancellationNoticeMinutes));
-    private static ManagementBranchDto BranchDto(Branch x) => new(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null, WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved, x.CancellationNoticeMinutes);
+            x.IsApproved, x.CancellationNoticeMinutes,
+            x.AvatarData != null ? $"/media/branch/{x.Id}/avatar" : null,
+            x.HeaderData != null ? $"/media/branch/{x.Id}/header" : null,
+            x.DepositPercentage, x.DepositCardNumber, x.DepositIban, x.DepositAccountHolder,
+            x.Latitude, x.Longitude));
+    private static ManagementBranchDto BranchDto(Branch x) => new(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null, WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved, x.CancellationNoticeMinutes, x.AvatarData != null ? $"/media/branch/{x.Id}/avatar" : null, x.HeaderData != null ? $"/media/branch/{x.Id}/header" : null, x.DepositPercentage, x.DepositCardNumber, x.DepositIban, x.DepositAccountHolder, x.Latitude, x.Longitude);
 
     private static Task<IResult> ListBranches(AppDbContext db, ApiScope scope, CancellationToken ct, Guid? businessId = null, string? q = null, bool includeInactive = false, int page = 1, int pageSize = 25)
     {
@@ -495,7 +515,9 @@ public static class ManagementEndpoints
     private static void ApplyBranch(Branch item, ManagementBranchInput input)
     {
         item.Name = Clean(input.Name); item.Address = Clean(input.Address); item.TimeZoneId = input.TimeZoneId;
-        item.CancellationNoticeMinutes = input.CancellationNoticeMinutes; item.OpenHour = input.OpenHour; item.CloseHour = input.CloseHour; item.UpdatedAt = DateTimeOffset.UtcNow;
+        item.CancellationNoticeMinutes = input.CancellationNoticeMinutes; item.OpenHour = input.OpenHour; item.CloseHour = input.CloseHour;
+        item.Latitude = input.Latitude; item.Longitude = input.Longitude;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     private static async Task<IResult> CreateBranch(ManagementBranchInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
@@ -1560,6 +1582,54 @@ public static class ManagementEndpoints
         return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
     }
 
+    private static async Task<IResult> GetPlatformSettings(AppDbContext db, CancellationToken ct)
+    {
+        var p = await db.GetPlatformPricingAsync(ct);
+        return Results.Ok(new PlatformSettingsDto(
+            p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions,
+            p.Address, p.Latitude, p.Longitude, p.Phone, p.SupportPhone, p.Mobile, p.Email, p.InfoEmail,
+            p.BankName, p.AccountNumber, p.WorkingHoursWeekdays, p.WorkingHoursThursdays, p.WorkingHoursHolidays,
+            p.Telegram, p.Instagram, p.Eitaa
+        ));
+    }
+
+    private static async Task<IResult> UpdatePlatformSettings(PlatformSettingsInput input, AppDbContext db, CancellationToken ct)
+    {
+        if (input.BaseBusinessPrice < 0 || input.ExtraBranchPrice < 0)
+            return ApiResults.Error("invalid_input", "مبالغ تعرفه نمی‌توانند منفی باشند.");
+        var p = await db.GetPlatformPricingAsync(ct);
+        p.BaseBusinessPrice = input.BaseBusinessPrice;
+        p.ExtraBranchPrice = input.ExtraBranchPrice;
+        p.CardNumber = input.CardNumber?.Trim() ?? "";
+        p.Iban = input.Iban?.Trim() ?? "";
+        p.AccountHolder = input.AccountHolder?.Trim() ?? "";
+        p.PaymentInstructions = input.PaymentInstructions?.Trim() ?? "";
+        p.Address = input.Address?.Trim() ?? "";
+        p.Latitude = input.Latitude;
+        p.Longitude = input.Longitude;
+        p.Phone = input.Phone?.Trim() ?? "";
+        p.SupportPhone = input.SupportPhone?.Trim() ?? "";
+        p.Mobile = input.Mobile?.Trim() ?? "";
+        p.Email = input.Email?.Trim() ?? "";
+        p.InfoEmail = input.InfoEmail?.Trim() ?? "";
+        p.BankName = input.BankName?.Trim() ?? "";
+        p.AccountNumber = input.AccountNumber?.Trim() ?? "";
+        p.WorkingHoursWeekdays = input.WorkingHoursWeekdays?.Trim() ?? "";
+        p.WorkingHoursThursdays = input.WorkingHoursThursdays?.Trim() ?? "";
+        p.WorkingHoursHolidays = input.WorkingHoursHolidays?.Trim() ?? "";
+        p.Telegram = input.Telegram?.Trim() ?? "";
+        p.Instagram = input.Instagram?.Trim() ?? "";
+        p.Eitaa = input.Eitaa?.Trim() ?? "";
+        p.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new PlatformSettingsDto(
+            p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions,
+            p.Address, p.Latitude, p.Longitude, p.Phone, p.SupportPhone, p.Mobile, p.Email, p.InfoEmail,
+            p.BankName, p.AccountNumber, p.WorkingHoursWeekdays, p.WorkingHoursThursdays, p.WorkingHoursHolidays,
+            p.Telegram, p.Instagram, p.Eitaa
+        ));
+    }
+
     public static BusinessRequestDto ToBusinessRequestDto(BusinessRequest r, string? userName = null, string? userEmail = null, string? userPhone = null)
     {
         var branches = r.GetAdditionalBranches().Select(b => new RequestedBranchDto(b.Name, b.Address)).ToArray();
@@ -1824,13 +1894,296 @@ public static class ManagementEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> ListSystemMessages(AppDbContext db, ApiScope scope, CancellationToken ct)
+    {
+        var raw = await db.AdminBroadcastMessages
+            .AsNoTracking()
+            .Where(m => m.TargetUserId == null || m.TargetUserId == scope.UserId)
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync(ct);
+
+        var readIds = (await db.AdminMessageReads
+            .AsNoTracking()
+            .Where(r => r.UserId == scope.UserId)
+            .Select(r => r.MessageId)
+            .ToListAsync(ct)).ToHashSet();
+
+        var result = raw.Select(m => new
+        {
+            id = m.Id,
+            title = m.Title,
+            content = m.Content,
+            priority = m.Priority,
+            createdAt = m.CreatedAt,
+            isRead = readIds.Contains(m.Id)
+        });
+
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> MarkSystemMessageRead(Guid id, AppDbContext db, ApiScope scope, CancellationToken ct)
+    {
+        var exists = await db.AdminBroadcastMessages.AnyAsync(m => m.Id == id && (m.TargetUserId == null || m.TargetUserId == scope.UserId), ct);
+        if (!exists) return Missing();
+
+        var already = await db.AdminMessageReads.AnyAsync(r => r.UserId == scope.UserId && r.MessageId == id, ct);
+        if (!already)
+        {
+            db.AdminMessageReads.Add(new AdminMessageRead
+            {
+                UserId = scope.UserId,
+                MessageId = id,
+                ReadAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync(ct);
+        }
+        return Results.Ok(new { success = true });
+    }
+
+    private static async Task<IResult> MarkAllSystemMessagesRead(AppDbContext db, ApiScope scope, CancellationToken ct)
+    {
+        var unreadIds = await db.AdminBroadcastMessages
+            .Where(m => m.TargetUserId == null || m.TargetUserId == scope.UserId)
+            .Where(m => !db.AdminMessageReads.Any(r => r.UserId == scope.UserId && r.MessageId == m.Id))
+            .Select(m => m.Id)
+            .ToListAsync(ct);
+
+        foreach (var id in unreadIds)
+        {
+            db.AdminMessageReads.Add(new AdminMessageRead
+            {
+                UserId = scope.UserId,
+                MessageId = id,
+                ReadAt = DateTimeOffset.UtcNow
+            });
+        }
+        if (unreadIds.Count > 0)
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        return Results.Ok(new { success = true, count = unreadIds.Count });
+    }
+
+    private static async Task<IResult> GetSidebarBadges(AppDbContext db, ApiScope scope, CancellationToken ct)
+    {
+        var pendingAppointments = await scope.Appointments().CountAsync(a => a.Status == AppointmentStatus.Pending, ct);
+        var pendingReviews = await scope.Reviews().CountAsync(r => r.DeletedAt == null && r.Status == ReviewStatus.Pending, ct);
+
+        int pendingRequests = 0;
+        int unreadContactMessages = 0;
+
+        if (scope.IsPlatform)
+        {
+            pendingRequests = await db.BusinessRequests.CountAsync(r => r.Status == BusinessRequestStatus.Pending, ct);
+            unreadContactMessages = await db.ContactMessages.CountAsync(m => !m.IsRead, ct);
+        }
+
+        var eligibleMessages = await db.AdminBroadcastMessages
+            .AsNoTracking()
+            .Where(m => m.TargetUserId == null || m.TargetUserId == scope.UserId)
+            .Select(m => new { m.Id, m.Priority })
+            .ToListAsync(ct);
+
+        var readIds = (await db.AdminMessageReads
+            .AsNoTracking()
+            .Where(r => r.UserId == scope.UserId)
+            .Select(r => r.MessageId)
+            .ToListAsync(ct)).ToHashSet();
+
+        var unreadList = eligibleMessages.Where(m => !readIds.Contains(m.Id)).ToList();
+        var unreadBroadcasts = unreadList.Count;
+
+        string? highestPriority = null;
+        if (unreadList.Any(m => string.Equals(m.Priority, "Urgent", StringComparison.OrdinalIgnoreCase)))
+            highestPriority = "Urgent";
+        else if (unreadList.Any(m => string.Equals(m.Priority, "Important", StringComparison.OrdinalIgnoreCase)))
+            highestPriority = "Important";
+        else if (unreadBroadcasts > 0)
+            highestPriority = "Normal";
+
+        return Results.Ok(new
+        {
+            pendingAppointments,
+            pendingReviews,
+            pendingRequests,
+            unreadContactMessages,
+            unreadBroadcasts,
+            highestBroadcastPriority = highestPriority
+        });
+    }
+
+    private static async Task<IResult> ListContactMessages(
+        AppDbContext db,
+        CancellationToken ct,
+        string? status = null,
+        string? q = null)
+    {
+        var query = db.ContactMessages.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.Equals("unread", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(m => !m.IsRead);
+            else if (status.Equals("read", StringComparison.OrdinalIgnoreCase))
+                query = query.Where(m => m.IsRead);
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var term = q.Trim().ToLower();
+            query = query.Where(m => m.Name.ToLower().Contains(term) ||
+                                     m.ContactInfo.ToLower().Contains(term) ||
+                                     m.Subject.ToLower().Contains(term) ||
+                                     m.Message.ToLower().Contains(term));
+        }
+
+        var list = await query
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => new
+            {
+                id = m.Id,
+                name = m.Name,
+                contactInfo = m.ContactInfo,
+                subject = m.Subject,
+                message = m.Message,
+                isRead = m.IsRead,
+                adminReply = m.AdminReply,
+                repliedAt = m.RepliedAt,
+                createdAt = m.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return Results.Ok(list);
+    }
+
+    private static async Task<IResult> MarkContactMessageRead(
+        Guid id,
+        AppDbContext db,
+        ContactMessageReadInput? input,
+        CancellationToken ct)
+    {
+        var msg = await db.ContactMessages.FindAsync([id], ct);
+        if (msg == null) return Missing();
+
+        msg.IsRead = input?.IsRead ?? true;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true, isRead = msg.IsRead });
+    }
+
+    private static async Task<IResult> MarkAllContactMessagesRead(AppDbContext db, CancellationToken ct)
+    {
+        var unread = await db.ContactMessages.Where(m => !m.IsRead).ToListAsync(ct);
+        foreach (var m in unread)
+        {
+            m.IsRead = true;
+        }
+        if (unread.Count > 0)
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        return Results.Ok(new { success = true, count = unread.Count });
+    }
+
+    private static async Task<IResult> ReplyContactMessage(
+        Guid id,
+        AppDbContext db,
+        ContactMessageReplyInput input,
+        CancellationToken ct)
+    {
+        var msg = await db.ContactMessages.FindAsync([id], ct);
+        if (msg == null) return Missing();
+
+        if (string.IsNullOrWhiteSpace(input.Reply))
+            return Invalid("متن پاسخ نمی‌تواند خالی باشد.");
+
+        msg.AdminReply = input.Reply.Trim();
+        msg.RepliedAt = DateTimeOffset.UtcNow;
+        msg.IsRead = true;
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true, repliedAt = msg.RepliedAt });
+    }
+
+    private static async Task<IResult> DeleteContactMessage(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var msg = await db.ContactMessages.FindAsync([id], ct);
+        if (msg == null) return Missing();
+
+        db.ContactMessages.Remove(msg);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true });
+    }
+
+    private static async Task<IResult> ListAnnouncements(AppDbContext db, CancellationToken ct)
+    {
+        var list = await db.AdminBroadcastMessages
+            .Include(m => m.TargetUser)
+            .AsNoTracking()
+            .OrderByDescending(m => m.CreatedAt)
+            .Select(m => new
+            {
+                id = m.Id,
+                title = m.Title,
+                content = m.Content,
+                priority = m.Priority,
+                targetUserId = m.TargetUserId,
+                targetUserName = m.TargetUser != null ? m.TargetUser.DisplayName : null,
+                targetUserPhone = m.TargetUser != null ? (m.TargetUser.PhoneNumber ?? m.TargetUser.Email) : null,
+                createdAt = m.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return Results.Ok(list);
+    }
+
+    private static async Task<IResult> CreateAnnouncement(
+        AppDbContext db,
+        ApiScope scope,
+        AnnouncementCreateInput input,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.Title)) return Invalid("عنوان پیام الزامی است.");
+        if (string.IsNullOrWhiteSpace(input.Content)) return Invalid("متن پیام الزامی است.");
+
+        var item = new AdminBroadcastMessage
+        {
+            SenderId = scope.UserId,
+            TargetUserId = input.TargetUserId,
+            Title = input.Title.Trim(),
+            Content = input.Content.Trim(),
+            Priority = string.IsNullOrWhiteSpace(input.Priority) ? "Normal" : input.Priority.Trim(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        db.AdminBroadcastMessages.Add(item);
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new
+        {
+            id = item.Id,
+            title = item.Title,
+            content = item.Content,
+            priority = item.Priority,
+            createdAt = item.CreatedAt
+        });
+    }
+
+    private static async Task<IResult> DeleteAnnouncement(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var item = await db.AdminBroadcastMessages.FindAsync([id], ct);
+        if (item == null) return Missing();
+
+        db.AdminBroadcastMessages.Remove(item);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true });
+    }
 }
 
 public sealed record ManagementActiveInput(bool Active);
 public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
 public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
-public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
-public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
+public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null, double? Latitude = null, double? Longitude = null);
+public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, double? Latitude = null, double? Longitude = null);
 public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null, string? AvatarBase64 = null);
 public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active, string? AvatarUrl = null);
 public sealed record ImageUploadInput(string? Data, string? ContentType);
@@ -1869,8 +2222,16 @@ public sealed record ManagementCreatedUserDto(Guid Id, string DisplayName, strin
 public sealed record ManagementRolesInput(string[] Roles);
 public sealed record PlatformPricingDto(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
 public sealed record PlatformPricingInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
+public sealed record PlatformSettingsDto(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions, string Address, double? Latitude, double? Longitude, string Phone, string SupportPhone, string Mobile, string Email, string InfoEmail, string BankName, string AccountNumber, string WorkingHoursWeekdays, string WorkingHoursThursdays, string WorkingHoursHolidays, string Telegram, string Instagram, string Eitaa);
+public sealed record PlatformSettingsInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions, string Address = "", double? Latitude = null, double? Longitude = null, string Phone = "", string SupportPhone = "", string Mobile = "", string Email = "", string InfoEmail = "", string BankName = "", string AccountNumber = "", string WorkingHoursWeekdays = "", string WorkingHoursThursdays = "", string WorkingHoursHolidays = "", string Telegram = "", string Instagram = "", string Eitaa = "");
 public sealed record RequestedBranchDto(string Name, string Address);
-public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string DataBase64);
+public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string? DataBase64 = null, string? ImageBase64 = null)
+{
+    public string EffectiveData => !string.IsNullOrWhiteSpace(DataBase64) ? DataBase64 : (ImageBase64 ?? string.Empty);
+}
 public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "", RequestedBranchDto[]? AdditionalBranches = null);
 public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt);
 public sealed record ReviewBusinessRequestInput(string? Note = null);
+public sealed record ContactMessageReadInput(bool IsRead = true);
+public sealed record ContactMessageReplyInput(string Reply);
+public sealed record AnnouncementCreateInput(string Title, string Content, string Priority = "Normal", Guid? TargetUserId = null);

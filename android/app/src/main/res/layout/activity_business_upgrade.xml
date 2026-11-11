@@ -190,6 +190,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
                                 android:layout_weight="1"
+                                android:id="@+id/tvPendingHeader"
                                 android:text="@string/business_request_pending_header"
                                 android:textAppearance="@style/TextAppearance.BeNobat.Title"
                                 android:textColor="@color/status_pending_text"

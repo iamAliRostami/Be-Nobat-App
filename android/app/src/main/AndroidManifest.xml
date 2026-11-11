@@ -221,6 +221,11 @@
 
 
 
+        <activity
+            android:name=".ui.activities.ContactUsActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- Admin surface -->
 
         <activity android:name=".ui.activities.AdminHomeActivity" android:exported="false" />
@@ -256,8 +261,7 @@
         <activity android:name=".ui.activities.AdminCustomersActivity" android:exported="false" />
 
         <activity android:name=".ui.activities.AdminTeamActivity" android:exported="false" />
-
-
+        <activity android:name=".ui.activities.AdminSystemMessagesActivity" android:exported="false" />
 
         <!-- Platform surface -->
 
@@ -278,6 +282,9 @@
         <activity android:name=".ui.activities.PlatformAccessActivity" android:exported="false" />
 
         <activity android:name=".ui.activities.PlatformRequestsActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformMessagesActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformAnnouncementsActivity" android:exported="false" />
+        <activity android:name=".ui.activities.PlatformSettingsActivity" android:exported="true" />
 
 
 

@@ -8,8 +8,7 @@ namespace BeNobat.Web.Infrastructure;
 /// این کلاس همان پیام‌ها را فارسی می‌کند و چون در سطح Identity ثبت می‌شود،
 /// هر جایی که UserManager خطا برگرداند - ثبت‌نام، ساخت کاربر در پنل مدیریت،
 /// تغییر ایمیل یا رمز - پیام فارسی خواهد بود.
-/// در این برنامه UserName همان Email است، بنابراین خطای تکراری بودن نام کاربری
-/// هم با زبان «ایمیل» بیان می‌شود.
+/// در این برنامه نام کاربری (UserName) شماره موبایل کاربر است.
 /// </summary>
 public sealed class PersianIdentityErrorDescriber : IdentityErrorDescriber
 {
@@ -31,13 +30,13 @@ public sealed class PersianIdentityErrorDescriber : IdentityErrorDescriber
         Error(nameof(LoginAlreadyAssociated), "برای این حساب قبلاً ورودی ثبت شده است.");
 
     public override IdentityError InvalidUserName(string? userName) =>
-        Error(nameof(InvalidUserName), "ایمیل واردشده معتبر نیست.");
+        Error(nameof(InvalidUserName), "شماره موبایل واردشده معتبر نیست.");
 
     public override IdentityError InvalidEmail(string? email) =>
         Error(nameof(InvalidEmail), "ایمیل واردشده معتبر نیست.");
 
     public override IdentityError DuplicateUserName(string? userName) =>
-        Error(nameof(DuplicateUserName), "این ایمیل قبلاً ثبت شده است؛ وارد شوید یا ایمیل دیگری بزنید.");
+        Error(nameof(DuplicateUserName), "این شماره موبایل قبلاً ثبت شده است؛ وارد شوید یا با شماره دیگری ثبت‌نام کنید.");
 
     public override IdentityError DuplicateEmail(string? email) =>
         Error(nameof(DuplicateEmail), "این ایمیل قبلاً ثبت شده است؛ وارد شوید یا ایمیل دیگری بزنید.");

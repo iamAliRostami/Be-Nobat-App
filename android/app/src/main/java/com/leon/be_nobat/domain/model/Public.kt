@@ -40,6 +40,8 @@ data class Business(
     val depositIban: String? = null,
     val depositAccountHolder: String? = null,
     val gallery: List<GalleryItem> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable
@@ -83,6 +85,8 @@ data class Branch(
     val depositIban: String? = null,
     val depositAccountHolder: String? = null,
     val gallery: List<GalleryItem> = emptyList(),
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 @Serializable

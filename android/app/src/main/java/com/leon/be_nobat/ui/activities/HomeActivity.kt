@@ -92,10 +92,8 @@ class HomeActivity : BaseActivity() {
         }
 
         // Setup Bank Mehr Quick Shortcuts
-        findViewById<View>(R.id.btnShortcutTopCenters)?.setOnClickListener {
-            viewModel.setSortAndFilter(BusinessSortOption.RATING, instantOnly = false)
-            val target = findViewById<View>(R.id.tvTopCentersTitle) ?: businessList
-            homeScrollView.postDelayed({ scrollToView(target) }, 100)
+        findViewById<View>(R.id.btnShortcutContact)?.setOnClickListener {
+            startActivity(Intent(this, ContactUsActivity::class.java))
         }
         findViewById<View>(R.id.btnShortcutSlots)?.setOnClickListener {
             showTodaySlotsBottomSheet()

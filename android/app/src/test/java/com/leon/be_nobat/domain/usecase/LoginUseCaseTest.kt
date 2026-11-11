@@ -5,6 +5,8 @@ import com.leon.be_nobat.domain.model.MobileSession
 import com.leon.be_nobat.domain.model.RegisterInput
 import com.leon.be_nobat.domain.model.User
 import com.leon.be_nobat.domain.model.BusinessRequest
+import com.leon.be_nobat.domain.model.PlatformPricing
+import com.leon.be_nobat.domain.model.ReceiptUploadInput
 import com.leon.be_nobat.domain.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -73,6 +75,9 @@ class LoginUseCaseTest {
         override suspend fun getMyBusinessRequest(): Result<BusinessRequest?> = Result.success(null)
         override suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<BusinessRequest> =
             Result.success(BusinessRequest(id = "req-1", businessName = input.businessName))
+        override suspend fun getPlatformPricing(): Result<PlatformPricing> = Result.success(PlatformPricing())
+        override suspend fun uploadBusinessRequestReceipt(input: ReceiptUploadInput): Result<BusinessRequest> =
+            Result.success(BusinessRequest(id = "req-1"))
         override val cachedSession: MobileSession? = null
     }
 }
@@ -83,7 +88,7 @@ class RegisterUseCaseTest {
 
     @Test fun `missing display name is rejected`() = runBlocking {
         val result = useCase(RegisterInput(displayName = "", email = "u@e.com", phoneNumber = "09123456789", password = "pass"))
-        assertSame(AuthException.InvalidIdentifier, result.exceptionOrNull())
+        assertSame(AuthException.InvalidDisplayName, result.exceptionOrNull())
         assertEquals(0, repository.calls)
     }
 
@@ -93,9 +98,21 @@ class RegisterUseCaseTest {
         assertEquals(1, repository.calls)
     }
 
+    @Test fun `null email is accepted when phone is present`() = runBlocking {
+        val result = useCase(RegisterInput(displayName = "User", email = null, phoneNumber = "09123456789", password = "pass"))
+        assertTrue(result.isSuccess)
+        assertEquals(1, repository.calls)
+    }
+
+    @Test fun `persian digits in phone are normalized and accepted`() = runBlocking {
+        val result = useCase(RegisterInput(displayName = "User", email = null, phoneNumber = "۰۹۱۲۳۴۵۶۷۸۹", password = "pass"))
+        assertTrue(result.isSuccess)
+        assertEquals(1, repository.calls)
+    }
+
     @Test fun `missing phone is rejected`() = runBlocking {
         val result = useCase(RegisterInput(displayName = "User", email = "u@e.com", phoneNumber = "", password = "pass"))
-        assertSame(AuthException.InvalidIdentifier, result.exceptionOrNull())
+        assertSame(AuthException.InvalidPhone, result.exceptionOrNull())
     }
 
     @Test fun `blank password is rejected`() = runBlocking {
@@ -130,6 +147,9 @@ class RegisterUseCaseTest {
         override suspend fun getMyBusinessRequest(): Result<BusinessRequest?> = Result.success(null)
         override suspend fun submitBusinessRequest(input: com.leon.be_nobat.domain.model.BusinessRequestInput): Result<BusinessRequest> =
             Result.success(BusinessRequest(id = "req-1", businessName = input.businessName))
+        override suspend fun getPlatformPricing(): Result<PlatformPricing> = Result.success(PlatformPricing())
+        override suspend fun uploadBusinessRequestReceipt(input: ReceiptUploadInput): Result<BusinessRequest> =
+            Result.success(BusinessRequest(id = "req-1"))
         override val cachedSession: MobileSession? = null
     }
 }

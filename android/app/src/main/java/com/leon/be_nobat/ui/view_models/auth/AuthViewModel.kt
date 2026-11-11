@@ -53,6 +53,10 @@ class AuthViewModel(
     /** Convenience: derive a localized error key from the current error state. */
     fun errorKey(error: Throwable?): String? = when (error as? AuthException) {
         AuthException.InvalidIdentifier -> "error_invalid_identifier"
+        AuthException.InvalidDisplayName -> "error_name_phone_required"
+        AuthException.InvalidPhone -> "error_phone_invalid"
+        AuthException.InvalidEmail -> "error_invalid_email"
+        is AuthException.InvalidInput -> "error_generic"
         AuthException.EmptyPassword -> "error_empty_password"
         AuthException.InvalidCredentials -> "error_invalid_credentials"
         AuthException.AccountLocked -> "error_account_locked"

@@ -78,10 +78,24 @@ public static class DemoSeeder
                 Kind = "staff",
             };
 
+            var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(business.Slug, business.Name, business.Category);
+            business.AvatarData = bAvatar;
+            business.AvatarContentType = "image/svg+xml";
+            business.HeaderData = bHeader;
+            business.HeaderContentType = "image/svg+xml";
+
+            var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(business.Slug, branch.Name, business.Category);
+            branch.AvatarData = brAvatar;
+            branch.AvatarContentType = "image/svg+xml";
+            branch.HeaderData = brHeader;
+            branch.HeaderContentType = "image/svg+xml";
+
             db.Businesses.Add(business);
             db.Branches.Add(branch);
             db.Services.AddRange(services);
             db.Resources.Add(resource);
+            db.BusinessGalleryItems.AddRange(DemoMediaAssets.GetBusinessGallery(business.Id, business.Category));
+            db.BranchGalleryItems.AddRange(DemoMediaAssets.GetBranchGallery(branch.Id, branch.Name, business.Category));
         });
 
         await SeedBusinessIfMissingAsync(db, "sepid-dental-clinic", cancellationToken, () =>
@@ -127,9 +141,23 @@ public static class DemoSeeder
                 },
             };
 
+            var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(business.Slug, business.Name, business.Category);
+            business.AvatarData = bAvatar;
+            business.AvatarContentType = "image/svg+xml";
+            business.HeaderData = bHeader;
+            business.HeaderContentType = "image/svg+xml";
+
+            var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(business.Slug, branch.Name, business.Category);
+            branch.AvatarData = brAvatar;
+            branch.AvatarContentType = "image/svg+xml";
+            branch.HeaderData = brHeader;
+            branch.HeaderContentType = "image/svg+xml";
+
             db.Businesses.Add(business);
             db.Branches.Add(branch);
             db.Services.AddRange(services);
+            db.BusinessGalleryItems.AddRange(DemoMediaAssets.GetBusinessGallery(business.Id, business.Category));
+            db.BranchGalleryItems.AddRange(DemoMediaAssets.GetBranchGallery(branch.Id, branch.Name, business.Category));
         });
 
         await SeedBusinessIfMissingAsync(db, "rahaei-massage-wellness", cancellationToken, () =>
@@ -166,9 +194,23 @@ public static class DemoSeeder
                 },
             };
 
+            var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(business.Slug, business.Name, business.Category);
+            business.AvatarData = bAvatar;
+            business.AvatarContentType = "image/svg+xml";
+            business.HeaderData = bHeader;
+            business.HeaderContentType = "image/svg+xml";
+
+            var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(business.Slug, branch.Name, business.Category);
+            branch.AvatarData = brAvatar;
+            branch.AvatarContentType = "image/svg+xml";
+            branch.HeaderData = brHeader;
+            branch.HeaderContentType = "image/svg+xml";
+
             db.Businesses.Add(business);
             db.Branches.Add(branch);
             db.Services.AddRange(services);
+            db.BusinessGalleryItems.AddRange(DemoMediaAssets.GetBusinessGallery(business.Id, business.Category));
+            db.BranchGalleryItems.AddRange(DemoMediaAssets.GetBranchGallery(branch.Id, branch.Name, business.Category));
         });
 
         await SeedBusinessIfMissingAsync(db, "omid-family-consulting", cancellationToken, () =>
@@ -205,9 +247,23 @@ public static class DemoSeeder
                 },
             };
 
+            var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(business.Slug, business.Name, business.Category);
+            business.AvatarData = bAvatar;
+            business.AvatarContentType = "image/svg+xml";
+            business.HeaderData = bHeader;
+            business.HeaderContentType = "image/svg+xml";
+
+            var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(business.Slug, branch.Name, business.Category);
+            branch.AvatarData = brAvatar;
+            branch.AvatarContentType = "image/svg+xml";
+            branch.HeaderData = brHeader;
+            branch.HeaderContentType = "image/svg+xml";
+
             db.Businesses.Add(business);
             db.Branches.Add(branch);
             db.Services.AddRange(services);
+            db.BusinessGalleryItems.AddRange(DemoMediaAssets.GetBusinessGallery(business.Id, business.Category));
+            db.BranchGalleryItems.AddRange(DemoMediaAssets.GetBranchGallery(branch.Id, branch.Name, business.Category));
         });
 
         string[] slugs = ["avan-beauty-studio", "sepid-dental-clinic",
@@ -232,6 +288,7 @@ public static class DemoSeeder
         await db.SaveChangesAsync(cancellationToken);
         await CommercialDemoSeeder.SeedAsync(serviceProvider, cancellationToken);
         await EnsureBookableDemoGraphAsync(db, cancellationToken);
+        await EnsureAllMediaPopulatedAsync(db, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -300,10 +357,51 @@ public static class DemoSeeder
         await db.BranchMemberships.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId) || demoUserIds.Contains(x.UserId)).ExecuteDeleteAsync(ct);
         await db.Resources.IgnoreQueryFilters().Where(x => resourceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
         await db.Services.IgnoreQueryFilters().Where(x => serviceIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.BranchGalleryItems.IgnoreQueryFilters().Where(x => branchIds.Contains(x.BranchId)).ExecuteDeleteAsync(ct);
         await db.Branches.IgnoreQueryFilters().Where(x => branchIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
+        await db.BusinessGalleryItems.IgnoreQueryFilters().Where(x => businessIds.Contains(x.BusinessId)).ExecuteDeleteAsync(ct);
         await db.Businesses.IgnoreQueryFilters().Where(x => businessIds.Contains(x.Id)).ExecuteDeleteAsync(ct);
 
         db.Users.RemoveRange(demoUsers);
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static async Task EnsureAllMediaPopulatedAsync(AppDbContext db, CancellationToken ct)
+    {
+        var businesses = await db.Businesses.IgnoreQueryFilters().ToListAsync(ct);
+        foreach (var b in businesses)
+        {
+            if (b.AvatarData == null || b.HeaderData == null)
+            {
+                var (bAvatar, bHeader) = DemoMediaAssets.GetBusinessMedia(b.Slug, b.Name, b.Category);
+                b.AvatarData ??= bAvatar;
+                b.AvatarContentType ??= "image/svg+xml";
+                b.HeaderData ??= bHeader;
+                b.HeaderContentType ??= "image/svg+xml";
+            }
+            if (!await db.BusinessGalleryItems.IgnoreQueryFilters().AnyAsync(g => g.BusinessId == b.Id, ct))
+            {
+                db.BusinessGalleryItems.AddRange(DemoMediaAssets.GetBusinessGallery(b.Id, b.Category));
+            }
+        }
+
+        var branches = await db.Branches.IgnoreQueryFilters().Include(b => b.Business).ToListAsync(ct);
+        foreach (var br in branches)
+        {
+            var cat = br.Business?.Category ?? "خدمات";
+            if (br.AvatarData == null || br.HeaderData == null)
+            {
+                var (brAvatar, brHeader) = DemoMediaAssets.GetBranchMedia(br.Business?.Slug ?? "branch", br.Name, cat);
+                br.AvatarData ??= brAvatar;
+                br.AvatarContentType ??= "image/svg+xml";
+                br.HeaderData ??= brHeader;
+                br.HeaderContentType ??= "image/svg+xml";
+            }
+            if (!await db.BranchGalleryItems.IgnoreQueryFilters().AnyAsync(g => g.BranchId == br.Id, ct))
+            {
+                db.BranchGalleryItems.AddRange(DemoMediaAssets.GetBranchGallery(br.Id, br.Name, cat));
+            }
+        }
         await db.SaveChangesAsync(ct);
     }
 

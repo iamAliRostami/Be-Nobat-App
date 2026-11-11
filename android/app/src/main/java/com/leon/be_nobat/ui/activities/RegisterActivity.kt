@@ -5,7 +5,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.snackbar.Snackbar
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.AuthException
 import com.leon.be_nobat.helpers.BaseActivity
@@ -48,7 +47,7 @@ class RegisterActivity : BaseActivity() {
                         is RegisterUiState.Loading -> {
                             findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRegister).apply {
                                 text = getString(R.string.registering)
-                                isEnabled = false
+                                enabled(false)
                             }
                             findViewById<android.widget.TextView>(R.id.tvError).isVisible = false
                         }
@@ -56,12 +55,16 @@ class RegisterActivity : BaseActivity() {
                         is RegisterUiState.Error -> {
                             findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRegister).apply {
                                 text = getString(R.string.register)
-                                isEnabled = true
+                                enabled(true)
                             }
                             val errView = findViewById<android.widget.TextView>(R.id.tvError)
                             errView.isVisible = true
-                            errView.text = when (state.error as? AuthException) {
-                                AuthException.InvalidIdentifier -> getString(R.string.error_invalid_identifier)
+                            errView.text = when (val err = state.error as? AuthException) {
+                                AuthException.InvalidDisplayName -> getString(R.string.error_name_phone_required)
+                                AuthException.InvalidPhone -> getString(R.string.error_phone_invalid)
+                                AuthException.InvalidEmail -> getString(R.string.error_invalid_email)
+                                is AuthException.InvalidInput -> err.message.ifBlank { getString(R.string.error_generic) }
+                                AuthException.InvalidIdentifier -> getString(R.string.error_phone_invalid)
                                 AuthException.EmptyPassword -> getString(R.string.error_empty_password)
                                 AuthException.DuplicateEmail -> getString(R.string.error_duplicate_email)
                                 AuthException.DuplicatePhone -> getString(R.string.error_duplicate_phone)
@@ -78,6 +81,10 @@ class RegisterActivity : BaseActivity() {
                 }
             }
         }
+    }
+
+    private fun com.google.android.material.button.MaterialButton.enabled(value: Boolean) {
+        isEnabled = value
     }
 
     private fun routeAfterRegister(user: com.leon.be_nobat.domain.model.User) {

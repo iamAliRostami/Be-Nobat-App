@@ -39,6 +39,11 @@ public static class CustomerEndpoints
                 slots
             });
         }).AllowAnonymous();
+        root.MapGet("/platform-pricing", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var p = await db.GetPlatformPricingAsync(ct);
+            return Results.Ok(new PlatformPricingDto((long)Math.Round(p.BaseBusinessPrice), (long)Math.Round(p.ExtraBranchPrice), p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+        }).AllowAnonymous();
         var customer = root.MapGroup("").RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = MobileAuthentication.Scheme });
         customer.MapGet("/favorites", async (ApiScope scope, AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>
         {
@@ -122,6 +127,16 @@ public static class CustomerEndpoints
             if (hasPending) return ApiResults.Error("conflict", "شما یک درخواست در حال بررسی دارید.", 409);
             var user = await users.FindByIdAsync(scope.UserId.ToString());
             if (user is null) return ApiResults.Error("unauthorized", "کاربر یافت نشد.", 401);
+
+            var pricing = await db.GetPlatformPricingAsync(ct);
+            var branches = input.AdditionalBranches?
+                .Where(b => !string.IsNullOrWhiteSpace(b.Name))
+                .Select(b => new RequestedBranchItem { Name = b.Name.Trim(), Address = b.Address?.Trim() ?? "" })
+                .ToList() ?? [];
+            var additionalJson = branches.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(branches) : null;
+            var totalBranches = 1 + branches.Count;
+            var totalFee = pricing.BaseBusinessPrice + (pricing.ExtraBranchPrice * branches.Count);
+
             var req = new BusinessRequest
             {
                 UserId = scope.UserId,
@@ -132,11 +147,44 @@ public static class CustomerEndpoints
                 ContactPhone = string.IsNullOrWhiteSpace(input.ContactPhone) ? (user.PhoneNumber ?? "") : input.ContactPhone.Trim(),
                 FirstBranchName = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : input.FirstBranchName.Trim(),
                 FirstBranchAddress = input.FirstBranchAddress?.Trim() ?? "",
+                AdditionalBranchesJson = additionalJson,
+                BasePrice = pricing.BaseBusinessPrice,
+                ExtraBranchPrice = pricing.ExtraBranchPrice,
+                TotalBranchesCount = totalBranches,
+                TotalFee = totalFee,
                 Status = BusinessRequestStatus.Pending,
             };
             db.BusinessRequests.Add(req);
             await db.SaveChangesAsync(ct);
             return Results.Created($"/api/v1/business-request/{req.Id}", ManagementEndpoints.ToBusinessRequestDto(req, user.DisplayName, user.Email, user.PhoneNumber));
+        });
+        customer.MapPost("/business-request/receipt", async (ReceiptUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct) =>
+        {
+            var rawData = input.EffectiveData;
+            if (string.IsNullOrWhiteSpace(rawData)) return ApiResults.Error("invalid_input", "تصویر فیش الزامی است.");
+            var req = await db.BusinessRequests.Include(r => r.User).Where(x => x.UserId == scope.UserId && x.Status == BusinessRequestStatus.Pending)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+            if (req is null) return ApiResults.Error("not_found", "درخواست فعالی برای ارسال فیش یافت نشد.", 404);
+
+            byte[] bytes;
+            try
+            {
+                bytes = Convert.FromBase64String(rawData);
+            }
+            catch
+            {
+                return ApiResults.Error("invalid_input", "فرمت تصویر فیش نامعتبر است.");
+            }
+
+            req.ReceiptImageData = bytes;
+            req.ReceiptImageContentType = string.IsNullOrWhiteSpace(input.ContentType) ? "image/jpeg" : input.ContentType.Trim();
+            req.ReceiptTrackingCode = input.TrackingCode?.Trim();
+            req.ReceiptUploadedAt = DateTimeOffset.UtcNow;
+            req.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(ManagementEndpoints.ToBusinessRequestDto(req, req.User?.DisplayName, req.User?.Email, req.User?.PhoneNumber));
         });
         return root;
     }

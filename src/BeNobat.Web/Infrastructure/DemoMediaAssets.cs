@@ -123,6 +123,78 @@ public static class DemoMediaAssets
                 </g>
                 """);
         }
+        if (category.Contains("ماساژ") || category.Contains("اسپا") || category.Contains("تندرستی"))
+        {
+            return ("#134e4a", "#0d9488", "#2dd4bf", "#ccfbf1",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="100" cy="60" r="16" fill="rgba(255,255,255,0.2)"/>
+                  <path d="M60 110 Q100 80 140 110 Q100 140 60 110 Z" fill="rgba(255,255,255,0.2)"/>
+                  <path d="M50 145 Q100 120 150 145"/>
+                </g>
+                """);
+        }
+        if (category.Contains("پزشکی") || category.Contains("سلامت") || category.Contains("پوست") || category.Contains("لیزر"))
+        {
+            return ("#1e3a8a", "#2563eb", "#60a5fa", "#dbeafe",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="75" y="45" width="50" height="110" rx="10" fill="rgba(255,255,255,0.25)"/>
+                  <rect x="45" y="75" width="110" height="50" rx="10" fill="rgba(255,255,255,0.25)"/>
+                  <circle cx="100" cy="100" r="12" fill="#ffffff"/>
+                </g>
+                """);
+        }
+        if (category.Contains("خودرو") || category.Contains("تعمیر"))
+        {
+            return ("#1c1917", "#44403c", "#f97316", "#ffedd5",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="50" y="90" width="100" height="50" rx="14" fill="rgba(255,255,255,0.2)"/>
+                  <circle cx="75" cy="140" r="15" fill="#f97316"/>
+                  <circle cx="125" cy="140" r="15" fill="#f97316"/>
+                  <path d="M70 90 L85 60 L115 60 L130 90 Z"/>
+                </g>
+                """);
+        }
+        if (category.Contains("ورزش") || category.Contains("بدنسازی") || category.Contains("تناسب"))
+        {
+            return ("#7c2d12", "#c2410c", "#fb923c", "#ffedd5",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="50" y1="100" x2="150" y2="100"/>
+                  <rect x="40" y="75" width="18" height="50" rx="4" fill="#fb923c"/>
+                  <rect x="142" y="75" width="18" height="50" rx="4" fill="#fb923c"/>
+                  <rect x="25" y="85" width="12" height="30" rx="3" fill="#ffffff"/>
+                  <rect x="163" y="85" width="12" height="30" rx="3" fill="#ffffff"/>
+                </g>
+                """);
+        }
+        if (category.Contains("پت") || category.Contains("حیوانات") || category.Contains("دامپزشک"))
+        {
+            return ("#4c1d95", "#7c3aed", "#a78bfa", "#ede9fe",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                  <ellipse cx="100" cy="120" rx="26" ry="20" fill="rgba(255,255,255,0.25)"/>
+                  <circle cx="68" cy="85" r="10" fill="#ffffff"/>
+                  <circle cx="90" cy="65" r="10" fill="#ffffff"/>
+                  <circle cx="110" cy="65" r="10" fill="#ffffff"/>
+                  <circle cx="132" cy="85" r="10" fill="#ffffff"/>
+                </g>
+                """);
+        }
+        if (category.Contains("عکاسی") || category.Contains("آتلیه"))
+        {
+            return ("#881337", "#be123c", "#f43f5e", "#ffe4e6",
+                """
+                <g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="50" y="65" width="100" height="75" rx="14" fill="rgba(255,255,255,0.2)"/>
+                  <circle cx="100" cy="102" r="22" stroke-width="6"/>
+                  <circle cx="100" cy="102" r="8" fill="#ffffff"/>
+                  <rect x="65" y="52" width="25" height="12" rx="3" fill="#f43f5e"/>
+                </g>
+                """);
+        }
         // Default modern emerald
         return ("#0f172a", "#0f766e", "#14b8a6", "#ccfbf1",
             """

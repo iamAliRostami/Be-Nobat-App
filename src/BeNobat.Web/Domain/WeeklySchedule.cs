@@ -54,8 +54,25 @@ public static class WeeklySchedule
         else foreach (var range in hours) Add(branch, range.DayOfWeek, range.StartsAt, range.EndsAt, true);
     }
 
-    private static void Add(Branch branch, int day, TimeOnly start, TimeOnly end, bool available) => branch.AvailabilityRules.Add(new AvailabilityRule {
-        BusinessId = branch.BusinessId, Branch = branch, BranchId = branch.Id, DayOfWeek = (DayOfWeek)day,
-        StartsAt = start, EndsAt = end, IsAvailable = available
-    });
+    private static void Add(Branch branch, int day, TimeOnly start, TimeOnly end, bool available)
+    {
+        var businessId = branch.BusinessId != Guid.Empty
+            ? branch.BusinessId
+            : (branch.Business != null && branch.Business.Id != Guid.Empty ? branch.Business.Id : Guid.Empty);
+
+        var rule = new AvailabilityRule {
+            BusinessId = businessId,
+            Branch = branch,
+            BranchId = branch.Id,
+            DayOfWeek = (DayOfWeek)day,
+            StartsAt = start,
+            EndsAt = end,
+            IsAvailable = available
+        };
+        if (branch.Business is not null)
+        {
+            rule.Business = branch.Business;
+        }
+        branch.AvailabilityRules.Add(rule);
+    }
 }

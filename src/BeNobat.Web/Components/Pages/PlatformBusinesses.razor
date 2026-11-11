@@ -90,6 +90,26 @@
                             <CancellationNoticeEditor Label="مهلت لغو کسب‌وکار" @bind-Value="Form.CancellationNoticeMinutes" AllowInherit="false" />
                         </div>
                         <div class="field-full">
+                            <h3 class="section-title" style="margin-top:14px;"><span>💳</span> تنظیمات بیعانه نوبت (اختیاری)</h3>
+                            <p style="font-size:12px;color:var(--text-muted,#757575);margin-top:2px;margin-bottom:8px;">در صورت تعیین درصد بیعانه، نوبت‌های این کسب‌وکار مشروط به پرداخت بیعانه و الصاق تصویر فیش واریز خواهند بود.</p>
+                        </div>
+                        <label class="field-half">
+                            <span>درصد بیعانه (۰ تا ۱۰۰)</span>
+                            <input type="number" min="0" max="100" placeholder="مثال: ۲۰" @bind="Form.DepositPercentage" />
+                        </label>
+                        <label class="field-half">
+                            <span>شماره کارت جهت واریز</span>
+                            <input dir="ltr" placeholder="۶۰۳۷..." @bind="Form.DepositCardNumber" />
+                        </label>
+                        <label class="field-half">
+                            <span>شماره شبا (اختیاری)</span>
+                            <input dir="ltr" placeholder="IR..." @bind="Form.DepositIban" />
+                        </label>
+                        <label class="field-half">
+                            <span>نام صاحب حساب</span>
+                            <input placeholder="نام و نام خانوادگی..." @bind="Form.DepositAccountHolder" />
+                        </label>
+                        <div class="field-full">
                             <label class="check-card">
                                 <input type="checkbox" @bind="Form.RequiresApproval" />
                                 <div>
@@ -246,6 +266,10 @@
             FirstBranchWeeklyHours = firstBranch is null ? WeeklySchedule.Default() : WeeklySchedule.Read(firstBranch),
             Name = x.Name, Slug = x.Slug, Category = x.Category, City = x.City,
             Description = x.Description, RequiresApproval = x.RequiresApproval, CancellationNoticeMinutes = x.CancellationNoticeMinutes,
+            DepositPercentage = x.DepositPercentage,
+            DepositCardNumber = x.DepositCardNumber,
+            DepositIban = x.DepositIban,
+            DepositAccountHolder = x.DepositAccountHolder,
         };
         ShowForm = true;
     }
@@ -335,6 +359,10 @@
             business.Description = Form.Description;
             business.RequiresApproval = Form.RequiresApproval;
             business.CancellationNoticeMinutes = Form.CancellationNoticeMinutes ?? 120;
+            business.DepositPercentage = Form.DepositPercentage;
+            business.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
+            business.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
+            business.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
             business.UpdatedAt = DateTimeOffset.UtcNow;
 
             if (EditingId is null) db.Businesses.Add(business);
@@ -404,5 +432,9 @@
         public string FirstBranchAddress { get; set; } = "";
         public List<WeeklyTimeRange> FirstBranchWeeklyHours { get; set; } = WeeklySchedule.Default();
         public string OwnerEmail { get; set; } = "";
+        public int? DepositPercentage { get; set; }
+        public string? DepositCardNumber { get; set; }
+        public string? DepositIban { get; set; }
+        public string? DepositAccountHolder { get; set; }
     }
 }

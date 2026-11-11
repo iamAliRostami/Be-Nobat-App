@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_document"
+                app:tint="?attr/colorPrimary"
+                android:contentDescription="@null" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvPaymentTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/branch_payment_title"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline" />
+
+                <TextView
+                    android:id="@+id/tvPaymentSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    tools:text="شعبه مرکزی" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Pricing & Bank Details Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardBackgroundColor="?attr/colorSurfaceVariant"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Fee -->
+                <TextView
+                    android:id="@+id/tvPaymentFee"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textColor="?attr/colorPrimary"
+                    android:textStyle="bold"
+                    tools:text="هزینه ثبت شعبه: ۲۰۰,۰۰۰ تومان" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="?attr/colorOutline" />
+
+                <!-- Card Number -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvCardNumber"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                        tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
+
+                    <ImageButton
+                        android:id="@+id/btnCopyCard"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_copy"
+                        app:tint="?attr/colorPrimary"
+                        android:contentDescription="@null" />
+                </LinearLayout>
+
+                <!-- IBAN -->
+                <LinearLayout
+                    android:id="@+id/layoutIban"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvIban"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                        tools:text="شماره شبا: IR120170000000123456789012" />
+
+                    <ImageButton
+                        android:id="@+id/btnCopyIban"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_copy"
+                        app:tint="?attr/colorPrimary"
+                        android:contentDescription="@null" />
+                </LinearLayout>
+
+                <!-- Account Holder -->
+                <TextView
+                    android:id="@+id/tvAccountHolder"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    tools:text="صاحب حساب: سامانه نوبت‌دهی به‌نوبت" />
+
+                <!-- Instructions -->
+                <TextView
+                    android:id="@+id/tvPaymentInstructions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Caption"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    tools:text="لطفاً پس از واریز مبلغ، تصویر فیش را الصاق نمایید." />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tracking Code Input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTrackingCode"
+            style="@style/Widget.BeNobat.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="@string/business_request_receipt_tracking_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTrackingCode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Receipt Image Selection Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSelectReceiptImage"
+            style="@style/Widget.BeNobat.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/business_request_receipt_upload_btn"
+            app:icon="@drawable/ic_document"
+            app:iconGravity="textStart" />
+
+        <!-- Receipt Preview Card (hidden by default) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardReceiptPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutline">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="180dp">
+
+                <ImageView
+                    android:id="@+id/ivReceiptPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="@string/branch_view_receipt" />
+
+                <ImageButton
+                    android:id="@+id/btnRemoveReceiptImage"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_close"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="@string/action_delete" />
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Progress Bar (hidden by default) -->
+        <ProgressBar
+            android:id="@+id/pbUploading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:visibility="gone" />
+
+        <!-- Action Buttons -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubmitReceipt"
+            style="@style/Widget.BeNobat.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/branch_upload_receipt_action"
+            app:icon="@drawable/ic_check"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCancelReceipt"
+            style="@style/Widget.BeNobat.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/branch_pay_later" />
+    </LinearLayout>
+</ScrollView>

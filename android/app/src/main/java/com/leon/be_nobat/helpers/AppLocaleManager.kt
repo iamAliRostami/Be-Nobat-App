@@ -17,6 +17,16 @@ object AppLocaleManager {
         return Locale.getDefault().language.equals("en", ignoreCase = true)
     }
 
+    fun isArabic(): Boolean {
+        if (currentLanguage.equals("ar", ignoreCase = true)) return true
+        val locales = AppCompatDelegate.getApplicationLocales()
+        if (!locales.isEmpty) {
+            val lang = locales.get(0)?.language
+            if (!lang.isNullOrBlank()) return lang.equals("ar", ignoreCase = true)
+        }
+        return Locale.getDefault().language.equals("ar", ignoreCase = true)
+    }
+
     fun isPersian(): Boolean {
         if (currentLanguage.equals("fa", ignoreCase = true)) return true
         val locales = AppCompatDelegate.getApplicationLocales()

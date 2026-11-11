@@ -61,7 +61,12 @@ public static class AuthenticationEndpoints
 
             var user = new AppUser { Id = Guid.CreateVersion7(), UserName = phone, Email = email, DisplayName = displayName, PhoneNumber = phone, LockoutEnabled = true };
             var result = await users.CreateAsync(user, input.Password);
-            if (!result.Succeeded) return IdentityError(result);
+            if (!result.Succeeded)
+            {
+                if (result.Errors.Any(e => e.Code.StartsWith("Password", StringComparison.OrdinalIgnoreCase)))
+                    return ApiResults.Error("weak_password", string.Join(" ", result.Errors.Select(e => e.Description)));
+                return IdentityError(result);
+            }
             var role = await users.AddToRoleAsync(user, AppRoles.Customer);
             if (!role.Succeeded) { await users.DeleteAsync(user); return IdentityError(role); }
             return Results.Created("/api/v1/me", await tokens.IssueAsync(user));

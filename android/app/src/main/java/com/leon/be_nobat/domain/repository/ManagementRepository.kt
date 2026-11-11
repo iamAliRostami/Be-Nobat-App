@@ -68,6 +68,8 @@ interface ManagementRepository {
     suspend fun setBranchActive(id: String, active: Boolean): Result<ManagementBranch>
     suspend fun deleteBranch(id: String): Result<Unit>
     suspend fun approveBranch(id: String): Result<ManagementBranch>
+    suspend fun uploadBranchReceipt(branchId: String, input: com.leon.be_nobat.domain.model.ReceiptUploadInput): Result<ManagementBranch>
+    suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing>
 
     // resources
     suspend fun listResources(

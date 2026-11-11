@@ -1,0 +1,581 @@
+@page "/platform/messages"
+@attribute [Authorize(Roles = AppRoles.PlatformAdmin)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject UiLocale UiLocale
+@inject ILogger<PlatformMessages> Logger
+
+<PageTitle>پیام‌های کاربران | مدیریت سامانه</PageTitle>
+
+<div class="admin-page">
+    <div class="page-title">
+        <div>
+            <h1>پیام‌های کاربران (تماس با ما)</h1>
+            <p>بررسی، پاسخ‌گویی و پیگیری پیام‌های ارسال‌شده از فرم تماس با ما</p>
+        </div>
+        <div class="page-actions" style="display: flex; gap: 8px;">
+            @if (messages.Any(m => !m.IsRead))
+            {
+                <button class="action-secondary" @onclick="MarkAllAsReadAsync">
+                    <span>خواندن همه</span>
+                </button>
+            }
+            <button class="action-secondary" @onclick="LoadMessagesAsync">
+                <span>تازه‌سازی</span>
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert alert-success">@statusMessage</div>
+    }
+
+    <!-- تب‌های فیلتر -->
+    <div class="filter-bar">
+        <div class="filter-tabs">
+            <button class="filter-tab @(selectedTab == "all" ? "active" : "")" @onclick="@(() => ChangeTab("all"))">
+                همه پیام‌ها (@allCount)
+            </button>
+            <button class="filter-tab @(selectedTab == "unread" ? "active" : "")" @onclick="@(() => ChangeTab("unread"))">
+                خوانده‌نشده (@unreadCount)
+            </button>
+            <button class="filter-tab @(selectedTab == "read" ? "active" : "")" @onclick="@(() => ChangeTab("read"))">
+                بررسی‌شده (@readCount)
+            </button>
+        </div>
+        <div class="search-input-box">
+            <input type="text" placeholder="جستجو بر اساس نام، شماره، موضوع..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">در حال بارگذاری پیام‌ها...</div>
+    }
+    else if (!FilteredMessages.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">✉</div>
+            <h3>هیچ پیامی یافت نشد</h3>
+            <p>پیامی با این مشخصات وجود ندارد.</p>
+        </div>
+    }
+    else
+    {
+        <div class="messages-list">
+            @foreach (var msg in FilteredMessages)
+            {
+                <div class="message-card @(msg.IsRead ? "is-read" : "is-unread")">
+                    <div class="card-head">
+                        <div class="user-meta">
+                            <span class="user-avatar-circle">@(msg.Name.Length > 0 ? msg.Name[0] : '؟')</span>
+                            <div>
+                                <strong class="user-name">@msg.Name</strong>
+                                <span class="user-contact" dir="ltr">@msg.ContactInfo</span>
+                            </div>
+                        </div>
+                        <div class="head-right">
+                            <span class="subject-badge">@msg.Subject</span>
+                            <span class="date-label">@LocalizedDate.FormatDateTime(msg.CreatedAt, UiLocale.Language)</span>
+                            @if (!msg.IsRead)
+                            {
+                                <span class="badge-unread">جدید</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <p class="message-text">@msg.Message</p>
+
+                        @if (!string.IsNullOrEmpty(msg.AdminReply))
+                        {
+                            <div class="reply-box">
+                                <strong>پاسخ ثبت شده توسط مدیریت:</strong>
+                                <p>@msg.AdminReply</p>
+                                <small>تاریخ پاسخ: @msg.RepliedAt?.ToLocalTime().ToString("yyyy/MM/dd - HH:mm")</small>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="card-actions">
+                        @if (!msg.IsRead)
+                        {
+                            <button type="button" class="btn-action primary" @onclick="@(() => MarkAsRead(msg.Id, true))">علامت به عنوان بررسی‌شده</button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn-action ghost" @onclick="@(() => MarkAsRead(msg.Id, false))">علامت به عنوان خوانده‌نشده</button>
+                        }
+
+                        <button type="button" class="btn-action outline" @onclick="@(() => OpenReplyModal(msg))">
+                            @(string.IsNullOrEmpty(msg.AdminReply) ? "ثبت یادداشت یا پاسخ" : "ویرایش پاسخ")
+                        </button>
+
+                        <button type="button" class="btn-action danger" @onclick="@(() => DeleteMessage(msg.Id))">حذف</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@if (replyingMessage != null)
+{
+    <div class="modal-backdrop" @onclick="CloseReplyModal">
+        <div class="modal-card" @onclick:stopPropagation>
+            <h3>ثبت یادداشت یا پاسخ برای پیام @replyingMessage.Name</h3>
+            <p class="subtle">موضوع: @replyingMessage.Subject | تماس: @replyingMessage.ContactInfo</p>
+
+            <textarea rows="4" class="reply-textarea" placeholder="متن پاسخ یا یادداشت پیگیری..." @bind="replyText"></textarea>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-action ghost" @onclick="CloseReplyModal">انصراف</button>
+                <button type="button" class="btn-action primary" @onclick="SaveReplyAsync">ذخیره پاسخ</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+.admin-page {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.page-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0 0 0.25rem;
+    color: var(--text-primary);
+}
+.subtle {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0;
+}
+.btn-mark-all {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #0ea5e9;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+.btn-mark-all:hover {
+    background: #0284c7;
+}
+.btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+}
+.filter-tab {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--surface);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.filter-tab.active {
+    background: #0f766e;
+    color: white;
+    border-color: #0f766e;
+}
+.search-input-box input {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    width: 280px;
+    font-family: inherit;
+}
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.message-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: border-color 0.2s;
+}
+.message-card.is-unread {
+    border-right: 5px solid #0f766e;
+    background: rgba(15, 118, 110, 0.02);
+}
+.card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.user-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.user-avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0f2fe;
+    color: #0369a1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+.user-name {
+    display: block;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+.user-contact {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.head-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.subject-badge {
+    background: var(--surface-variant, #f1f5f9);
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.date-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+.badge-unread {
+    background: #fef08a;
+    color: #854d0e;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.message-text {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+    margin: 0 0 1rem;
+    white-space: pre-wrap;
+}
+.reply-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+    color: #166534;
+}
+.reply-box p {
+    margin: 0.35rem 0;
+    line-height: 1.6;
+}
+.reply-box small {
+    color: #15803d;
+    font-size: 0.8rem;
+}
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+    flex-wrap: wrap;
+}
+.btn-action {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+.btn-action.primary {
+    background: #0f766e;
+    color: white;
+}
+.btn-action.outline {
+    border-color: #0f766e;
+    color: #0f766e;
+    background: transparent;
+}
+.btn-action.ghost {
+    border-color: var(--border-color);
+    background: var(--surface);
+    color: var(--text-primary);
+}
+.btn-action.danger {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: var(--surface);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.modal-card h3 {
+    margin: 0 0 0.25rem;
+}
+.reply-textarea {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+</style>
+
+@code {
+    private List<ContactMessage> messages = [];
+    private bool isLoading = true;
+    private string selectedTab = "all";
+    private string searchQuery = "";
+    private string? statusMessage;
+
+    private int allCount => messages.Count;
+    private int unreadCount => messages.Count(m => !m.IsRead);
+    private int readCount => messages.Count(m => m.IsRead);
+
+    private ContactMessage? replyingMessage;
+    private string replyText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMessagesAsync();
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        isLoading = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            messages = await db.ContactMessages
+                .AsNoTracking()
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در دریافت پیام‌ها");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IEnumerable<ContactMessage> FilteredMessages =>
+        messages.Where(m =>
+        {
+            if (selectedTab == "unread" && m.IsRead) return false;
+            if (selectedTab == "read" && !m.IsRead) return false;
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var q = searchQuery.Trim().ToLowerInvariant();
+                var matchName = m.Name.ToLowerInvariant().Contains(q);
+                var matchContact = m.ContactInfo.ToLowerInvariant().Contains(q);
+                var matchSubject = m.Subject.ToLowerInvariant().Contains(q);
+                var matchMsg = m.Message.ToLowerInvariant().Contains(q);
+                if (!matchName && !matchContact && !matchSubject && !matchMsg) return false;
+            }
+            return true;
+        });
+
+    private void ChangeTab(string tab)
+    {
+        selectedTab = tab;
+    }
+
+    private async Task MarkAsRead(Guid id, bool isRead)
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var target = await db.ContactMessages.FindAsync(id);
+            if (target != null)
+            {
+                target.IsRead = isRead;
+                target.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+
+                var local = messages.FirstOrDefault(m => m.Id == id);
+                if (local != null) local.IsRead = isRead;
+
+                statusMessage = isRead ? "پیام به عنوان بررسی‌شده علامت خورد." : "پیام به عنوان خوانده‌نشده تنظیم شد.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در تغییر وضعیت پیام");
+        }
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var unread = await db.ContactMessages.Where(m => !m.IsRead).ToListAsync();
+            foreach (var m in unread)
+            {
+                m.IsRead = true;
+                m.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            if (unread.Count > 0)
+            {
+                await db.SaveChangesAsync();
+                foreach (var local in messages) local.IsRead = true;
+                statusMessage = "تمام پیام‌ها به عنوان بررسی‌شده علامت‌گذاری شدند.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در بررسی همه پیام‌ها");
+        }
+    }
+
+    private void OpenReplyModal(ContactMessage msg)
+    {
+        replyingMessage = msg;
+        replyText = msg.AdminReply ?? "";
+    }
+
+    private void CloseReplyModal()
+    {
+        replyingMessage = null;
+        replyText = "";
+    }
+
+    private async Task SaveReplyAsync()
+    {
+        if (replyingMessage == null) return;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var target = await db.ContactMessages.FindAsync(replyingMessage.Id);
+            if (target != null)
+            {
+                target.AdminReply = replyText.Trim();
+                target.RepliedAt = DateTimeOffset.UtcNow;
+                target.IsRead = true; // پیام پاسخ‌داده‌شده خودکار بررسی‌شده می‌شود
+                target.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+
+                var local = messages.FirstOrDefault(m => m.Id == replyingMessage.Id);
+                if (local != null)
+                {
+                    local.AdminReply = target.AdminReply;
+                    local.RepliedAt = target.RepliedAt;
+                    local.IsRead = true;
+                }
+
+                statusMessage = "پاسخ/یادداشت با موفقیت ثبت شد.";
+            }
+            CloseReplyModal();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در ذخیره پاسخ");
+        }
+    }
+
+    private async Task DeleteMessage(Guid id)
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var target = await db.ContactMessages.FindAsync(id);
+            if (target != null)
+            {
+                db.ContactMessages.Remove(target);
+                await db.SaveChangesAsync();
+                messages.RemoveAll(m => m.Id == id);
+                statusMessage = "پیام با موفقیت حذف شد.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در حذف پیام");
+        }
+    }
+}

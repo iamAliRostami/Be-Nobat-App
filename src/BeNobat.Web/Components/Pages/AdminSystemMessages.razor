@@ -1,0 +1,478 @@
+@page "/admin/messages"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UiLocale UiLocale
+@inject ILogger<AdminSystemMessages> Logger
+
+<PageTitle>پیام‌های سامانه | پنل مدیریت</PageTitle>
+
+<div class="admin-page">
+    <div class="page-title">
+        <div>
+            <h1>پیام‌ها و اعلانات سامانه</h1>
+            <p>پیام‌ها، بخشنامه‌ها و اعلانات ارسالی از سوی مدیریت کل سامانه به‌نوبت</p>
+        </div>
+        <div class="page-actions" style="display: flex; gap: 8px;">
+            @if (messages.Any(m => !m.IsRead))
+            {
+                <button class="action-secondary" @onclick="MarkAllAsReadAsync">
+                    <span>خواندن همه</span>
+                </button>
+            }
+            <button class="action-secondary" @onclick="LoadMessagesAsync">
+                <span>تازه‌سازی</span>
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <p>در حال بارگذاری پیام‌ها...</p>
+        </div>
+    }
+    else if (messages.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-icon">🔔</div>
+            <h3>هیچ پیامی برای شما ثبت نشده است</h3>
+            <p>در حال حاضر هیچ پیام یا اطلاعیه‌ای از سوی مدیریت کل برای شما ارسال نشده است.</p>
+        </div>
+    }
+    else
+    {
+        <div class="messages-stack">
+            @foreach (var item in messages)
+            {
+                <div class="msg-card priority-@item.Priority.ToLowerInvariant() @(item.IsRead ? "is-read" : "is-unread")">
+                    <div class="msg-top">
+                        <div class="msg-title-row">
+                            <h3 class="msg-title">@item.Title</h3>
+                            <span class="p-badge priority-@item.Priority.ToLowerInvariant()">@GetPriorityLabel(item.Priority)</span>
+                            @if (!item.IsRead)
+                            {
+                                <span class="badge-new">خوانده‌نشده</span>
+                            }
+                        </div>
+                        <span class="date-lbl">@LocalizedDate.FormatDateTime(item.CreatedAt, UiLocale.Language)</span>
+                    </div>
+
+                    <p class="msg-text">@item.Content</p>
+
+                    <div class="msg-bottom">
+                        <span class="sender-info">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                            فرستنده: مدیریت کل سامانه به‌نوبت
+                        </span>
+                        @if (!item.IsRead)
+                        {
+                            <button type="button" class="btn-read" @onclick="@(() => MarkAsRead(item.Id))">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                <span>علامت به عنوان خوانده‌شده</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <span class="read-indicator">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                <span>خوانده شده</span>
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+.admin-page {
+    padding: 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+}
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(15, 118, 110, 0.12);
+    color: #0f766e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.page-header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 0.25rem;
+    color: var(--text-primary);
+}
+.subtle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.btn-mark-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #0f766e;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 0.88rem;
+    transition: background 0.15s;
+}
+.btn-mark-all:hover {
+    background: #0d655e;
+}
+.btn-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text-primary);
+    transition: background 0.15s;
+}
+.btn-refresh:hover {
+    background: var(--surface-variant, #f1f5f9);
+}
+.messages-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.msg-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1.4rem 1.6rem;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.04);
+    border-right: 5px solid #0ea5e9;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.msg-card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.07);
+}
+.msg-card.is-read {
+    opacity: 0.85;
+    background: var(--surface);
+}
+.msg-card.is-unread {
+    background: var(--surface);
+    box-shadow: 0 4px 16px rgba(15, 118, 110, 0.08);
+}
+.msg-card.priority-important {
+    border-right-color: #f59e0b;
+}
+.msg-card.priority-urgent {
+    border-right-color: #ef4444;
+}
+.msg-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.msg-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.msg-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+.p-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+}
+.p-badge.priority-normal {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+.p-badge.priority-important {
+    background: #fef3c7;
+    color: #b45309;
+}
+.p-badge.priority-urgent {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.badge-new {
+    background: #ef4444;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+}
+.date-lbl {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    direction: ltr;
+}
+.msg-text {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+    margin: 0 0 1rem;
+    white-space: pre-wrap;
+}
+.msg-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.sender-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--text-secondary);
+}
+.btn-read {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #0f766e;
+    color: white;
+    border: none;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+.btn-read:hover {
+    background: #115e59;
+}
+.read-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #10b981;
+    font-weight: 600;
+}
+.empty-state {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    color: var(--text-secondary);
+}
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+}
+.empty-state h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    color: var(--text-primary);
+}
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem 1.5rem;
+    color: var(--text-secondary);
+    gap: 0.75rem;
+}
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid rgba(15, 118, 110, 0.2);
+    border-top-color: #0f766e;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+@code {
+    private List<MessageItem> messages = [];
+    private bool isLoading = true;
+    private Guid currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid))
+        {
+            currentUserId = uid;
+        }
+
+        await LoadMessagesAsync();
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        isLoading = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+
+            var rawMessages = await db.AdminBroadcastMessages
+                .AsNoTracking()
+                .Where(m => m.TargetUserId == null || m.TargetUserId == currentUserId)
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+            var readIds = (await db.AdminMessageReads
+                .AsNoTracking()
+                .Where(r => r.UserId == currentUserId)
+                .Select(r => r.MessageId)
+                .ToListAsync()).ToHashSet();
+
+            messages = rawMessages.Select(m => new MessageItem
+            {
+                Id = m.Id,
+                Title = m.Title,
+                Content = m.Content,
+                Priority = m.Priority,
+                CreatedAt = m.CreatedAt,
+                IsRead = readIds.Contains(m.Id)
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در بارگذاری پیام‌های سامانه");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task MarkAsRead(Guid messageId)
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var already = await db.AdminMessageReads
+                .AnyAsync(r => r.UserId == currentUserId && r.MessageId == messageId);
+
+            if (!already)
+            {
+                db.AdminMessageReads.Add(new AdminMessageRead
+                {
+                    UserId = currentUserId,
+                    MessageId = messageId,
+                    ReadAt = DateTimeOffset.UtcNow
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var item = messages.FirstOrDefault(m => m.Id == messageId);
+            if (item != null)
+            {
+                item.IsRead = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در ثبت خواندن پیام");
+        }
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        if (currentUserId == Guid.Empty) return;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var readIds = (await db.AdminMessageReads
+                .Where(r => r.UserId == currentUserId)
+                .Select(r => r.MessageId)
+                .ToListAsync()).ToHashSet();
+
+            var unread = messages.Where(m => !readIds.Contains(m.Id)).ToList();
+            if (unread.Count > 0)
+            {
+                var now = DateTimeOffset.UtcNow;
+                foreach (var m in unread)
+                {
+                    db.AdminMessageReads.Add(new AdminMessageRead
+                    {
+                        UserId = currentUserId,
+                        MessageId = m.Id,
+                        ReadAt = now
+                    });
+                    m.IsRead = true;
+                }
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "خطا در ثبت خواندن تمام پیام‌ها");
+        }
+    }
+
+    private static string GetPriorityLabel(string priority) => priority switch
+    {
+        "Urgent" => "فوری و ضروری",
+        "Important" => "مهم",
+        _ => "عادی"
+    };
+
+    private sealed class MessageItem
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Priority { get; set; } = "Normal";
+        public DateTimeOffset CreatedAt { get; set; }
+        public bool IsRead { get; set; }
+    }
+}

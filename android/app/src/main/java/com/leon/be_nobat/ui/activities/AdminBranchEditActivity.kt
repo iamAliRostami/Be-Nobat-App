@@ -14,6 +14,8 @@ import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
@@ -24,6 +26,7 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.leon.be_nobat.R
+import com.leon.be_nobat.helpers.BranchPaymentReceiptHelper
 import com.leon.be_nobat.domain.model.ManagementBranch
 import com.leon.be_nobat.domain.model.ManagementBranchInput
 import com.leon.be_nobat.domain.model.WeeklyHours
@@ -51,6 +54,13 @@ class AdminBranchEditActivity : BaseActivity() {
     private var selectedBusinessId: String? = null
     private var businessFilterAdapter: BusinessFilterAdapter? = null
 
+    private var onImagePickedCallback: ((Uri) -> Unit)? = null
+    private val pickReceiptLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            onImagePickedCallback?.invoke(uri)
+        }
+    }
+
     private lateinit var tilBusiness: TextInputLayout
     private lateinit var autoCompleteBusiness: MaterialAutoCompleteTextView
     private lateinit var tilBranchName: TextInputLayout
@@ -58,6 +68,10 @@ class AdminBranchEditActivity : BaseActivity() {
     private lateinit var spinnerTimeZone: Spinner
     private lateinit var tilBranchAddress: TextInputLayout
     private lateinit var etBranchAddress: TextInputEditText
+    private lateinit var etDepositPercentage: TextInputEditText
+    private lateinit var etDepositCardNumber: TextInputEditText
+    private lateinit var etDepositIban: TextInputEditText
+    private lateinit var etDepositAccountHolder: TextInputEditText
     private lateinit var weeklyHoursEditor: WeeklyHoursEditor
     private lateinit var cancellationEditor: com.leon.be_nobat.helpers.CancellationNoticeEditor
     private lateinit var cardBranchDetails: View
@@ -67,6 +81,13 @@ class AdminBranchEditActivity : BaseActivity() {
     private lateinit var btnViewServices: MaterialButton
     private lateinit var btnSave: MaterialButton
     private lateinit var btnCancel: MaterialButton
+    private var selectedLatitude: Double? = null
+    private var selectedLongitude: Double? = null
+    private lateinit var btnPickLocationOnMap: MaterialButton
+    private lateinit var layoutCoordinatesPreview: View
+    private lateinit var tvCoordinatesDisplay: TextView
+    private lateinit var btnPreviewMap: MaterialButton
+    private lateinit var btnClearLocation: MaterialButton
 
     private val timeZones = listOf(
         "Asia/Tehran" to "تهران (Asia/Tehran +03:30)",
@@ -106,6 +127,10 @@ class AdminBranchEditActivity : BaseActivity() {
         spinnerTimeZone = findViewById(R.id.spinnerTimeZone)
         tilBranchAddress = findViewById(R.id.tilBranchAddress)
         etBranchAddress = findViewById(R.id.etBranchAddress)
+        etDepositPercentage = findViewById(R.id.etDepositPercentage)
+        etDepositCardNumber = findViewById(R.id.etDepositCardNumber)
+        etDepositIban = findViewById(R.id.etDepositIban)
+        etDepositAccountHolder = findViewById(R.id.etDepositAccountHolder)
         weeklyHoursEditor = findViewById(R.id.weeklyHoursEditor)
         cancellationEditor = com.leon.be_nobat.helpers.CancellationNoticeEditor(this)
         cancellationEditor.setValue(null)
@@ -117,6 +142,40 @@ class AdminBranchEditActivity : BaseActivity() {
         btnViewServices = findViewById(R.id.btnViewServices)
         btnSave = findViewById(R.id.btnSave)
         btnCancel = findViewById(R.id.btnCancel)
+
+        btnPickLocationOnMap = findViewById(R.id.btnPickLocationOnMap)
+        layoutCoordinatesPreview = findViewById(R.id.layoutCoordinatesPreview)
+        tvCoordinatesDisplay = findViewById(R.id.tvCoordinatesDisplay)
+        btnPreviewMap = findViewById(R.id.btnPreviewMap)
+        btnClearLocation = findViewById(R.id.btnClearLocation)
+
+        btnPickLocationOnMap.setOnClickListener {
+            com.leon.be_nobat.helpers.MapHelper.showLocationPicker(this, selectedLatitude, selectedLongitude) { lat, lng ->
+                selectedLatitude = lat
+                selectedLongitude = lng
+                updateCoordinatesUi()
+            }
+        }
+
+        btnPreviewMap.setOnClickListener {
+            val lat = selectedLatitude
+            val lng = selectedLongitude
+            if (lat != null && lng != null) {
+                com.leon.be_nobat.helpers.MapHelper.showMapPreview(
+                    this,
+                    lat,
+                    lng,
+                    etBranchName.text?.toString(),
+                    etBranchAddress.text?.toString()
+                )
+            }
+        }
+
+        btnClearLocation.setOnClickListener {
+            selectedLatitude = null
+            selectedLongitude = null
+            updateCoordinatesUi()
+        }
 
         btnSave.text = if (isEditing) "ذخیره تغییرات" else "ایجاد شعبه"
         btnCancel.setOnClickListener { finish() }
@@ -258,6 +317,17 @@ class AdminBranchEditActivity : BaseActivity() {
         spinnerTimeZone.adapter = adapter
     }
 
+    private fun updateCoordinatesUi() {
+        val lat = selectedLatitude
+        val lng = selectedLongitude
+        if (lat != null && lng != null) {
+            layoutCoordinatesPreview.isVisible = true
+            tvCoordinatesDisplay.text = java.lang.String.format(java.util.Locale.US, "%.5f, %.5f", lat, lng)
+        } else {
+            layoutCoordinatesPreview.isVisible = false
+        }
+    }
+
     private fun loadData() {
         lifecycleScope.launch {
             managementRepository.listBusinesses(pageSize = 100).onSuccess { page ->
@@ -280,6 +350,14 @@ class AdminBranchEditActivity : BaseActivity() {
             cancellationEditor.setValue(branch.cancellationNoticeMinutes)
             etBranchName.setText(branch.name)
             etBranchAddress.setText(branch.address)
+            branch.depositPercentage?.let { etDepositPercentage.setText(it.toInt().toString()) }
+            branch.depositCardNumber?.let { etDepositCardNumber.setText(it) }
+            branch.depositIban?.let { etDepositIban.setText(it) }
+            branch.depositAccountHolder?.let { etDepositAccountHolder.setText(it) }
+
+            selectedLatitude = branch.latitude
+            selectedLongitude = branch.longitude
+            updateCoordinatesUi()
 
             // Select business
             val biz = businessesList.firstOrNull { it.first == branch.businessId }
@@ -382,6 +460,11 @@ class AdminBranchEditActivity : BaseActivity() {
             return
         }
 
+        val depositPct = etDepositPercentage.text?.toString()?.trim()?.toDoubleOrNull()
+        val depositCard = etDepositCardNumber.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val depositIban = etDepositIban.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val depositHolder = etDepositAccountHolder.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+
         val input = ManagementBranchInput(
             businessId = businessId,
             name = name,
@@ -391,15 +474,40 @@ class AdminBranchEditActivity : BaseActivity() {
             closeHour = existingBranch?.closeHour ?: 20,
             weeklyHours = hours,
             cancellationNoticeMinutes = cancellationEditor.value,
+            depositPercentage = depositPct,
+            depositCardNumber = depositCard,
+            depositIban = depositIban,
+            depositAccountHolder = depositHolder,
+            latitude = selectedLatitude,
+            longitude = selectedLongitude
         )
 
         btnSave.isEnabled = false
         lifecycleScope.launch {
             if (editingBranchId == null) {
-                createBranchUseCase(input).onSuccess {
-                    Toast.makeText(this@AdminBranchEditActivity, "شعبه با موفقیت ایجاد شد.", Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
-                    finish()
+                createBranchUseCase(input).onSuccess { created ->
+                    btnSave.isEnabled = true
+                    if (!isPlatformAdmin()) {
+                        BranchPaymentReceiptHelper.showPaymentAndUploadDialog(
+                            activity = this@AdminBranchEditActivity,
+                            branch = created,
+                            managementRepository = managementRepository,
+                            pickImageLauncher = pickReceiptLauncher,
+                            onSelectedUriCallbackSetter = { callback -> onImagePickedCallback = callback },
+                            onReceiptUploaded = {
+                                setResult(RESULT_OK)
+                                finish()
+                            },
+                            onDismiss = {
+                                setResult(RESULT_OK)
+                                finish()
+                            }
+                        )
+                    } else {
+                        Toast.makeText(this@AdminBranchEditActivity, "شعبه با موفقیت ایجاد شد.", Toast.LENGTH_SHORT).show()
+                        setResult(RESULT_OK)
+                        finish()
+                    }
                 }.onFailure { err ->
                     btnSave.isEnabled = true
                     Snackbar.make(btnSave, err.message ?: "خطا در ثبت شعبه", Snackbar.LENGTH_LONG).show()

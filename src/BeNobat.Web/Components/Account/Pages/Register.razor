@@ -5,6 +5,7 @@
 @using Microsoft.EntityFrameworkCore
 @using BeNobat.Web.Domain
 @using BeNobat.Web.Infrastructure
+@using BeNobat.Web.Security
 @inject UserManager<AppUser> UserManager
 @inject SignInManager<AppUser> SignInManager
 @inject NavigationManager NavigationManager
@@ -138,8 +139,7 @@
 
         if (!result.Succeeded)
         {
-            EmailTaken = result.Errors.Any(e =>
-                e.Code is nameof(IdentityErrorDescriber.DuplicateUserName) or nameof(IdentityErrorDescriber.DuplicateEmail));
+            EmailTaken = result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.DuplicateEmail));
 
             ErrorMessage = string.Join(" ", result.Errors
                 .Select(e => e.Description)
@@ -161,8 +161,15 @@
         [StringLength(80, ErrorMessage = "نام نباید بیشتر از ۸۰ کاراکتر باشد.")]
         public string DisplayName { get; set; } = "";
 
-        [EmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
-        public string? Email { get; set; }
+        private string? _email;
+
+        [OptionalEmailAddress(ErrorMessage = "ایمیل معتبر نیست.")]
+        [StringLength(256, ErrorMessage = "ایمیل نباید بیشتر از ۲۵۶ کاراکتر باشد.")]
+        public string? Email
+        {
+            get => _email;
+            set => _email = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
 
         [Required(ErrorMessage = "شماره موبایل الزامی است.")]
         public string Phone { get; set; } = "";

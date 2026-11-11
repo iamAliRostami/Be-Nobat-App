@@ -95,9 +95,9 @@ internal fun DemoDatabaseState.slots(
                 start < demoMillis(it.endsAt) && end > demoMillis(it.startsAt)
             }
 
-            if (!isOpen) null
+            if (!isOpen || isBlocked) null
             else if (!includePastSlots && start <= System.currentTimeMillis()) null
-            else if (isBlocked || isOccupied) {
+            else if (isOccupied) {
                 Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end), isAvailable = false, status = "Booked")
             } else {
                 Slot(resourceId = r.id, resourceName = r.name, startsAt = demoFormat(start), endsAt = demoFormat(end), isAvailable = true, status = "Available")

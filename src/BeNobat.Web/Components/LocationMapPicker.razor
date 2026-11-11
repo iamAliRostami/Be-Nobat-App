@@ -1,0 +1,109 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="location-map-picker-wrapper" style="margin-top: 10px; margin-bottom: 12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+        <span style="font-size:13px; font-weight:600; color:var(--text-primary, #333);">
+            📍 انتخاب موقعیت مکانی روی نقشه
+        </span>
+        @if (Latitude.HasValue && Longitude.HasValue)
+        {
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:11px; color:var(--text-muted, #777); direction:ltr; font-family:monospace;">
+                    @Latitude.Value.ToString("F4"), @Longitude.Value.ToString("F4")
+                </span>
+                <button type="button" class="action-secondary" style="padding:2px 8px; font-size:11px; border-radius:4px; cursor:pointer;" @onclick="ClearCoordinates">
+                    حذف
+                </button>
+            </div>
+        }
+    </div>
+
+    <div @ref="mapElement" style="height: @Height; width: 100%; min-height: 240px; border-radius: 10px; border: 1px solid var(--border, #ccc); background: #e2e8f0; position:relative; overflow:hidden;"></div>
+
+    <p style="font-size:11px; color:var(--text-muted, #757575); margin-top:4px; margin-bottom:0;">
+        💡 برای تعیین محل دقیق، روی نقشه کلیک کنید یا نشانگر را بکشید. با دکمه «موقعیت من» می‌توانید از GPS دستگاه استفاده کنید.
+    </p>
+</div>
+
+@code {
+    [Parameter] public double? Latitude { get; set; }
+    [Parameter] public EventCallback<double?> LatitudeChanged { get; set; }
+
+    [Parameter] public double? Longitude { get; set; }
+    [Parameter] public EventCallback<double?> LongitudeChanged { get; set; }
+
+    [Parameter] public string? Address { get; set; }
+    [Parameter] public string Height { get; set; } = "260px";
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private ElementReference mapElement;
+    private DotNetObjectReference<LocationMapPicker>? dotNetRef;
+    private bool isInitialized;
+    private double? lastLat;
+    private double? lastLng;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            await InitOrUpdateMap();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (isInitialized && (Latitude != lastLat || Longitude != lastLng))
+        {
+            await InitOrUpdateMap();
+        }
+    }
+
+    private async Task InitOrUpdateMap()
+    {
+        try
+        {
+            lastLat = Latitude;
+            lastLng = Longitude;
+            await JS.InvokeVoidAsync("beNobatMap.initPicker", mapElement, Latitude, Longitude, dotNetRef, nameof(OnLocationChanged));
+            isInitialized = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Map init error: {ex.Message}");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnLocationChanged(double lat, double lng)
+    {
+        lastLat = lat;
+        lastLng = lng;
+        Latitude = lat;
+        Longitude = lng;
+        await LatitudeChanged.InvokeAsync(lat);
+        await LongitudeChanged.InvokeAsync(lng);
+        StateHasChanged();
+    }
+
+    private async Task ClearCoordinates()
+    {
+        Latitude = null;
+        Longitude = null;
+        lastLat = null;
+        lastLng = null;
+        await LatitudeChanged.InvokeAsync(null);
+        await LongitudeChanged.InvokeAsync(null);
+        if (isInitialized && dotNetRef != null)
+        {
+            await JS.InvokeVoidAsync("beNobatMap.initPicker", mapElement, null, null, dotNetRef, nameof(OnLocationChanged));
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        dotNetRef?.Dispose();
+    }
+}

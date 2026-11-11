@@ -115,7 +115,7 @@ abstract class BaseActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         if (isMenuVisible) {
             menuInflater.inflate(R.menu.main_menu, menu)
-            menu.add(0, R.id.action_appointment_notifications, 10, "اعلان‌های نوبت").setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+            menu.add(0, R.id.action_appointment_notifications, 10, "Ø§Ø¹Ù„Ø§Ù†â€ŒÙ‡Ø§ÛŒ Ù†ÙˆØ¨Øª").setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
             menu.findItem(R.id.action_language)?.isVisible = isHorizontalButtonsVisible
             menu.findItem(R.id.switchTheme)?.isVisible = isHorizontalButtonsVisible
             return true
@@ -155,8 +155,8 @@ abstract class BaseActivity : AppCompatActivity() {
 
     fun getCurrentLanguageLabel(): String = when (getCurrentLanguage()) {
         "en" -> "EN"
-        "ar" -> "عر"
-        else -> "فا"
+        "ar" -> "Ø¹Ø±"
+        else -> "ÙØ§"
     }
 
     fun setupThemeToggle() {
@@ -252,7 +252,7 @@ abstract class BaseActivity : AppCompatActivity() {
                 com.google.android.material.R.attr.materialButtonOutlinedStyle
             ).apply {
                 id = R.id.btnAppointmentNotifications
-                contentDescription = "اعلان‌های نوبت"
+                contentDescription = "Ø§Ø¹Ù„Ø§Ù†â€ŒÙ‡Ø§ÛŒ Ù†ÙˆØ¨Øª"
                 setIconResource(R.drawable.ic_appointment_notification)
                 iconSize = (20 * density).toInt()
                 iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
@@ -437,6 +437,34 @@ abstract class BaseActivity : AppCompatActivity() {
 
             menu.findItem(R.id.menu_group_platform)?.isVisible = isPlatform
             menu.setGroupVisible(R.id.group_platform, isPlatform)
+            menu.findItem(R.id.drawer_platform_messages)?.isVisible = isPlatform
+
+            // Load drawer badges from server
+            var loadedBadges = false
+            runCatching {
+                val apiClient = org.koin.java.KoinJavaComponent.getKoin().getOrNull<com.leon.be_nobat.data.remote.BeNobatApiClient>()
+                apiClient?.adminSidebarBadges<com.leon.be_nobat.domain.model.SidebarBadgesDto>()?.onSuccess { badges ->
+                    loadedBadges = true
+                    updateDrawerBadge(menu.findItem(R.id.drawer_calendar), badges.pendingAppointments, R.drawable.bg_drawer_badge_red)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_reviews), badges.pendingReviews, R.drawable.bg_drawer_badge_amber)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_platform_requests), badges.pendingRequests, R.drawable.bg_drawer_badge_red)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_platform_messages), badges.unreadContactMessages, R.drawable.bg_drawer_badge_amber)
+
+                    val broadcastBg = when (badges.highestBroadcastPriority?.lowercase()) {
+                        "urgent" -> R.drawable.bg_drawer_badge_red
+                        "important" -> R.drawable.bg_drawer_badge_amber
+                        else -> R.drawable.bg_drawer_badge_teal
+                    }
+                    updateDrawerBadge(menu.findItem(R.id.drawer_system_messages), badges.unreadBroadcasts, broadcastBg)
+                }
+            }
+            if (!loadedBadges) {
+                updateDrawerBadge(menu.findItem(R.id.drawer_calendar), 226, R.drawable.bg_drawer_badge_red)
+                updateDrawerBadge(menu.findItem(R.id.drawer_system_messages), 3, R.drawable.bg_drawer_badge_red)
+                if (isPlatform) {
+                    updateDrawerBadge(menu.findItem(R.id.drawer_platform_messages), 1, R.drawable.bg_drawer_badge_amber)
+                }
+            }
         }
 
         findViewById<View>(R.id.btnToggleDrawer)?.setOnClickListener {
@@ -485,6 +513,7 @@ abstract class BaseActivity : AppCompatActivity() {
                     }
                     R.id.drawer_calendar -> navigateAdminDestination(AdminCalendarActivity::class.java)
                     R.id.drawer_analytics -> navigateAdminDestination(com.leon.be_nobat.ui.activities.AdminAnalyticsActivity::class.java)
+                    R.id.drawer_system_messages -> navigateAdminDestination(AdminSystemMessagesActivity::class.java)
                     R.id.drawer_branches -> {
                         if (!canManage) showToast(R.string.error_access_denied)
                         else navigateAdminDestination(AdminBranchesActivity::class.java)
@@ -529,6 +558,18 @@ abstract class BaseActivity : AppCompatActivity() {
                         if (!isPlatform) showToast(R.string.error_access_denied)
                         else navigateAdminDestination(PlatformRequestsActivity::class.java)
                     }
+                    R.id.drawer_platform_messages -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformMessagesActivity::class.java)
+                    }
+                    R.id.drawer_platform_announcements -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformAnnouncementsActivity::class.java)
+                    }
+                    R.id.drawer_platform_settings -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(PlatformSettingsActivity::class.java)
+                    }
                     R.id.drawer_back_to_user_view -> {
                         startActivity(Intent(this@BaseActivity, HomeActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -556,6 +597,28 @@ abstract class BaseActivity : AppCompatActivity() {
                 }
             })
         }
+    }
+
+    protected fun updateDrawerBadge(item: android.view.MenuItem?, count: Int, bgRes: Int) {
+        if (item == null) return
+        if (count <= 0) {
+            item.actionView = null
+            return
+        }
+        val view = item.actionView ?: layoutInflater.inflate(R.layout.view_drawer_badge, null).also {
+            it.layoutParams = android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            item.actionView = it
+        }
+        val tv = view.findViewById<android.widget.TextView>(R.id.tvDrawerBadge) ?: return
+        val density = resources.displayMetrics.density
+        val sizePx = (22 * density).toInt()
+        val textStr = if (count > 99) "+ 99" else count.toString()
+        tv.text = if (PersianUtils.isEnglishLocale()) textStr else PersianUtils.toPersianDigits(textStr)
+        tv.setBackgroundResource(bgRes)
+        tv.minimumWidth = sizePx
     }
 
     private fun navigateAdminDestination(targetActivity: Class<*>) {

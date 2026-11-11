@@ -61,7 +61,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             if (to != null) appts = appts.filter { it.startsAt <= to }
 
             val completed = appts.filter { it.status == "Completed" }
-            val totalRevenue = completed.sumOf { it.finalPrice.toLong() }
+            val totalRevenue = completed.sumOf { it.finalPrice }
             val totalWorkMinutes = completed.size * 45L
 
             val byBiz = appts.groupBy { it.businessId to it.businessName }.map { (key, list) ->
@@ -71,7 +71,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     name = key.second.ifBlank { "نامشخص" },
                     totalAppointments = list.size,
                     completedAppointments = comp.size,
-                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    revenue = comp.sumOf { it.finalPrice },
                     workMinutes = comp.size * 45L,
                 )
             }.sortedByDescending { it.revenue }
@@ -84,7 +84,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     businessName = list.firstOrNull()?.businessName,
                     totalAppointments = list.size,
                     completedAppointments = comp.size,
-                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    revenue = comp.sumOf { it.finalPrice },
                     workMinutes = comp.size * 45L,
                 )
             }.sortedByDescending { it.revenue }
@@ -97,7 +97,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     branchName = list.firstOrNull()?.branchName,
                     totalAppointments = list.size,
                     completedAppointments = comp.size,
-                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    revenue = comp.sumOf { it.finalPrice },
                     workMinutes = comp.size * 45L,
                 )
             }.sortedByDescending { it.revenue }
@@ -108,7 +108,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                     date = date,
                     total = list.size,
                     completed = comp.size,
-                    revenue = comp.sumOf { it.finalPrice.toLong() },
+                    revenue = comp.sumOf { it.finalPrice },
                     workMinutes = comp.size * 45L,
                 )
             }.sortedBy { it.date }
@@ -219,6 +219,7 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             val id = demoId()
             val bizName = s.businesses.firstOrNull { it.id == resolvedBusinessId }?.name
             val isPlatform = actor.roles.contains("PlatformAdmin")
+            val branchFee = if (isPlatform) 0.0 else s.platformPricing.extraBranchPrice
             val value = ManagementBranch(
                 id = id,
                 businessId = resolvedBusinessId,
@@ -231,7 +232,12 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 active = true,
                 isApproved = isPlatform,
+                fee = branchFee,
                 businessName = bizName,
+                depositPercentage = input.depositPercentage,
+                depositCardNumber = input.depositCardNumber,
+                depositIban = input.depositIban,
+                depositAccountHolder = input.depositAccountHolder,
             )
             s.copy(
                 branches = listOf(value) + s.branches,
@@ -256,6 +262,30 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             val approved = branch.copy(isApproved = true)
             s.copy(branches = s.branches.map { if (it.id == id) approved else it }) to approved
         }
+    }
+
+    override suspend fun uploadBranchReceipt(
+        branchId: String,
+        input: com.leon.be_nobat.domain.model.ReceiptUploadInput
+    ): Result<ManagementBranch> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            val branch = s.branches.firstOrNull { it.id == branchId } ?: error("شعبه یافت نشد.")
+            val rawData = input.dataBase64.ifBlank { input.imageBase64 }
+            val updated = branch.copy(
+                hasReceipt = true,
+                receiptTrackingCode = input.trackingCode?.trim()?.takeIf { it.isNotBlank() },
+                receiptUploadedAt = java.time.Instant.now().toString(),
+                receiptImageUrl = "data:${input.contentType};base64,$rawData"
+            )
+            s.copy(branches = s.branches.map { if (it.id == branchId) updated else it }) to updated
+        }
+    }
+
+    override suspend fun getPlatformPricing(): Result<com.leon.be_nobat.domain.model.PlatformPricing> = runCatching {
+        simulateNetworkDelay()
+        read { s -> s.platformPricing }
     }
 
     override suspend fun getBranch(id: String): Result<ManagementBranch> = runCatching {
@@ -289,6 +319,10 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 weeklyHours = input.weeklyHours ?: old.weeklyHours,
                 cancellationNoticeMinutes = input.cancellationNoticeMinutes,
                 businessName = bizName,
+                depositPercentage = input.depositPercentage,
+                depositCardNumber = input.depositCardNumber,
+                depositIban = input.depositIban,
+                depositAccountHolder = input.depositAccountHolder,
             )
             s.copy(branches = s.branches.map { if (it.id == id) value else it }) to value
         }
@@ -455,18 +489,25 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         simulateNetworkDelay()
         read { s ->
             val memberships = s.memberships.filter { branchId == null || it.branchId == branchId }
-            val ids = memberships.map { it.userId }
-            s.users.filter { it.id in ids && (it.displayName.matchesQuery(q) || it.email?.matchesQuery(q) == true || it.phoneNumber?.matchesQuery(q) == true) }
+            val memberUserIds = memberships.map { it.userId }.toSet()
+            val candidateUserIds = if (branchId == null) {
+                val adminRoles = listOf("PlatformAdmin", "Owner", "Manager", "Staff")
+                memberUserIds + s.users.filter { u -> u.roles.any { it in adminRoles } }.map { it.id }
+            } else {
+                memberUserIds
+            }
+            s.users.filter { it.id in candidateUserIds && (it.displayName.matchesQuery(q) || it.email?.matchesQuery(q) == true || it.phoneNumber?.matchesQuery(q) == true) }
                 .map { u ->
                     val m = memberships.firstOrNull { it.userId == u.id }
                     val branch = s.branches.firstOrNull { it.id == m?.branchId }
+                    val role = m?.role ?: u.roles.firstOrNull { it in listOf("Owner", "Manager", "Staff") } ?: "Staff"
                     ManagementPerson(
                         id = u.id,
                         displayName = u.displayName,
                         email = u.email,
                         phoneNumber = u.phoneNumber,
                         active = u.active,
-                        role = m?.role ?: "Staff",
+                        role = role,
                         branchName = branch?.name
                     )
                 }

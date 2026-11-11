@@ -422,6 +422,7 @@
             var branch = new Branch
             {
                 Business = business,
+                BusinessId = business.Id,
                 Name = string.IsNullOrWhiteSpace(request.FirstBranchName) ? "شعبه مرکزی" : request.FirstBranchName,
                 Address = request.FirstBranchAddress,
                 TimeZoneId = "Asia/Tehran",
@@ -437,6 +438,7 @@
             db.BranchMemberships.Add(new BranchMembership
             {
                 Branch = branch,
+                BranchId = branch.Id,
                 UserId = request.UserId,
                 Role = AppRoles.Owner,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -450,6 +452,7 @@
                 var extraBranch = new Branch
                 {
                     Business = business,
+                    BusinessId = business.Id,
                     Name = extra.Name.Trim(),
                     Address = extra.Address?.Trim() ?? "",
                     TimeZoneId = "Asia/Tehran",
@@ -465,6 +468,7 @@
                 db.BranchMemberships.Add(new BranchMembership
                 {
                     Branch = extraBranch,
+                    BranchId = extraBranch.Id,
                     UserId = request.UserId,
                     Role = AppRoles.Owner,
                     CreatedAt = DateTimeOffset.UtcNow,
@@ -485,7 +489,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to approve business request {Id}", req.Id);
-            Error = "خطایی در تأیید درخواست رخ داد.";
+            Error = $"خطایی در تأیید درخواست رخ داد: {ex.Message}";
         }
         finally
         {
@@ -534,9 +538,9 @@
         var sb = new System.Text.StringBuilder();
         foreach (var ch in raw)
         {
-            if (char.IsLetterOrDigit(ch) || ch == '-') sb.Append(ch);
+            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-') sb.Append(ch);
         }
         var s = sb.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(s) ? Guid.NewGuid().ToString("N")[..8] : s;
+        return string.IsNullOrWhiteSpace(s) ? "biz-" + Guid.NewGuid().ToString("N")[..8] : s;
     }
 }

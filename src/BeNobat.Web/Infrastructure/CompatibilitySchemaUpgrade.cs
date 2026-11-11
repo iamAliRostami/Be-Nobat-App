@@ -214,6 +214,30 @@ public static class CompatibilitySchemaUpgrade
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositCardNumber" text NULL;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositIban" text NULL;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "DepositAccountHolder" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Fee" numeric(18,2) NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "ReceiptImageContentType" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "ReceiptImageData" bytea NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "ReceiptTrackingCode" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "ReceiptUploadedAt" timestamptz NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Latitude" double precision NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Longitude" double precision NULL;
+
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Address" text NOT NULL DEFAULT 'اصفهان، خیابان شریعتی، مجتمع تجاری اداری به‌نوبت، طبقه ۴، واحد ۴۰۲';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Latitude" double precision NULL DEFAULT 32.6546;
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Longitude" double precision NULL DEFAULT 51.6680;
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Phone" text NOT NULL DEFAULT '021-91002424';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "SupportPhone" text NOT NULL DEFAULT '021-91002425';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Mobile" text NOT NULL DEFAULT '09134588221';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Email" text NOT NULL DEFAULT 'support@benobat.ir';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "InfoEmail" text NOT NULL DEFAULT 'info@benobat.ir';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "BankName" text NOT NULL DEFAULT 'بانک ملت';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "AccountNumber" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "WorkingHoursWeekdays" text NOT NULL DEFAULT 'شنبه تا چهارشنبه: 8:30 الی 18:00';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "WorkingHoursThursdays" text NOT NULL DEFAULT 'پنج‌شنبه‌ها: 8:30 الی 13:00';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "WorkingHoursHolidays" text NOT NULL DEFAULT 'روزهای تعطیل: پشتیبانی آنلاین از طریق تیکت';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Telegram" text NOT NULL DEFAULT 'benobat_support';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Instagram" text NOT NULL DEFAULT 'benobat.official';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Eitaa" text NOT NULL DEFAULT 'benobat_support';
 
             ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
             ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;
@@ -246,6 +270,30 @@ public static class CompatibilitySchemaUpgrade
                 "SortOrder" integer NOT NULL DEFAULT 0, "ContentType" text NOT NULL, "ImageData" bytea NOT NULL,
                 CONSTRAINT "FK_ResourceGalleryItems_Resources_ResourceId" FOREIGN KEY ("ResourceId") REFERENCES benobat."Resources" ("Id") ON DELETE CASCADE);
             CREATE INDEX IF NOT EXISTS "IX_ResourceGalleryItems_ResourceId_SortOrder" ON benobat."ResourceGalleryItems" ("ResourceId", "SortOrder");
+
+            CREATE TABLE IF NOT EXISTS benobat."ContactMessages" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "UserId" uuid NULL, "Name" text NOT NULL,
+                "ContactInfo" text NOT NULL, "Subject" text NOT NULL, "Message" text NOT NULL,
+                "IsRead" boolean NOT NULL DEFAULT false, "AdminReply" text NULL, "RepliedAt" timestamptz NULL,
+                CONSTRAINT "FK_ContactMessages_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE SET NULL);
+            CREATE INDEX IF NOT EXISTS "IX_ContactMessages_CreatedAt" ON benobat."ContactMessages" ("CreatedAt");
+
+            CREATE TABLE IF NOT EXISTS benobat."AdminBroadcastMessages" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "SenderId" uuid NOT NULL, "TargetUserId" uuid NULL,
+                "Title" text NOT NULL, "Content" text NOT NULL, "Priority" text NOT NULL DEFAULT 'Normal',
+                CONSTRAINT "FK_AdminBroadcastMessages_AspNetUsers_SenderId" FOREIGN KEY ("SenderId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE RESTRICT,
+                CONSTRAINT "FK_AdminBroadcastMessages_AspNetUsers_TargetUserId" FOREIGN KEY ("TargetUserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE SET NULL);
+            CREATE INDEX IF NOT EXISTS "IX_AdminBroadcastMessages_TargetUserId" ON benobat."AdminBroadcastMessages" ("TargetUserId");
+            CREATE INDEX IF NOT EXISTS "IX_AdminBroadcastMessages_CreatedAt" ON benobat."AdminBroadcastMessages" ("CreatedAt");
+
+            CREATE TABLE IF NOT EXISTS benobat."AdminMessageReads" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "MessageId" uuid NOT NULL, "UserId" uuid NOT NULL, "ReadAt" timestamptz NOT NULL,
+                CONSTRAINT "FK_AdminMessageReads_AdminBroadcastMessages_MessageId" FOREIGN KEY ("MessageId") REFERENCES benobat."AdminBroadcastMessages" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_AdminMessageReads_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE CASCADE);
+            CREATE UNIQUE INDEX IF NOT EXISTS "IX_AdminMessageReads_MessageId_UserId" ON benobat."AdminMessageReads" ("MessageId", "UserId");
             DO $$ BEGIN
                 ALTER TABLE benobat."BranchServices" ADD CONSTRAINT "CK_BranchService_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;

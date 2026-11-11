@@ -40,10 +40,21 @@ if (string.IsNullOrWhiteSpace(dataProtectionKeysPath) && builder.Environment.IsD
 }
 if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
 {
-    Directory.CreateDirectory(dataProtectionKeysPath);
-    builder.Services.AddDataProtection()
-        .SetApplicationName("BeNobat")
-        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+    try
+    {
+        Directory.CreateDirectory(dataProtectionKeysPath);
+        builder.Services.AddDataProtection()
+            .SetApplicationName("BeNobat")
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+    }
+    catch (UnauthorizedAccessException)
+    {
+        var tempKeys = Path.Combine(Path.GetTempPath(), "BeNobat-Keys");
+        Directory.CreateDirectory(tempKeys);
+        builder.Services.AddDataProtection()
+            .SetApplicationName("BeNobat")
+            .PersistKeysToFileSystem(new DirectoryInfo(tempKeys));
+    }
 }
 
 // پاک‌سازی دوره‌ای نوبت‌های «در انتظار»ی که زمانشان گذشته است.
@@ -62,6 +73,11 @@ builder.Services.AddScoped<UiLocale>();
 builder.Services.AddScoped<ApiScope>();
 builder.Services.AddScoped<MobileTokenService>();
 builder.Services.AddScoped<AppointmentBookingService>();
+builder.Services.AddHttpClient("MapTiles", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("BeNobat/1.0 (contact@benobat.ir)");
+});
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.AddRateLimiter(options =>
@@ -127,7 +143,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.EnsureCreatedAsync();
     await CompatibilitySchemaUpgrade.ApplyAsync(db);
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
-    if (seedDemo || seedDemoOnStartup)
+    if (seedDemo || seedDemoOnStartup || app.Environment.IsDevelopment())
     {
         await DemoSeeder.SeedAsync(scope.ServiceProvider, reset: resetDemo);
     }
@@ -384,6 +400,15 @@ app.MapGet("/media/receipt/{id:guid}", async (Guid id, HttpContext http, AppDbCo
     return Results.File(item.ReceiptImageData!, item.ReceiptImageContentType ?? "image/jpeg");
 }).AllowAnonymous();
 
+app.MapGet("/media/branch-receipt/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.Id == id && b.ReceiptImageData != null).Select(b => new { b.ReceiptImageData, b.ReceiptImageContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ReceiptImageData!, item.ReceiptImageContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
 app.MapGet("/media/avatar/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken cancellationToken) =>
 {
     var avatar = await db.Users
@@ -398,6 +423,35 @@ app.MapGet("/media/avatar/{id:guid}", async (Guid id, HttpContext http, AppDbCon
     http.Response.Headers.CacheControl = "public, max-age=604800";
     http.Response.Headers["X-Content-Type-Options"] = "nosniff";
     return Results.File(avatar.AvatarData!, avatar.AvatarContentType ?? "image/png");
+}).AllowAnonymous();
+
+app.MapGet("/api/map/tile/{z:int}/{x:int}/{y:int}.png", async (int z, int x, int y, IHttpClientFactory httpFactory, HttpContext http, CancellationToken ct) =>
+{
+    var client = httpFactory.CreateClient("MapTiles");
+    var urls = new[]
+    {
+        $"https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        $"https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        $"https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+        $"https://a.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png"
+    };
+
+    foreach (var url in urls)
+    {
+        try
+        {
+            using var response = await client.GetAsync(url, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+                http.Response.Headers.CacheControl = "public, max-age=604800";
+                return Results.File(bytes, "image/png");
+            }
+        }
+        catch { }
+    }
+
+    return Results.NotFound();
 }).AllowAnonymous();
 
 app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellationToken) =>

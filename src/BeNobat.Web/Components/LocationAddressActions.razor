@@ -1,0 +1,46 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+@if (!string.IsNullOrWhiteSpace(Address) || (Latitude.HasValue && Longitude.HasValue))
+{
+    <div class="location-address-actions" style="display:inline-flex; align-items:center; gap:6px; margin: 4px 0;">
+        @if (Latitude.HasValue && Longitude.HasValue)
+        {
+            <button type="button" class="btn-location-map" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:3px 8px; border-radius:6px; background:rgba(0,121,107,0.08); color:var(--primary,#00796b); border:1px solid rgba(0,121,107,0.2); cursor:pointer; font-weight:500;"
+                    @onclick="ShowMapModal" title="مشاهده موقعیت روی نقشه">
+                <span>📍</span>
+                <span>نقشه</span>
+            </button>
+        }
+        <button type="button" class="btn-location-nav" style="display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:3px 8px; border-radius:6px; background:rgba(33,150,243,0.08); color:#1976d2; border:1px solid rgba(33,150,243,0.2); cursor:pointer; font-weight:500;"
+                @onclick="OpenNavigationModal" title="مسیریابی با نشان، بلد، گوگل‌مپ، ویز">
+            <span>🧭</span>
+            <span>مسیریابی</span>
+        </button>
+    </div>
+}
+
+@code {
+    [Parameter] public double? Latitude { get; set; }
+    [Parameter] public double? Longitude { get; set; }
+    [Parameter] public string? Address { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task ShowMapModal()
+    {
+        if (Latitude.HasValue && Longitude.HasValue)
+        {
+            await JS.InvokeVoidAsync("beNobatMap.showMapModal", Latitude.Value, Longitude.Value, Title ?? "", Address ?? "");
+        }
+        else
+        {
+            await OpenNavigationModal();
+        }
+    }
+
+    private async Task OpenNavigationModal()
+    {
+        await JS.InvokeVoidAsync("beNobatMap.openNavigationModal", Latitude, Longitude, Title ?? "", Address ?? "");
+    }
+}

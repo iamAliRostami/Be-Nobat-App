@@ -29,7 +29,16 @@ else
         @if (Step == 3) { <button type="button" class="booking-back-button" disabled="@IsBooking" @onclick="BackToStep2">→ بازگشت به انتخاب زمان</button> }
         else if (Step == 2) { <button type="button" class="booking-back-button" disabled="@IsBooking" @onclick="BackToStep1">→ بازگشت به انتخاب خدمات</button> }
         else if (Step == 1) { <a class="booking-back-button" href="@SafeReturnUrl">→ بازگشت</a> }
-        <div class="booking-head"><div class="booking-logo">✦</div><div><h1 data-i18n-skip>@Business.Name</h1><p data-i18n-skip>@(SelectedBranch?.Address ?? Business.City)</p></div></div>
+        <div class="booking-head">
+            <div class="booking-logo">✦</div>
+            <div>
+                <h1 data-i18n-skip>@Business.Name</h1>
+                <p style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+                    <span data-i18n-skip>@(SelectedBranch?.Address ?? Business.City)</span>
+                    <LocationAddressActions Latitude="SelectedBranch?.Latitude" Longitude="SelectedBranch?.Longitude" Address="@(SelectedBranch?.Address ?? Business.City)" Title="@(SelectedBranch?.Name ?? Business.Name)" />
+                </p>
+            </div>
+        </div>
         <div class="booking-progress">
             <div class="@(Step > 1 ? "done" : "active")"><b>@(Step > 1 ? "✓" : "۱")</b><span>خدمات</span></div><i></i>
             <div class="@(Step > 2 ? "done" : Step == 2 ? "active" : "")"><b>@(Step > 2 ? "✓" : "۲")</b><span>کارمند و زمان</span></div><i></i>
@@ -120,7 +129,17 @@ else
             <div class="booking-layout">
                 <section class="booking-panel booking-confirmation">
                     <div class="booking-title"><span>۳</span><div><h2>بررسی و تأیید نهایی</h2><p>پیش از ثبت نوبت، مشخصات و قوانین رزرو را بررسی کنید.</p></div></div>
-                    <div class="confirmation-business"><i>✦</i><div><h3 data-i18n-skip>@Business.Name</h3><b data-i18n-skip>@SelectedBranch?.Name</b><small data-i18n-skip>@SelectedBranch?.Address</small></div></div>
+                    <div class="confirmation-business">
+                        <i>✦</i>
+                        <div>
+                            <h3 data-i18n-skip>@Business.Name</h3>
+                            <b data-i18n-skip>@SelectedBranch?.Name</b>
+                            <small data-i18n-skip style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+                                <span>@SelectedBranch?.Address</span>
+                                <LocationAddressActions Latitude="SelectedBranch?.Latitude" Longitude="SelectedBranch?.Longitude" Address="@SelectedBranch?.Address" Title="@(SelectedBranch?.Name ?? Business.Name)" />
+                            </small>
+                        </div>
+                    </div>
                     <div class="confirmation-details">
                         <article class="confirmation-primary"><small>خدمت انتخابی</small><strong data-i18n-skip>@SelectedServicesLabel</strong><span>@SelectedDuration دقیقه</span></article>
                         <article><small>متخصص شما</small><strong data-i18n-skip>@(ResourceForSelectedSlot?.Name ?? "—")</strong></article>
@@ -190,7 +209,7 @@ else
                         <p class="booking-login-hint">برای ثبت نوبت باید وارد حساب خود شوید یا ثبت‌نام کنید؛ انتخاب‌های شما حفظ می‌شود و بعد از ورود به همین مرحله برمی‌گردید.</p>
                     }
                 </section>
-                <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted || IsBooking)" DisabledReason="لطفاً ابتدا قوانین رزرو را مطالعه و با آن موافقت کنید." />
+                <BookingSummary OnContinue="ConfirmBookingAsync" ServiceName="@SelectedServicesLabel" Price="@SelectedPrice" DurationMinutes="@SelectedDuration" BranchName="@(SelectedBranch?.Name ?? "")" BusinessName="@Business.Name" Time="@FormatSelectedTime()" Language="@Language" RequireTerms="true" TermsAccepted="@TermsAccepted" OnShowTerms="OpenTerms" Disabled="@(!TermsAccepted || IsBooking || (IsDepositRequired && string.IsNullOrWhiteSpace(DepositReceiptBase64)))" DisabledReason="@(!TermsAccepted ? "لطفاً ابتدا قوانین رزرو را مطالعه و با آن موافقت کنید." : (IsDepositRequired && string.IsNullOrWhiteSpace(DepositReceiptBase64) ? "الصاق تصویر فیش واریز بیعانه برای نهایی‌سازی رزرو الزامی است." : ""))" />
             </div>
         }
         else
@@ -760,9 +779,9 @@ else
         if (ProviderChoice.Length == 0) { ErrorMessage = "کارمند ارائه‌دهنده را انتخاب کنید."; Step = 2; return; }
         if (CurrentSecurityStamp is null) { ErrorMessage = "نشست شما منقضی شده است؛ دوباره وارد حساب شوید."; return; }
 
-        if (IsDepositRequired && string.IsNullOrWhiteSpace(DepositTrackingCode) && string.IsNullOrWhiteSpace(DepositReceiptBase64))
+        if (IsDepositRequired && string.IsNullOrWhiteSpace(DepositReceiptBase64))
         {
-            ErrorMessage = "ثبت بیعانه برای این نوبت الزامی است. لطفاً کد پیگیری یا تصویر فیش واریز را الصاق فرمایید.";
+            ErrorMessage = "ثبت بیعانه برای این نوبت الزامی است. لطفاً تصویر فیش واریز را الصاق فرمایید.";
             return;
         }
 

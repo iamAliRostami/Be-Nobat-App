@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="leaflet.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
+            overflow: hidden;
+            background: #e2e8f0;
+            font-family: system-ui, -apple-system, sans-serif;
+            position: relative;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 380px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+        .custom-pin {
+            font-size: 32px;
+            text-align: center;
+            line-height: 32px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+            user-select: none;
+        }
+    </style>
+    <script src="leaflet.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var lat = parseFloat(params.get('lat')) || 32.6546;
+        var lng = parseFloat(params.get('lng')) || 51.6680;
+        var title = params.get('title') || '';
+
+        if (window.L && window.L.Icon && window.L.Icon.Default) {
+            window.L.Icon.Default.imagePath = './';
+        }
+
+        var map = L.map('map', {
+            center: [lat, lng],
+            zoom: 16,
+            zoomControl: true,
+            dragging: true
+        });
+        window.map = map;
+
+        // High-speed, high-availability tiles worldwide and in Iran
+        var tileLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['0', '1', '2', '3'],
+            attribution: '© Google Maps © OpenStreetMap'
+        }).addTo(map);
+
+        tileLayer.on('tileerror', function(err) {
+            if (err && err.tile && !err.tile._triedCarto && err.coords) {
+                err.tile._triedCarto = true;
+                err.tile.src = 'https://basemaps.cartocdn.com/rastertiles/voyager/' + err.coords.z + '/' + err.coords.x + '/' + err.coords.y + '.png';
+            } else if (err && err.tile && !err.tile._triedOsm && err.coords) {
+                err.tile._triedOsm = true;
+                err.tile.src = 'https://tile.openstreetmap.org/' + err.coords.z + '/' + err.coords.x + '/' + err.coords.y + '.png';
+            } else if (err && err.tile && !err.tile._triedProxy && err.coords) {
+                err.tile._triedProxy = true;
+                err.tile.src = 'http://10.0.2.2:8080/api/map/tile/' + err.coords.z + '/' + err.coords.x + '/' + err.coords.y + '.png';
+            }
+        });
+
+        var pinIcon = L.divIcon({
+            className: 'custom-pin',
+            html: '📍',
+            iconSize: [36, 36],
+            iconAnchor: [18, 34]
+        });
+
+        var marker = L.marker([lat, lng], {
+            icon: pinIcon
+        }).addTo(map);
+
+        if (title) {
+            marker.bindPopup('<b>' + decodeURIComponent(title) + '</b>').openPopup();
+        }
+
+        function fitMap() {
+            var el = document.getElementById('map');
+            if (el) {
+                var w = window.innerWidth || document.documentElement.clientWidth;
+                var h = window.innerHeight || document.documentElement.clientHeight;
+                if (w > 0) el.style.width = w + 'px';
+                if (h > 0) el.style.height = h + 'px';
+            }
+            if (window.map) {
+                window.map.invalidateSize();
+            }
+        }
+        window.fitMap = fitMap;
+        window.addEventListener('resize', fitMap);
+
+        [50, 150, 300, 600, 1000, 2000].forEach(function(delay) {
+            setTimeout(fitMap, delay);
+        });
+    </script>
+</body>
+</html>

@@ -114,6 +114,37 @@ public sealed class AdminAccessScope(
     }
 
     /// <summary>مالک بودن در یک کسب‌وکار (مدیر سامانه همواره مجاز است).</summary>
+    public async Task<bool> CanManageBusinessMediaAsync(Guid businessId)
+    {
+        if (await IsPlatformAdminAsync()) return true;
+        if (!await IsActiveUserAsync()) return false;
+        var id = await UserIdAsync();
+        return await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.DeletedAt == null &&
+            m.Branch.Business.DeletedAt == null && m.Branch.DeletedAt == null &&
+            m.UserId == id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) && m.Branch.BusinessId == businessId);
+    }
+
+    public async Task<bool> CanManageBranchMediaAsync(Guid branchId)
+    {
+        if (await IsPlatformAdminAsync()) return true;
+        if (!await IsActiveUserAsync()) return false;
+        var id = await UserIdAsync();
+        return await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.DeletedAt == null &&
+            m.Branch.Business.DeletedAt == null && m.Branch.DeletedAt == null &&
+            m.UserId == id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) && m.BranchId == branchId);
+    }
+
+    public async Task<bool> CanManageResourceMediaAsync(Guid resourceId)
+    {
+        if (await IsPlatformAdminAsync()) return true;
+        if (!await IsActiveUserAsync()) return false;
+        var id = await UserIdAsync();
+        var res = await db.Resources.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.Id == resourceId && r.DeletedAt == null);
+        if (res is null) return false;
+        if (res.UserId == id) return true;
+        return await CanManageBranchMediaAsync(res.BranchId);
+    }
+
     public async Task<bool> IsBusinessOwnerAsync(Guid businessId)
     {
         if (await IsPlatformAdminAsync()) return await db.Businesses.AnyAsync(b => b.Id == businessId);

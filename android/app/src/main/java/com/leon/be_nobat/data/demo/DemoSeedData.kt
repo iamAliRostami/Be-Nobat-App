@@ -40,7 +40,30 @@ data class DemoDatabaseState(
     val favorites: List<String> = emptyList(),
     val resourceServices: Map<String, List<String>> = emptyMap(),
     val businessRequests: List<BusinessRequest> = emptyList(),
-    val platformPricing: PlatformPricing = PlatformPricing(),
+    val platformPricing: PlatformPricing = PlatformPricing(
+        baseBusinessPrice = 500_000.0,
+        extraBranchPrice = 200_000.0,
+        cardNumber = "6037-9918-1234-5678",
+        iban = "IR120170000000123456789012",
+        accountHolder = "سامانه نوبت‌دهی به‌نوبت",
+        paymentInstructions = "لطفاً پس از واریز مبلغ، تصویر فیش واریز را در این بخش بارگذاری نمایید.",
+        address = "اصفهان، خیابان شریعتی، مجتمع تجاری اداری به‌نوبت، طبقه ۴، واحد ۴۰۲",
+        latitude = 32.6546,
+        longitude = 51.6680,
+        phone = "021-91002424",
+        supportPhone = "021-91002425",
+        mobile = "09134588221",
+        email = "support@benobat.ir",
+        infoEmail = "info@benobat.ir",
+        bankName = "بانک ملت",
+        accountNumber = "123456789",
+        workingHoursWeekdays = "شنبه تا چهارشنبه: ۸:۳۰ الی ۱۸:۰۰",
+        workingHoursThursdays = "پنج‌شنبه‌ها: ۸:۳۰ الی ۱۳:۰۰",
+        workingHoursHolidays = "روزهای تعطیل: پشتیبانی آنلاین از طریق پیام و تیکت",
+        telegram = "benobat_support",
+        instagram = "benobat.official",
+        eitaa = "benobat_support"
+    ),
 )
 
 object DemoSeedData {
@@ -129,10 +152,10 @@ object DemoSeedData {
                 active = true,
                 avatarUrl = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=160&auto=format&fit=crop",
                 headerUrl = "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
-                depositPercentage = 20.0,
-                depositCardNumber = "۶۰۳۷-۹۹۷۵-۱۱۱۱-۲۲۲۲",
-                depositIban = "IR120170000000111122223333",
-                depositAccountHolder = "سالن دیپلمات",
+                depositPercentage = null,
+                depositCardNumber = null,
+                depositIban = null,
+                depositAccountHolder = null,
                 gallery = listOf(
                     GalleryItem("gal_1", "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop", "محیط اختصاصی اصلاح"),
                     GalleryItem("gal_2", "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600&auto=format&fit=crop", "بخش شستشو و ماساژ"),
@@ -188,6 +211,12 @@ object DemoSeedData {
                 description = "هایفوتراپی، مزوتراپی، لیزر موهای زائد با دستگاه تیتانیوم ۲۰۲۶ زیر نظر پزشک متخصص.",
                 requiresApproval = true,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_afa_1", "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&auto=format&fit=crop", "اتاق لیزر و مراقبت پوستی"),
+                    GalleryItem("gal_afa_2", "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop", "فضای انتظار کلینیک")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_carplus",
@@ -198,6 +227,12 @@ object DemoSeedData {
                 description = "تعمیرات اساسی گیربکس اتوماتیک، دیاگ پیشرفته، تعویض روغن و سرویس‌های دوره‌ای انواع خودرو.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_car_1", "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&auto=format&fit=crop", "چال سرویس و دیاگ موتور"),
+                    GalleryItem("gal_car_2", "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=600&auto=format&fit=crop", "سالن تعمیرات گیربکس")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_exir",
@@ -208,6 +243,12 @@ object DemoSeedData {
                 description = "باشگاه مجهز به دستگاه‌های روز بدنسازی، مربیان رسمی فدراسیون، استخر و سونای خشک.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_exir_1", "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop", "سالن بدنسازی و وزنه‌های آزاد"),
+                    GalleryItem("gal_exir_2", "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600&auto=format&fit=crop", "فضای هوازی و کراس‌فیت")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_raha",
@@ -218,6 +259,12 @@ object DemoSeedData {
                 description = "الکتروتراپی، مگنت‌تراپی، درمان دیسک کمر و گردن و توانبخشی پس از جراحی‌های ارتوپدی.",
                 requiresApproval = true,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_raha_1", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop", "دستگاه مگنت و الکتروتراپی"),
+                    GalleryItem("gal_raha_2", "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&auto=format&fit=crop", "کابین‌های درمان انفرادی")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_mehregan",
@@ -228,6 +275,12 @@ object DemoSeedData {
                 description = "مشاوره فردی، زوج‌درمانی، تست‌های هوش و استعدادیابی با حضور مشاوران مجرب دانشگاهی.",
                 requiresApproval = true,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_meh_1", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop", "اتاق مشاوره فردی"),
+                    GalleryItem("gal_meh_2", "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop", "فضای آرام و صمیمی")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_relaxplus",
@@ -238,6 +291,12 @@ object DemoSeedData {
                 description = "تجربه آرامش مطلق با ماساژ تایلندی، سنگ داغ و حوله داغ با چشم‌انداز زیبای خلیج فارس.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_rel_1", "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&auto=format&fit=crop", "اتاق ماساژ سنگ داغ"),
+                    GalleryItem("gal_rel_2", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop", "سالن اسپا با حوله معطر")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_kadr",
@@ -248,6 +307,12 @@ object DemoSeedData {
                 description = "عکاسی تخصصی پرتره، عقد و کودک با دکوراسیون منحصربه‌فرد و چاپ باکیفیت آلبوم دیجیتال.",
                 requiresApproval = true,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_kadr_1", "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=600&auto=format&fit=crop", "استودیو با نورپردازی حرفه‌ای"),
+                    GalleryItem("gal_kadr_2", "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop", "دکوراسیون عکاسی پرتره")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_pamchal",
@@ -258,6 +323,12 @@ object DemoSeedData {
                 description = "کلینیک شبانه‌روزی حیوانات خانگی، واکسیناسیون، گرومینگ و آرایش مو و پت‌شاپ تخصصی.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_pam_1", "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop", "اتاق معاینه پت‌ها"),
+                    GalleryItem("gal_pam_2", "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&auto=format&fit=crop", "بخش گرومینگ و شستشو")
+                ),
             ),
             ManagementBusiness(
                 id = "biz_gamecafe",
@@ -268,6 +339,12 @@ object DemoSeedData {
                 description = "بیش از ۳۰۰ عنوان بردگیم جذاب ایرانی و بین‌المللی همراه با آموزش رایگان توسط گیم‌مسترها.",
                 requiresApproval = false,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_game_1", "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&auto=format&fit=crop", "میز بازی‌های رومیزی و استراتژیک"),
+                    GalleryItem("gal_game_2", "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop", "قفسه بازی‌های روز دنیا")
+                ),
             ),
         )
 
@@ -281,6 +358,12 @@ object DemoSeedData {
                 openHour = 9,
                 closeHour = 22,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_dip1_1", "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop", "فضای سالن اصلی"),
+                    GalleryItem("gal_br_dip1_2", "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600&auto=format&fit=crop", "میزهای پیرایش")
+                ),
             ),
             ManagementBranch(
                 id = "br_diplomat_2",
@@ -291,6 +374,12 @@ object DemoSeedData {
                 openHour = 10,
                 closeHour = 21,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_dip2_1", "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop", "اتاق VIP داماد"),
+                    GalleryItem("gal_br_dip2_2", "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600&auto=format&fit=crop", "پذیرایی اختصاصی")
+                ),
             ),
             ManagementBranch(
                 id = "br_labkhand_1",
@@ -301,6 +390,12 @@ object DemoSeedData {
                 openHour = 9,
                 closeHour = 20,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_lab_1", "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&auto=format&fit=crop", "یونیت دندانپزشکی دیجیتال"),
+                    GalleryItem("gal_br_lab_2", "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop", "اتاق استریل مجهز")
+                ),
             ),
             ManagementBranch(
                 id = "br_negin_1",
@@ -311,6 +406,12 @@ object DemoSeedData {
                 openHour = 10,
                 closeHour = 19,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_neg_1", "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&auto=format&fit=crop", "سالن اصلی شعبه چهارباغ"),
+                    GalleryItem("gal_br_neg_2", "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&auto=format&fit=crop", "میزهای لاین ناخن")
+                ),
             ),
             ManagementBranch(
                 id = "br_afarinesh_1",
@@ -321,6 +422,12 @@ object DemoSeedData {
                 openHour = 9,
                 closeHour = 21,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_afa_1", "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&auto=format&fit=crop", "کابین لیزر شیراز"),
+                    GalleryItem("gal_br_afa_2", "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop", "لابی شعبه قدوسی")
+                ),
             ),
             ManagementBranch(
                 id = "br_carplus_1",
@@ -331,6 +438,12 @@ object DemoSeedData {
                 openHour = 8,
                 closeHour = 19,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_car_1", "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=600&auto=format&fit=crop", "بخش تنظیم موتور و دیاگ"),
+                    GalleryItem("gal_br_car_2", "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=600&auto=format&fit=crop", "انبار قطعات یدکی اورجینال")
+                ),
             ),
             ManagementBranch(
                 id = "br_exir_1",
@@ -341,6 +454,12 @@ object DemoSeedData {
                 openHour = 7,
                 closeHour = 23,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_exir_1", "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop", "دستگاه‌های پیشرفته سجاد"),
+                    GalleryItem("gal_br_exir_2", "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=600&auto=format&fit=crop", "بوفه سلامت و رختکن مدرن")
+                ),
             ),
             ManagementBranch(
                 id = "br_raha_1",
@@ -351,6 +470,12 @@ object DemoSeedData {
                 openHour = 9,
                 closeHour = 20,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_raha_1", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&auto=format&fit=crop", "سالن تمرین درمانی آبرسان"),
+                    GalleryItem("gal_br_raha_2", "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&auto=format&fit=crop", "تجهیزات لیزر پرتوان")
+                ),
             ),
             ManagementBranch(
                 id = "br_mehregan_1",
@@ -361,6 +486,12 @@ object DemoSeedData {
                 openHour = 10,
                 closeHour = 20,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_meh_1", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop", "اتاق بازی‌درمانی کودک"),
+                    GalleryItem("gal_br_meh_2", "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop", "سالن کارگاه‌های گروهی")
+                ),
             ),
             ManagementBranch(
                 id = "br_relaxplus_1",
@@ -371,6 +502,12 @@ object DemoSeedData {
                 openHour = 10,
                 closeHour = 23,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_rel_1", "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&auto=format&fit=crop", "اتاق ماساژ ساحلی"),
+                    GalleryItem("gal_br_rel_2", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&auto=format&fit=crop", "جکوزی اختصاصی اسپا")
+                ),
             ),
             ManagementBranch(
                 id = "br_kadr_1",
@@ -381,6 +518,12 @@ object DemoSeedData {
                 openHour = 10,
                 closeHour = 19,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_kadr_1", "https://images.unsplash.com/photo-1554048612-b6a482bc67e5?w=600&auto=format&fit=crop", "دکور بوهو و عقد"),
+                    GalleryItem("gal_br_kadr_2", "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=600&auto=format&fit=crop", "آتلیه تخصصی نوزاد")
+                ),
             ),
             ManagementBranch(
                 id = "br_pamchal_1",
@@ -391,6 +534,12 @@ object DemoSeedData {
                 openHour = 9,
                 closeHour = 22,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_pam_1", "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&auto=format&fit=crop", "سالن گرومینگ شهرک غرب"),
+                    GalleryItem("gal_br_pam_2", "https://images.unsplash.com/photo-1548767797-d8c844163c4c?w=600&auto=format&fit=crop", "پت‌شاپ اختصاصی ملزومات")
+                ),
             ),
             ManagementBranch(
                 id = "br_gamecafe_1",
@@ -401,6 +550,12 @@ object DemoSeedData {
                 openHour = 14,
                 closeHour = 23,
                 active = true,
+                avatarUrl = "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=160&auto=format&fit=crop",
+                headerUrl = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&auto=format&fit=crop",
+                gallery = listOf(
+                    GalleryItem("gal_br_game_1", "https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?w=600&auto=format&fit=crop", "میزهای بردگیم VIP"),
+                    GalleryItem("gal_br_game_2", "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&auto=format&fit=crop", "بار نوشیدنی‌های گرم و سرد")
+                ),
             ),
         )
 

@@ -229,7 +229,7 @@
 .business-form-modal .field-half{grid-column:span 1!important}
 .business-form-modal label{display:flex!important;flex-direction:column!important;gap:6px!important;font-size:0.8rem!important;font-weight:600!important;color:var(--on-surface,#334155)!important}
 .business-form-modal label span{display:flex!important;align-items:center!important;gap:4px!important}
-.business-form-modal label span strong.req{color:#e11d48!important;font-weight:bold!important}
+strong.req, .business-form-modal label span strong.req{color:#e11d48!important;font-weight:bold!important;display:inline!important;margin-inline-start:3px!important}
 .business-form-modal label span small{font-size:0.74rem!important;font-weight:400!important;color:var(--muted,#64748b)!important}
 .business-form-modal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){width:100%!important;box-sizing:border-box!important;padding:10px 14px!important;border:1px solid #d4e3e0!important;border-radius:10px!important;font:inherit!important;font-size:0.88rem!important;background:#ffffff!important;color:var(--on-surface,#1e293b)!important;transition:border-color .15s,box-shadow .15s!important}
 .business-form-modal :is(input:not([type="checkbox"]):not([type="radio"]),select){height:42px!important}
@@ -610,6 +610,13 @@ html[data-theme="dark"] .availability-form-modal .availability-fields{background
 .public-user-menu>summary{min-height:38px;padding:3px 7px}.public-user-menu>summary .header-avatar{margin:0}.booking-calendar>summary i{margin-inline-start:auto}.booking-date-navigation input[type="date"],.availability-form-modal input[type="date"]{direction:ltr;text-align:left;padding-inline:10px 34px;color-scheme:light}.availability-form-modal input[type="date"]::-webkit-calendar-picker-indicator,.booking-date-navigation input[type="date"]::-webkit-calendar-picker-indicator{position:absolute;inset-inline-end:9px}.availability-form-modal input[type="date"],.booking-date-navigation input[type="date"]{position:relative}
 .availability-empty{margin-top:14px;min-height:150px;border:1px dashed var(--outline,#cadbd7);border-radius:12px;background:#f6faf9;display:grid;place-items:center;align-content:center;gap:6px;text-align:center;color:var(--muted,#687a75)}.availability-empty span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#e4f2ef;color:var(--primary);font-size:20px}.availability-empty b{font-size:12px;color:var(--on-surface,#27332f)}.availability-empty small{font-size:9px}.availability-main span{direction:rtl!important;display:flex;align-items:center;gap:6px;text-align:start!important}.availability-main span time{direction:ltr}.availability-main span i{font-style:normal;color:var(--muted)}
 .admin-header-actions{align-items:center}.admin-header-actions>.ui-preferences{height:38px}.admin-header-actions .ui-preferences{display:flex;gap:10px}.admin-header-actions>.public-user-menu>summary{height:38px}.availability-form-modal .form-columns{align-items:start}.availability-form-modal input,.availability-form-modal select{height:40px;box-sizing:border-box}
+.schedule-info-box{display:flex;align-items:center;gap:8px;background-color:rgba(20,107,93,0.08);border:1px solid rgba(20,107,93,0.25);border-radius:9px;padding:8px 12px;font-size:12.5px;color:var(--foreground,#1e293b);margin-top:6px}
+.schedule-info-box.closed{background-color:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25)}
+.overlap-notice-box{display:flex;align-items:center;gap:8px;border-radius:9px;padding:8px 12px;font-size:12.5px;margin-top:8px}
+.overlap-notice-box.warning{background-color:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#b45309}
+.overlap-notice-box.positive{background-color:rgba(20,107,93,0.1);border:1px solid rgba(20,107,93,0.3);color:#146B5D}
+html[data-theme="dark"] .overlap-notice-box.warning{color:#fbbf24;background-color:rgba(245,158,11,0.15)}
+html[data-theme="dark"] .overlap-notice-box.positive{color:#76D6C3;background-color:rgba(20,107,93,0.2)}
 
 /* =====================================================================
    رفع باگ‌های گزارش‌شده (پوشه‌ی BUGS)
@@ -1084,6 +1091,7 @@ html[data-theme="dark"] .review-list blockquote{background:var(--primary-contain
 .profile-card-head h2{margin:0;font-size:15px;line-height:1.6}
 .profile-fields{display:grid;gap:12px;min-width:0}
 .profile-page .profile-fields label{gap:5px;font-size:12px;font-weight:500}
+.profile-page .profile-fields label span, .profile-form label span{display:inline-flex;align-items:center;gap:4px}
 .profile-page .profile-fields input{min-width:0;min-height:44px;padding:9px 12px;font-size:13px}
 .profile-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-top:2px}
 .profile-card-actions .primary-button{min-height:44px;padding:9px 14px;font-size:12px}
@@ -1120,7 +1128,15 @@ html[data-theme="dark"] .review-list blockquote{background:var(--primary-contain
 .directory-page{width:min(100%,1184px);margin-inline:auto;padding:32px 20px 64px;color:var(--on-surface)}
 .directory-page>.back-link{display:inline-flex;align-items:center;min-height:36px;color:var(--on-surface-variant);font-size:12px}
 .directory-hero{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:22px;margin-block:16px 20px;padding:28px;border:1px solid var(--outline-soft);border-radius:20px;background:var(--surface)}
+.directory-hero.has-header{position:relative;background-size:cover;background-position:center;color:#ffffff;box-shadow:0 8px 30px rgba(0,0,0,0.18);border:none}
+.directory-hero.has-header h1{color:#ffffff;text-shadow:0 2px 4px rgba(0,0,0,0.6)}
+.directory-hero.has-header p{color:rgba(255,255,255,0.92);text-shadow:0 1px 3px rgba(0,0,0,0.6)}
+.directory-hero.has-header .directory-kicker{color:#86efac;text-shadow:0 1px 3px rgba(0,0,0,0.7);font-weight:700}
+.directory-hero.has-header .directory-meta>span{background:rgba(0,0,0,0.5);color:#ffffff;border:1px solid rgba(255,255,255,0.25);backdrop-filter:blur(6px)}
+.directory-hero.has-header .outline-button{background:rgba(255,255,255,0.92);color:#0f172a;border:1px solid #ffffff}
+.directory-hero.has-header .outline-button:hover{background:#ffffff}
 .directory-mark{width:72px;height:72px;border-radius:18px;display:grid;place-items:center;background:var(--primary-container);color:var(--primary);font-size:36px;font-weight:700}
+.directory-hero.has-header .directory-mark{background:#ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.25);border:2px solid #ffffff}
 .directory-heading{min-width:0;overflow-wrap:anywhere}
 .directory-kicker{font-size:12px;font-weight:600;color:var(--primary)}
 .directory-hero h1{margin:4px 0 8px;font-size:clamp(23px,2.4vw,32px);line-height:1.6}
@@ -1213,11 +1229,12 @@ html.is-android .action-app{display:inline-flex !important}
 .sidebar-overlay{display:none}
 @media(min-width:901px){
   html[data-sidebar-collapsed="true"] .shell{grid-template-columns:76px minmax(0,1fr)}
-  html[data-sidebar-collapsed="true"] .sidebar{padding:20px 10px}
+  html[data-sidebar-collapsed="true"] .sidebar{padding:20px 8px;overflow:hidden}
+  html[data-sidebar-collapsed="true"] .sidebar nav{overflow-y:auto;overflow-x:hidden}
   html[data-sidebar-collapsed="true"] .sidebar :is(.sidebar-label,.sidebar-identity>div,.sidebar-footer>div,.sidebar-group>summary){display:none}
   html[data-sidebar-collapsed="true"] .sidebar-identity{padding-inline:0;justify-content:center}
-  html[data-sidebar-collapsed="true"] .sidebar nav a{justify-content:center;padding-inline:8px}
-  html[data-sidebar-collapsed="true"] .sidebar nav a i{font-size:20px}
+  html[data-sidebar-collapsed="true"] .sidebar nav a{position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:44px;margin:0 auto;padding:0}
+  html[data-sidebar-collapsed="true"] .sidebar nav a i{font-size:20px;margin:0}
   html[data-sidebar-collapsed="true"] .sidebar-footer{justify-content:center;padding-inline:0}
 }
 @media(max-width:1100px){.content .schedule-row{grid-template-columns:70px 3px 34px minmax(0,1fr) auto}.content .schedule-row>.row-actions{grid-column:4/-1;justify-self:end}.content .access-list article{grid-template-columns:40px minmax(0,1fr) auto}.content .access-list article>label,.content .access-list article>.access-actions{grid-column:2/-1;justify-self:start}.content .event-row{grid-template-columns:100px minmax(0,1fr) auto}.content .event-row>.row-actions{grid-column:2/-1;justify-self:end}}
@@ -1694,4 +1711,133 @@ html[data-theme="dark"] .cancellation-notice-editor small {
 }
 .rules-modal-actions .action-secondary:hover {
   background: var(--surface-raised, #f1f5f9) !important;
+}
+
+
+/* ===== Booked Slot Styling ===== */
+.time-grid button.slot-booked {
+    background: #f1f3f4;
+    border: 1px solid #dadce0;
+    color: #80868b;
+    cursor: not-allowed;
+    opacity: 0.75;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+}
+.time-grid button.slot-booked:hover {
+    background: #f1f3f4;
+    border-color: #dadce0;
+}
+.slot-booked-badge {
+    font-size: 9px;
+    color: #d93025;
+    background: #fce8e6;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    font-weight: 500;
+}
+html[data-theme="dark"] .time-grid button.slot-booked {
+    background: #252a2e;
+    border-color: #3c4043;
+    color: #9aa0a6;
+}
+html[data-theme="dark"] .slot-booked-badge {
+    background: rgba(217, 48, 37, 0.2);
+    color: #f28b82;
+}
+
+/* ===== Deposit Payment Card ===== */
+.deposit-box {
+    background: #fef8f0;
+    border: 1.5px solid #f6c88f;
+    border-radius: 14px;
+    padding: 18px;
+    margin: 18px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+html[data-theme="dark"] .deposit-box {
+    background: #2b2518;
+    border-color: #634b1a;
+}
+.deposit-box-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.deposit-box-header i {
+    font-size: 26px;
+    font-style: normal;
+}
+.deposit-box-header h4 {
+    margin: 0;
+    font-size: 14px;
+    color: #8c4a00;
+}
+html[data-theme="dark"] .deposit-box-header h4 {
+    color: #f6c88f;
+}
+.deposit-box-header p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--on-surface);
+}
+.deposit-bank-info {
+    background: #fff;
+    border: 1px solid #f0dec5;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+html[data-theme="dark"] .deposit-bank-info {
+    background: #1e1e1e;
+    border-color: #443c2c;
+}
+.deposit-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+.deposit-row small {
+    color: var(--on-surface-variant);
+}
+.deposit-row strong {
+    font-family: monospace;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+.deposit-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.booking-file-input {
+    padding: 8px;
+    border: 1px dashed #c0b096;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+}
+html[data-theme="dark"] .booking-file-input {
+    background: #1e1e1e;
+    border-color: #554832;
+    color: #e0e0e0;
+}
+.receipt-file-badge {
+    font-size: 12px;
+    color: #1e7e34;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }

@@ -203,13 +203,33 @@ class ProfileActivity : BaseActivity() {
                 val bytes = Base64.decode(encoded, Base64.DEFAULT)
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
             }.getOrNull()
-            if (bitmap != null) avatar.setImageBitmap(bitmap) else avatar.setImageResource(R.drawable.ic_person)
+            if (bitmap != null) {
+                avatar.setPadding(0, 0, 0, 0)
+                avatar.imageTintList = null
+                avatar.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                avatar.setImageBitmap(bitmap)
+            } else {
+                avatar.setImageResource(R.drawable.ic_person)
+            }
         } else {
             val fullUrl = BeNobatApiConfig.resolveMediaUrl(avatarUrl)
+            avatar.setPadding(0, 0, 0, 0)
+            avatar.imageTintList = null
+            avatar.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
             avatar.load(fullUrl) {
                 crossfade(true)
                 placeholder(R.drawable.ic_person)
                 error(R.drawable.ic_person)
+                listener(
+                    onSuccess = { _, _ ->
+                        avatar.setPadding(0, 0, 0, 0)
+                        avatar.imageTintList = null
+                        avatar.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                    },
+                    onError = { _, result ->
+                        android.util.Log.e("ProfileActivity", "Failed loading avatar: ${result.throwable.message}")
+                    }
+                )
             }
         }
         // Avatar upload/remove button states

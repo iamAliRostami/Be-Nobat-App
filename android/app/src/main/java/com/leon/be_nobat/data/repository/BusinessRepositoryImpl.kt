@@ -61,6 +61,22 @@ class BusinessRepositoryImpl(
         }
     }
 
+    override suspend fun sendContactMessage(
+        name: String,
+        contactInfo: String,
+        subject: String,
+        message: String,
+    ): Result<String> = runCatching {
+        val body = kotlinx.serialization.json.buildJsonObject {
+            put("name", kotlinx.serialization.json.JsonPrimitive(name))
+            put("contactInfo", kotlinx.serialization.json.JsonPrimitive(contactInfo))
+            put("subject", kotlinx.serialization.json.JsonPrimitive(subject))
+            put("message", kotlinx.serialization.json.JsonPrimitive(message))
+        }
+        api.sendContactMessage<kotlinx.serialization.json.JsonObject>(body).getOrThrow()
+        "OK"
+    }
+
     override suspend fun findBusinessIdByBranch(branchId: String): String? {
         return null
     }

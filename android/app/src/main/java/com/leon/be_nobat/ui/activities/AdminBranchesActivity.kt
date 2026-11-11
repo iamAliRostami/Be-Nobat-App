@@ -12,7 +12,12 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import com.leon.be_nobat.R
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 import com.leon.be_nobat.domain.model.ManagementBranch
+import com.leon.be_nobat.domain.repository.ManagementRepository
+import com.leon.be_nobat.helpers.BranchPaymentReceiptHelper
+import org.koin.android.ext.android.inject
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.ui.adapters.BaseAdminAdapter
@@ -28,8 +33,16 @@ class AdminBranchesActivity : BaseActivity() {
     override val layoutResourceId: Int = R.layout.activity_admin_list
 
     private val viewModel: AdminBranchesViewModel by viewModel()
+    private val managementRepository: ManagementRepository by inject()
     private lateinit var adapter: BranchesAdapter
     private lateinit var swipeRefresh: SwipeRefreshLayout
+
+    private var onImagePickedCallback: ((Uri) -> Unit)? = null
+    private val pickReceiptLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            onImagePickedCallback?.invoke(uri)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +61,19 @@ class AdminBranchesActivity : BaseActivity() {
             onEdit = { branch -> showEditBranchDialog(branch) },
             onDelete = { branch -> viewModel.delete(branch.id) },
             onApprove = { branch -> viewModel.approveBranch(branch.id) },
+            onShowReceipt = { branch ->
+                BranchPaymentReceiptHelper.showReceiptDialog(this, branch)
+            },
+            onUploadReceipt = { branch ->
+                BranchPaymentReceiptHelper.showPaymentAndUploadDialog(
+                    activity = this,
+                    branch = branch,
+                    managementRepository = managementRepository,
+                    pickImageLauncher = pickReceiptLauncher,
+                    onSelectedUriCallbackSetter = { callback -> onImagePickedCallback = callback },
+                    onReceiptUploaded = { viewModel.load() }
+                )
+            },
         )
         findViewById<RecyclerView>(R.id.list).apply {
             layoutManager = LinearLayoutManager(this@AdminBranchesActivity)
@@ -108,6 +134,8 @@ class AdminBranchesActivity : BaseActivity() {
         private val onEdit: (ManagementBranch) -> Unit,
         private val onDelete: (ManagementBranch) -> Unit,
         private val onApprove: (ManagementBranch) -> Unit,
+        private val onShowReceipt: (ManagementBranch) -> Unit,
+        private val onUploadReceipt: (ManagementBranch) -> Unit,
     ) : BaseAdminAdapter<ManagementBranch>(simpleDiff({ a, b -> a.id == b.id }, { a, b -> a == b })) {
         var isPlatformAdmin: Boolean = false
 
@@ -118,7 +146,14 @@ class AdminBranchesActivity : BaseActivity() {
                 val bizName = item.businessName?.takeIf { it.isNotBlank() } ?: "کسب‌وکار"
                 val addr = item.address.trim()
                 tvSubtitle.isVisible = true
-                tvSubtitle.text = if (addr.isNotEmpty()) "$bizName · $addr" else bizName
+                tvSubtitle.text = if (addr.isNotEmpty()) "$bizName · $addr 📍" else bizName
+                if (addr.isNotEmpty() || (item.latitude != null && item.longitude != null)) {
+                    tvSubtitle.setOnClickListener {
+                        com.leon.be_nobat.helpers.MapHelper.openNavigation(root.context, item.latitude, item.longitude, item.name, item.address)
+                    }
+                } else {
+                    tvSubtitle.setOnClickListener(null)
+                }
 
                 val openStr = PersianUtils.toPersianDigits("%02d:00".format(Locale.US, item.openHour))
                 val closeStr = PersianUtils.toPersianDigits("%02d:00".format(Locale.US, item.closeHour))
@@ -127,7 +162,25 @@ class AdminBranchesActivity : BaseActivity() {
                     "${PersianUtils.toPersianDigits(daysCount.toString())} روز فعال، ${PersianUtils.toPersianDigits(it.size.toString())} بازه هفتگی"
                 } ?: "$openStr تا $closeStr"
                 tvBody.isVisible = true
-                tvBody.text = root.context.getString(R.string.branch_working_hours, hoursText)
+                val bodyLines = mutableListOf<String>()
+                bodyLines.add(root.context.getString(R.string.branch_working_hours, hoursText))
+                if (!item.isApproved) {
+                    val fee = item.fee ?: 0.0
+                    if (fee > 0) {
+                        bodyLines.add(root.context.getString(R.string.branch_fee_display, PersianUtils.formatPrice(fee, "تومان")))
+                    }
+                    if (item.hasReceipt) {
+                        val track = item.receiptTrackingCode?.takeIf { it.isNotBlank() }
+                        if (track != null) {
+                            bodyLines.add(root.context.getString(R.string.branch_receipt_uploaded_with_track, PersianUtils.toPersianDigits(track)))
+                        } else {
+                            bodyLines.add(root.context.getString(R.string.branch_receipt_uploaded))
+                        }
+                    } else {
+                        bodyLines.add(root.context.getString(R.string.branch_receipt_not_uploaded))
+                    }
+                }
+                tvBody.text = bodyLines.joinToString("\n")
 
                 if (!item.isApproved) {
                     tvStatus.text = root.context.getString(R.string.branch_pending_approval)
@@ -144,6 +197,22 @@ class AdminBranchesActivity : BaseActivity() {
                     btnAction2.isVisible = true
                     btnAction2.text = root.context.getString(R.string.action_edit)
                     btnAction2.setOnClickListener { onEdit(item) }
+
+                    if (item.hasReceipt) {
+                        btnAction3.isVisible = true
+                        btnAction3.text = root.context.getString(R.string.branch_view_receipt)
+                        btnAction3.setIconResource(R.drawable.ic_document)
+                        btnAction3.iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
+                        btnAction3.setOnClickListener { onShowReceipt(item) }
+                    } else if (!isPlatformAdmin) {
+                        btnAction3.isVisible = true
+                        btnAction3.text = root.context.getString(R.string.branch_attach_receipt)
+                        btnAction3.setIconResource(R.drawable.ic_add)
+                        btnAction3.iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
+                        btnAction3.setOnClickListener { onUploadReceipt(item) }
+                    } else {
+                        btnAction3.isVisible = false
+                    }
                 } else {
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatus(tvStatus, item.active)
                     com.leon.be_nobat.helpers.StatusBadgeHelper.applyAppointmentStatusIndicator(viewStatusIndicator, if (item.active) "Confirmed" else "Cancelled")
@@ -154,6 +223,7 @@ class AdminBranchesActivity : BaseActivity() {
                     btnAction2.isVisible = true
                     btnAction2.text = root.context.getString(R.string.action_edit)
                     btnAction2.setOnClickListener { onEdit(item) }
+                    btnAction3.isVisible = false
                 }
                 btnQrCode.isVisible = true
                 btnQrCode.setOnClickListener {

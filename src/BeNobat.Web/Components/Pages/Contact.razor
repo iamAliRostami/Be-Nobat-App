@@ -1,0 +1,518 @@
+@page "/contact"
+@using BeNobat.Web.Components.Layout
+@using BeNobat.Web.Domain
+@using BeNobat.Web.Infrastructure
+@using Microsoft.EntityFrameworkCore
+@layout PublicLayout
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+@inject UiLocale UiLocale
+
+<PageTitle>@T("ارتباط با ما | به‌نوبت", "Contact Us | Be-Nobat", "اتصل بنا | به‌نوبت")</PageTitle>
+
+<div class="contact-page-shell" style="direction: @(UiLocale.Language == "en" ? "ltr" : "rtl");">
+    <div class="contact-hero">
+        <span class="contact-pill">@T("مرکز پشتیبانی و ارتباطات", "Support & Communications Center", "مركز الدعم والتواصل")</span>
+        <h1>@T("ارتباط با تیم به‌نوبت", "Get in Touch with Be-Nobat Team", "تواصل مع فريق به‌نوبت")</h1>
+        <p>@T("خوشحال می‌شویم صدای گرم شما را بشنویم یا پیام‌تان را بخوانیم. همکاران ما در سریع‌ترین زمان ممکن پاسخگوی شما خواهند بود.",
+               "We would be delighted to hear from you. Our team will respond to your inquiry as quickly as possible.",
+               "يسعدنا سماع صوتك أو قراءة رسالتك. سيقوم زملاؤنا بالرد عليك في أسرع وقت ممكن.")</p>
+    </div>
+
+    @if (submittedSuccess)
+    {
+        <div class="contact-alert-success">
+            <div class="alert-icon">✓</div>
+            <div>
+                <h3>@T("پیام شما با موفقیت دریافت شد!", "Your message has been received successfully!", "تم استلام رسالتك بنجاح!")</h3>
+                <p>@T("از پیام شما سپاسگزاریم. کارشناسان پشتیبانی به‌نوبت به زودی درخواست شما را بررسی کرده و در صورت نیاز با شما تماس خواهند گرفت.",
+                       "Thank you for reaching out. Be-Nobat support specialists will review your request shortly and contact you if needed.",
+                       "شكراً لتواصلك معنا. سيقوم أخصائيو الدعم في به‌نوبت بمراجعة طلبك والتواصل معك إذا لزم الأمر.")</p>
+                <button type="button" class="btn-primary-ghost" @onclick="ResetForm">
+                    @T("ارسال پیام جدید", "Send another message", "إرسال رسالة جديدة")
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="contact-grid">
+        <!-- ستون اطلاعات تماس مستقیم -->
+        <section class="contact-info-panel">
+            <h2>@T("راه‌های تماس مستقیم", "Direct Contact Channels", "قنوات الاتصال المباشر")</h2>
+            <p class="panel-sub">@T("می‌توانید از طریق راه‌های زیر مستقیماً با ما در تماس باشید:",
+                                    "You can contact us directly through the channels below:",
+                                    "يمكنك التواصل معنا مباشرة عبر القنوات التالية:")</p>
+
+            <div class="contact-cards-stack">
+                <div class="contact-item-card">
+                    <div class="item-icon phone-icon">📞</div>
+                    <div class="item-content">
+                        <span class="item-title">@T("تلفن‌های تماس و پشتیبانی", "Phone & Support", "هواتف الاتصال والدعم")</span>
+                        <div class="item-links">
+                            @if (!string.IsNullOrEmpty(platformSettings.Phone)) { <a href="tel:@platformSettings.Phone" class="contact-link" dir="ltr">@platformSettings.Phone</a> }
+                            @if (!string.IsNullOrEmpty(platformSettings.SupportPhone)) { <a href="tel:@platformSettings.SupportPhone" class="contact-link" dir="ltr">@platformSettings.SupportPhone</a> }
+                            @if (!string.IsNullOrEmpty(platformSettings.Mobile)) { <a href="tel:@platformSettings.Mobile" class="contact-link" dir="ltr">@platformSettings.Mobile</a> }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-item-card">
+                    <div class="item-icon email-icon">✉️</div>
+                    <div class="item-content">
+                        <span class="item-title">@T("پست الکترونیکی", "Email Address", "البريد الإلكتروني")</span>
+                        <div class="item-links">
+                            @if (!string.IsNullOrEmpty(platformSettings.Email)) { <a href="mailto:@platformSettings.Email" class="contact-link" dir="ltr">@platformSettings.Email</a> }
+                            @if (!string.IsNullOrEmpty(platformSettings.InfoEmail)) { <a href="mailto:@platformSettings.InfoEmail" class="contact-link" dir="ltr">@platformSettings.InfoEmail</a> }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-item-card">
+                    <div class="item-icon location-icon">📍</div>
+                    <div class="item-content">
+                        <span class="item-title">@T("نشانی دفتر مرکزی", "Head Office Address", "عنوان المقر الرئيسي")</span>
+                        <p class="item-text">@platformSettings.Address</p>
+                        <LocationAddressActions Latitude="platformSettings.Latitude" Longitude="platformSettings.Longitude" Address="@platformSettings.Address" Title="@T("دفتر مرکزی به‌نوبت", "Be-Nobat Head Office", "المقر الرئيسي به‌نوبت")" />
+                    </div>
+                </div>
+
+                <div class="contact-item-card">
+                    <div class="item-icon clock-icon">⏱️</div>
+                    <div class="item-content">
+                        <span class="item-title">@T("ساعات کاری و پاسخگویی", "Working Hours & Support", "ساعات العمل والرد")</span>
+                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursWeekdays)) { <p class="item-text">@platformSettings.WorkingHoursWeekdays</p> }
+                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursThursdays)) { <p class="item-text">@platformSettings.WorkingHoursThursdays</p> }
+                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursHolidays)) { <small class="item-note">@platformSettings.WorkingHoursHolidays</small> }
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-social-bar">
+                <span class="social-title">@T("ما را در شبکه‌های اجتماعی دنبال کنید:", "Follow us on social media:", "تابعنا على شبكات التواصل الاجتماعي:")</span>
+                <div class="social-tags">
+                    @if (!string.IsNullOrEmpty(platformSettings.Telegram)) { <span class="social-pill">@T("تلگرام", "Telegram", "تيليجرام"): @@platformSettings.Telegram</span> }
+                    @if (!string.IsNullOrEmpty(platformSettings.Eitaa)) { <span class="social-pill">@T("ایتا", "Eitaa", "إيتا"): @@platformSettings.Eitaa</span> }
+                    @if (!string.IsNullOrEmpty(platformSettings.Instagram)) { <span class="social-pill">@T("اینستاگرام", "Instagram", "إنستغرام"): @@platformSettings.Instagram</span> }
+                </div>
+            </div>
+        </section>
+
+        <!-- ستون فرم ارسال پیام -->
+        <section class="contact-form-panel">
+            <h2>@T("ارسال پیام به پشتیبانی", "Send a Message to Support", "إرسال رسالة إلى الدعم")</h2>
+            <p class="panel-sub">@T("فرم زیر را تکمیل کنید؛ در اسرع وقت پاسخ شما را خواهیم داد.",
+                                    "Fill out the form below; we will respond to you as soon as possible.",
+                                    "يرجى ملء النموذج أدناه؛ سنرد عليك في أقرب وقت.")</p>
+
+            <EditForm Model="formModel" OnValidSubmit="HandleSubmitMessage" FormName="contactUsForm">
+                <DataAnnotationsValidator />
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="form-error-banner">@errorMessage</div>
+                }
+
+                <div class="form-group">
+                    <label for="senderName">@T("نام و نام خانوادگی", "Full Name", "الاسم الكامل") <span class="required-star">*</span></label>
+                    <InputText id="senderName" class="form-input" @bind-Value="formModel.Name" placeholder="@T("مثال: علی احمدی", "e.g. John Doe", "مثال: أحمد علي")" />
+                    <ValidationMessage For="() => formModel.Name" class="validation-msg" />
+                </div>
+
+                <div class="form-group">
+                    <label for="senderContact">@T("شماره موبایل یا ایمیل", "Mobile Number or Email", "رقم الجوال أو البريد الإلكتروني") <span class="required-star">*</span></label>
+                    <InputText id="senderContact" class="form-input" @bind-Value="formModel.ContactInfo" dir="ltr" placeholder="@T("0912... یا email@example.com", "0912... or email@example.com", "0912... أو email@example.com")" />
+                    <ValidationMessage For="() => formModel.ContactInfo" class="validation-msg" />
+                </div>
+
+                <div class="form-group">
+                    <label for="messageSubject">@T("موضوع پیام", "Subject", "موضوع الرسالة")</label>
+                    <InputSelect id="messageSubject" class="form-input" @bind-Value="formModel.Subject">
+                        <option value="پشتیبانی عمومی">@T("پشتیبانی عمومی و پرسش", "General Support & Inquiries", "الدعم العام والاستفسار")</option>
+                        <option value="همکاری و ثبت کسب‌وکار">@T("همکاری و ثبت کسب‌وکار", "Partnership & Business Registration", "التعاون وتسجيل الأعمال")</option>
+                        <option value="انتقاد و پیشنهاد">@T("انتقاد یا پیشنهاد", "Feedback & Suggestions", "المقترحات والملاحظات")</option>
+                        <option value="گزارش مشکل فنی">@T("گزارش مشکل فنی در برنامه", "Report a Technical Issue", "الإبلاغ عن مشكلة فنية")</option>
+                        <option value="امور مالی و حسابداری">@T("امور مالی و فیش پرداختی", "Financial & Payment Receipts", "الشؤون المالية وإيصالات الدفع")</option>
+                    </InputSelect>
+                </div>
+
+                <div class="form-group">
+                    <label for="messageBody">@T("متن پیام شما", "Your Message", "نص رسالتك") <span class="required-star">*</span></label>
+                    <InputTextArea id="messageBody" class="form-input" rows="5" @bind-Value="formModel.Message" placeholder="@T("پیام، پرسش یا نظر خود را اینجا بنویسید...", "Write your message, question, or comment here...", "اكتب رسالتك أو استفسارك أو تعليقك هنا...")" />
+                    <ValidationMessage For="() => formModel.Message" class="validation-msg" />
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span>@T("در حال ارسال پیام...", "Sending message...", "جارٍ إرسال الرسالة...")</span>
+                        }
+                        else
+                        {
+                            <span>@T("ارسال پیام", "Send Message", "إرسال الرسالة")</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </section>
+    </div>
+</div>
+
+<style>
+.contact-page-shell {
+    max-width: 1140px;
+    margin: 2rem auto;
+    padding: 0 1.25rem 3rem;
+}
+.contact-hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+.contact-pill {
+    display: inline-block;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(14, 116, 144, 0.1);
+    color: #0e7490;
+    margin-bottom: 0.75rem;
+}
+.contact-hero h1 {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem;
+}
+.contact-hero p {
+    color: var(--text-secondary);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.7;
+    font-size: 1.05rem;
+}
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 2rem;
+    align-items: start;
+}
+@@media (max-width: 860px) {
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+}
+.contact-info-panel, .contact-form-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+.contact-info-panel h2, .contact-form-panel h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+    color: var(--text-primary);
+}
+.panel-sub {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    margin: 0 0 1.5rem;
+}
+.contact-cards-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.contact-item-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background: var(--surface-variant, #f8fafc);
+    border: 1px solid var(--border-color);
+}
+.item-icon {
+    font-size: 1.5rem;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+}
+.item-content {
+    flex: 1;
+}
+.item-title {
+    display: block;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+.item-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.contact-link {
+    color: #0e7490;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+    width: fit-content;
+}
+.contact-link:hover {
+    color: #0891b2;
+    text-decoration: underline;
+}
+.item-text {
+    margin: 0.15rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+.item-note {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    color: #0284c7;
+}
+.contact-social-bar {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+.social-title {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.6rem;
+}
+.social-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.social-pill {
+    font-size: 0.82rem;
+    background: var(--surface-variant, #f1f5f9);
+    padding: 0.3rem 0.75rem;
+    border-radius: 8px;
+    color: var(--text-primary);
+    direction: ltr;
+}
+
+/* فرم */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+.form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+    color: var(--text-primary);
+}
+.required-star {
+    color: #e11d48;
+}
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg, #ffffff);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+    outline: none;
+    border-color: #0e7490;
+    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15);
+}
+.validation-msg {
+    color: #e11d48;
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+    display: block;
+}
+.btn-submit {
+    width: 100%;
+    padding: 0.85rem;
+    border-radius: 10px;
+    background: #0d9488;
+    color: white;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+.btn-submit:hover:not(:disabled) {
+    background: #0f766e;
+}
+.btn-submit:active:not(:disabled) {
+    transform: translateY(1px);
+}
+.btn-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+.contact-alert-success {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    color: #065f46;
+}
+.alert-icon {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #059669;
+}
+.contact-alert-success h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+}
+.contact-alert-success p {
+    margin: 0 0 1rem;
+    line-height: 1.6;
+}
+.btn-primary-ghost {
+    background: white;
+    color: #059669;
+    border: 1px solid #10b981;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-primary-ghost:hover {
+    background: #f0fdf4;
+}
+.form-error-banner {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #be123c;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+</style>
+
+@code {
+    private ContactFormModel formModel = new();
+    private bool isSubmitting = false;
+    private bool submittedSuccess = false;
+    private string? errorMessage;
+    private Guid? currentUserId;
+    private PlatformPricingSettings platformSettings = new();
+
+    private string T(string fa, string en, string ar) => UiLocale.Language switch
+    {
+        "en" => en,
+        "ar" => ar,
+        _ => fa
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            platformSettings = await db.GetPlatformPricingAsync();
+        }
+        catch { }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            if (Guid.TryParse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid))
+            {
+                currentUserId = uid;
+            }
+            formModel.Name = user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            formModel.ContactInfo = user.FindFirst(System.Security.Claims.ClaimTypes.MobilePhone)?.Value ??
+                                    user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+        }
+    }
+
+    private async Task HandleSubmitMessage()
+    {
+        errorMessage = null;
+        isSubmitting = true;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var msg = new ContactMessage
+            {
+                UserId = currentUserId,
+                Name = formModel.Name.Trim(),
+                ContactInfo = formModel.ContactInfo.Trim(),
+                Subject = string.IsNullOrWhiteSpace(formModel.Subject) ? "پشتیبانی عمومی" : formModel.Subject.Trim(),
+                Message = formModel.Message.Trim(),
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            db.ContactMessages.Add(msg);
+            await db.SaveChangesAsync();
+
+            submittedSuccess = true;
+            formModel = new ContactFormModel();
+        }
+        catch (Exception)
+        {
+            errorMessage = T("خطا در ثبت پیام. لطفاً دوباره تلاش کنید.",
+                             "Error sending message. Please try again.",
+                             "خطأ في إرسال الرسالة. يرجى المحاولة مرة أخرى.");
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private void ResetForm()
+    {
+        submittedSuccess = false;
+        errorMessage = null;
+    }
+
+    public sealed class ContactFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "نام و نام خانوادگی را وارد کنید.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 2, ErrorMessage = "نام باید حداقل ۲ حرف باشد.")]
+        public string Name { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "شماره تماس یا ایمیل را وارد کنید.")]
+        [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 5, ErrorMessage = "شماره تماس یا ایمیل معتبر نیست.")]
+        public string ContactInfo { get; set; } = string.Empty;
+
+        public string Subject { get; set; } = "پشتیبانی عمومی";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "متن پیام را وارد کنید.")]
+        [System.ComponentModel.DataAnnotations.StringLength(2000, MinimumLength = 5, ErrorMessage = "متن پیام باید حداقل ۵ کاراکتر باشد.")]
+        public string Message { get; set; } = string.Empty;
+    }
+}

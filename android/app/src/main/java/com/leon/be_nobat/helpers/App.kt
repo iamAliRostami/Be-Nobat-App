@@ -14,13 +14,25 @@ import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.decode.SvgDecoder
 
 const val PREFERENCES_NAME = "setting_prefs"
 
-class App : Application() {
+class App : Application(), ImageLoaderFactory {
     companion object {
         const val TAG = "BeNobat"
         const val API_TAG = "BeNobat.Api"
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .crossfade(true)
+            .build()
     }
 
     override fun onCreate() {

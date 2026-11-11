@@ -125,6 +125,16 @@ class AuthRepositoryImpl(
             put("contactPhone", input.contactPhone)
             put("firstBranchName", input.firstBranchName)
             put("firstBranchAddress", input.firstBranchAddress)
+            if (input.additionalBranches.isNotEmpty()) {
+                put("additionalBranches", kotlinx.serialization.json.buildJsonArray {
+                    input.additionalBranches.forEach { br ->
+                        add(kotlinx.serialization.json.buildJsonObject {
+                            put("name", br.name)
+                            put("address", br.address)
+                        })
+                    }
+                })
+            }
         }
         api.submitBusinessRequest<com.leon.be_nobat.domain.model.BusinessRequest>(body).getOrThrow()
     }.recoverCatching { throw AuthException.fromApi(it) }
@@ -138,7 +148,9 @@ class AuthRepositoryImpl(
 
     override suspend fun uploadBusinessRequestReceipt(input: com.leon.be_nobat.domain.model.ReceiptUploadInput): Result<com.leon.be_nobat.domain.model.BusinessRequest> = runCatching {
         val body = encodeJsonObject {
-            put("imageBase64", input.imageBase64.ifBlank { input.dataBase64 })
+            val raw = input.imageBase64.ifBlank { input.dataBase64 }
+            put("dataBase64", raw)
+            put("imageBase64", raw)
             put("contentType", input.contentType)
             if (input.trackingCode != null) put("trackingCode", input.trackingCode)
         }

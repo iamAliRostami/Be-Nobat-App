@@ -310,6 +310,13 @@ class DemoBusinessRepository(
         }
     }
 
+    override suspend fun sendContactMessage(
+        name: String,
+        contactInfo: String,
+        subject: String,
+        message: String,
+    ): Result<String> = Result.success("OK")
+
     override suspend fun findBusinessIdByBranch(branchId: String): String? {
         return dataStore.read { state ->
             state.branches.firstOrNull { it.id == branchId }?.businessId

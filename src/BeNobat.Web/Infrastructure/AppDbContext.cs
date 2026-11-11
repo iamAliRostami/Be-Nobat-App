@@ -29,6 +29,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<BusinessGalleryItem> BusinessGalleryItems => Set<BusinessGalleryItem>();
     public DbSet<BranchGalleryItem> BranchGalleryItems => Set<BranchGalleryItem>();
     public DbSet<ResourceGalleryItem> ResourceGalleryItems => Set<ResourceGalleryItem>();
+    public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
+    public DbSet<AdminBroadcastMessage> AdminBroadcastMessages => Set<AdminBroadcastMessage>();
+    public DbSet<AdminMessageRead> AdminMessageReads => Set<AdminMessageRead>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -151,6 +154,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<BusinessRequest>().Property(x => x.TotalFee).HasPrecision(18, 2);
         builder.Entity<PlatformPricingSettings>().Property(x => x.BaseBusinessPrice).HasPrecision(18, 2);
         builder.Entity<PlatformPricingSettings>().Property(x => x.ExtraBranchPrice).HasPrecision(18, 2);
+
+        builder.Entity<AdminBroadcastMessage>().HasOne(x => x.Sender).WithMany()
+            .HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<AdminBroadcastMessage>().HasOne(x => x.TargetUser).WithMany()
+            .HasForeignKey(x => x.TargetUserId).OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<AdminMessageRead>().HasOne(x => x.Message).WithMany()
+            .HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AdminMessageRead>().HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AdminMessageRead>().HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

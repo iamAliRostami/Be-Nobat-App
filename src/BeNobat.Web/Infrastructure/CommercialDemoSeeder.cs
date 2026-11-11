@@ -211,17 +211,54 @@ public static class CommercialDemoSeeder
                 {
                     var resourceId = Id($"{catalog.Slug}-branch-{b}-resource-{r}");
                     var resource = await db.Resources.IgnoreQueryFilters().SingleOrDefaultAsync(x => x.Id == resourceId, ct);
+                    var nameIndex = c * 6 + b * 3 + r;
+                    var staffName = $"{firstNames[nameIndex % 12]} {lastNames[(nameIndex / 12) % 4]}";
+                    var staffMemberEmail = $"staff.{catalog.Slug}.b{b}.r{r}@demo.benobat.example";
+                    var staffMember = await users.FindByEmailAsync(staffMemberEmail);
+                    if (staffMember is null)
+                    {
+                        staffMember = new AppUser
+                        {
+                            Id = Id($"user-{staffMemberEmail}"),
+                            UserName = staffMemberEmail,
+                            Email = staffMemberEmail,
+                            EmailConfirmed = true,
+                            DisplayName = staffName
+                        };
+                        Check(await users.CreateAsync(staffMember, password));
+                        Check(await users.AddToRoleAsync(staffMember, AppRoles.Staff));
+                    }
+
                     if (resource is null)
                     {
-                        var nameIndex = c * 6 + b * 3 + r;
                         resource = new Resource
                         {
                             Id = resourceId, BranchId = branch.Id, Branch = branch, Kind = "staff",
-                            Name = $"{firstNames[nameIndex % 12]} {lastNames[(nameIndex / 12) % 4]}",
+                            Name = staffName,
+                            UserId = staffMember.Id,
                             CreatedAt = historyStart, UpdatedAt = historyStart
                         };
                         db.Resources.Add(resource);
                     }
+                    else if (resource.UserId != staffMember.Id)
+                    {
+                        resource.UserId = staffMember.Id;
+                    }
+
+                    var memId = Id($"membership-{staffMember.Id}-{branch.Id}");
+                    if (!await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.UserId == staffMember.Id && m.BranchId == branch.Id, ct))
+                    {
+                        db.BranchMemberships.Add(new BranchMembership
+                        {
+                            Id = memId,
+                            UserId = staffMember.Id,
+                            BranchId = branch.Id,
+                            Role = AppRoles.Staff,
+                            CreatedAt = historyStart,
+                            UpdatedAt = historyStart
+                        });
+                    }
+
                     if (resource.DeletedAt is null) resources.Add(resource);
                 }
                 if (serviceList.Count > 0 && resources.Count > 0)
@@ -456,24 +493,24 @@ public static class CommercialDemoSeeder
             });
         }
 
-        // انتساب عضویت شعب (BranchMemberships) برای مالک و پرسنل دمو
+        // انتساب عضویت شعب (BranchMemberships) برای مالک و پرسنل دمو در همه شعب
         var ownerMemberships = (await db.BranchMemberships.IgnoreQueryFilters()
             .Where(m => m.UserId == owner.Id).Select(m => m.BranchId).ToListAsync(ct)).ToHashSet();
-        var niloufarBranches = await db.Branches.IgnoreQueryFilters()
-            .Where(b => b.BusinessId == Id("demo-niloufar")).ToListAsync(ct);
-        foreach (var nb in niloufarBranches)
+        var allBranches = await db.Branches.IgnoreQueryFilters().ToListAsync(ct);
+        foreach (var br in allBranches)
         {
-            if (!ownerMemberships.Contains(nb.Id))
+            if (!ownerMemberships.Contains(br.Id))
             {
                 db.BranchMemberships.Add(new BranchMembership
                 {
-                    Id = Id($"membership-{owner.Id}-{nb.Id}"),
+                    Id = Id($"membership-{owner.Id}-{br.Id}"),
                     UserId = owner.Id,
-                    BranchId = nb.Id,
+                    BranchId = br.Id,
                     Role = AppRoles.Owner,
                     CreatedAt = historyStart,
                     UpdatedAt = historyStart
                 });
+                ownerMemberships.Add(br.Id);
             }
         }
         var avanBranch = await db.Branches.IgnoreQueryFilters()

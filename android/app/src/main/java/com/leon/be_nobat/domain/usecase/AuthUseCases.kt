@@ -30,15 +30,18 @@ class RegisterUseCase(
     private val repository: AuthRepository,
 ) {
     suspend operator fun invoke(input: RegisterInput): Result<MobileSession> {
-        if (input.displayName.isNullOrBlank()) return Result.failure(AuthException.InvalidIdentifier)
-        if (input.phoneNumber.isNullOrBlank() || !LoginIdentifier.isIranianMobile(input.phoneNumber)) {
-            return Result.failure(AuthException.InvalidIdentifier)
+        val name = input.displayName?.trim()
+        if (name.isNullOrBlank()) return Result.failure(AuthException.InvalidDisplayName)
+        val phone = input.phoneNumber?.let { LoginIdentifier.normalizeIranianMobileDigits(it) }
+        if (phone.isNullOrBlank() || !LoginIdentifier.isIranianMobile(phone)) {
+            return Result.failure(AuthException.InvalidPhone)
         }
-        if (!input.email.isNullOrBlank() && !LoginIdentifier.isValidEmail(input.email)) {
-            return Result.failure(AuthException.InvalidIdentifier)
+        val email = input.email?.trim()?.ifBlank { null }
+        if (email != null && !LoginIdentifier.isValidEmail(email)) {
+            return Result.failure(AuthException.InvalidEmail)
         }
         if (input.password.isNullOrBlank()) return Result.failure(AuthException.EmptyPassword)
-        return repository.register(input)
+        return repository.register(input.copy(displayName = name, phoneNumber = phone, email = email))
     }
 }
 

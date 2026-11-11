@@ -1,4 +1,19 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace BeNobat.Web.Security;
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter, AllowMultiple = false)]
+public sealed class OptionalEmailAddressAttribute : ValidationAttribute
+{
+    private static readonly EmailAddressAttribute Inner = new();
+
+    public override bool IsValid(object? value)
+    {
+        if (value is null) return true;
+        if (value is string s && string.IsNullOrWhiteSpace(s)) return true;
+        return Inner.IsValid(value);
+    }
+}
 
 public static class UserInputValidation
 {

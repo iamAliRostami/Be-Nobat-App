@@ -128,11 +128,14 @@ import com.leon.be_nobat.ui.view_models.admin.AdminCustomersViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminTeamViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminServicesViewModel
 import com.leon.be_nobat.ui.view_models.admin.AdminAvailabilityViewModel
+import com.leon.be_nobat.ui.view_models.admin.AdminSystemMessagesViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformBusinessesViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformCatalogViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformCategoriesViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformAccessViewModel
 import com.leon.be_nobat.ui.view_models.platform.PlatformRequestsViewModel
+import com.leon.be_nobat.ui.view_models.platform.PlatformMessagesViewModel
+import com.leon.be_nobat.ui.view_models.platform.PlatformAnnouncementsViewModel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.HttpTimeout
@@ -304,6 +307,7 @@ val viewModelModule = module {
     viewModel { AdminTeamViewModel(get(), get(), get(), get()) }
     viewModel { AdminServicesViewModel(get(), get(), get(), get()) }
     viewModel { AdminAvailabilityViewModel(get(), get(), get(), get(), get()) }
+    viewModel { AdminSystemMessagesViewModel(get()) }
 
     // Platform
     viewModel { PlatformBusinessesViewModel(get(), get(), get(), get(), get()) }
@@ -311,6 +315,8 @@ val viewModelModule = module {
     viewModel { PlatformCategoriesViewModel(get(), get(), get(), get()) }
     viewModel { PlatformAccessViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { PlatformRequestsViewModel(get(), get(), get(), get(), get()) }
+    viewModel { PlatformMessagesViewModel(get()) }
+    viewModel { PlatformAnnouncementsViewModel(get(), get()) }
 }
 
 val networkModule = module {
