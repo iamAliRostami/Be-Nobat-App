@@ -49,6 +49,11 @@ class AdminFormDialog private constructor() {
             fields.add(Field(label, default, android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL))
         }
 
+        /** Convenience for an integer numeric field (digits only). */
+        fun integerField(label: String, default: String? = null) = apply {
+            fields.add(Field(label, default, android.text.InputType.TYPE_CLASS_NUMBER))
+        }
+
         /** Dropdown with value and label pairs. */
         fun dropdownField(
             label: String,

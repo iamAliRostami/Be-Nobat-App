@@ -36,6 +36,7 @@ import com.leon.be_nobat.helpers.AdminFormDialog
 import com.leon.be_nobat.helpers.AppToast
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.helpers.CancellationNoticeEditor
+import com.leon.be_nobat.helpers.PersianUtils
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -48,7 +49,9 @@ class AdminServiceEditActivity : BaseActivity() {
     private val createServiceUseCase: AdminCreateServiceUseCase by inject()
     private val updateServiceUseCase: AdminUpdateServiceUseCase by inject()
 
-    private var editingServiceId: String? = null
+    private val editingServiceId: String?
+        get() = intent.getStringExtra(EXTRA_SERVICE_ID)
+
     private var existingService: ManagementService? = null
     private var branchesList: List<ManagementBranch> = emptyList()
     private var catalogItems: List<ServiceCatalogItem> = emptyList()
@@ -70,7 +73,8 @@ class AdminServiceEditActivity : BaseActivity() {
     private lateinit var etName: TextInputEditText
     private lateinit var tilDescription: TextInputLayout
     private lateinit var etDescription: TextInputEditText
-    private lateinit var spDuration: Spinner
+    private lateinit var tilDuration: TextInputLayout
+    private lateinit var etDuration: TextInputEditText
     private lateinit var tilPrice: TextInputLayout
     private lateinit var etPrice: TextInputEditText
     private lateinit var layoutCancellation: FrameLayout
@@ -80,15 +84,6 @@ class AdminServiceEditActivity : BaseActivity() {
     private lateinit var btnBranchCancellation: MaterialButton
     private lateinit var btnCancel: MaterialButton
     private lateinit var btnSave: MaterialButton
-
-    private val durationOptions = listOf(
-        "15" to "۱۵ دقیقه",
-        "30" to "۳۰ دقیقه",
-        "45" to "۴۵ دقیقه",
-        "60" to "۱ ساعت",
-        "90" to "۱ ساعت و نیم",
-        "120" to "۲ ساعت",
-    )
 
     companion object {
         const val EXTRA_SERVICE_ID = "extra_service_id"
@@ -103,13 +98,12 @@ class AdminServiceEditActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requireBusinessManagementPermission()
-        editingServiceId = intent.getStringExtra(EXTRA_SERVICE_ID)
     }
 
     override fun setupViews() {
         val isEditing = !editingServiceId.isNullOrBlank()
         setupAdminHeader(
-            title = if (isEditing) "ویرایش خدمت" else "افزودن خدمت",
+            title = if (isEditing) getString(R.string.form_edit_service_title) else getString(R.string.form_create_service_title),
             onBack = { finish() }
         )
 
@@ -127,7 +121,8 @@ class AdminServiceEditActivity : BaseActivity() {
         etName = findViewById(R.id.etName)
         tilDescription = findViewById(R.id.tilDescription)
         etDescription = findViewById(R.id.etDescription)
-        spDuration = findViewById(R.id.spDuration)
+        tilDuration = findViewById(R.id.tilDuration)
+        etDuration = findViewById(R.id.etDuration)
         tilPrice = findViewById(R.id.tilPrice)
         etPrice = findViewById(R.id.etPrice)
         layoutCancellation = findViewById(R.id.layoutCancellation)
@@ -141,28 +136,22 @@ class AdminServiceEditActivity : BaseActivity() {
         cancellationEditor.setValue(null)
         layoutCancellation.addView(cancellationEditor)
 
-        btnSave.text = if (isEditing) "ذخیره تغییرات" else "ایجاد خدمت"
+        btnSave.text = if (isEditing) getString(R.string.platform_biz_save_btn) else "ایجاد خدمت"
         btnCancel.setOnClickListener { finish() }
 
-        setupDurationSpinner()
-        setupSourceRadioGroup()
+        if (isEditing) {
+            tvSourceLabel.visibility = View.GONE
+            rgSource.visibility = View.GONE
+            layoutCatalogSection.visibility = View.GONE
+        } else {
+            setupSourceRadioGroup()
+        }
+
         loadData()
     }
 
     override fun observeViewModel() {
         // Direct Coroutine/UseCase invocation
-    }
-
-    private fun setupDurationSpinner() {
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            durationOptions.map { it.second }
-        ).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        spDuration.adapter = adapter
-        spDuration.setSelection(1) // 30 minutes default
     }
 
     private fun setupSourceRadioGroup() {
@@ -202,8 +191,9 @@ class AdminServiceEditActivity : BaseActivity() {
                 if (existingService == null) {
                     etName.setText(item.name)
                     etDescription.setText(item.description)
-                    val durIdx = durationOptions.indexOfFirst { it.first == item.suggestedDurationMinutes.toString() }
-                    if (durIdx >= 0) spDuration.setSelection(durIdx)
+                    if (item.suggestedDurationMinutes > 0) {
+                        etDuration.setText(item.suggestedDurationMinutes.toString())
+                    }
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -237,8 +227,9 @@ class AdminServiceEditActivity : BaseActivity() {
             if (existingService == null) {
                 etName.setText(first.name)
                 etDescription.setText(first.description)
-                val durIdx = durationOptions.indexOfFirst { it.first == first.suggestedDurationMinutes.toString() }
-                if (durIdx >= 0) spDuration.setSelection(durIdx)
+                if (first.suggestedDurationMinutes > 0) {
+                    etDuration.setText(first.suggestedDurationMinutes.toString())
+                }
             }
         } else {
             selectedCatalogItem = null
@@ -262,20 +253,20 @@ class AdminServiceEditActivity : BaseActivity() {
             }
             spBranch.adapter = branchAdapter
 
-            // 2. Load catalog items
-            catalogItems = businessRepository.getCatalog(page = 1, pageSize = 200).getOrNull()?.items.orEmpty()
-            catalogCategories = listOf("همهٔ دسته‌ها") + catalogItems.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
-
-            val catAdapter = ArrayAdapter(this@AdminServiceEditActivity, android.R.layout.simple_spinner_item, catalogCategories).apply {
-                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-            }
-            spCatalogCategory.adapter = catAdapter
-
-            updateCatalogItemsDropdown()
-
-            // 3. If editing, load service details
-            if (editingServiceId != null) {
+            // 2. If editing, load service details directly
+            if (!editingServiceId.isNullOrBlank()) {
                 loadServiceDetails(editingServiceId!!)
+            } else {
+                // Load catalog items only when creating new service
+                catalogItems = businessRepository.getCatalog(page = 1, pageSize = 200).getOrNull()?.items.orEmpty()
+                catalogCategories = listOf("همهٔ دسته‌ها") + catalogItems.map { it.category }.filter { it.isNotBlank() }.distinct().sorted()
+
+                val catAdapter = ArrayAdapter(this@AdminServiceEditActivity, android.R.layout.simple_spinner_item, catalogCategories).apply {
+                    setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                }
+                spCatalogCategory.adapter = catAdapter
+
+                updateCatalogItemsDropdown()
             }
         }
     }
@@ -292,10 +283,7 @@ class AdminServiceEditActivity : BaseActivity() {
             etPrice.setText(priceToman)
 
             // Duration
-            val durIdx = durationOptions.indexOfFirst { it.first == service.durationMinutes.toString() }
-            if (durIdx >= 0) {
-                spDuration.setSelection(durIdx)
-            }
+            etDuration.setText(service.durationMinutes.toString())
 
             // Select branch
             val branchIdx = branchesList.indexOfFirst { it.id in service.branchIds }
@@ -316,9 +304,10 @@ class AdminServiceEditActivity : BaseActivity() {
                 showBranchCancellationDialog(service)
             }
 
+            btnSave.text = getString(R.string.platform_biz_save_btn)
             btnSave.setOnClickListener { saveService() }
         }.onFailure { err ->
-            Snackbar.make(btnSave, err.message ?: "خطا در بارگذاری مشخصات خدمت", Snackbar.LENGTH_LONG).show()
+            showFeedback(err.message ?: "خطا در بارگذاری مشخصات خدمت", isError = true)
         }
     }
 
@@ -330,11 +319,20 @@ class AdminServiceEditActivity : BaseActivity() {
     private fun saveService() {
         tilName.error = null
         tilPrice.error = null
+        tilDuration.error = null
 
         val name = etName.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             tilName.error = getString(R.string.msg_invalid_input)
             etName.requestFocus()
+            return
+        }
+
+        val durText = PersianUtils.toEnglishDigits(etDuration.text?.toString()?.trim().orEmpty())
+        val duration = durText.toIntOrNull() ?: 0
+        if (duration < 5 || duration > 1440) {
+            tilDuration.error = "مدت خدمت باید بین ۵ تا ۱۴۴۰ دقیقه باشد"
+            etDuration.requestFocus()
             return
         }
 
@@ -344,18 +342,16 @@ class AdminServiceEditActivity : BaseActivity() {
         }
 
         val priceToman = etPrice.text?.toString()?.toDoubleOrNull() ?: 0.0
-        val durOption = durationOptions.getOrNull(spDuration.selectedItemPosition) ?: durationOptions[1]
-        val duration = durOption.first.toIntOrNull() ?: 30
 
         val selectedBranch = branchesList.getOrNull(spBranch.selectedItemPosition)
         if (selectedBranch == null && existingService == null) {
-            Snackbar.make(btnSave, "لطفاً ابتدا یک شعبه انتخاب کنید.", Snackbar.LENGTH_LONG).show()
+            showFeedback("لطفاً ابتدا یک شعبه انتخاب کنید.", isError = true)
             return
         }
 
         btnSave.isEnabled = false
         lifecycleScope.launch {
-            if (editingServiceId == null) {
+            if (editingServiceId.isNullOrBlank()) {
                 val branch = selectedBranch!!
                 val catalogId = if (rbCatalog.isChecked) selectedCatalogItem?.id else null
 
@@ -376,7 +372,7 @@ class AdminServiceEditActivity : BaseActivity() {
                     finish()
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ثبت خدمت", Snackbar.LENGTH_LONG).show()
+                    showFeedback(err.message ?: "خطا در ثبت خدمت", isError = true)
                 }
             } else {
                 val service = existingService!!
@@ -396,9 +392,17 @@ class AdminServiceEditActivity : BaseActivity() {
                     finish()
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ذخیره تغییرات خدمت", Snackbar.LENGTH_LONG).show()
+                    showFeedback(err.message ?: "خطا در ذخیره تغییرات خدمت", isError = true)
                 }
             }
+        }
+    }
+
+    private fun showFeedback(message: String, isError: Boolean = false) {
+        val anchor = findViewById<View>(R.id.layoutBottomActions) ?: btnSave
+        Snackbar.make(anchor, message, if (isError) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT).apply {
+            setAnchorView(anchor)
+            show()
         }
     }
 

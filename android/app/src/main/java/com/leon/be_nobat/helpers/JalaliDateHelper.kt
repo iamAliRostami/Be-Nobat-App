@@ -109,33 +109,59 @@ object JalaliDateHelper {
     }
 
     fun jalaliToGregorian(jy: Int, jm: Int, jd: Int): Triple<Int, Int, Int> {
-        var days = (jy + 1595) * 365 + ((jy + 1595) / 33) * 8 + (((jy + 1595) % 33 + 3) / 4) + jd
-        days += if (jm < 7) (jm - 1) * 31 else (jm - 7) * 30 + 186
-        var gy = 400 * (days / 146097)
-        days %= 146097
-        if (days > 36524) {
-            days--
-            gy += 100 * (days / 36524)
-            days %= 36524
-            if (days >= 365) days++
+        val jy2 = jy - 979
+        val jm2 = jm - 1
+        val jd2 = jd - 1
+
+        var jDayNo = 365 * jy2 + (jy2 / 33) * 8 + ((jy2 % 33 + 3) / 4)
+        for (i in 0 until jm2) {
+            jDayNo += if (i < 6) 31 else 30
         }
-        gy += 4 * (days / 1461)
-        days %= 1461
-        if (days > 365) {
-            gy += (days - 1) / 365
-            days = (days - 1) % 365
+        jDayNo += jd2
+
+        var gDayNo = jDayNo + 79
+
+        var gy = 1600 + 400 * (gDayNo / 146097)
+        gDayNo %= 146097
+
+        var leap = true
+        if (gDayNo >= 36525) {
+            gDayNo--
+            gy += 100 * (gDayNo / 36524)
+            gDayNo %= 36524
+
+            if (gDayNo >= 365) {
+                gDayNo++
+            } else {
+                leap = false
+            }
         }
-        val gd: Int
-        val gm: Int
-        val salA = intArrayOf(0, 31, if ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
-        var m = 0
-        while (m < 13 && days >= salA[m]) {
-            days -= salA[m]
-            m++
+
+        gy += 4 * (gDayNo / 1461)
+        gDayNo %= 1461
+
+        if (gDayNo >= 366) {
+            leap = false
+            gDayNo--
+            gy += gDayNo / 365
+            gDayNo %= 365
         }
-        gm = m
-        gd = days + 1
-        return Triple(gy, gm, gd)
+
+        val isLeapYear = ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0))
+        val gDaysInMonth = intArrayOf(
+            31,
+            if (isLeapYear) 29 else 28,
+            31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+        )
+
+        var gm = 0
+        while (gm < 12 && gDayNo >= gDaysInMonth[gm]) {
+            gDayNo -= gDaysInMonth[gm]
+            gm++
+        }
+
+        val gd = gDayNo + 1
+        return Triple(gy, gm + 1, gd)
     }
 
     fun getTodayJalali(): JalaliDate {
@@ -266,5 +292,27 @@ object JalaliDateHelper {
             }
         }
         return formatIsoDateTime(iso)
+    }
+
+    fun formatCalendarToIso(cal: Calendar): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        return sdf.format(cal.time)
+    }
+
+    fun parseTimeToIso(dateIso: String, timeHHmm: String): String {
+        val cal = Calendar.getInstance(TEHRAN_ZONE)
+        val dateParts = dateIso.split("-").mapNotNull { it.toIntOrNull() }
+        if (dateParts.size == 3) {
+            cal.set(dateParts[0], dateParts[1] - 1, dateParts[2])
+        }
+        val timeParts = timeHHmm.split(":").mapNotNull { it.toIntOrNull() }
+        if (timeParts.size >= 2) {
+            cal.set(Calendar.HOUR_OF_DAY, timeParts[0])
+            cal.set(Calendar.MINUTE, timeParts[1])
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+        }
+        return formatCalendarToIso(cal)
     }
 }

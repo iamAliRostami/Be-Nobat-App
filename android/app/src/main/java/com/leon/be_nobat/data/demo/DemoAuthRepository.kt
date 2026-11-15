@@ -67,6 +67,12 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         save(user)
     }
 
+    override suspend fun forgotPassword(identifier: String): Result<String> = runCatching {
+        simulateNetworkDelay()
+        require(identifier.isNotBlank()) { "شناسه کاربری الزامی است" }
+        "درخواست بازنشانی رمز عبور با موفقیت ثبت شد."
+    }
+
     override suspend fun logout(): Result<Unit> = runCatching {
         simulateNetworkDelay(minMs = 80L, maxMs = 150L)
         tokenManager.clear()

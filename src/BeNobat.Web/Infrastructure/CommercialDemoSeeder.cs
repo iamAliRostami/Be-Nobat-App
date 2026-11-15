@@ -42,7 +42,9 @@ public static class CommercialDemoSeeder
                 user = new AppUser
                 {
                     Id = userId, UserName = email, Email = email, EmailConfirmed = true,
-                    DisplayName = $"{firstNames[i % 12]} {lastNames[i / 12]}"
+                    DisplayName = $"{firstNames[i % 12]} {lastNames[i / 12]}",
+                    PhoneNumber = $"0912{100 + i:D3}{2000 + i:D4}",
+                    PhoneNumberConfirmed = true,
                 };
                 Check(await users.CreateAsync(user, password));
                 Check(await users.AddToRoleAsync(user, AppRoles.Customer));

@@ -26,6 +26,16 @@ class LoginUseCase(
     }
 }
 
+class ForgotPasswordUseCase(
+    private val repository: AuthRepository,
+) {
+    suspend operator fun invoke(identifier: String): Result<String> {
+        val trimmed = identifier.trim()
+        if (trimmed.isBlank()) return Result.failure(AuthException.InvalidIdentifier)
+        return repository.forgotPassword(trimmed)
+    }
+}
+
 class RegisterUseCase(
     private val repository: AuthRepository,
 ) {

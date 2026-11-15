@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.leon.be_nobat.R
@@ -42,6 +43,9 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
         findViewById<MaterialButton>(R.id.btnLanguage).setOnClickListener(this)
         findViewById<MaterialButton>(R.id.btnGuest).setOnClickListener(this)
         loginButton.setOnClickListener(this)
+        findViewById<MaterialButton?>(R.id.btnForgotPassword)?.setOnClickListener {
+            showForgotPasswordDialog()
+        }
         findViewById<MaterialButton?>(R.id.tvRegister)?.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
@@ -50,6 +54,25 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
                 submitLogin()
                 true
             } else false
+        }
+
+        val scrollView = findViewById<androidx.core.widget.NestedScrollView>(R.id.loginScrollView)
+        fun ensureInputVisible(inputView: View) {
+            scrollView?.postDelayed({
+                if (isFinishing || isDestroyed) return@postDelayed
+                val rect = android.graphics.Rect()
+                inputView.getDrawingRect(rect)
+                scrollView.offsetDescendantRectToMyCoords(inputView, rect)
+                rect.bottom += (56 * resources.displayMetrics.density).toInt()
+                scrollView.requestChildRectangleOnScreen(inputView, rect, false)
+            }, 150)
+        }
+
+        findViewById<TextInputEditText>(R.id.etIdentity).setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) ensureInputVisible(v)
+        }
+        findViewById<TextInputEditText>(R.id.etPassword).setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) ensureInputVisible(v)
         }
         if (intent.getStringExtra(EXTRA_RETURN_TARGET) == null) {
             setupDoubleBackToExit()
@@ -86,6 +109,47 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
                         }.show()
                 }
             }.show()
+    }
+
+    private fun showForgotPasswordDialog() {
+        val input = TextInputEditText(this).apply {
+            hint = getString(R.string.email_or_mobile)
+            val currentId = identityInput.editText?.text?.toString()?.trim().orEmpty()
+            if (currentId.isNotBlank()) setText(currentId)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        }
+        val layout = TextInputLayout(this, null, com.google.android.material.R.attr.textInputOutlinedStyle).apply {
+            val pad = resources.getDimensionPixelSize(R.dimen.form_input_margin)
+            setPadding(pad, 8, pad, 0)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.forgot_password_title)
+            .setMessage(R.string.forgot_password_msg)
+            .setView(layout)
+            .setPositiveButton(R.string.send_request) { _, _ ->
+                val identifier = input.text?.toString()?.trim().orEmpty()
+                if (identifier.isBlank()) {
+                    showToast(getString(R.string.msg_invalid_input))
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    authViewModel.forgotPassword(identifier)
+                        .onSuccess { msg ->
+                            MaterialAlertDialogBuilder(this@LoginActivity)
+                                .setTitle(R.string.dialog_title_success)
+                                .setMessage(if (msg.isNotBlank()) msg else getString(R.string.forgot_password_success))
+                                .setPositiveButton(R.string.dialog_action_ok, null)
+                                .show()
+                        }
+                        .onFailure { err ->
+                            showToast(err.message ?: getString(R.string.msg_operation_failed))
+                        }
+                }
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     override fun observeViewModel() {

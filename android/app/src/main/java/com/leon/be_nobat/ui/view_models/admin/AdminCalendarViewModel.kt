@@ -32,6 +32,7 @@ data class AdminCalendarUiState(
 class AdminCalendarViewModel(
     private val listAppointments: AdminListAppointmentsUseCase,
     private val setStatus: AdminSetAppointmentStatusUseCase,
+    private val managementRepo: com.leon.be_nobat.domain.repository.ManagementRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminCalendarUiState(loading = true))
@@ -70,6 +71,7 @@ class AdminCalendarViewModel(
                 date = queryDate,
                 status = s.statusFilter,
                 customerId = s.customerId,
+                pageSize = 200,
             ).onSuccess { page: ApiPage<ManagementAppointment> ->
                 _state.value = _state.value.copy(loading = false, items = page.items, total = page.total, error = null)
             }.onFailure { e ->
@@ -132,5 +134,87 @@ class AdminCalendarViewModel(
                 _state.value = _state.value.copy(error = e.message)
             }
         } finally { changingIds.remove(id) }
+    }
+
+    fun confirmAppointment(id: String, newStartsAt: String? = null, onResult: ((Boolean, String?) -> Unit)? = null) = viewModelScope.launch {
+        val previous = _state.value.items.firstOrNull { it.id == id } ?: return@launch
+        if (!changingIds.add(id)) return@launch
+        try {
+            setStatus(id, "Confirmed", newStartsAt).onSuccess { updated ->
+                _smsQueue.value = _smsQueue.value + updated
+                _state.value = _state.value.copy(items = _state.value.items.map { if (it.id == id) updated else it })
+                load()
+                onResult?.invoke(true, null)
+            }.onFailure { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                _state.value = _state.value.copy(error = e.message)
+                onResult?.invoke(false, e.message)
+            }
+        } finally { changingIds.remove(id) }
+    }
+
+    suspend fun loadRescheduleSlots(appt: ManagementAppointment, dateIso: String): List<String> {
+        val allSlots = mutableListOf<String>()
+        var h = 10
+        var m = 0
+        while (h < 18 || (h == 18 && m <= 30)) {
+            allSlots.add("%02d:%02d".format(Locale.US, h, m))
+            m += 30
+            if (m >= 60) {
+                h++
+                m = 0
+            }
+        }
+        val sameDayAppts = _state.value.items.filter { other ->
+            other.id != appt.id && other.status != "Cancelled" &&
+            (appt.resourceId == null || other.resourceId == appt.resourceId) &&
+            other.startsAt.startsWith(dateIso)
+        }
+        if (sameDayAppts.isEmpty()) return allSlots
+        return allSlots.filter { slot ->
+            val slotIso = JalaliDateHelper.parseTimeToIso(dateIso, slot)
+            val slotTime = JalaliDateHelper.parseIsoToCalendar(slotIso)?.timeInMillis ?: 0L
+            val slotEnd = slotTime + 30 * 60 * 1000L
+            sameDayAppts.none { other ->
+                val otherStart = JalaliDateHelper.parseIsoToCalendar(other.startsAt)?.timeInMillis ?: 0L
+                val otherEnd = JalaliDateHelper.parseIsoToCalendar(other.endsAt)?.timeInMillis ?: 0L
+                slotTime < otherEnd && slotEnd > otherStart
+            }
+        }
+    }
+
+    suspend fun getBranches() = managementRepo?.listBranches(pageSize = 100)?.getOrNull()?.items ?: emptyList()
+    suspend fun getServices(branchId: String? = null) = managementRepo?.listServices(pageSize = 100)?.getOrNull()?.items ?: emptyList()
+    suspend fun getResources(branchId: String? = null) = managementRepo?.listResources(branchId = branchId, pageSize = 100)?.getOrNull()?.items ?: emptyList()
+
+    fun createWalkInAppointment(
+        branchId: String,
+        serviceId: String,
+        resourceId: String?,
+        startsAt: String,
+        customerName: String?,
+        phoneNumber: String?,
+        note: String?,
+        onResult: (Boolean, String?) -> Unit,
+    ) = viewModelScope.launch {
+        if (managementRepo == null) {
+            onResult(false, "سرویس در دسترس نیست")
+            return@launch
+        }
+        val input = com.leon.be_nobat.domain.model.ManagementWalkInInput(
+            branchId = branchId,
+            serviceId = serviceId,
+            resourceId = resourceId,
+            startsAt = startsAt,
+            customerName = customerName,
+            phoneNumber = phoneNumber,
+            note = note,
+        )
+        managementRepo.createWalkInAppointment(input).onSuccess {
+            load()
+            onResult(true, null)
+        }.onFailure { e ->
+            onResult(false, e.message)
+        }
     }
 }

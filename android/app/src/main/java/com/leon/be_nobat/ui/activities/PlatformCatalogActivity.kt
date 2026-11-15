@@ -81,13 +81,13 @@ class PlatformCatalogActivity : BaseActivity() {
             .field(getString(R.string.form_label_slug))
             .dropdownField(getString(R.string.form_label_category), categoryOptions, default = "عمومی")
             .field(getString(R.string.form_label_description))
-            .dropdownField(getString(R.string.form_label_duration_minutes), durationOptions, default = "30")
+            .integerField(getString(R.string.form_label_duration_minutes), default = "30")
             .onSubmit { values ->
                 val name = values.getOrNull(0).orEmpty()
                 val slug = values.getOrNull(1).orEmpty()
                 val category = values.getOrNull(2).orEmpty().ifBlank { "عمومی" }
                 val description = values.getOrNull(3).orEmpty()
-                val duration = values.getOrNull(4)?.toIntOrNull() ?: 30
+                val duration = PersianUtils.toEnglishDigits(values.getOrNull(4)).toIntOrNull() ?: 30
                 if (name.isBlank() || slug.isBlank()) {
                     Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
                     return@onSubmit
@@ -110,13 +110,13 @@ class PlatformCatalogActivity : BaseActivity() {
             .field(getString(R.string.form_label_slug), default = item.slug)
             .dropdownField(getString(R.string.form_label_category), categoryOptions, default = item.category)
             .field(getString(R.string.form_label_description), default = item.description)
-            .dropdownField(getString(R.string.form_label_duration_minutes), durationOptions, default = item.suggestedDurationMinutes.toString())
+            .integerField(getString(R.string.form_label_duration_minutes), default = item.suggestedDurationMinutes.toString())
             .onSubmit { values ->
                 val name = values.getOrNull(0).orEmpty()
                 val slug = values.getOrNull(1).orEmpty()
                 val category = values.getOrNull(2).orEmpty().ifBlank { item.category }
                 val description = values.getOrNull(3).orEmpty()
-                val duration = values.getOrNull(4)?.toIntOrNull() ?: item.suggestedDurationMinutes
+                val duration = PersianUtils.toEnglishDigits(values.getOrNull(4)).toIntOrNull() ?: item.suggestedDurationMinutes
                 if (name.isBlank() || slug.isBlank()) {
                     Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
                     return@onSubmit

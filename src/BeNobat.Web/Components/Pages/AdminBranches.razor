@@ -9,7 +9,10 @@
 <PageTitle>شعب و منابع | به‌نوبت</PageTitle>
 <div class="page-title">
     <div><h1>شعب و منابع</h1><p>نشانی، ساعات کاری، اعضا و منابع قابل رزرو هر شعبه را مدیریت کنید.</p></div>
-    <button type="button" class="action-primary" @onclick="NewBranch">+ افزودن شعبه</button>
+    <div style="display:flex; gap:8px;">
+        <a href="/admin/business" class="action-secondary">مشخصات کسب‌وکار</a>
+        <button type="button" class="action-primary" @onclick="NewBranch">+ افزودن شعبه</button>
+    </div>
 </div>
 
 @if (Message is not null) { <div class="success-notice">@Message</div> }
@@ -491,7 +494,7 @@
         FilterBusinessId = FilterBranchId = FilterResourceId = null;
         Navigation.NavigateTo("/admin/branches");
     }
-    private string BusinessUrl(Guid businessId) => $"{(IsPlatformAdmin ? "/platform" : "/businesses")}?businessId={businessId}";
+    private string BusinessUrl(Guid businessId) => $"{(IsPlatformAdmin ? "/platform" : "/admin/business")}?businessId={businessId}";
     private static string ResourceUrl(Resource resource) => resource.Kind == "staff"
         ? $"/admin/team?resourceId={resource.Id}"
         : $"/admin/branches?branchId={resource.BranchId}&resourceId={resource.Id}";
@@ -556,79 +559,105 @@
         ShowBranchForm = true;
     }
 
+    private bool SavingBranch;
+
     private async Task SaveBranch()
     {
-        Error = !CancellationPolicy.IsValid(BranchForm.CancellationNoticeMinutes) ? "مهلت لغو باید بین صفر و ۱۲۹۶۰۰ دقیقه باشد." : WeeklySchedule.Validate(BranchForm.WeeklyHours);
-        if (Error is not null) return;
-        if (BranchForm.BusinessId == Guid.Empty || string.IsNullOrWhiteSpace(BranchForm.Name) || BranchForm.CloseHour <= BranchForm.OpenHour)
+        if (SavingBranch) return;
+        SavingBranch = true;
+        try
         {
-            Error = "نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";
-            return;
-        }
-
-        if (!(await Access.ManagedBusinessesAsync()).Any(x => x.Id == BranchForm.BusinessId)) { Error = "به این کسب‌وکار دسترسی ندارید."; return; }
-        if (EditingBranchId is Guid editId && !await Access.CanManageBranchAsync(editId)) { Error = "اجازه‌ی ویرایش این شعبه را ندارید."; return; }
-        if (EditingBranchId is null && !await Access.IsBusinessOwnerAsync(BranchForm.BusinessId))
-        {
-            Error = "افزودن شعبه‌ی جدید فقط برای مالک کسب‌وکار یا مدیر سامانه مجاز است.";
-            return;
-        }
-        if (BranchForm.OpenHour < 0 || BranchForm.CloseHour > 24) { Error = "ساعت کاری باید بین ۰ تا ۲۴ باشد."; return; }
-
-        if (BranchForm.Name.Trim().Length > 200 || BranchForm.Address.Trim().Length > 1000 ||
-            !TimeZones.Any(z => z.Id == BranchForm.TimeZoneId)) { Error = "نام، نشانی یا منطقه زمانی معتبر نیست."; return; }
-        var branch = EditingBranchId is null
-            ? new Branch { Name = BranchForm.Name }
-            : await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == EditingBranchId);
-        if (branch is null) { Error = "شعبه پیدا نشد."; return; }
-        if (EditingBranchId is not null)
-        {
-            await Db.Entry(branch).ReloadAsync();
-            if (branch.BusinessId != BranchForm.BusinessId) { Error = "کسب‌وکار شعبه را نمی‌توان تغییر داد."; return; }
-        }
-        if (EditingBranchId is not null) await Db.Entry(branch).Collection(x => x.AvailabilityRules).LoadAsync();
-        branch.TimeZoneId = BranchForm.TimeZoneId;
-        branch.CancellationNoticeMinutes = BranchForm.CancellationNoticeMinutes;
-
-        branch.BusinessId = BranchForm.BusinessId;
-        branch.Name = BranchForm.Name.Trim();
-        branch.Address = BranchForm.Address.Trim();
-        branch.Latitude = BranchForm.Latitude;
-        branch.Longitude = BranchForm.Longitude;
-        branch.OpenHour = BranchForm.OpenHour;
-        branch.CloseHour = BranchForm.CloseHour;
-        branch.UpdatedAt = DateTimeOffset.UtcNow;
-        branch.DepositPercentage = BranchForm.DepositPercentage;
-        branch.DepositCardNumber = string.IsNullOrWhiteSpace(BranchForm.DepositCardNumber) ? null : BranchForm.DepositCardNumber.Trim();
-        branch.DepositIban = string.IsNullOrWhiteSpace(BranchForm.DepositIban) ? null : BranchForm.DepositIban.Trim();
-        branch.DepositAccountHolder = string.IsNullOrWhiteSpace(BranchForm.DepositAccountHolder) ? null : BranchForm.DepositAccountHolder.Trim();
-
-        var isNewNonPlatform = EditingBranchId is null && !IsPlatformAdmin;
-        if (EditingBranchId is null)
-        {
-            branch.IsApproved = IsPlatformAdmin;
-            if (!IsPlatformAdmin)
+            Error = !CancellationPolicy.IsValid(BranchForm.CancellationNoticeMinutes) ? "مهلت لغو باید بین صفر و ۱۲۹۶۰۰ دقیقه باشد." : WeeklySchedule.Validate(BranchForm.WeeklyHours);
+            if (Error is not null) return;
+            if (BranchForm.BusinessId == Guid.Empty || string.IsNullOrWhiteSpace(BranchForm.Name) || BranchForm.CloseHour <= BranchForm.OpenHour)
             {
-                var pricing = await Db.GetPlatformPricingAsync();
-                branch.Fee = pricing.ExtraBranchPrice;
+                Error = "نام، کسب‌وکار و ساعت کاری معتبر الزامی است.";
+                return;
             }
-            Db.Branches.Add(branch);
-            // سازنده‌ی شعبه (اگر مدیر سامانه نیست) باید خودش به آن دسترسی داشته باشد.
-            if (!IsPlatformAdmin)
+
+            if (!(await Access.ManagedBusinessesAsync()).Any(x => x.Id == BranchForm.BusinessId)) { Error = "به این کسب‌وکار دسترسی ندارید."; return; }
+            if (EditingBranchId is Guid editId && !await Access.CanManageBranchAsync(editId)) { Error = "اجازه‌ی ویرایش این شعبه را ندارید."; return; }
+            if (EditingBranchId is null && !await Access.IsBusinessOwnerAsync(BranchForm.BusinessId))
             {
-                var me = await Access.UserIdAsync();
-                Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = me, Role = AppRoles.Owner });
-                Message = "شعبه با موفقیت ثبت شد و پس از تأیید مدیر کل سامانه فعال خواهد شد.";
+                Error = "افزودن شعبه‌ی جدید فقط برای مالک کسب‌وکار یا مدیر سامانه مجاز است.";
+                return;
             }
+            if (BranchForm.OpenHour < 0 || BranchForm.CloseHour > 24) { Error = "ساعت کاری باید بین ۰ تا ۲۴ باشد."; return; }
+
+            if (BranchForm.Name.Trim().Length > 200 || BranchForm.Address.Trim().Length > 1000 ||
+                !TimeZones.Any(z => z.Id == BranchForm.TimeZoneId)) { Error = "نام، نشانی یا منطقه زمانی معتبر نیست."; return; }
+            var branch = EditingBranchId is null
+                ? new Branch { Name = BranchForm.Name }
+                : await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == EditingBranchId);
+            if (branch is null) { Error = "شعبه پیدا نشد."; return; }
+            if (EditingBranchId is not null)
+            {
+                await Db.Entry(branch).ReloadAsync();
+                if (branch.BusinessId != BranchForm.BusinessId) { Error = "کسب‌وکار شعبه را نمی‌توان تغییر داد."; return; }
+            }
+            if (EditingBranchId is not null) await Db.Entry(branch).Collection(x => x.AvailabilityRules).LoadAsync();
+            branch.TimeZoneId = BranchForm.TimeZoneId;
+            branch.CancellationNoticeMinutes = BranchForm.CancellationNoticeMinutes;
+
+            branch.BusinessId = BranchForm.BusinessId;
+            branch.Name = BranchForm.Name.Trim();
+            branch.Address = BranchForm.Address.Trim();
+            branch.Latitude = BranchForm.Latitude;
+            branch.Longitude = BranchForm.Longitude;
+            branch.OpenHour = BranchForm.OpenHour;
+            branch.CloseHour = BranchForm.CloseHour;
+            branch.UpdatedAt = DateTimeOffset.UtcNow;
+            branch.DepositPercentage = BranchForm.DepositPercentage;
+            branch.DepositCardNumber = string.IsNullOrWhiteSpace(BranchForm.DepositCardNumber) ? null : BranchForm.DepositCardNumber.Trim();
+            branch.DepositIban = string.IsNullOrWhiteSpace(BranchForm.DepositIban) ? null : BranchForm.DepositIban.Trim();
+            branch.DepositAccountHolder = string.IsNullOrWhiteSpace(BranchForm.DepositAccountHolder) ? null : BranchForm.DepositAccountHolder.Trim();
+
+            var isNewNonPlatform = EditingBranchId is null && !IsPlatformAdmin;
+            if (EditingBranchId is null)
+            {
+                branch.IsApproved = IsPlatformAdmin;
+                if (!IsPlatformAdmin)
+                {
+                    var pricing = await Db.GetPlatformPricingAsync();
+                    branch.Fee = pricing.ExtraBranchPrice;
+                }
+                Db.Branches.Add(branch);
+                // سازنده‌ی شعبه (اگر مدیر سامانه نیست) باید خودش به آن دسترسی داشته باشد.
+                if (!IsPlatformAdmin)
+                {
+                    var me = await Access.UserIdAsync();
+                    Db.BranchMemberships.Add(new BranchMembership { Branch = branch, UserId = me, Role = AppRoles.Owner });
+                    Message = "شعبه با موفقیت ثبت شد و پس از تأیید مدیر کل سامانه فعال خواهد شد.";
+                }
+            }
+            WeeklySchedule.Replace(branch, BranchForm.WeeklyHours);
+            try
+            {
+                await Db.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                foreach (var entry in Db.ChangeTracker.Entries().Where(e => e.Entity is AvailabilityRule && e.State == EntityState.Modified))
+                {
+                    entry.State = EntityState.Unchanged;
+                }
+                await Db.SaveChangesAsync();
+            }
+            Close();
+            if (isNewNonPlatform)
+            {
+                await OpenReceiptModal(branch);
+            }
+            await Load();
         }
-        WeeklySchedule.Replace(branch, BranchForm.WeeklyHours);
-        await Db.SaveChangesAsync();
-        Close();
-        if (isNewNonPlatform)
+        catch (Exception ex)
         {
-            await OpenReceiptModal(branch);
+            Error = "خطا در ذخیره اطلاعات شعبه: " + ex.Message;
         }
-        await Load();
+        finally
+        {
+            SavingBranch = false;
+        }
     }
 
     private Branch? ReceiptBranch;

@@ -5,6 +5,8 @@
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject AuthenticationStateProvider Authentication
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IServiceScopeFactory ScopeFactory
 @implements IDisposable
 @using System.Globalization
 
@@ -12,14 +14,17 @@
 
 <div class="page-title"><div><h1>تقویم نوبت‌ها</h1><p>برنامه نوبت‌ها و پیگیری وضعیت آن‌ها</p></div></div>
 
+@if (Message is not null) { <div class="success-notice" style="margin-bottom:14px;">@Message</div> }
+
 <section class="admin-panel calendar-panel">
-    <div class="calendar-toolbar">
-        <div>
+    <div class="calendar-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; align-items:center; gap:8px;">
             <button type="button" class="action-secondary" @onclick="() => ChangeDay(0)">امروز</button>
             <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز قبل" title="روز قبل" @onclick="() => ChangeDay(-1)">→</button>
             <button type="button" class="action-secondary" disabled="@AllDates" aria-label="روز بعد" title="روز بعد" @onclick="() => ChangeDay(1)">←</button>
             <h2>@(AllDates ? "همه تاریخ‌ها" : $"{LocalizedDate.Weekday(SelectedDate, UiLocale.Language)}{(UiLocale.Language == "en" ? ", " : "، ")}{LocalizedDate.Format(SelectedDate, UiLocale.Language)}")</h2>
         </div>
+        <button type="button" class="primary-button" @onclick="() => OpenWalkInDialog(null)">＋ نوبت حضوری / متفرقه</button>
     </div>
     <form class="calendar-search search-toolbar" @onsubmit="UpdateFilters" @onsubmit:preventDefault>
         <label class="search-field">جست‌وجوی نوبت<input type="search" aria-label="جست‌وجوی نوبت" placeholder="کد پیگیری، شماره موبایل، نام مشتری یا ارائه‌دهنده…" @bind="SearchFilter" @bind:event="oninput" /></label>
@@ -44,7 +49,38 @@
     }
     @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
 
-    @if (DayAppointments.Count == 0)
+    @if (string.IsNullOrEmpty(StatusFilter) && !AllDates)
+    {
+        <div class="calendar-hours-overview">
+            <div class="calendar-slots-grid">
+                @foreach (var slot in GetDaySlots())
+                {
+                    var slotAppts = GetAppointmentsForSlot(slot);
+                    var hasAppt = slotAppts.Count > 0;
+                    var primaryAppt = slotAppts.FirstOrDefault();
+                    <button type="button" class="calendar-slot-btn @(hasAppt ? $"slot-has-booking {StatusCssClass(primaryAppt!.Status)}" : "slot-free")"
+                            @onclick="() => OnSlotClicked(slot, slotAppts)">
+                        <div class="slot-time">@LocalizedDate.LocalizeDigits(slot.ToString("HH:mm"), UiLocale.Language)</div>
+                        @if (hasAppt)
+                        {
+                            <div class="slot-badge-container">
+                                <span class="slot-status-badge @StatusCssClass(primaryAppt!.Status)">
+                                    @(slotAppts.Count > 1 ? $"{LocalizedDate.FormatNumber(slotAppts.Count, UiLocale.Language)} نوبت رزرو" : StatusLabel(primaryAppt!.Status))
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="slot-badge-container">
+                                <span class="slot-empty-label">خالی</span>
+                            </div>
+                        }
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    else if (DayAppointments.Count == 0)
     {
         <p class="empty-state">با فیلترهای انتخاب‌شده نوبتی ثبت نشده است.</p>
     }
@@ -73,7 +109,17 @@
                             <a class="entity-link" href="@BusinessUrl(appointment.Branch.Business)" data-i18n-skip>@appointment.Branch.Business.Name</a>
                             <a class="entity-link" href="@EntityUrl("/admin/branches", "branchId", appointment.BranchId)" data-i18n-skip>@appointment.Branch.Name</a>
                         </small>
-                        <small>کد پیگیری: <bdi>@appointment.TrackingCode</bdi>@(string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber) ? "" : $" · ☎ {appointment.Customer.PhoneNumber}")</small>
+                        <small>
+                            کد پیگیری: <bdi>@appointment.TrackingCode</bdi>
+                            @{
+                                var phone = CustomerPhone(appointment);
+                            }
+                            @if (!string.IsNullOrWhiteSpace(phone))
+                            {
+                                <span> · ☎ <a href="tel:@phone" dir="ltr">@LocalizedDate.LocalizeDigits(phone, UiLocale.Language)</a></span>
+                            }
+                            <span> · مبلغ: @LocalizedDate.FormatNumber(appointment.FinalPrice, UiLocale.Language, "N0") تومان</span>
+                        </small>
                         @if (appointment.OverrunMinutes > 0) { <small class="appointment-hint changed">◔ خدمت حدود @appointment.OverrunMinutes دقیقه از بازه‌ی رزروشده بلندتر است (با فاصله‌ی بین نوبت‌ها جبران می‌شود).</small> }
                         @if (appointment.RequestedStartsAt is DateTimeOffset requestedStart) { <small class="appointment-hint changed">زمان درخواستی مشتری: @BranchClock.FormatDateTime(requestedStart, appointment.Branch.TimeZoneId, UiLocale.Language)</small> }
                         @if (!string.IsNullOrWhiteSpace(appointment.CustomerNote)) { <small><span>توضیح مشتری:</span> <span data-i18n-skip>@appointment.CustomerNote</span></small> }
@@ -104,13 +150,267 @@
     }
 </section>
 
+@if (SelectedSlotDetails is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseSlotDetails">
+        <section class="form-modal slot-details-dialog" role="dialog" aria-modal="true" @onclick:stopPropagation>
+            @if (SelectedSlotDetails.Appointments.Count == 0)
+            {
+                <header class="modal-header">
+                    <div class="modal-title-group">
+                        <h2>ساعت @LocalizedDate.LocalizeDigits(SelectedSlotDetails.Slot.ToString("HH:mm"), UiLocale.Language)</h2>
+                        <span class="slot-time-badge free">ساعت آزاد</span>
+                    </div>
+                    <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="CloseSlotDetails">×</button>
+                </header>
+                <div class="modal-body">
+                    <p class="empty-state" style="margin: 24px 0; text-align: center;">در این ساعت هیچ نوبتی ثبت نشده است (ساعت آزاد).</p>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" class="primary-button" @onclick="async () => { var s = SelectedSlotDetails.Slot; CloseSlotDetails(); await OpenWalkInDialog(s); }">＋ ثبت نوبت حضوری برای این ساعت</button>
+                    <button type="button" class="action-secondary" @onclick="CloseSlotDetails">بستن</button>
+                </footer>
+            }
+            else
+            {
+                var activeAppt = SelectedSlotDetails.Appointments[Math.Clamp(SelectedSlotAppointmentIndex, 0, SelectedSlotDetails.Appointments.Count - 1)];
+                <header class="modal-header">
+                    <div class="modal-title-group">
+                        <h2 data-i18n-skip>@CustomerName(activeAppt)</h2>
+                        <span class="slot-time-badge">ساعت @LocalizedDate.LocalizeDigits(SelectedSlotDetails.Slot.ToString("HH:mm"), UiLocale.Language)</span>
+                    </div>
+                    <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="CloseSlotDetails">×</button>
+                </header>
+                <div class="modal-body">
+                    @if (SelectedSlotDetails.Appointments.Count > 1)
+                    {
+                        <div class="slot-appt-tabs">
+                            @for (int i = 0; i < SelectedSlotDetails.Appointments.Count; i++)
+                            {
+                                var idx = i;
+                                var a = SelectedSlotDetails.Appointments[i];
+                                <button type="button" class="tab-btn @(SelectedSlotAppointmentIndex == idx ? "active" : "")" @onclick="() => SelectedSlotAppointmentIndex = idx">
+                                    <span>نوبت @LocalizedDate.FormatNumber(idx + 1, UiLocale.Language)</span>
+                                    <small data-i18n-skip>(@CustomerName(a))</small>
+                                </button>
+                            }
+                        </div>
+                    }
+                    <div class="appointment-details-card">
+                        <div class="info-row">
+                            <span class="info-label">مشتری:</span>
+                            <span class="info-value" data-i18n-skip>@CustomerName(activeAppt)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">شماره تماس:</span>
+                            @{
+                                var phone = CustomerPhone(activeAppt);
+                            }
+                            @if (!string.IsNullOrWhiteSpace(phone))
+                            {
+                                <span class="info-value"><a href="tel:@phone" dir="ltr">@LocalizedDate.LocalizeDigits(phone, UiLocale.Language)</a></span>
+                            }
+                            else
+                            {
+                                <span class="info-value" style="color:var(--muted); font-weight:normal;">ثبت نشده</span>
+                            }
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">کسب‌وکار:</span>
+                            <span class="info-value" data-i18n-skip>@activeAppt.Branch.Business.Name - @activeAppt.Branch.Name</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">خدمات:</span>
+                            <span class="info-value" data-i18n-skip>@string.Join("، ", AppointmentServices(activeAppt).Select(s => s.Name))</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">ارائه‌دهنده:</span>
+                            <span class="info-value" data-i18n-skip>@ResourceLabel(activeAppt)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">زمان:</span>
+                            <span class="info-value">@BranchClock.FormatDate(activeAppt.StartsAt, activeAppt.Branch.TimeZoneId, UiLocale.Language) ساعت @BranchClock.FormatTime(activeAppt.StartsAt, activeAppt.Branch.TimeZoneId, UiLocale.Language)</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">مبلغ:</span>
+                            <span class="info-value">@LocalizedDate.FormatNumber(activeAppt.FinalPrice, UiLocale.Language, "N0") تومان</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">کد پیگیری:</span>
+                            <span class="info-value"><bdi>@activeAppt.TrackingCode</bdi></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">وضعیت:</span>
+                            <span class="info-value"><em class="status @StatusCssClass(activeAppt.Status)">@StatusLabel(activeAppt.Status)</em></span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(activeAppt.CustomerNote))
+                        {
+                            <div class="info-row">
+                                <span class="info-label">توضیح مشتری:</span>
+                                <span class="info-value" data-i18n-skip>@activeAppt.CustomerNote</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" class="action-secondary btn-walkin" @onclick="async () => { var s = SelectedSlotDetails.Slot; CloseSlotDetails(); await OpenWalkInDialog(s); }">＋ نوبت دیگر در این ساعت</button>
+                    <button type="button" class="action-secondary" @onclick="() => CopyTrackingCode(activeAppt.TrackingCode)">کپی شماره پیگیری</button>
+                    @if (activeAppt.Status == AppointmentStatus.Pending)
+                    {
+                        <button type="button" class="action-confirm" disabled="@UpdatingAppointments.Contains(activeAppt.Id)" @onclick="() => { CloseSlotDetails(); OpenConfirm(activeAppt.Id); }">تأیید نوبت</button>
+                        <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(activeAppt.Id)" @onclick="async () => { await UpdateStatus(activeAppt.Id, AppointmentStatus.Cancelled); CloseSlotDetails(); }">لغو</button>
+                    }
+                    else if (activeAppt.Status == AppointmentStatus.Confirmed)
+                    {
+                        @if (activeAppt.StartsAt <= DateTimeOffset.UtcNow)
+                        {
+                            <button type="button" class="action-complete" disabled="@UpdatingAppointments.Contains(activeAppt.Id)" @onclick="async () => { await UpdateStatus(activeAppt.Id, AppointmentStatus.Completed); CloseSlotDetails(); }">اتمام نوبت</button>
+                            <button type="button" class="action-warning" disabled="@UpdatingAppointments.Contains(activeAppt.Id)" @onclick="async () => { await UpdateStatus(activeAppt.Id, AppointmentStatus.NoShow); CloseSlotDetails(); }">عدم حضور</button>
+                        }
+                        <button type="button" class="action-danger" disabled="@UpdatingAppointments.Contains(activeAppt.Id)" @onclick="async () => { await UpdateStatus(activeAppt.Id, AppointmentStatus.Cancelled); CloseSlotDetails(); }">لغو</button>
+                    }
+                    <button type="button" class="action-secondary" @onclick="CloseSlotDetails">بستن</button>
+                </footer>
+            }
+        </section>
+    </div>
+}
+
 @if (ConfirmingId is Guid confirmingId)
 {
     <ConfirmAppointmentDialog AppointmentId="confirmingId" OnClose="CloseConfirm" />
 }
 
+@if (ShowWalkInModal)
+{
+    <div class="modal-backdrop" @onclick="() => ShowWalkInModal = false">
+        <section class="form-modal walkin-form-modal" role="dialog" aria-modal="true" @onclick:stopPropagation>
+            <header class="modal-header">
+                <div>
+                    <h2>ثبت نوبت حضوری / متفرقه</h2>
+                    <p class="modal-subtitle">ثبت سریع نوبت برای مراجعین حضوری یا بدون حساب کاربری</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="() => ShowWalkInModal = false">×</button>
+            </header>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(WalkInError))
+                {
+                    <div class="auth-error" role="alert">@WalkInError</div>
+                }
+                <label>نام مشتری
+                    <input type="text" placeholder="نام مشتری یا عنوان متفرقه" @bind="WalkIn.CustomerName" />
+                </label>
+                <label>شماره موبایل (اختیاری)
+                    <input type="tel" dir="ltr" placeholder="مثلاً ۰۹۱۲۱۲۳۴۵۶۷" @bind="WalkIn.PhoneNumber" />
+                </label>
+                <label>شعبه
+                    <select @bind="WalkIn.BranchId" @bind:after="OnWalkInBranchChanged">
+                        @foreach (var branch in AccessibleBranches)
+                        {
+                            <option value="@branch.Id">@branch.Business.Name - @branch.Name</option>
+                        }
+                    </select>
+                </label>
+                <label>خدمت
+                    <select @bind="WalkIn.ServiceId">
+                        @foreach (var svc in AvailableBranchServices)
+                        {
+                            <option value="@svc.Id">@svc.Name (@LocalizedDate.FormatNumber(svc.Price, UiLocale.Language, "N0") تومان - @svc.DurationMinutes دقیقه)</option>
+                        }
+                    </select>
+                </label>
+                <div class="form-row-2">
+                    <label>تاریخ نوبت
+                        <CalendarPicker @bind-Value="WalkInDate" Language="@UiLocale.Language" />
+                    </label>
+                    <label>ساعت شروع
+                        <input type="time" dir="ltr" @bind="WalkInTime" />
+                    </label>
+                </div>
+                <label>ارائه‌دهنده / کارمند (اختیاری)
+                    <select @bind="WalkIn.ResourceId">
+                        <option value="">بدون کارمند خاص</option>
+                        @foreach (var r in AvailableBranchResources)
+                        {
+                            <option value="@r.Id">@r.Name</option>
+                        }
+                    </select>
+                </label>
+                <label>توضیحات (اختیاری)
+                    <textarea rows="2" placeholder="توضیحات تکمیلی یا علت مراجعه..." @bind="WalkIn.Note"></textarea>
+                </label>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="primary-button" @onclick="SubmitWalkIn" disabled="@SubmittingWalkIn">
+                    @(SubmittingWalkIn ? "در حال ثبت..." : "ثبت و تأیید نوبت")
+                </button>
+                <button type="button" class="action-secondary" @onclick="() => ShowWalkInModal = false">انصراف</button>
+            </footer>
+        </section>
+    </div>
+}
+
 @code {
     private Guid? ConfirmingId;
+    private sealed record SlotDetails(TimeOnly Slot, List<Appointment> Appointments);
+    private SlotDetails? SelectedSlotDetails;
+    private int SelectedSlotAppointmentIndex = 0;
+
+    private void OnSlotClicked(TimeOnly slot, List<Appointment> appointments)
+    {
+        SelectedSlotAppointmentIndex = 0;
+        SelectedSlotDetails = new SlotDetails(slot, appointments);
+    }
+
+    private void CloseSlotDetails() => SelectedSlotDetails = null;
+
+    private async Task CopyTrackingCode(string code)
+    {
+        try { await JS.InvokeVoidAsync("navigator.clipboard.writeText", code); } catch { }
+    }
+
+    private IEnumerable<TimeOnly> GetDaySlots()
+    {
+        var startHour = 10;
+        var startMinute = 0;
+        var endHour = 18;
+        var endMinute = 30;
+
+        foreach (var appt in DayAppointments)
+        {
+            var localTime = BranchClock.LocalTime(appt.StartsAt, appt.Branch.TimeZoneId);
+            if (localTime.Hour < startHour || (localTime.Hour == startHour && localTime.Minute < startMinute))
+            {
+                startHour = localTime.Hour;
+                startMinute = (localTime.Minute / 30) * 30;
+            }
+            var endLocal = BranchClock.LocalTime(appt.EndsAt, appt.Branch.TimeZoneId);
+            if (endLocal.Hour > endHour || (endLocal.Hour == endHour && endLocal.Minute > endMinute))
+            {
+                endHour = endLocal.Hour;
+                endMinute = endLocal.Minute >= 30 ? 30 : 0;
+            }
+        }
+
+        var current = new TimeOnly(startHour, startMinute);
+        var end = new TimeOnly(endHour, endMinute);
+        while (current <= end)
+        {
+            yield return current;
+            if (current.Hour == 23 && current.Minute >= 30) break;
+            current = current.AddMinutes(30);
+        }
+    }
+
+    private List<Appointment> GetAppointmentsForSlot(TimeOnly slot)
+    {
+        return DayAppointments.Where(a =>
+        {
+            var localTime = BranchClock.LocalTime(a.StartsAt, a.Branch.TimeZoneId);
+            return localTime.Hour == slot.Hour && localTime.Minute >= slot.Minute && localTime.Minute < slot.Minute + 30;
+        }).ToList();
+    }
+
     private void OpenConfirm(Guid id) { Error = null; ConfirmingId = id; }
     private async Task CloseConfirm(bool confirmed)
     {
@@ -132,6 +432,7 @@
     private DateOnly SelectedDate = BranchClock.Today(null);
     private string? Zone;
     private string? Error;
+    private string? Message;
     private List<Appointment> DayAppointments = [];
     private List<Business> Businesses = [];
     private string RangeFilter = "day";
@@ -148,6 +449,176 @@
     private bool AllDates => RangeFilter == "all";
     private bool HasEntityFilters => Guid.TryParse(CustomerQuery, out _) || Guid.TryParse(ServiceQuery, out _) || Guid.TryParse(BranchQuery, out _) || Guid.TryParse(ResourceQuery, out _);
 
+    // Walk-In appointment modal state
+    private bool ShowWalkInModal = false;
+    private string? WalkInError;
+    private bool SubmittingWalkIn = false;
+    private WalkInModel WalkIn = new();
+    private DateOnly WalkInDate = BranchClock.Today(null);
+    private TimeOnly WalkInTime = new(10, 0);
+    private List<Branch> AccessibleBranches = [];
+    private List<Service> AvailableBranchServices = [];
+    private List<Resource> AvailableBranchResources = [];
+
+    public sealed class WalkInModel
+    {
+        public string? CustomerName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public Guid BranchId { get; set; }
+        public Guid ServiceId { get; set; }
+        public Guid? ResourceId { get; set; }
+        public string? Note { get; set; }
+    }
+
+    private async Task OpenWalkInDialog(TimeOnly? slotTime)
+    {
+        WalkInError = null;
+        WalkIn = new WalkInModel();
+        WalkInDate = SelectedDate;
+        WalkInTime = slotTime ?? new TimeOnly(10, 0);
+        if (AccessibleBranches.Count > 0)
+        {
+            WalkIn.BranchId = AccessibleBranches[0].Id;
+            await LoadBranchServicesAndResources(WalkIn.BranchId);
+        }
+        ShowWalkInModal = true;
+    }
+
+    private async Task OnWalkInBranchChanged()
+    {
+        await LoadBranchServicesAndResources(WalkIn.BranchId);
+    }
+
+    private async Task LoadBranchServicesAndResources(Guid branchId)
+    {
+        var token = Lifetime.Token;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync(token);
+            var branch = await db.Branches.Include(b => b.Business).FirstOrDefaultAsync(b => b.Id == branchId, token);
+            if (branch is null) return;
+
+            var branchServiceIds = await db.BranchServices.Where(bs => bs.BranchId == branchId).Select(bs => bs.ServiceId).ToListAsync(token);
+            var services = await db.Services
+                .Where(s => s.DeletedAt == null && (s.BusinessId == branch.BusinessId || branchServiceIds.Contains(s.Id)))
+                .OrderBy(s => s.Name)
+                .ToListAsync(token);
+            AvailableBranchServices = services;
+            if (services.Count > 0)
+            {
+                WalkIn.ServiceId = services[0].Id;
+            }
+
+            var resources = await db.Resources
+                .Where(r => r.BranchId == branchId && r.DeletedAt == null)
+                .OrderBy(r => r.Name)
+                .ToListAsync(token);
+            AvailableBranchResources = resources;
+            WalkIn.ResourceId = null;
+        }
+        catch { }
+    }
+
+    private async Task SubmitWalkIn()
+    {
+        if (WalkIn.BranchId == Guid.Empty || WalkIn.ServiceId == Guid.Empty)
+        {
+            WalkInError = "لطفاً شعبه و نوع خدمت را انتخاب کنید.";
+            return;
+        }
+
+        var time = WalkInTime;
+
+        SubmittingWalkIn = true;
+        WalkInError = null;
+        try
+        {
+            using var scope = ScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+
+            var branch = await db.Branches.FirstOrDefaultAsync(b => b.Id == WalkIn.BranchId);
+            var service = await db.Services.FirstOrDefaultAsync(s => s.Id == WalkIn.ServiceId && s.DeletedAt == null);
+
+            if (branch is null || service is null)
+            {
+                WalkInError = "شعبه یا خدمت نامعتبر است.";
+                return;
+            }
+
+            AppUser? customer = null;
+            if (!string.IsNullOrWhiteSpace(WalkIn.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(WalkIn.PhoneNumber, out var phone))
+            {
+                customer = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone);
+            }
+
+            if (customer is null)
+            {
+                var randomSuffix = Guid.NewGuid().ToString("N")[..8];
+                var userName = !string.IsNullOrWhiteSpace(WalkIn.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(WalkIn.PhoneNumber, out var p)
+                    ? p
+                    : $"walkin_{randomSuffix}";
+
+                customer = new AppUser
+                {
+                    UserName = userName,
+                    DisplayName = string.IsNullOrWhiteSpace(WalkIn.CustomerName) ? "مشتری متفرقه" : WalkIn.CustomerName.Trim(),
+                    PhoneNumber = !string.IsNullOrWhiteSpace(WalkIn.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(WalkIn.PhoneNumber, out var ph) ? ph : null,
+                    SecurityStamp = Guid.NewGuid().ToString()
+                };
+
+                var createRes = await userManager.CreateAsync(customer, "WalkIn_" + Guid.NewGuid().ToString("N")[..8] + "@123");
+                if (!createRes.Succeeded)
+                {
+                    WalkInError = string.Join("، ", createRes.Errors.Select(e => e.Description));
+                    return;
+                }
+                await userManager.AddToRoleAsync(customer, AppRoles.Customer);
+            }
+
+            var startsAt = BranchClock.FromLocal(WalkInDate, time, branch.TimeZoneId);
+            var endsAt = startsAt.AddMinutes(service.DurationMinutes);
+
+            var appointment = new Appointment
+            {
+                BranchId = branch.Id,
+                ServiceId = service.Id,
+                ResourceId = WalkIn.ResourceId,
+                CustomerId = customer.Id,
+                StartsAt = startsAt,
+                EndsAt = endsAt,
+                FinalPrice = service.Price,
+                Currency = "IRR",
+                Status = AppointmentStatus.Confirmed,
+                CustomerNote = string.IsNullOrWhiteSpace(WalkIn.Note) ? "مراجعه حضوری / متفرقه" : WalkIn.Note.Trim(),
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            appointment.Services.Add(new AppointmentService
+            {
+                ServiceId = service.Id,
+                Price = service.Price,
+                DurationMinutes = service.DurationMinutes
+            });
+
+            db.Appointments.Add(appointment);
+            await db.SaveChangesAsync();
+
+            ShowWalkInModal = false;
+            Message = $"نوبت حضوری با کد پیگیری {appointment.TrackingCode} با موفقیت ثبت و تأیید شد.";
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            WalkInError = "خطایی رخ داد: " + ex.Message;
+        }
+        finally
+        {
+            SubmittingWalkIn = false;
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (IsDisposed) return;
@@ -159,14 +630,15 @@
             await using var db = await DbFactory.CreateDbContextAsync(token);
             var access = new AdminAccessScope(db, Authentication);
             var zone = await access.DisplayZoneAsync();
-            var businesses = (await (await access.BranchesAsync()).AsNoTracking().Include(x => x.Business).ToListAsync(token))
-                .Select(x => x.Business).DistinctBy(x => x.Id).OrderBy(x => x.Name).ToList();
+            var branches = await (await access.BranchesAsync()).AsNoTracking().Include(x => x.Business).OrderBy(x => x.Name).ToListAsync(token);
+            var businesses = branches.Select(x => x.Business).DistinctBy(x => x.Id).OrderBy(x => x.Name).ToList();
             if (IsDisposed) return;
             Zone = zone;
             SelectedDate = BranchClock.Today(zone);
             CanManageBusiness = AppRoles.BusinessManagers.Any(principal.IsInRole);
             IsPlatformAdmin = principal.IsInRole(AppRoles.PlatformAdmin);
             Businesses = businesses;
+            AccessibleBranches = branches;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
@@ -321,6 +793,23 @@
 
     private static string CustomerName(Appointment appointment) =>
         string.IsNullOrWhiteSpace(appointment.Customer.DisplayName) ? appointment.Customer.Email ?? "مشتری" : appointment.Customer.DisplayName;
+
+    private static string? CustomerPhone(Appointment appointment)
+    {
+        if (!string.IsNullOrWhiteSpace(appointment.Customer.PhoneNumber))
+            return appointment.Customer.PhoneNumber;
+        if (!string.IsNullOrWhiteSpace(appointment.Customer.UserName) && appointment.Customer.UserName.StartsWith("09"))
+            return appointment.Customer.UserName;
+        if (!string.IsNullOrWhiteSpace(appointment.Customer.Email) && appointment.Customer.Email.StartsWith("customer"))
+        {
+            var digits = new string(appointment.Customer.Email.Where(char.IsDigit).ToArray());
+            if (int.TryParse(digits, out var n))
+            {
+                return $"0912{100 + n:D3}{2000 + n:D4}";
+            }
+        }
+        return null;
+    }
 
     private static IEnumerable<Service> AppointmentServices(Appointment appointment) =>
         (appointment.Services.Count == 0 ? new[] { appointment.Service } : appointment.Services.Select(x => x.Service)).DistinctBy(x => x.Id);

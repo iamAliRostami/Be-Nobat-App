@@ -32,6 +32,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ContactMessage> ContactMessages => Set<ContactMessage>();
     public DbSet<AdminBroadcastMessage> AdminBroadcastMessages => Set<AdminBroadcastMessage>();
     public DbSet<AdminMessageRead> AdminMessageReads => Set<AdminMessageRead>();
+    public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -165,6 +166,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<AdminMessageRead>().HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<AdminMessageRead>().HasIndex(x => new { x.MessageId, x.UserId }).IsUnique();
+
+        builder.Entity<PasswordResetRequest>().Property(x => x.Status).HasConversion<string>();
+        builder.Entity<PasswordResetRequest>().HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+        builder.Entity<PasswordResetRequest>().HasIndex(x => x.Status);
+        builder.Entity<PasswordResetRequest>().HasIndex(x => x.CreatedAt);
 
         foreach (var entityType in builder.Model.GetEntityTypes()
                      .Where(x => typeof(Entity).IsAssignableFrom(x.ClrType)))

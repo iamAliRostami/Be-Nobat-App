@@ -1,0 +1,431 @@
+@page "/admin/business"
+@attribute [Authorize(Policy = Policies.ManageBusiness)]
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AdminAccessScope Access
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>مشخصات کسب‌وکار | به‌نوبت</PageTitle>
+
+<div class="page-title">
+    <div>
+        <h1>مشخصات کسب‌وکار</h1>
+        <p>مشخصات اصلی، لوگو، معرفی و نحوه تأیید نوبت‌های کسب‌وکار خود را ویرایش کنید.</p>
+    </div>
+    @if (CurrentBusiness is not null && !string.IsNullOrWhiteSpace(CurrentBusiness.Slug))
+    {
+        <a href="/b/@CurrentBusiness.Slug" target="_blank" class="action-secondary" style="display:inline-flex; align-items:center; gap:6px;">
+            <span>مشاهده صفحه عمومی</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+    }
+</div>
+
+@if (Message is not null) { <div class="success-notice" role="status" style="margin-bottom:16px;">@Message</div> }
+@if (Error is not null) { <div class="auth-error" role="alert" style="margin-bottom:16px;">@Error</div> }
+
+@if (Loading)
+{
+    <p class="empty-state">در حال بارگذاری اطلاعات کسب‌وکار...</p>
+}
+else if (ManagedBusinesses.Count == 0)
+{
+    <p class="empty-state">شما هنوز کسب‌وکاری تحت مدیریت ندارید یا دسترسی لازم داده نشده است.</p>
+}
+else
+{
+    @if (ManagedBusinesses.Count > 1)
+    {
+        <div class="toolbar" style="margin-bottom: 20px; background:var(--surface); padding:12px 16px; border-radius:10px; border:1px solid var(--outline-soft); display:flex; align-items:center; gap:12px;">
+            <label style="display:flex; align-items:center; gap:8px; font-weight:600; font-size:13px;">
+                <span>انتخاب کسب‌وکار:</span>
+                <select @bind="SelectedBusinessId" @bind:after="OnBusinessChanged" style="min-width:200px;">
+                    @foreach (var b in ManagedBusinesses)
+                    {
+                        <option value="@b.Id">@b.Name</option>
+                    }
+                </select>
+            </label>
+        </div>
+    }
+
+    <EditForm Model="Form" FormName="business-edit" OnValidSubmit="SaveBusiness" class="admin-panel admin-business-form" style="max-width:850px;">
+        <!-- بخش ۱: تصاویر و هویت بصری -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> هویت بصری و تصاویر
+            </legend>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
+                <!-- لوگو / آواتار -->
+                <div style="border:1px solid var(--outline-soft); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;">
+                    <span style="font-size:13px; font-weight:600;">لوگو / نشان کسب‌وکار</span>
+                    <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid var(--outline); background:#f1f5f4; display:grid; place-items:center;">
+                        @if (!string.IsNullOrEmpty(AvatarUrl))
+                        {
+                            <img src="@AvatarUrl" alt="لوگو" style="width:100%; height:100%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#8a9794" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+                        }
+                    </div>
+                    <label class="action-secondary" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:12px;">
+                        <span>تغییر لوگو</span>
+                        <InputFile OnChange="UploadAvatar" accept="image/png,image/jpeg,image/webp" style="display:none;" />
+                    </label>
+                    <small style="color:var(--text-muted); font-size:11px;">فرمت‌های مجاز: JPG, PNG, WEBP (حداکثر ۵ مگابایت)</small>
+                </div>
+
+                <!-- بنر / کاور هدر -->
+                <div style="border:1px solid var(--outline-soft); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;">
+                    <span style="font-size:13px; font-weight:600;">تصویر پس‌زمینه (کاور)</span>
+                    <div style="width:100%; height:84px; border-radius:8px; overflow:hidden; border:1px solid var(--outline); background:#f1f5f4; display:grid; place-items:center;">
+                        @if (!string.IsNullOrEmpty(HeaderUrl))
+                        {
+                            <img src="@HeaderUrl" alt="کاور" style="width:100%; height:100%; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <span style="font-size:12px; color:#8a9794;">بدون تصویر کاور</span>
+                        }
+                    </div>
+                    <label class="action-secondary" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:12px;">
+                        <span>تغییر کاور</span>
+                        <InputFile OnChange="UploadHeader" accept="image/png,image/jpeg,image/webp" style="display:none;" />
+                    </label>
+                    <small style="color:var(--text-muted); font-size:11px;">فرمت‌های مجاز: JPG, PNG, WEBP (حداکثر ۵ مگابایت)</small>
+                </div>
+            </div>
+        </fieldset>
+
+        <hr style="border:none; border-top:1px solid var(--outline-soft); margin:20px 0;" />
+
+        <!-- بخش ۲: مشخصات اصلی کسب‌وکار -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg> مشخصات عمومی
+            </legend>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>نام کسب‌وکار <strong class="req" style="color:red;">*</strong></span>
+                    <input type="text" required placeholder="مثال: کلینیک دندانپزشکی مهر" @bind="Form.Name" />
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>شناسه اینترنتی (Slug) <strong class="req" style="color:red;">*</strong></span>
+                    <div class="input-prefix-wrapper">
+                        <span class="input-prefix">benobat.ir/b/</span>
+                        <input type="text" dir="ltr" required placeholder="mehr-clinic" @bind="Form.Slug" />
+                    </div>
+                </label>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:14px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>دسته‌بندی / صنف <strong class="req" style="color:red;">*</strong></span>
+                    <select @bind="Form.Category">
+                        @foreach (var cat in CategoryOptions)
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    </select>
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>شهر</span>
+                    <input type="text" placeholder="مثال: تهران" @bind="Form.City" />
+                </label>
+            </div>
+
+            <label style="display:flex; flex-direction:column; gap:6px; font-size:13px; margin-top:14px;">
+                <span>معرفی و درباره کسب‌وکار</span>
+                <textarea rows="4" placeholder="توضیحاتی در مورد سوابق، تجهیزات و خدمات ویژه کسب‌وکار..." @bind="Form.Description"></textarea>
+            </label>
+        </fieldset>
+
+        <hr style="border:none; border-top:1px solid var(--outline-soft); margin:20px 0;" />
+
+        <!-- بخش ۳: قوانین رزرو و تأیید نوبت‌ها -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> تنظیمات نوبت‌دهی و تأیید
+            </legend>
+
+            <div style="background:var(--surface-variant, #f8faf9); padding:16px; border-radius:12px; border:1px solid var(--outline-soft); display:grid; gap:14px;">
+                <label class="check-card" style="margin:0;">
+                    <input type="checkbox" @bind="Form.RequiresApproval" />
+                    <div>
+                        <b>نیازمند تأیید دستی نوبت‌ها توسط شعبه</b>
+                        <small>
+                            در صورت فعال بودن، نوبت‌های ثبت‌شده توسط مشتریان تا زمان تأیید مدیریت با وضعیت «در انتظار تأیید» باقی می‌مانند و پیامک نهایی پس از بررسی ارسال می‌شود.
+                            در غیر این صورت، نوبت‌ها بلافاصله پس از ثبت به‌صورت خودکار تأیید می‌گردند.
+                        </small>
+                    </div>
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>حداقل مهلت مجاز لغو نوبت توسط مشتری:</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <input type="number" min="0" max="129600" style="max-width:140px;" @bind="Form.CancellationNoticeMinutes" />
+                        <span style="color:var(--text-muted); font-size:12px;">دقیقه قبل از زمان نوبت (پیش‌فرض: ۱۲۰ دقیقه = ۲ ساعت)</span>
+                    </div>
+                </label>
+            </div>
+        </fieldset>
+
+        <div class="row-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
+            <button type="submit" class="primary-button" disabled="@Saving">
+                @(Saving ? "در حال ذخیره..." : "ذخیره تغییرات")
+            </button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "businessId")] public Guid? QueryBusinessId { get; set; }
+
+    private bool Loading = true;
+    private bool Saving = false;
+    private string? Error;
+    private string? Message;
+    private List<Business> ManagedBusinesses = [];
+    private Guid SelectedBusinessId;
+    private Business? CurrentBusiness;
+    private BusinessFormModel Form = new();
+    private List<string> CategoryOptions = [];
+    private string? AvatarUrl;
+    private string? HeaderUrl;
+
+    public sealed class BusinessFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string City { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool RequiresApproval { get; set; } = true;
+        public int? CancellationNoticeMinutes { get; set; } = 120;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBusinesses();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryBusinessId.HasValue && QueryBusinessId.Value != Guid.Empty && QueryBusinessId.Value != SelectedBusinessId)
+        {
+            SelectedBusinessId = QueryBusinessId.Value;
+            await SelectBusiness(SelectedBusinessId);
+        }
+    }
+
+    private async Task LoadBusinesses()
+    {
+        Loading = true;
+        Error = Message = null;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            CategoryOptions = await db.CategoryDefinitions.AsNoTracking()
+                .Where(x => x.Kind == CategoryKind.Business && x.IsActive)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.Name)
+                .Select(x => x.Name).ToListAsync();
+
+            if (CategoryOptions.Count == 0)
+            {
+                CategoryOptions = ["پزشکی و سلامت", "زیبایی و سلامت", "آموزش", "خدمات فنی", "ورزش", "مشاوره", "عمومی"];
+            }
+
+            ManagedBusinesses = await Access.ManagedBusinessesAsync();
+            if (ManagedBusinesses.Count > 0)
+            {
+                var targetId = QueryBusinessId.HasValue && ManagedBusinesses.Any(b => b.Id == QueryBusinessId.Value)
+                    ? QueryBusinessId.Value
+                    : ManagedBusinesses[0].Id;
+                SelectedBusinessId = targetId;
+                await SelectBusiness(targetId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "خطا در بارگذاری کسب‌وکارها: " + ex.Message;
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private async Task OnBusinessChanged()
+    {
+        await SelectBusiness(SelectedBusinessId);
+    }
+
+    private async Task SelectBusiness(Guid id)
+    {
+        Error = Message = null;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        CurrentBusiness = await db.Businesses.FirstOrDefaultAsync(b => b.Id == id);
+        if (CurrentBusiness is null)
+        {
+            Error = "کسب‌وکار مورد نظر یافت نشد.";
+            return;
+        }
+
+        if (!CategoryOptions.Contains(CurrentBusiness.Category) && !string.IsNullOrWhiteSpace(CurrentBusiness.Category))
+        {
+            CategoryOptions.Insert(0, CurrentBusiness.Category);
+        }
+
+        Form = new BusinessFormModel
+        {
+            Name = CurrentBusiness.Name,
+            Slug = CurrentBusiness.Slug,
+            Category = CurrentBusiness.Category,
+            City = CurrentBusiness.City,
+            Description = CurrentBusiness.Description,
+            RequiresApproval = CurrentBusiness.RequiresApproval,
+            CancellationNoticeMinutes = CurrentBusiness.CancellationNoticeMinutes,
+        };
+
+        AvatarUrl = CurrentBusiness.AvatarData != null ? $"/media/business/{CurrentBusiness.Id}/avatar?t={DateTime.UtcNow.Ticks}" : null;
+        HeaderUrl = CurrentBusiness.HeaderData != null ? $"/media/business/{CurrentBusiness.Id}/header?t={DateTime.UtcNow.Ticks}" : null;
+    }
+
+    private async Task UploadAvatar(InputFileChangeEventArgs e)
+    {
+        if (CurrentBusiness is null) return;
+        try
+        {
+            var file = e.File;
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                Error = "حجم فایل نباید بیش از ۵ مگابایت باشد.";
+                return;
+            }
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == CurrentBusiness.Id);
+            if (b != null)
+            {
+                b.AvatarData = ms.ToArray();
+                b.AvatarContentType = file.ContentType.ToLowerInvariant();
+                b.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+                AvatarUrl = $"/media/business/{b.Id}/avatar?t={DateTime.UtcNow.Ticks}";
+                Message = "لوگوی کسب‌وکار با موفقیت به‌روزرسانی شد.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "خطا در بارگذاری تصویر: " + ex.Message;
+        }
+    }
+
+    private async Task UploadHeader(InputFileChangeEventArgs e)
+    {
+        if (CurrentBusiness is null) return;
+        try
+        {
+            var file = e.File;
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                Error = "حجم فایل نباید بیش از ۵ مگابایت باشد.";
+                return;
+            }
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == CurrentBusiness.Id);
+            if (b != null)
+            {
+                b.HeaderData = ms.ToArray();
+                b.HeaderContentType = file.ContentType.ToLowerInvariant();
+                b.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+                HeaderUrl = $"/media/business/{b.Id}/header?t={DateTime.UtcNow.Ticks}";
+                Message = "تصویر کاور با موفقیت به‌روزرسانی شد.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "خطا در بارگذاری تصویر کاور: " + ex.Message;
+        }
+    }
+
+    private async Task SaveBusiness()
+    {
+        if (CurrentBusiness is null || Saving) return;
+        Error = Message = null;
+
+        var name = (Form.Name ?? "").Trim();
+        var slug = (Form.Slug ?? "").Trim().ToLowerInvariant();
+        var category = (Form.Category ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            Error = "نام کسب‌وکار الزامی است.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(slug) || !System.Text.RegularExpressions.Regex.IsMatch(slug, "^[a-z0-9]+(-[a-z0-9]+)*$"))
+        {
+            Error = "شناسه URL باید فقط شامل حروف انگلیسی کوچک، اعداد و خط تیره (-) باشد.";
+            return;
+        }
+
+        Saving = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var isSlugTaken = await db.Businesses.AnyAsync(x => x.Slug.ToLower() == slug && x.Id != CurrentBusiness.Id);
+            if (isSlugTaken)
+            {
+                Error = "این شناسه اینترنتی (Slug) قبلاً توسط کسب‌وکار دیگری ثبت شده است.";
+                return;
+            }
+
+            var b = await db.Businesses.FirstOrDefaultAsync(x => x.Id == CurrentBusiness.Id);
+            if (b is null)
+            {
+                Error = "کسب‌وکار پیدا نشد.";
+                return;
+            }
+
+            b.Name = name;
+            b.Slug = slug;
+            b.Category = category;
+            b.City = (Form.City ?? "").Trim();
+            b.Description = (Form.Description ?? "").Trim();
+            b.RequiresApproval = Form.RequiresApproval;
+            b.CancellationNoticeMinutes = Form.CancellationNoticeMinutes ?? 120;
+            b.UpdatedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync();
+            CurrentBusiness = b;
+            Message = "مشخصات کسب‌وکار با موفقیت ذخیره شد.";
+
+            // Reload list to update titles if name changed
+            ManagedBusinesses = await Access.ManagedBusinessesAsync();
+        }
+        catch (Exception ex)
+        {
+            Error = "خطا در ذخیره مشخصات: " + ex.Message;
+        }
+        finally
+        {
+            Saving = false;
+        }
+    }
+
+    public void Dispose() { }
+}

@@ -78,6 +78,7 @@ class LoginUseCaseTest {
         override suspend fun getPlatformPricing(): Result<PlatformPricing> = Result.success(PlatformPricing())
         override suspend fun uploadBusinessRequestReceipt(input: ReceiptUploadInput): Result<BusinessRequest> =
             Result.success(BusinessRequest(id = "req-1"))
+        override suspend fun forgotPassword(identifier: String): Result<String> = Result.success("ok")
         override val cachedSession: MobileSession? = null
     }
 }
@@ -150,6 +151,7 @@ class RegisterUseCaseTest {
         override suspend fun getPlatformPricing(): Result<PlatformPricing> = Result.success(PlatformPricing())
         override suspend fun uploadBusinessRequestReceipt(input: ReceiptUploadInput): Result<BusinessRequest> =
             Result.success(BusinessRequest(id = "req-1"))
+        override suspend fun forgotPassword(identifier: String): Result<String> = Result.success("ok")
         override val cachedSession: MobileSession? = null
     }
 }

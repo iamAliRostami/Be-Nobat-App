@@ -206,6 +206,9 @@ class ManagementRepositoryImpl(
     ): Result<ApiPage<ManagementAppointment>> =
         api.adminListAppointments(businessId, branchId, resourceId, customerId, date, status, page, pageSize)
 
+    override suspend fun createWalkInAppointment(input: com.leon.be_nobat.domain.model.ManagementWalkInInput): Result<ManagementAppointment> =
+        api.adminCreateWalkInAppointment(encode(input))
+
     override suspend fun getAppointment(id: String): Result<ManagementAppointment> = api.adminGetAppointment(id)
 
     override suspend fun setAppointmentStatus(id: String, input: ManagementStatusInput): Result<ManagementAppointment> =

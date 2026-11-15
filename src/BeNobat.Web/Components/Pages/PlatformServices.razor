@@ -25,7 +25,7 @@
             <label>نام استاندارد<input required @bind="Form.Name" /></label>
             <label>شناسه URL<input required dir="ltr" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="100" @bind="Form.Slug" /></label>
             <label>دسته‌بندی<select @bind="Form.Category">@if (!Categories.Contains(Form.Category)) { <option value="@Form.Category">@Form.Category (قدیمی)</option> }@foreach (var category in Categories) { <option value="@category">@category</option> }</select></label>
-            <label>مدت پیشنهادی (دقیقه)<input type="number" min="5" max="1440" @bind="Form.Duration" /></label>
+            <label>مدت پیشنهادی (دقیقه)<input type="number" min="5" max="1440" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" @bind="Form.Duration" /></label>
             <label>توضیحات<textarea @bind="Form.Description"></textarea></label>
             <label class="check-label"><input type="checkbox" @bind="Form.IsPublished" /><span>در دسترس کسب‌وکارها باشد</span></label>
             @if (Error is not null) { <div class="auth-error">@Error</div> }

@@ -172,8 +172,9 @@ app.Use(async (http, next) =>
         http.Response.Clear(); http.Response.StatusCode = ex.StatusCode;
         await http.Response.WriteAsJsonAsync(new ApiError("invalid_input", "The request body or parameters are invalid."));
     }
-    catch (DbUpdateConcurrencyException) when (!http.Response.HasStarted)
+    catch (DbUpdateConcurrencyException ex) when (!http.Response.HasStarted)
     {
+        app.Logger.LogWarning(ex, "Concurrency conflict on {Path}: {Entries}", http.Request.Path, string.Join(", ", ex.Entries.Select(e => $"{e.Entity.GetType().Name}:{e.State}")));
         http.Response.Clear(); http.Response.StatusCode = 409;
         await http.Response.WriteAsJsonAsync(new ApiError("conflict", "The record changed. Refresh and try again."));
     }

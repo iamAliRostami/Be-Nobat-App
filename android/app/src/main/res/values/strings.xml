@@ -176,6 +176,7 @@
     <string name="analytics_toman_suffix">تومان</string>
     <string name="analytics_appts_suffix">نوبت</string>
     <string name="admin_branches">شعب و منابع</string>
+    <string name="admin_business_profile">مشخصات کسب‌وکار</string>
     <string name="admin_services">خدمات</string>
     <string name="admin_availability">زمان‌های خالی</string>
     <string name="admin_reviews">امتیازها و نظرات</string>
@@ -529,6 +530,14 @@
     <string name="demo_reset_success">داده‌های دمو بازنشانی شدند.</string>
     <string name="demo_accounts_hint">دمو: user@benobat.ir / manager@benobat.ir / admin@benobat.ir / staff@benobat.ir</string>
     <string name="demo_password_hint">رمز اولیه حساب‌های دمو: Demo1234!</string>
+    <string name="forgot_password">فراموشی رمز عبور؟</string>
+    <string name="forgot_password_title">درخواست بازنشانی رمز عبور</string>
+    <string name="forgot_password_msg">ایمیل یا شماره موبایل حساب خود را وارد کنید تا درخواست برای مدیر سامانه ارسال شود.</string>
+    <string name="forgot_password_success">درخواست بازنشانی رمز عبور با موفقیت ثبت شد و توسط مدیر سامانه بررسی خواهد شد.</string>
+    <string name="send_request">ارسال درخواست</string>
+    <string name="dialog_title_success">موفق</string>
+    <string name="dialog_action_ok">تأیید</string>
+    <string name="msg_operation_failed">عملیات با خطا مواجه شد</string>
 
     <!-- User Management Tabs & Search -->
     <string name="status_active">فعال</string>
@@ -601,10 +610,10 @@
     <string name="platform_request_rejected_success">درخواست رد شد.</string>
     <string name="drawer_platform_requests">درخواست‌های کسب‌وکار</string>
     <string name="drawer_system_messages">پیام‌های سامانه</string>
-    <string name="drawer_platform_messages">پیام‌های کاربران (تماس با ما)</string>
+    <string name="drawer_platform_messages">پیام‌های تماس با ما</string>
     <string name="drawer_platform_announcements">ارسال پیام به مدیران</string>
     <string name="system_messages_title">پیام‌های سامانه</string>
-    <string name="platform_messages_title">پیام‌های کاربران (تماس با ما)</string>
+    <string name="platform_messages_title">پیام‌های تماس با ما</string>
     <string name="platform_announcements_title">ارسال پیام و اعلانات به مدیران</string>
     <string name="priority_normal">عادی</string>
     <string name="priority_important">مهم</string>

@@ -119,6 +119,9 @@ class BeNobatApiClient(
     /** POST /auth/logout â€” returns 204 No Content; consumes the current token. */
     suspend fun logout(): Result<Unit> = postEmpty("/auth/logout")
 
+    /** POST /auth/forgot-password */
+    suspend inline fun <reified T> forgotPassword(body: JsonObject): Result<T> = post("/auth/forgot-password", body)
+
     // ====================  ME  ====================
 
     /** GET /me â€” current user DTO. */
@@ -514,6 +517,10 @@ class BeNobatApiClient(
     /** PUT /admin/appointments/{id}/status â€” `{status}`. */
     suspend inline fun <reified T> adminSetAppointmentStatus(id: String, body: JsonObject): Result<T> =
         put("/admin/appointments/$id/status", body)
+
+    /** POST /admin/appointments/walk-in */
+    suspend inline fun <reified T> adminCreateWalkInAppointment(body: JsonObject): Result<T> =
+        post("/admin/appointments/walk-in", body)
 
     /** GET /admin/reviews. */
     suspend inline fun <reified T> adminListReviews(

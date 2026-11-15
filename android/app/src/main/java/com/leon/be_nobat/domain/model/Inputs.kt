@@ -142,7 +142,18 @@ data class ManagementAvailabilityInput(
 )
 
 @Serializable
-data class ManagementStatusInput(val status: String)
+data class ManagementStatusInput(val status: String, val newStartsAt: String? = null)
+
+@Serializable
+data class ManagementWalkInInput(
+    val branchId: String,
+    val serviceId: String,
+    val resourceId: String? = null,
+    val startsAt: String,
+    val customerName: String? = null,
+    val phoneNumber: String? = null,
+    val note: String? = null,
+)
 
 @Serializable
 data class ManagementModerationInput(

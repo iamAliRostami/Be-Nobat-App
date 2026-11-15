@@ -77,4 +77,11 @@
     <color name="colorOutlineVariant">#2A3835</color>
     <color name="colorSurfaceVariant">#1C2624</color>
     <color name="colorError">#FFB4AB</color>
+
+    <!-- Booked / disabled slot colors (Night) -->
+    <color name="colorSlotBookedBackground">#121817</color>
+    <color name="colorSlotBookedStroke">#1E2725</color>
+    <color name="colorSlotBookedText">#576662</color>
+    <color name="colorSlotBookedBadgeBg">#3A1A1D</color>
+    <color name="colorSlotBookedBadgeText">#FCA5A5</color>
 </resources>

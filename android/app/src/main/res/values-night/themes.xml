@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ThemeOverlay.BeNobat.DatePickerDialog" parent="android:Theme.Material.Dialog.Alert">
+        <item name="android:colorPrimary">@color/colorPrimary</item>
+        <item name="android:colorAccent">@color/colorPrimary</item>
+        <item name="android:headerBackground">@color/colorSecondaryContainer</item>
+        <item name="android:colorBackground">@color/colorSurface</item>
+        <item name="android:windowBackground">@color/colorSurface</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorSecondary">@color/colorPrimary</item>
+        <item name="colorOnSecondary">@color/colorOnPrimary</item>
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+        <item name="colorOnSurfaceVariant">@color/colorOnSurfaceVariant</item>
+        <item name="android:datePickerStyle">@style/Widget.BeNobat.DatePicker</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.BeNobat.Button.Text</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.BeNobat.Button.Text</item>
+    </style>
+
+    <style name="Widget.BeNobat.DatePicker" parent="android:Widget.Material.DatePicker">
+        <item name="android:headerBackground">@color/colorSecondaryContainer</item>
+        <item name="android:background">@color/colorSurface</item>
+        <item name="android:dayOfWeekBackground">@color/colorSurface</item>
+        <item name="android:yearListSelectorColor">@color/colorPrimary</item>
+    </style>
+</resources>

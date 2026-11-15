@@ -41,6 +41,10 @@
                 android:id="@+id/group_business"
                 android:checkableBehavior="all">
                 <item
+                    android:id="@+id/drawer_business_profile"
+                    android:icon="@drawable/ic_platform"
+                    android:title="@string/admin_business_profile" />
+                <item
                     android:id="@+id/drawer_services"
                     android:icon="@drawable/ic_services"
                     android:title="@string/admin_services" />

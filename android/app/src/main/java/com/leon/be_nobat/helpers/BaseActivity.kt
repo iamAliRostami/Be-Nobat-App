@@ -61,11 +61,19 @@ abstract class BaseActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottomPadding = if (ime.bottom > 0) {
+                ime.bottom
+            } else if (applyBottomInsetsOnRoot) {
+                systemBars.bottom
+            } else {
+                0
+            }
             v.setPadding(
                 systemBars.left,
                 systemBars.top,
                 systemBars.right,
-                if (applyBottomInsetsOnRoot) systemBars.bottom else 0
+                bottomPadding
             )
             insets
         }
@@ -449,6 +457,7 @@ abstract class BaseActivity : AppCompatActivity() {
                     updateDrawerBadge(menu.findItem(R.id.drawer_reviews), badges.pendingReviews, R.drawable.bg_drawer_badge_amber)
                     updateDrawerBadge(menu.findItem(R.id.drawer_platform_requests), badges.pendingRequests, R.drawable.bg_drawer_badge_red)
                     updateDrawerBadge(menu.findItem(R.id.drawer_platform_messages), badges.unreadContactMessages, R.drawable.bg_drawer_badge_amber)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_platform_access), badges.pendingPasswordResets, R.drawable.bg_drawer_badge_red)
 
                     val broadcastBg = when (badges.highestBroadcastPriority?.lowercase()) {
                         "urgent" -> R.drawable.bg_drawer_badge_red
@@ -514,6 +523,10 @@ abstract class BaseActivity : AppCompatActivity() {
                     R.id.drawer_calendar -> navigateAdminDestination(AdminCalendarActivity::class.java)
                     R.id.drawer_analytics -> navigateAdminDestination(com.leon.be_nobat.ui.activities.AdminAnalyticsActivity::class.java)
                     R.id.drawer_system_messages -> navigateAdminDestination(AdminSystemMessagesActivity::class.java)
+                    R.id.drawer_business_profile -> {
+                        if (!canManage) showToast(R.string.error_access_denied)
+                        else navigateAdminDestination(com.leon.be_nobat.ui.activities.AdminBusinessEditActivity::class.java)
+                    }
                     R.id.drawer_branches -> {
                         if (!canManage) showToast(R.string.error_access_denied)
                         else navigateAdminDestination(AdminBranchesActivity::class.java)

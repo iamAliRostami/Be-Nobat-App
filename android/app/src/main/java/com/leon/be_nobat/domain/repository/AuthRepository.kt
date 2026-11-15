@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<MobileSession>
     suspend fun register(input: RegisterInput): Result<MobileSession>
+    suspend fun forgotPassword(identifier: String): Result<String>
     suspend fun logout(): Result<Unit>
     suspend fun getMe(): Result<User>
     suspend fun updateProfile(input: ProfileInput): Result<User>

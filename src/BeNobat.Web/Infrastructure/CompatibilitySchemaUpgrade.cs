@@ -294,6 +294,14 @@ public static class CompatibilitySchemaUpgrade
                 CONSTRAINT "FK_AdminMessageReads_AdminBroadcastMessages_MessageId" FOREIGN KEY ("MessageId") REFERENCES benobat."AdminBroadcastMessages" ("Id") ON DELETE CASCADE,
                 CONSTRAINT "FK_AdminMessageReads_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE CASCADE);
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_AdminMessageReads_MessageId_UserId" ON benobat."AdminMessageReads" ("MessageId", "UserId");
+            CREATE TABLE IF NOT EXISTS benobat."PasswordResetRequests" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "UserId" uuid NULL, "Identifier" text NOT NULL,
+                "ContactInfo" text NULL, "Status" text NOT NULL DEFAULT 'Pending',
+                "ResolvedAt" timestamptz NULL, "AdminNote" text NULL,
+                CONSTRAINT "FK_PasswordResetRequests_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE SET NULL);
+            CREATE INDEX IF NOT EXISTS "IX_PasswordResetRequests_Status" ON benobat."PasswordResetRequests" ("Status");
+            CREATE INDEX IF NOT EXISTS "IX_PasswordResetRequests_CreatedAt" ON benobat."PasswordResetRequests" ("CreatedAt");
             DO $$ BEGIN
                 ALTER TABLE benobat."BranchServices" ADD CONSTRAINT "CK_BranchService_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;

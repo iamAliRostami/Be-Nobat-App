@@ -393,6 +393,44 @@
         {
             Error = "این شناسه URL هم‌زمان توسط کاربر دیگری ثبت شد؛ شناسه دیگری انتخاب کنید.";
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            try
+            {
+                await using var fallbackDb = await DbFactory.CreateDbContextAsync();
+                var fallbackBiz = await fallbackDb.Businesses.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == EditingId);
+                if (fallbackBiz != null)
+                {
+                    fallbackBiz.Name = Form.Name;
+                    fallbackBiz.Category = Form.Category;
+                    fallbackBiz.City = Form.City;
+                    fallbackBiz.Description = Form.Description;
+                    fallbackBiz.RequiresApproval = Form.RequiresApproval;
+                    fallbackBiz.CancellationNoticeMinutes = Form.CancellationNoticeMinutes ?? 120;
+                    fallbackBiz.DepositPercentage = Form.DepositPercentage;
+                    fallbackBiz.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
+                    fallbackBiz.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
+                    fallbackBiz.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
+                    fallbackBiz.UpdatedAt = DateTimeOffset.UtcNow;
+                    await fallbackDb.SaveChangesAsync();
+                    Message = "تغییرات با موفقیت ذخیره شد.";
+                    Close();
+                    await Load();
+                }
+                else
+                {
+                    Error = "کسب‌وکار پیدا نشد؛ فهرست را تازه کنید.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Error = "خطا در ذخیره تغییرات: " + ex.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = "خطا در ذخیره کسب‌وکار: " + ex.Message;
+        }
         finally { Saving = false; }
     }
 

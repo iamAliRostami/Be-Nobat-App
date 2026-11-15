@@ -38,7 +38,10 @@
         </label>
         <ValidationMessage For="() => Input!.Password" />
 
-        <label class="auth-remember"><InputCheckbox @bind-Value="Input!.RememberMe" /> مرا به خاطر بسپار</label>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <label class="auth-remember" style="margin-top:0;"><InputCheckbox @bind-Value="Input!.RememberMe" /> مرا به خاطر بسپار</label>
+            <a href="/account/forgot-password" style="font-size:12px; color:var(--primary); text-decoration:none;">فراموشی رمز عبور؟</a>
+        </div>
 
         <button type="submit" class="primary-button auth-submit">ورود</button>
         <p class="auth-switch">حساب کاربری ندارید؟ <a href="@RegisterHref">ثبت‌نام کنید</a></p>

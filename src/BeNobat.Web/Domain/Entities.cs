@@ -456,3 +456,17 @@ public sealed class AdminMessageRead : Entity
     public AdminBroadcastMessage Message { get; set; } = null!;
     public AppUser User { get; set; } = null!;
 }
+
+public enum PasswordResetRequestStatus { Pending, Resolved, Rejected }
+
+public sealed class PasswordResetRequest : Entity
+{
+    public Guid? UserId { get; set; }
+    public string Identifier { get; set; } = string.Empty;
+    public string? ContactInfo { get; set; }
+    public PasswordResetRequestStatus Status { get; set; } = PasswordResetRequestStatus.Pending;
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public string? AdminNote { get; set; }
+
+    public AppUser? User { get; set; }
+}

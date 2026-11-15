@@ -315,21 +315,28 @@
                         android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                         android:textSize="12sp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="مدت زمان خدمت *"
-                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                        android:textSize="12sp" />
-
-                    <Spinner
-                        android:id="@+id/spDuration"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDuration"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:layout_marginTop="4dp"
+                        android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:background="@drawable/bg_day_tab_unselected"
-                        android:paddingHorizontal="12dp" />
+                        android:hint="مدت زمان خدمت (دقیقه) *"
+                        app:helperText="مدت زمان را به دقیقه وارد کنید (مثلاً ۳۰)"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusTopStart="12dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDuration"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font"
+                            android:inputType="number"
+                            android:digits="0123456789۰۱۲۳۴۵۶۷۸۹"
+                            android:text="30" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilPrice"
@@ -452,6 +459,7 @@
 
     <!-- Sticky Bottom Actions -->
     <LinearLayout
+        android:id="@+id/layoutBottomActions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"

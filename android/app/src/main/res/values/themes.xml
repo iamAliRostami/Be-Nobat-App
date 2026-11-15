@@ -28,7 +28,12 @@
         <item name="android:datePickerDialogTheme">@style/ThemeOverlay.BeNobat.DatePickerDialog</item>
     </style>
 
-    <style name="ThemeOverlay.BeNobat.DatePickerDialog" parent="Theme.Material3.DayNight.Dialog.Alert">
+    <style name="ThemeOverlay.BeNobat.DatePickerDialog" parent="android:Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorPrimary">@color/colorPrimary</item>
+        <item name="android:colorAccent">@color/colorPrimary</item>
+        <item name="android:headerBackground">@color/colorPrimary</item>
+        <item name="android:colorBackground">@color/colorSurface</item>
+        <item name="android:windowBackground">@color/colorSurface</item>
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorOnPrimary">@color/colorOnPrimary</item>
         <item name="colorSecondary">@color/colorPrimary</item>
@@ -43,6 +48,7 @@
 
     <style name="Widget.BeNobat.DatePicker" parent="android:Widget.Material.Light.DatePicker">
         <item name="android:headerBackground">@color/colorPrimary</item>
+        <item name="android:background">@color/colorSurface</item>
     </style>
 
     <style name="Theme.BeNobat" parent="Base.Theme.BeNobat" />

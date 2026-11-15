@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/tvWalkInTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.BeNobat.Brand"
+        android:textSize="18sp"
+        android:textColor="?attr/colorOnSurface"
+        android:text="ثبت نوبت حضوری / متفرقه" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Customer Name -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInName"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="نام مشتری یا عنوان متفرقه">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInCustomerName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Customer Phone -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInPhone"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="شماره موبایل (اختیاری)">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInCustomerPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="phone"
+                    android:textDirection="ltr" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Branch Dropdown -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInBranch"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="شعبه"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInBranch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:cursorVisible="false"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Service Dropdown -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInService"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="نوع خدمت"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInService"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:cursorVisible="false"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Resource Dropdown (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInResource"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="ارائه‌دهنده (اختیاری)"
+                app:endIconMode="custom"
+                app:endIconDrawable="@drawable/ic_arrow_drop_down">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInResource"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clickable="true"
+                    android:cursorVisible="false"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Date and Time Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutWalkInDate"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:hint="تاریخ نوبت"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_calendar">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etWalkInDate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:cursorVisible="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutWalkInTime"
+                    style="@style/Widget.BeNobat.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:hint="ساعت نوبت"
+                    app:endIconMode="custom"
+                    app:endIconDrawable="@drawable/ic_calendar">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etWalkInTime"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:cursorVisible="false"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <!-- Note (Optional) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layoutWalkInNote"
+                style="@style/Widget.BeNobat.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:hint="توضیحات (اختیاری)">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etWalkInNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:maxLines="3" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Error message -->
+            <TextView
+                android:id="@+id/tvWalkInError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textColor="@color/error_red"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

@@ -40,6 +40,41 @@ public static class AuthenticationEndpoints
             if (!result.Succeeded) return ApiResults.Error(result.IsLockedOut ? "account_locked" : "invalid_credentials", "Email or password is incorrect.", 401);
             return Results.Ok(await tokens.IssueAsync(user));
         }).AllowAnonymous().RequireRateLimiting("mobile-auth");
+        auth.MapPost("/forgot-password", async (ForgotPasswordInput input, UserManager<AppUser> users, AppDbContext db, CancellationToken ct) =>
+        {
+            var raw = input.Identifier?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(raw))
+                return ApiResults.Error("invalid_input", "لطفاً ایمیل یا شماره موبایل خود را وارد کنید.");
+
+            AppUser? user = null;
+            string contactInfo = raw;
+            if (UserInputValidation.TryNormalizeIranianMobile(raw, out var phone))
+            {
+                contactInfo = phone;
+                user = await users.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone, ct);
+            }
+            else if (Email(raw))
+            {
+                user = await users.FindByEmailAsync(raw) ?? await users.Users.FirstOrDefaultAsync(u => u.UserName == raw, ct);
+            }
+            else
+            {
+                user = await users.FindByNameAsync(raw);
+            }
+
+            var request = new PasswordResetRequest
+            {
+                UserId = user?.Id,
+                Identifier = raw,
+                ContactInfo = contactInfo,
+                Status = PasswordResetRequestStatus.Pending,
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            db.PasswordResetRequests.Add(request);
+            await db.SaveChangesAsync(ct);
+
+            return Results.Ok(new { message = "درخواست بازنشانی رمز عبور با موفقیت ثبت شد و توسط مدیر سامانه بررسی خواهد شد." });
+        }).AllowAnonymous().RequireRateLimiting("mobile-auth");
         auth.MapPost("/register", async (RegisterInput input, UserManager<AppUser> users, MobileTokenService tokens) =>
         {
             if (!UserInputValidation.TryNormalizeDisplayName(input.DisplayName, out var displayName) ||
@@ -146,3 +181,4 @@ public sealed record ProfileInput(string? DisplayName, string? PhoneNumber);
 public sealed record PasswordInput(string? CurrentPassword, string? NewPassword);
 public sealed record EmailInput(string? Email, string? CurrentPassword);
 public sealed record AvatarInput(string? ContentType, string? DataBase64);
+public sealed record ForgotPasswordInput(string? Identifier);

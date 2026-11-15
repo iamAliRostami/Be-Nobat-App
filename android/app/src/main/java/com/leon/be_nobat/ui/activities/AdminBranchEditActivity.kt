@@ -48,7 +48,9 @@ class AdminBranchEditActivity : BaseActivity() {
     private val updateBranchUseCase: AdminUpdateBranchUseCase by inject()
     private val toggleBranchActiveUseCase: AdminToggleBranchActiveUseCase by inject()
 
-    private var editingBranchId: String? = null
+    private val editingBranchId: String?
+        get() = intent.getStringExtra(EXTRA_BRANCH_ID)
+
     private var existingBranch: ManagementBranch? = null
     private var businessesList: List<Pair<String, String>> = emptyList() // ID to Name
     private var selectedBusinessId: String? = null
@@ -110,13 +112,12 @@ class AdminBranchEditActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requireBusinessManagementPermission()
-        editingBranchId = intent.getStringExtra(EXTRA_BRANCH_ID)
     }
 
     override fun setupViews() {
         val isEditing = !editingBranchId.isNullOrBlank()
         setupAdminHeader(
-            title = if (isEditing) "ویرایش شعبه" else "افزودن شعبه",
+            title = if (isEditing) getString(R.string.form_edit_branch_title) else getString(R.string.form_create_branch_title),
             onBack = { finish() }
         )
 
@@ -177,7 +178,7 @@ class AdminBranchEditActivity : BaseActivity() {
             updateCoordinatesUi()
         }
 
-        btnSave.text = if (isEditing) "ذخیره تغییرات" else "ایجاد شعبه"
+        btnSave.text = if (isEditing) getString(R.string.platform_biz_save_btn) else "ایجاد شعبه"
         btnCancel.setOnClickListener { finish() }
 
         setupBusinessSelection()
@@ -335,11 +336,14 @@ class AdminBranchEditActivity : BaseActivity() {
                 businessFilterAdapter = BusinessFilterAdapter(this@AdminBranchEditActivity, businessesList)
                 autoCompleteBusiness.setAdapter(businessFilterAdapter)
 
-                if (editingBranchId != null) {
+                if (!editingBranchId.isNullOrBlank()) {
                     loadBranchDetails(editingBranchId!!)
                 }
             }.onFailure {
-                Snackbar.make(btnSave, it.message ?: "خطا در دریافت لیست کسب‌وکارها", Snackbar.LENGTH_LONG).show()
+                showFeedback(it.message ?: "خطا در دریافت لیست کسب‌وکارها", isError = true)
+                if (!editingBranchId.isNullOrBlank()) {
+                    loadBranchDetails(editingBranchId!!)
+                }
             }
         }
     }
@@ -364,6 +368,9 @@ class AdminBranchEditActivity : BaseActivity() {
             if (biz != null) {
                 selectedBusinessId = biz.first
                 autoCompleteBusiness.setText(biz.second, false)
+            } else if (!branch.businessName.isNullOrBlank()) {
+                selectedBusinessId = branch.businessId
+                autoCompleteBusiness.setText(branch.businessName, false)
             }
             tilBusiness.isEnabled = false
             autoCompleteBusiness.isEnabled = false
@@ -390,7 +397,7 @@ class AdminBranchEditActivity : BaseActivity() {
                         Toast.makeText(this@AdminBranchEditActivity, if (isChecked) "شعبه فعال شد" else "شعبه غیرفعال شد", Toast.LENGTH_SHORT).show()
                     }.onFailure { err ->
                         switchBranchActive.isChecked = !isChecked
-                        Snackbar.make(btnSave, err.message ?: "خطا در تغییر وضعیت", Snackbar.LENGTH_SHORT).show()
+                        showFeedback(err.message ?: "خطا در تغییر وضعیت", isError = true)
                     }
                 }
             }
@@ -412,9 +419,10 @@ class AdminBranchEditActivity : BaseActivity() {
                 )
             }
 
+            btnSave.text = getString(R.string.platform_biz_save_btn)
             btnSave.setOnClickListener { saveBranch() }
         }.onFailure { err ->
-            Snackbar.make(btnSave, err.message ?: "خطا در بارگذاری مشخصات شعبه", Snackbar.LENGTH_LONG).show()
+            showFeedback(err.message ?: "خطا در بارگذاری مشخصات شعبه", isError = true)
         }
     }
 
@@ -456,7 +464,7 @@ class AdminBranchEditActivity : BaseActivity() {
         val hours = weeklyHoursEditor.value
         val hoursValidation = WeeklyHours.validate(hours)
         if (hoursValidation != null) {
-            Snackbar.make(btnSave, hoursValidation, Snackbar.LENGTH_LONG).show()
+            showFeedback(hoursValidation, isError = true)
             return
         }
 
@@ -484,7 +492,7 @@ class AdminBranchEditActivity : BaseActivity() {
 
         btnSave.isEnabled = false
         lifecycleScope.launch {
-            if (editingBranchId == null) {
+            if (editingBranchId.isNullOrBlank()) {
                 createBranchUseCase(input).onSuccess { created ->
                     btnSave.isEnabled = true
                     if (!isPlatformAdmin()) {
@@ -510,7 +518,7 @@ class AdminBranchEditActivity : BaseActivity() {
                     }
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ثبت شعبه", Snackbar.LENGTH_LONG).show()
+                    showFeedback(err.message ?: "خطا در ثبت شعبه", isError = true)
                 }
             } else {
                 updateBranchUseCase(editingBranchId!!, input).onSuccess {
@@ -519,9 +527,17 @@ class AdminBranchEditActivity : BaseActivity() {
                     finish()
                 }.onFailure { err ->
                     btnSave.isEnabled = true
-                    Snackbar.make(btnSave, err.message ?: "خطا در ذخیره تغییرات شعبه", Snackbar.LENGTH_LONG).show()
+                    showFeedback(err.message ?: "خطا در ذخیره تغییرات شعبه", isError = true)
                 }
             }
+        }
+    }
+
+    private fun showFeedback(message: String, isError: Boolean = false) {
+        val anchor = findViewById<View>(R.id.layoutBottomActions) ?: btnSave
+        Snackbar.make(anchor, message, if (isError) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT).apply {
+            setAnchorView(anchor)
+            show()
         }
     }
 

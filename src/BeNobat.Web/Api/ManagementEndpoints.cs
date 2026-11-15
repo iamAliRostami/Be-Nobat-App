@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using BeNobat.Web.Application;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using BeNobat.Web.Security;
@@ -80,7 +81,9 @@ public static class ManagementEndpoints
         admin.MapGet("/appointments", ListAppointments);
         admin.MapGet("/calendar", ListAppointments);
         admin.MapGet("/appointments/{id:guid}", GetAppointment);
+        admin.MapGet("/appointments/{id:guid}/reschedule-options", GetRescheduleOptions);
         admin.MapPut("/appointments/{id:guid}/status", ChangeAppointmentStatus);
+        admin.MapPost("/appointments/walk-in", CreateWalkInAppointment);
         admin.MapGet("/reviews", ListReviews);
         admin.MapPut("/reviews/{id:guid}/moderation", ModerateReview);
         admin.MapPut("/reviews/{id:guid}/reply", ReplyToReview);
@@ -447,9 +450,10 @@ public static class ManagementEndpoints
                 branch = new Branch { Business = item, BusinessId = item.Id, Name = "شعبه مرکزی", OpenHour = 8, CloseHour = 20 };
                 db.Branches.Add(branch);
             }
+            branch.Business = item;
             branch.Name = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : Clean(input.FirstBranchName);
             if (input.FirstBranchAddress is not null) branch.Address = Clean(input.FirstBranchAddress);
-            if (input.FirstBranchWeeklyHours is not null) WeeklySchedule.Replace(branch, input.FirstBranchWeeklyHours);
+            if (input.FirstBranchWeeklyHours is not null) WeeklySchedule.Replace(branch, input.FirstBranchWeeklyHours, r => db.AvailabilityRules.Add(r));
         }
         ApplyBusiness(item, input, slug); await db.SaveChangesAsync(ct); return Results.Ok(BusinessDto(item));
     }
@@ -540,7 +544,7 @@ public static class ManagementEndpoints
         var item = await StoredBranches(db, scope, true).Include(x => x.AvailabilityRules).SingleOrDefaultAsync(x => x.Id == id, ct);
         if (item is null) return Missing();
         if (item.BusinessId != input.BusinessId) return Invalid("A branch cannot be moved to another business.");
-        ApplyBranch(item, input); if (input.WeeklyHours is not null) WeeklySchedule.Replace(item, input.WeeklyHours); await db.SaveChangesAsync(ct); return Results.Ok(BranchDto(item));
+        ApplyBranch(item, input); if (input.WeeklyHours is not null) WeeklySchedule.Replace(item, input.WeeklyHours, r => db.AvailabilityRules.Add(r)); await db.SaveChangesAsync(ct); return Results.Ok(BranchDto(item));
     }
 
     private static async Task<IResult> SetBranchActive(Guid id, ManagementActiveInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
@@ -1203,17 +1207,115 @@ public static class ManagementEndpoints
         return item is null ? Missing() : Results.Ok(item);
     }
 
-    private static async Task<IResult> ChangeAppointmentStatus(Guid id, ManagementStatusInput input, AppDbContext db, ApiScope scope, CancellationToken ct)
+    private static async Task<IResult> GetRescheduleOptions(Guid id, DateOnly? date, AppointmentBookingService booking, ApiScope scope, CancellationToken ct)
+    {
+        var appt = await scope.Appointments().Include(a => a.Branch).SingleOrDefaultAsync(a => a.Id == id, ct);
+        if (appt is null) return Missing();
+        var day = date ?? BranchClock.LocalDate(appt.StartsAt, appt.Branch.TimeZoneId);
+        var options = await booking.GetRescheduleOptionsAsync(id, day, ct);
+        return Results.Ok(options);
+    }
+
+    private static async Task<IResult> ChangeAppointmentStatus(Guid id, ManagementStatusInput input, AppDbContext db, ApiScope scope, AppointmentBookingService booking, CancellationToken ct)
     {
         if (!StrictEnum<AppointmentStatus>(input.Status, out var status)) return Invalid("The appointment status is invalid.");
         var item = await scope.Appointments().SingleOrDefaultAsync(a => a.Id == id, ct);
         if (item is null) return Missing();
         var now = DateTimeOffset.UtcNow;
         if (!BookingPolicy.CanTransition(item.Status, status, item.StartsAt, now)) return Conflict("This appointment status transition is not allowed.");
-        item.Status = status;
-        item.UpdatedAt = now;
-        await db.SaveChangesAsync(ct);
+
+        if (status == AppointmentStatus.Confirmed && item.Status == AppointmentStatus.Pending)
+        {
+            var failure = await booking.ConfirmAsync(id, input.NewStartsAt, ct);
+            if (failure is not null)
+            {
+                return failure switch
+                {
+                    ConfirmFailure.NotFound => Missing(),
+                    ConfirmFailure.NotPending => Conflict("This appointment is not pending."),
+                    ConfirmFailure.CustomerOverlap => Conflict("Customer has an overlapping appointment."),
+                    ConfirmFailure.InvalidTime => Invalid("The selected time is invalid."),
+                    _ => Conflict("The selected slot is unavailable.")
+                };
+            }
+        }
+        else
+        {
+            item.Status = status;
+            item.UpdatedAt = now;
+            await db.SaveChangesAsync(ct);
+        }
         return await GetAppointment(id, scope, ct);
+    }
+
+    private static async Task<IResult> CreateWalkInAppointment(WalkInAppointmentInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> userManager, CancellationToken ct)
+    {
+        if (input.BranchId == Guid.Empty || input.ServiceId == Guid.Empty)
+            return Invalid("شعبه و نوع خدمت الزامی هستند.");
+
+        var branch = await scope.Branches(true).SingleOrDefaultAsync(b => b.Id == input.BranchId, ct);
+        if (branch is null) return Missing();
+
+        var service = await db.Services.SingleOrDefaultAsync(s => s.Id == input.ServiceId && s.DeletedAt == null, ct);
+        if (service is null) return Missing();
+
+        AppUser? customer = null;
+        if (!string.IsNullOrWhiteSpace(input.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var phone))
+        {
+            customer = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phone || u.UserName == phone, ct);
+        }
+
+        if (customer is null)
+        {
+            var randomSuffix = Guid.NewGuid().ToString("N")[..8];
+            var userName = !string.IsNullOrWhiteSpace(input.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var p)
+                ? p
+                : $"walkin_{randomSuffix}";
+
+            customer = new AppUser
+            {
+                UserName = userName,
+                DisplayName = string.IsNullOrWhiteSpace(input.CustomerName) ? "مشتری متفرقه" : input.CustomerName.Trim(),
+                PhoneNumber = !string.IsNullOrWhiteSpace(input.PhoneNumber) && UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var ph) ? ph : null,
+                SecurityStamp = Guid.NewGuid().ToString()
+            };
+
+            var createRes = await userManager.CreateAsync(customer, "WalkIn_" + Guid.NewGuid().ToString("N")[..8] + "@123");
+            if (!createRes.Succeeded)
+                return Invalid(string.Join(", ", createRes.Errors.Select(e => e.Description)));
+            await userManager.AddToRoleAsync(customer, AppRoles.Customer);
+        }
+
+        var start = input.StartsAt.ToUniversalTime();
+        var end = start.AddMinutes(service.DurationMinutes);
+
+        var appointment = new Appointment
+        {
+            BranchId = branch.Id,
+            ServiceId = service.Id,
+            ResourceId = input.ResourceId,
+            CustomerId = customer.Id,
+            StartsAt = start,
+            EndsAt = end,
+            FinalPrice = service.Price,
+            Currency = "IRR",
+            Status = AppointmentStatus.Confirmed,
+            CustomerNote = string.IsNullOrWhiteSpace(input.Note) ? "مراجعه حضوری / متفرقه" : input.Note.Trim(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        appointment.Services.Add(new AppointmentService
+        {
+            ServiceId = service.Id,
+            Price = service.Price,
+            DurationMinutes = service.DurationMinutes
+        });
+
+        db.Appointments.Add(appointment);
+        await db.SaveChangesAsync(ct);
+
+        return await GetAppointment(appointment.Id, scope, ct);
     }
 
     private static IQueryable<ManagementReviewDto> ReviewDtos(IQueryable<Review> query) => query.Select(r =>
@@ -1971,11 +2073,13 @@ public static class ManagementEndpoints
 
         int pendingRequests = 0;
         int unreadContactMessages = 0;
+        int pendingPasswordResets = 0;
 
         if (scope.IsPlatform)
         {
             pendingRequests = await db.BusinessRequests.CountAsync(r => r.Status == BusinessRequestStatus.Pending, ct);
             unreadContactMessages = await db.ContactMessages.CountAsync(m => !m.IsRead, ct);
+            pendingPasswordResets = await db.PasswordResetRequests.CountAsync(r => r.Status == PasswordResetRequestStatus.Pending, ct);
         }
 
         var eligibleMessages = await db.AdminBroadcastMessages
@@ -2007,6 +2111,7 @@ public static class ManagementEndpoints
             pendingReviews,
             pendingRequests,
             unreadContactMessages,
+            pendingPasswordResets,
             unreadBroadcasts,
             highestBroadcastPriority = highestPriority
         });
@@ -2202,7 +2307,7 @@ public sealed record ManagementAccountDto(Guid Id, string DisplayName, string? E
 public sealed record ManagementContextMembership(Guid BranchId, Guid BusinessId, string BranchName, string Role, bool CanManageBusiness, bool CanManageAppointments);
 public sealed record ManagementAvailabilityInput(Guid BusinessId, DateOnly EffectiveDate, TimeOnly StartsAt, TimeOnly EndsAt, Guid? BranchId = null, Guid? ResourceId = null, bool IsAvailable = true);
 public sealed record ManagementAvailabilityDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid? ResourceId, DateOnly? EffectiveDate, string DayOfWeek, TimeOnly StartsAt, TimeOnly EndsAt, bool IsAvailable, string? BusinessName = null, string? BranchName = null, string? ResourceName = null);
-public sealed record ManagementStatusInput(string Status);
+public sealed record ManagementStatusInput(string Status, DateTimeOffset? NewStartsAt = null);
 public sealed record ManagementAppointmentDto(Guid Id, Guid BranchId, Guid BusinessId, Guid ServiceId, Guid? ResourceId, Guid CustomerId, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string Status, decimal FinalPrice, string Currency, string CustomerNote, string BranchName, string ServiceName, string? ResourceName, string CustomerName, string? CustomerEmail, string? CustomerPhoneNumber, string BusinessName, string TimeZoneId, string[] ServiceNames, string TrackingCode, bool DepositRequired = false, int DepositPercentage = 0, decimal DepositAmount = 0, string? DepositTrackingCode = null, DateTimeOffset? DepositPaidAt = null, bool HasDepositReceipt = false)
 {
     public string[] ServiceNames { get; init; } = ServiceNames.Length == 0 ? [ServiceName] : ServiceNames;
@@ -2235,3 +2340,4 @@ public sealed record ReviewBusinessRequestInput(string? Note = null);
 public sealed record ContactMessageReadInput(bool IsRead = true);
 public sealed record ContactMessageReplyInput(string Reply);
 public sealed record AnnouncementCreateInput(string Title, string Content, string Priority = "Normal", Guid? TargetUserId = null);
+public sealed record WalkInAppointmentInput(Guid BranchId, Guid ServiceId, Guid? ResourceId, DateTimeOffset StartsAt, string? CustomerName, string? PhoneNumber, string? Note);

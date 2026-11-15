@@ -147,8 +147,8 @@ class AdminListAppointmentsUseCase(private val repo: ManagementRepository) {
 }
 
 class AdminSetAppointmentStatusUseCase(private val repo: ManagementRepository) {
-    suspend operator fun invoke(id: String, status: String): Result<ManagementAppointment> =
-        repo.setAppointmentStatus(id, ManagementStatusInput(status))
+    suspend operator fun invoke(id: String, status: String, newStartsAt: String? = null): Result<ManagementAppointment> =
+        repo.setAppointmentStatus(id, ManagementStatusInput(status, newStartsAt))
 }
 
 class AdminListReviewsUseCase(private val repo: ManagementRepository) {

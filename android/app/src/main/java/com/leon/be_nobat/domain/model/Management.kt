@@ -451,6 +451,7 @@ data class SidebarBadgesDto(
     val pendingReviews: Int = 0,
     val pendingRequests: Int = 0,
     val unreadContactMessages: Int = 0,
+    val pendingPasswordResets: Int = 0,
     val unreadBroadcasts: Int = 0,
     val highestBroadcastPriority: String? = null,
 )

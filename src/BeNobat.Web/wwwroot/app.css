@@ -222,30 +222,30 @@
 .business-form-modal .close-button{border:0!important;background:transparent!important;font-size:24px!important;line-height:1!important;width:34px!important;height:34px!important;border-radius:8px!important;color:var(--muted,#64748b)!important;cursor:pointer!important;display:grid!important;place-items:center!important;transition:all .15s ease!important}
 .business-form-modal .close-button:hover{background:var(--surface-variant,#f1f5f9)!important;color:var(--on-surface,#0f172a)!important}
 .business-form-modal .modal-body{padding:22px 24px!important;overflow-y:auto!important;flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;gap:20px!important}
-.business-form-modal .form-section{background:#fbfdfc!important;border:1px solid #e5efec!important;border-radius:14px!important;padding:16px 18px!important;display:flex!important;flex-direction:column!important;gap:14px!important}
-.business-form-modal .section-title{font-size:0.92rem!important;font-weight:700!important;color:var(--primary,#0e5b52)!important;margin:0!important;display:flex!important;align-items:center!important;gap:8px!important}
-.business-form-modal .form-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 16px!important}
-.business-form-modal .field-full{grid-column:1 / -1!important}
-.business-form-modal .field-half{grid-column:span 1!important}
-.business-form-modal label{display:flex!important;flex-direction:column!important;gap:6px!important;font-size:0.8rem!important;font-weight:600!important;color:var(--on-surface,#334155)!important}
-.business-form-modal label span{display:flex!important;align-items:center!important;gap:4px!important}
-strong.req, .business-form-modal label span strong.req{color:#e11d48!important;font-weight:bold!important;display:inline!important;margin-inline-start:3px!important}
-.business-form-modal label span small{font-size:0.74rem!important;font-weight:400!important;color:var(--muted,#64748b)!important}
-.business-form-modal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){width:100%!important;box-sizing:border-box!important;padding:10px 14px!important;border:1px solid #d4e3e0!important;border-radius:10px!important;font:inherit!important;font-size:0.88rem!important;background:#ffffff!important;color:var(--on-surface,#1e293b)!important;transition:border-color .15s,box-shadow .15s!important}
-.business-form-modal :is(input:not([type="checkbox"]):not([type="radio"]),select){height:42px!important}
-.business-form-modal select{padding-inline:12px 32px!important}
-.business-form-modal textarea{min-height:80px!important;resize:vertical!important}
-.business-form-modal :is(input,select,textarea):focus{outline:none!important;border-color:var(--primary,#0e5b52)!important;box-shadow:0 0 0 3px rgba(14,91,82,.12)!important}
-.business-form-modal .input-prefix-wrapper{display:flex!important;align-items:center!important;border:1px solid #d4e3e0!important;border-radius:10px!important;overflow:hidden!important;background:#ffffff!important;direction:ltr!important}
-.business-form-modal .input-prefix-wrapper:focus-within{border-color:var(--primary,#0e5b52)!important;box-shadow:0 0 0 3px rgba(14,91,82,.12)!important}
-.business-form-modal .input-prefix{padding:0 12px!important;font-size:0.84rem!important;color:var(--muted,#64748b)!important;background:#f1f5f9!important;border-right:1px solid #d4e3e0!important;height:42px!important;display:flex!important;align-items:center!important;user-select:none!important;font-family:inherit!important}
-.business-form-modal .input-prefix-wrapper input{border:none!important;border-radius:0!important;box-shadow:none!important;height:42px!important}
-.business-form-modal .check-card{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:12px!important;padding:12px 14px!important;background:#ffffff!important;border:1px solid #dbe7e4!important;border-radius:10px!important;cursor:pointer!important}
-.business-form-modal .check-card input[type="checkbox"]{width:18px!important;height:18px!important;margin-top:2px!important;accent-color:var(--primary,#0e5b52)!important;cursor:pointer!important;flex-shrink:0!important}
-.business-form-modal .check-card div{display:flex!important;flex-direction:column!important;gap:2px!important}
-.business-form-modal .check-card b{font-size:0.85rem!important;color:var(--on-surface,#1e293b)!important}
-.business-form-modal .check-card small{font-size:0.74rem!important;color:var(--muted,#64748b)!important;line-height:1.4!important}
-.business-form-modal .weekly-schedule-wrapper{margin-top:4px!important}
+:is(.business-form-modal, .admin-business-form) .form-section{background:#fbfdfc!important;border:1px solid #e5efec!important;border-radius:14px!important;padding:16px 18px!important;display:flex!important;flex-direction:column!important;gap:14px!important}
+:is(.business-form-modal, .admin-business-form) .section-title{font-size:0.92rem!important;font-weight:700!important;color:var(--primary,#0e5b52)!important;margin:0!important;display:flex!important;align-items:center!important;gap:8px!important}
+:is(.business-form-modal, .admin-business-form) .form-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 16px!important}
+:is(.business-form-modal, .admin-business-form) .field-full{grid-column:1 / -1!important}
+:is(.business-form-modal, .admin-business-form) .field-half{grid-column:span 1!important}
+:is(.business-form-modal, .admin-business-form) label{display:flex!important;flex-direction:column!important;gap:6px!important;font-size:0.8rem!important;font-weight:600!important;color:var(--on-surface,#334155)!important}
+:is(.business-form-modal, .admin-business-form) label span{display:flex!important;align-items:center!important;gap:4px!important}
+strong.req, :is(.business-form-modal, .admin-business-form) label span strong.req{color:#e11d48!important;font-weight:bold!important;display:inline!important;margin-inline-start:3px!important}
+:is(.business-form-modal, .admin-business-form) label span small{font-size:0.74rem!important;font-weight:400!important;color:var(--muted,#64748b)!important}
+:is(.business-form-modal, .admin-business-form) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){width:100%!important;box-sizing:border-box!important;padding:10px 14px!important;border:1px solid #d4e3e0!important;border-radius:10px!important;font:inherit!important;font-size:0.88rem!important;background:#ffffff!important;color:var(--on-surface,#1e293b)!important;transition:border-color .15s,box-shadow .15s!important}
+:is(.business-form-modal, .admin-business-form) :is(input:not([type="checkbox"]):not([type="radio"]),select){height:42px!important}
+:is(.business-form-modal, .admin-business-form) select{padding-inline:12px 32px!important}
+:is(.business-form-modal, .admin-business-form) textarea{min-height:80px!important;resize:vertical!important}
+:is(.business-form-modal, .admin-business-form) :is(input,select,textarea):focus{outline:none!important;border-color:var(--primary,#0e5b52)!important;box-shadow:0 0 0 3px rgba(14,91,82,.12)!important}
+:is(.business-form-modal, .admin-business-form) .input-prefix-wrapper{display:flex!important;align-items:center!important;border:1px solid #d4e3e0!important;border-radius:10px!important;overflow:hidden!important;background:#ffffff!important;direction:ltr!important}
+:is(.business-form-modal, .admin-business-form) .input-prefix-wrapper:focus-within{border-color:var(--primary,#0e5b52)!important;box-shadow:0 0 0 3px rgba(14,91,82,.12)!important}
+:is(.business-form-modal, .admin-business-form) .input-prefix{padding:0 12px!important;font-size:0.84rem!important;color:var(--muted,#64748b)!important;background:#f1f5f9!important;border-right:1px solid #d4e3e0!important;height:42px!important;display:flex!important;align-items:center!important;user-select:none!important;font-family:inherit!important}
+:is(.business-form-modal, .admin-business-form) .input-prefix-wrapper input{border:none!important;border-radius:0!important;box-shadow:none!important;height:42px!important}
+:is(.business-form-modal, .admin-business-form) .check-card{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:12px!important;padding:12px 14px!important;background:#ffffff!important;border:1px solid #dbe7e4!important;border-radius:10px!important;cursor:pointer!important}
+:is(.business-form-modal, .admin-business-form) .check-card input[type="checkbox"]{width:18px!important;height:18px!important;margin-top:2px!important;accent-color:var(--primary,#0e5b52)!important;cursor:pointer!important;flex-shrink:0!important}
+:is(.business-form-modal, .admin-business-form) .check-card div{display:flex!important;flex-direction:column!important;gap:2px!important}
+:is(.business-form-modal, .admin-business-form) .check-card b{font-size:0.85rem!important;color:var(--on-surface,#1e293b)!important}
+:is(.business-form-modal, .admin-business-form) .check-card small{font-size:0.74rem!important;color:var(--muted,#64748b)!important;line-height:1.4!important}
+:is(.business-form-modal, .admin-business-form) .weekly-schedule-wrapper{margin-top:4px!important}
 .business-form-modal .modal-footer{padding:14px 24px!important;border-top:1px solid var(--outline-soft,#e2e8f0)!important;display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:12px!important;background:#f8fafc!important;flex-shrink:0!important}
 .business-form-modal .modal-footer button{min-height:40px!important;padding:8px 20px!important;font-size:0.88rem!important;font-weight:600!important;border-radius:8px!important;cursor:pointer!important}
 .business-form-modal .modal-footer .action-secondary{border:1px solid #cbd5e1!important;background:#ffffff!important;color:#475569!important}
@@ -1749,6 +1749,730 @@ html[data-theme="dark"] .time-grid button.slot-booked {
 html[data-theme="dark"] .slot-booked-badge {
     background: rgba(217, 48, 37, 0.2);
     color: #f28b82;
+}
+
+/* ===== Admin Calendar Hours Overview & Slot Details ===== */
+.calendar-hours-overview {
+    margin: 20px 0;
+}
+.calendar-slots-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
+}
+.calendar-slot-btn {
+    min-height: 68px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 10px 8px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    text-decoration: none !important;
+}
+.calendar-slot-btn .slot-time {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+.calendar-slot-btn .slot-badge-container {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.calendar-slot-btn.slot-free {
+    background: #fbfdfc !important;
+    border: 1.5px dashed #cbdad6 !important;
+    color: #4a5956 !important;
+}
+.calendar-slot-btn.slot-free:hover {
+    background: #f0f8f6 !important;
+    border-color: var(--primary) !important;
+    transform: translateY(-1px);
+}
+.calendar-slot-btn.slot-free .slot-empty-label {
+    font-size: 11px !important;
+    color: #8c9c99 !important;
+    font-weight: 500 !important;
+}
+
+.calendar-slot-btn.slot-has-booking {
+    background: #f0fdf4 !important;
+    border: 1.5px solid #10b981 !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+}
+.calendar-slot-btn.slot-has-booking:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-1px);
+}
+.calendar-slot-btn.slot-has-booking.pending {
+    background: #fffbeb !important;
+    border: 1.5px solid #f59e0b !important;
+}
+.calendar-slot-btn.slot-has-booking.done {
+    background: #f8fafc !important;
+    border: 1.5px solid #64748b !important;
+}
+.calendar-slot-btn.slot-has-booking.cancelled {
+    background: #fef2f2 !important;
+    border: 1.5px solid #ef4444 !important;
+}
+
+.calendar-slot-btn .slot-status-badge {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 2px 10px !important;
+    border-radius: 12px !important;
+    display: inline-block !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
+}
+.calendar-slot-btn .slot-status-badge.confirmed {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0 !important;
+}
+.calendar-slot-btn .slot-status-badge.pending {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+}
+.calendar-slot-btn .slot-status-badge.done {
+    background: #e2e8f0 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+.calendar-slot-btn .slot-status-badge.cancelled {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+/* ===== Slot Details Dialog Redesign ===== */
+.form-modal.slot-details-dialog {
+    max-width: 580px !important;
+    width: min(580px, calc(100vw - 32px)) !important;
+    max-height: calc(100vh - 40px) !important;
+    max-height: calc(100dvh - 40px) !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    border-radius: 18px !important;
+    background: var(--surface, #ffffff) !important;
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.08) !important;
+}
+
+.slot-details-dialog .modal-header {
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--outline-soft, #e2e8f0) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: var(--surface, #ffffff) !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.slot-details-dialog .modal-title-group {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+}
+
+.slot-details-dialog .modal-title-group h2 {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    color: var(--on-surface, #1e293b) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.slot-details-dialog .slot-time-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 3px 10px !important;
+    border-radius: 8px !important;
+    background: #e6f4f1 !important;
+    color: var(--primary, #0e5b52) !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+.slot-details-dialog .slot-time-badge.free {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+}
+
+.slot-details-dialog .close-button {
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    color: var(--muted, #64748b) !important;
+    cursor: pointer !important;
+    display: grid !important;
+    place-items: center !important;
+    transition: all .15s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.slot-details-dialog .close-button:hover {
+    background: var(--surface-variant, #f1f5f9) !important;
+    color: var(--on-surface, #0f172a) !important;
+}
+
+.slot-details-dialog .modal-body {
+    padding: 18px 20px !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+/* Appointment Tabs */
+.slot-details-dialog .slot-appt-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    padding: 4px 2px 8px !important;
+    border-bottom: 1px solid var(--outline-soft, #e2e8f0) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.slot-details-dialog .slot-appt-tabs .tab-btn {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--outline-soft, #cbd5e1) !important;
+    background: var(--surface, #ffffff) !important;
+    color: var(--on-surface-variant, #475569) !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+    flex-shrink: 0 !important;
+    transition: all 0.15s ease !important;
+    height: auto !important;
+    min-height: 38px !important;
+}
+
+.slot-details-dialog .slot-appt-tabs .tab-btn small {
+    font-size: 11px !important;
+    font-weight: normal !important;
+    color: var(--muted, #64748b) !important;
+}
+
+.slot-details-dialog .slot-appt-tabs .tab-btn.active {
+    background: var(--primary, #0e5b52) !important;
+    color: #ffffff !important;
+    border-color: var(--primary, #0e5b52) !important;
+    box-shadow: 0 2px 6px rgba(14, 91, 82, 0.25) !important;
+}
+
+.slot-details-dialog .slot-appt-tabs .tab-btn.active small {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Appointment Info Card */
+.slot-details-dialog .appointment-details-card {
+    background: var(--surface-raised, #f8fafc) !important;
+    border: 1px solid var(--outline-soft, #e2e8f0) !important;
+    border-radius: 14px !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.slot-details-dialog .info-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    font-size: 13px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px dashed var(--outline-soft, #e2e8f0) !important;
+}
+
+.slot-details-dialog .info-row:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+.slot-details-dialog .info-label {
+    color: var(--muted, #64748b) !important;
+    font-weight: 500 !important;
+    flex-shrink: 0 !important;
+}
+
+.slot-details-dialog .info-value {
+    color: var(--on-surface, #1e293b) !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    word-break: break-word !important;
+}
+
+.slot-details-dialog .info-value a {
+    color: var(--primary, #0e5b52) !important;
+    text-decoration: none !important;
+}
+
+.slot-details-dialog .info-value a:hover {
+    text-decoration: underline !important;
+}
+
+/* Modal Footer */
+.slot-details-dialog .modal-footer {
+    padding: 14px 20px !important;
+    border-top: 1px solid var(--outline-soft, #e2e8f0) !important;
+    background: var(--surface-raised, #f8fafc) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.slot-details-dialog .modal-footer button {
+    min-height: 38px !important;
+    height: 38px !important;
+    padding: 0 14px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    writing-mode: horizontal-tb !important;
+    box-sizing: border-box !important;
+}
+
+.slot-details-dialog .modal-footer .btn-walkin {
+    background: #eef6f5 !important;
+    color: var(--primary, #0e5b52) !important;
+    border: 1px solid #cbdad6 !important;
+    font-weight: 700 !important;
+}
+.slot-details-dialog .modal-footer .btn-walkin:hover {
+    background: #dff0ec !important;
+}
+
+/* Dark Theme for Slot Details Dialog */
+html[data-theme="dark"] .form-modal.slot-details-dialog {
+    background: #141c1a !important;
+    border: 1px solid #263834 !important;
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,.6) !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .modal-header {
+    background: #141c1a !important;
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .modal-title-group h2 {
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .slot-time-badge {
+    background: #1c2e2a !important;
+    color: #76D6C3 !important;
+}
+html[data-theme="dark"] .slot-details-dialog .slot-time-badge.free {
+    background: #112a3d !important;
+    color: #38bdf8 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .close-button {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .close-button:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .slot-appt-tabs {
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .slot-appt-tabs .tab-btn {
+    background: #1a2422 !important;
+    border-color: #2d423e !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .slot-appt-tabs .tab-btn small {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .slot-appt-tabs .tab-btn.active {
+    background: #0e5b52 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .appointment-details-card {
+    background: #1a2422 !important;
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .info-row {
+    border-bottom-color: #263834 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .info-label {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .info-value {
+    color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .info-value a {
+    color: #76D6C3 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .modal-footer {
+    background: #101716 !important;
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .slot-details-dialog .modal-footer .btn-walkin {
+    background: #1c2b27 !important;
+    color: #76D6C3 !important;
+    border-color: #2b453e !important;
+}
+html[data-theme="dark"] .slot-details-dialog .modal-footer .btn-walkin:hover {
+    background: #253a35 !important;
+}
+
+/* ===== Walk-in Appointment Modal Redesign ===== */
+.form-modal.walkin-form-modal {
+    max-width: 560px !important;
+    width: min(560px, calc(100vw - 32px)) !important;
+    max-height: calc(100vh - 40px) !important;
+    max-height: calc(100dvh - 40px) !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+    border-radius: 18px !important;
+    background: var(--surface, #ffffff) !important;
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.08) !important;
+}
+
+.walkin-form-modal .modal-header {
+    padding: 18px 24px !important;
+    border-bottom: 1px solid var(--outline-soft, #e2e8f0) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: var(--surface, #ffffff) !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.walkin-form-modal .modal-header h2 {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: var(--on-surface, #1e293b) !important;
+    margin: 0 !important;
+}
+
+.walkin-form-modal .modal-subtitle {
+    font-size: 0.82rem !important;
+    color: var(--muted, #64748b) !important;
+    margin: 4px 0 0 !important;
+}
+
+.walkin-form-modal .close-button {
+    border: 0 !important;
+    background: transparent !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 8px !important;
+    color: var(--muted, #64748b) !important;
+    cursor: pointer !important;
+    display: grid !important;
+    place-items: center !important;
+    transition: all .15s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.walkin-form-modal .close-button:hover {
+    background: var(--surface-variant, #f1f5f9) !important;
+    color: var(--on-surface, #0f172a) !important;
+}
+
+.walkin-form-modal .modal-body {
+    padding: 20px 24px !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.walkin-form-modal .modal-body label {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    color: var(--on-surface, #334155) !important;
+}
+
+.walkin-form-modal .modal-body input,
+.walkin-form-modal .modal-body select,
+.walkin-form-modal .modal-body textarea {
+    font: inherit !important;
+    padding: 10px 14px !important;
+    border: 1px solid var(--outline-soft, #ddeae8) !important;
+    border-radius: 10px !important;
+    background: var(--surface, #ffffff) !important;
+    color: var(--on-surface, #1e293b) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    font-size: 0.88rem !important;
+    min-height: 42px !important;
+}
+
+.walkin-form-modal .modal-body textarea {
+    min-height: 75px !important;
+    resize: vertical !important;
+}
+
+.walkin-form-modal .modal-body input:focus,
+.walkin-form-modal .modal-body select:focus,
+.walkin-form-modal .modal-body textarea:focus {
+    outline: none !important;
+    border-color: var(--primary, #0e5b52) !important;
+    box-shadow: 0 0 0 3px rgba(14, 91, 82, 0.12) !important;
+}
+
+.walkin-form-modal .modal-body .form-row-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+}
+
+@media (max-width: 480px) {
+    .walkin-form-modal .modal-body .form-row-2 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.walkin-form-modal .modal-footer {
+    padding: 14px 24px !important;
+    border-top: 1px solid var(--outline-soft, #e2e8f0) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: var(--surface-raised, #f8fafc) !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.walkin-form-modal .modal-footer .primary-button {
+    background: var(--primary, #0e5b52) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 9px !important;
+    padding: 10px 22px !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    cursor: pointer !important;
+    min-height: 42px !important;
+    transition: all 0.15s ease !important;
+}
+
+.walkin-form-modal .modal-footer .primary-button:hover:not(:disabled) {
+    background: var(--primary-hover, #0a463e) !important;
+}
+
+.walkin-form-modal .modal-footer .primary-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+.walkin-form-modal .modal-footer .action-secondary {
+    background: var(--surface, #ffffff) !important;
+    color: var(--on-surface-variant, #475569) !important;
+    border: 1px solid var(--outline-soft, #cbd5e1) !important;
+    border-radius: 9px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    cursor: pointer !important;
+    min-height: 42px !important;
+    transition: all 0.15s ease !important;
+}
+
+.walkin-form-modal .modal-footer .action-secondary:hover {
+    background: var(--surface-variant, #f1f5f9) !important;
+}
+
+/* Dark mode for walk-in modal */
+html[data-theme="dark"] .form-modal.walkin-form-modal {
+    background: #141c1a !important;
+    border: 1px solid #263834 !important;
+    box-shadow: 0 24px 48px -12px rgba(0,0,0,.6) !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-header {
+    background: #141c1a !important;
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-header h2 {
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-subtitle {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .close-button {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .close-button:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-body label {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-body input,
+html[data-theme="dark"] .walkin-form-modal .modal-body select,
+html[data-theme="dark"] .walkin-form-modal .modal-body textarea {
+    background: #1a2422 !important;
+    border-color: #2d423e !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-footer {
+    background: #101716 !important;
+    border-color: #263834 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-footer .primary-button {
+    background: #0e5b52 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-footer .action-secondary {
+    background: #1a2422 !important;
+    border-color: #2d423e !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .walkin-form-modal .modal-footer .action-secondary:hover {
+    background: #253330 !important;
+}
+
+/* Dark Mode Calendar Slots */
+html[data-theme="dark"] .calendar-slot-btn.slot-free {
+    background: #141c1a !important;
+    border: 1.5px dashed #263834 !important;
+    color: #9aa8a5 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-free:hover {
+    background: #1c2725 !important;
+    border-color: #76D6C3 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-free .slot-empty-label {
+    color: #647572 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-has-booking {
+    background: #0d281e !important;
+    border: 1.5px solid #059669 !important;
+    color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-has-booking.pending {
+    background: #2b1f0c !important;
+    border: 1.5px solid #d97706 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-has-booking.done {
+    background: #1e293b !important;
+    border: 1.5px solid #475569 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn.slot-has-booking.cancelled {
+    background: #3b181b !important;
+    border: 1.5px solid #dc2626 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn .slot-status-badge.confirmed {
+    background: #064e3b !important;
+    color: #a7f3d0 !important;
+    border: 1px solid #047857 !important;
+}
+html[data-theme="dark"] .calendar-slot-btn .slot-status-badge.pending {
+    background: #451a03 !important;
+    color: #fde68a !important;
+    border: 1px solid #78350f !important;
+}
+@media (max-width: 768px) {
+    .calendar-slots-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (max-width: 480px) {
+    .calendar-slots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* ===== Deposit Payment Card ===== */

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.leon.be_nobat.domain.model.AuthException
 import com.leon.be_nobat.domain.model.MobileSession
+import com.leon.be_nobat.domain.usecase.ForgotPasswordUseCase
 import com.leon.be_nobat.domain.usecase.LoginUseCase
 import com.leon.be_nobat.domain.usecase.LogoutUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ sealed interface LoginUiState {
 class AuthViewModel(
     private val loginUseCase: LoginUseCase,
     private val logoutUseCase: LogoutUseCase,
+    private val forgotPasswordUseCase: ForgotPasswordUseCase,
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -28,6 +30,10 @@ class AuthViewModel(
 
     private val _loggedOut = MutableStateFlow(false)
     val loggedOut: StateFlow<Boolean> = _loggedOut.asStateFlow()
+
+    suspend fun forgotPassword(identifier: String): Result<String> {
+        return forgotPasswordUseCase(identifier)
+    }
 
     fun login(identity: String, password: String) {
         if (_loginState.value is LoginUiState.Loading) return

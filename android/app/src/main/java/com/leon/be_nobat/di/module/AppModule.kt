@@ -79,6 +79,7 @@ import com.leon.be_nobat.domain.usecase.ListBusinessReviewsUseCase
 import com.leon.be_nobat.domain.usecase.ListBusinessesUseCase
 import com.leon.be_nobat.domain.usecase.ListFavoritesUseCase
 import com.leon.be_nobat.domain.usecase.ListProvidersUseCase
+import com.leon.be_nobat.domain.usecase.ForgotPasswordUseCase
 import com.leon.be_nobat.domain.usecase.LoginUseCase
 import com.leon.be_nobat.domain.usecase.LogoutUseCase
 import com.leon.be_nobat.domain.usecase.PlatformCreateBusinessUseCase
@@ -187,6 +188,7 @@ val repositoryModule = module {
 val useCaseModule = module {
     // Auth
     factory { LoginUseCase(get()) }
+    factory { ForgotPasswordUseCase(get()) }
     factory { RegisterUseCase(get()) }
     factory { LogoutUseCase(get()) }
     factory { GetMeUseCase(get()) }
@@ -288,7 +290,7 @@ val useCaseModule = module {
 }
 
 val viewModelModule = module {
-    viewModel { AuthViewModel(get(), get()) }
+    viewModel { AuthViewModel(get(), get(), get()) }
     viewModel { RegisterViewModel(get()) }
     viewModel { HomeViewModel(get(), get(), getOrNull(), getOrNull(), getOrNull(), getOrNull(), getOrNull()) }
     viewModel { BusinessDetailViewModel(get(), get(), get()) }
@@ -300,7 +302,7 @@ val viewModelModule = module {
     // Admin
     viewModel { AdminDashboardViewModel(get(), get(), get()) }
     viewModel { AdminAnalyticsViewModel(get(), get()) }
-    viewModel { AdminCalendarViewModel(get(), get()) }
+    viewModel { AdminCalendarViewModel(get(), get(), get()) }
     viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { AdminReviewsViewModel(get(), get(), get()) }
     viewModel { AdminCustomersViewModel(get(), get(), get()) }

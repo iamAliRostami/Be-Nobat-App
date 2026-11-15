@@ -42,19 +42,23 @@ public static class WeeklySchedule
 
     public static bool IsWeeklyBranchRule(AvailabilityRule rule) => rule.DeletedAt is null && rule.ResourceId is null && rule.EffectiveDate is null;
 
-    public static void Replace(Branch branch, IReadOnlyList<WeeklyTimeRange> hours)
+    public static void Replace(Branch branch, IReadOnlyList<WeeklyTimeRange> hours, Action<AvailabilityRule>? onAdd = null)
     {
         if (Validate(hours) is { } error) throw new ArgumentException(error);
-        foreach (var rule in branch.AvailabilityRules.Where(IsWeeklyBranchRule).ToList()) rule.DeletedAt = DateTimeOffset.UtcNow;
+        foreach (var rule in branch.AvailabilityRules.Where(IsWeeklyBranchRule).ToList())
+        {
+            rule.DeletedAt = DateTimeOffset.UtcNow;
+            rule.UpdatedAt = DateTimeOffset.UtcNow;
+        }
         // A fully closed week needs explicit blocks, otherwise the legacy fallback opens it.
         if (hours.Count == 0)
         {
-            foreach (var day in Enumerable.Range(0, 7)) Add(branch, day, TimeOnly.MinValue, AvailabilityResolver.EndOfDay, false);
+            foreach (var day in Enumerable.Range(0, 7)) Add(branch, day, TimeOnly.MinValue, AvailabilityResolver.EndOfDay, false, onAdd);
         }
-        else foreach (var range in hours) Add(branch, range.DayOfWeek, range.StartsAt, range.EndsAt, true);
+        else foreach (var range in hours) Add(branch, range.DayOfWeek, range.StartsAt, range.EndsAt, true, onAdd);
     }
 
-    private static void Add(Branch branch, int day, TimeOnly start, TimeOnly end, bool available)
+    private static void Add(Branch branch, int day, TimeOnly start, TimeOnly end, bool available, Action<AvailabilityRule>? onAdd = null)
     {
         var businessId = branch.BusinessId != Guid.Empty
             ? branch.BusinessId
@@ -74,5 +78,6 @@ public static class WeeklySchedule
             rule.Business = branch.Business;
         }
         branch.AvailabilityRules.Add(rule);
+        onAdd?.Invoke(rule);
     }
 }

@@ -102,8 +102,8 @@
                 }
                 <label><span>توضیحات</span><textarea @bind="Form.Description" placeholder="توضیحات اختیاری درباره خدمت..."></textarea></label>
                 <div class="service-form-row">
-                    <label><span>مدت (دقیقه)</span><input type="number" min="5" step="5" @bind="Form.DurationMinutes" /></label>
-                    <label><span>قیمت خدمت (تومان)</span><input type="number" min="0" step="1000" @bind="Form.Price" /></label>
+                    <label><span>مدت (دقیقه)</span><input type="number" min="5" max="1440" step="5" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" @bind="Form.DurationMinutes" /></label>
+                    <label><span>قیمت خدمت (تومان)</span><input type="number" min="0" step="1000" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" @bind="Form.Price" /></label>
                 </div>
                 <div class="service-form-row">
                     <CancellationNoticeEditor Label="مهلت لغو خود خدمت (همهٔ شعب)" @bind-Value="Form.CancellationNoticeMinutes" />

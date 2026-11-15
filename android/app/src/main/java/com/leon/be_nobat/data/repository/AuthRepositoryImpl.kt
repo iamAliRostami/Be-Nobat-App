@@ -53,6 +53,14 @@ class AuthRepositoryImpl(
         session
     }.recoverCatching { throw AuthException.fromApi(it) }
 
+    override suspend fun forgotPassword(identifier: String): Result<String> = runCatching {
+        val body = encodeJsonObject {
+            put("identifier", identifier)
+        }
+        api.forgotPassword<JsonObject>(body).getOrThrow()
+        "درخواست بازنشانی رمز عبور با موفقیت ثبت شد."
+    }.recoverCatching { throw AuthException.fromApi(it) }
+
     override suspend fun logout(): Result<Unit> = runCatching {
         // Best-effort: call /auth/logout, then clear local session even on failure.
         api.logout().onFailure { /* swallow — clear locally regardless */ }

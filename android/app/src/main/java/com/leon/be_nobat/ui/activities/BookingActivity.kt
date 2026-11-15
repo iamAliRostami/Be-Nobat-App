@@ -28,6 +28,7 @@ import com.leon.be_nobat.domain.model.Service
 import com.leon.be_nobat.domain.model.Slot
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.helpers.JalaliDateHelper
+import com.leon.be_nobat.helpers.PersianDatePickerDialog
 import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.helpers.toPersianDigits
 import com.leon.be_nobat.ui.adapters.simpleDiff
@@ -301,33 +302,17 @@ class BookingActivity : BaseActivity() {
     }
 
     private fun showStandardCalendar() {
-        val cal = Calendar.getInstance()
-        val currentIso = viewModel.state.value.date
-        if (currentIso.isNotBlank()) {
-            val p = currentIso.split("-").mapNotNull { it.toIntOrNull() }
-            if (p.size == 3) {
-                cal.set(p[0], p[1] - 1, p[2])
-            }
+        val currentIso = viewModel.state.value.date.ifBlank { null }
+        val todayIso = JalaliDateHelper.getTodayIso()
+        PersianDatePickerDialog.show(this, initialIsoDate = currentIso, minIsoDate = todayIso) { iso, _ ->
+            val chosenCal = JalaliDateHelper.parseIsoToCalendar(iso)
+            val todayCal = Calendar.getInstance()
+            val diffMs = if (chosenCal != null) chosenCal.timeInMillis - todayCal.timeInMillis else 0L
+            val daysDiff = maxOf(0, (diffMs / (1000 * 60 * 60 * 24)).toInt())
+            windowOffsetDays = (daysDiff / 7) * 7
+            viewModel.setDate(iso)
+            refreshDateStrip(windowOffsetDays)
         }
-        DatePickerDialog(
-            this,
-            R.style.ThemeOverlay_BeNobat_DatePickerDialog,
-            { _, y, m, d ->
-                val chosen = Calendar.getInstance().apply { set(y, m, d) }
-                val today = Calendar.getInstance()
-                val diffMs = chosen.timeInMillis - today.timeInMillis
-                val daysDiff = maxOf(0, (diffMs / (1000 * 60 * 60 * 24)).toInt())
-                windowOffsetDays = (daysDiff / 7) * 7
-                val iso = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.time)
-                viewModel.setDate(iso)
-                refreshDateStrip(windowOffsetDays)
-            },
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH),
-            cal.get(Calendar.DAY_OF_MONTH)
-        ).apply {
-            datePicker.minDate = System.currentTimeMillis() - 1000
-        }.show()
     }
 
     override fun observeViewModel() {
@@ -740,10 +725,11 @@ class BookingActivity : BaseActivity() {
                 if (isBooked) {
                     card.isEnabled = false
                     card.isClickable = false
-                    card.alpha = 0.55f
-                    card.setCardBackgroundColor(colorSurface)
+                    card.alpha = 0.9f
+                    card.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.colorSlotBookedBackground))
+                    card.setStrokeColor(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(ctx, R.color.colorSlotBookedStroke)))
                     card.strokeWidth = (1 * ctx.resources.displayMetrics.density).toInt()
-                    tvTime.setTextColor(colorOnSurface)
+                    tvTime.setTextColor(androidx.core.content.ContextCompat.getColor(ctx, R.color.colorSlotBookedText))
                     tvBookedBadge?.isVisible = true
                     card.setOnClickListener(null)
                 } else {
@@ -758,6 +744,7 @@ class BookingActivity : BaseActivity() {
                         tvTime.setTextColor(colorOnPrimary)
                     } else {
                         card.setCardBackgroundColor(colorSurface)
+                        card.setStrokeColor(android.content.res.ColorStateList.valueOf(androidx.core.content.ContextCompat.getColor(ctx, R.color.colorOutline)))
                         card.strokeWidth = (1 * ctx.resources.displayMetrics.density).toInt()
                         tvTime.setTextColor(colorOnSurface)
                     }

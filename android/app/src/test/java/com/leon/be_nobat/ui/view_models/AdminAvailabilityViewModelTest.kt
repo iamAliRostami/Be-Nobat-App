@@ -383,6 +383,7 @@ class AdminAvailabilityViewModelTest {
 
         override suspend fun getAppointment(id: String): Result<ManagementAppointment> = TODO()
         override suspend fun setAppointmentStatus(id: String, input: ManagementStatusInput): Result<ManagementAppointment> = TODO()
+        override suspend fun createWalkInAppointment(input: com.leon.be_nobat.domain.model.ManagementWalkInInput): Result<ManagementAppointment> = TODO()
 
         override suspend fun listReviews(
             businessId: String?,

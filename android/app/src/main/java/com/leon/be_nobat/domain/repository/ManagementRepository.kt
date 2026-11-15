@@ -158,6 +158,7 @@ interface ManagementRepository {
 
     suspend fun getAppointment(id: String): Result<ManagementAppointment>
     suspend fun setAppointmentStatus(id: String, input: ManagementStatusInput): Result<ManagementAppointment>
+    suspend fun createWalkInAppointment(input: com.leon.be_nobat.domain.model.ManagementWalkInInput): Result<ManagementAppointment>
 
     // reviews
     suspend fun listReviews(

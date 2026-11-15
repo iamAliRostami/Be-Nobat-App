@@ -4,6 +4,8 @@ import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.domain.model.*
 import com.leon.be_nobat.domain.repository.ManagementRepository
+import com.leon.be_nobat.helpers.JalaliDateHelper
+import java.util.Calendar
 
 class DemoManagementRepository(private val dataStore: DemoDataStore, private val tokenManager: TokenManager) : ManagementRepository {
     private suspend fun requireActor(manageBusiness: Boolean) {
@@ -1009,8 +1011,70 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         update { s ->
             require(input.status in listOf("Pending", "Confirmed", "Completed", "Cancelled", "NoShow"))
             val old = s.appointments.firstOrNull { it.id == id } ?: error("نوبت یافت نشد.")
-            val value = old.copy(status = input.status)
+            val newStart = input.newStartsAt
+            val value = if (input.status == "Confirmed" && !newStart.isNullOrBlank()) {
+                val startCal = JalaliDateHelper.parseIsoToCalendar(old.startsAt)
+                val endCal = JalaliDateHelper.parseIsoToCalendar(old.endsAt)
+                val duration = if (startCal != null && endCal != null) {
+                    (endCal.timeInMillis - startCal.timeInMillis).coerceAtLeast(30 * 60 * 1000L)
+                } else {
+                    30 * 60 * 1000L
+                }
+                val newStartCal = JalaliDateHelper.parseIsoToCalendar(newStart)
+                val newEndIso = if (newStartCal != null) {
+                    val calEnd = java.util.Calendar.getInstance().apply {
+                        timeInMillis = newStartCal.timeInMillis + duration
+                    }
+                    JalaliDateHelper.formatCalendarToIso(calEnd)
+                } else {
+                    old.endsAt
+                }
+                old.copy(status = input.status, startsAt = newStart, endsAt = newEndIso)
+            } else {
+                old.copy(status = input.status)
+            }
             s.copy(appointments = s.appointments.map { if (it.id == id) value else it }) to value
+        }
+    }
+
+    override suspend fun createWalkInAppointment(input: com.leon.be_nobat.domain.model.ManagementWalkInInput): Result<ManagementAppointment> = runCatching {
+        simulateNetworkDelay()
+        requireActor(false)
+        update { s ->
+            val branch = s.branches.firstOrNull { it.id == input.branchId } ?: error("شعبه یافت نشد.")
+            val service = s.services.firstOrNull { it.id == input.serviceId } ?: error("خدمت یافت نشد.")
+            val resource = input.resourceId?.let { rid -> s.resources.firstOrNull { it.id == rid } }
+            val id = demoId()
+            val startCal = JalaliDateHelper.parseIsoToCalendar(input.startsAt) ?: java.util.Calendar.getInstance()
+            val endCal = java.util.Calendar.getInstance().apply {
+                timeInMillis = startCal.timeInMillis + service.durationMinutes * 60 * 1000L
+            }
+            val endsAtIso = JalaliDateHelper.formatCalendarToIso(endCal)
+            val trackingCode = id.takeLast(8).uppercase()
+            val appt = ManagementAppointment(
+                id = id,
+                branchId = branch.id,
+                businessId = branch.businessId,
+                businessName = branch.businessName ?: "",
+                branchName = branch.name,
+                customerId = demoId(),
+                customerName = input.customerName?.ifBlank { "مشتری متفرقه" } ?: "مشتری متفرقه",
+                customerEmail = "",
+                customerPhoneNumber = input.phoneNumber,
+                serviceId = service.id,
+                serviceName = service.name,
+                serviceNames = listOf(service.name),
+                resourceId = resource?.id,
+                resourceName = resource?.name,
+                startsAt = input.startsAt,
+                endsAt = endsAtIso,
+                finalPrice = service.price,
+                currency = service.currency,
+                status = "Confirmed",
+                trackingCode = trackingCode,
+                customerNote = input.note ?: "مراجعه حضوری / متفرقه",
+            )
+            s.copy(appointments = listOf(appt) + s.appointments) to appt
         }
     }
 
