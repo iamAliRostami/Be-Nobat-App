@@ -22,23 +22,53 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
+import com.leon.be_nobat.data.remote.BeNobatApiConfig
 import com.leon.be_nobat.domain.model.ManagementBranch
 import com.leon.be_nobat.domain.model.ReceiptUploadInput
 import com.leon.be_nobat.domain.repository.ManagementRepository
+import coil.load
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
 object BranchPaymentReceiptHelper {
 
     fun showReceiptDialog(context: Context, branch: ManagementBranch) {
-        val iv = ImageView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (320 * context.resources.displayMetrics.density).toInt()
-            )
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            val pad = (16 * context.resources.displayMetrics.density).toInt()
-            setPadding(pad, pad, pad, pad)
+        val view = LayoutInflater.from(context).inflate(R.layout.dialog_view_receipt, null)
+        val tvTitle = view.findViewById<TextView>(R.id.tvReceiptTitle)
+        val tvSubtitle = view.findViewById<TextView>(R.id.tvReceiptSubtitle)
+        val ivReceipt = view.findViewById<ImageView>(R.id.ivReceiptImage)
+        val pbLoading = view.findViewById<ProgressBar>(R.id.pbReceiptLoading)
+        val tvDate = view.findViewById<TextView>(R.id.tvReceiptDate)
+        val tvFee = view.findViewById<TextView>(R.id.tvReceiptFee)
+        val tvTrack = view.findViewById<TextView>(R.id.tvReceiptTrackingCode)
+        val btnClose = view.findViewById<View>(R.id.btnCloseReceipt)
+        val btnDismiss = view.findViewById<View>(R.id.btnReceiptDismiss)
+
+        tvTitle.setText(R.string.branch_view_receipt)
+        val bizPart = branch.businessName?.takeIf { it.isNotBlank() }?.let { "کسب‌وکار: $it · " } ?: ""
+        tvSubtitle.text = "${bizPart}شعبه: ${branch.name}"
+
+        if ((branch.fee ?: 0.0) > 0) {
+            tvFee.isVisible = true
+            tvFee.text = "مبلغ تعرفه: ${PersianUtils.formatPrice(branch.fee!!, "تومان")}"
+        } else {
+            tvFee.isVisible = false
+        }
+
+        val rawDate = branch.receiptUploadedAt
+        val jalali = rawDate?.takeIf { it.isNotBlank() }?.let { JalaliDateHelper.formatIsoToJalali(it) }
+        if (!jalali.isNullOrBlank()) {
+            tvDate.isVisible = true
+            tvDate.text = "تاریخ ارسال: ${PersianUtils.toPersianDigits(jalali)}"
+        } else {
+            tvDate.isVisible = false
+        }
+
+        if (!branch.receiptTrackingCode.isNullOrBlank()) {
+            tvTrack.isVisible = true
+            tvTrack.text = "کد پیگیری: ${PersianUtils.toPersianDigits(branch.receiptTrackingCode)}"
+        } else {
+            tvTrack.isVisible = false
         }
 
         var imageLoaded = false
@@ -51,7 +81,7 @@ object BranchPaymentReceiptHelper {
                     val bytes = Base64.decode(raw, Base64.DEFAULT)
                     val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     if (bmp != null) {
-                        iv.setImageBitmap(bmp)
+                        ivReceipt.setImageBitmap(bmp)
                         imageLoaded = true
                     }
                 }
@@ -59,23 +89,33 @@ object BranchPaymentReceiptHelper {
         }
 
         if (!imageLoaded) {
-            iv.setImageResource(R.drawable.ic_document)
+            val mediaUrl = branch.receiptImageUrl ?: "/media/branch-receipt/${branch.id}"
+            val fullUrl = BeNobatApiConfig.resolveMediaUrl(mediaUrl)
+            if (!fullUrl.isNullOrBlank()) {
+                pbLoading.isVisible = true
+                ivReceipt.load(fullUrl) {
+                    crossfade(true)
+                    listener(
+                        onSuccess = { _, _ -> pbLoading.isVisible = false },
+                        onError = { _, _ ->
+                            pbLoading.isVisible = false
+                            ivReceipt.setImageResource(R.drawable.ic_document)
+                        }
+                    )
+                }
+            } else {
+                ivReceipt.setImageResource(R.drawable.ic_document)
+            }
         }
 
-        val trackInfo = if (!branch.receiptTrackingCode.isNullOrBlank()) {
-            "\nکد پیگیری: ${PersianUtils.toPersianDigits(branch.receiptTrackingCode)}"
-        } else ""
+        val dialog = MaterialAlertDialogBuilder(context)
+            .setView(view)
+            .create()
 
-        val feeInfo = if ((branch.fee ?: 0.0) > 0) {
-            "\n${context.getString(R.string.branch_fee_display, PersianUtils.formatPrice(branch.fee!!, "تومان"))}"
-        } else ""
+        btnClose.setOnClickListener { dialog.dismiss() }
+        btnDismiss.setOnClickListener { dialog.dismiss() }
 
-        MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.branch_view_receipt)
-            .setMessage("${context.getString(R.string.branch_dialog_receipt_title, branch.name)}$feeInfo$trackInfo")
-            .setView(iv)
-            .setPositiveButton(R.string.action_close, null)
-            .show()
+        dialog.show()
     }
 
     fun showPaymentAndUploadDialog(

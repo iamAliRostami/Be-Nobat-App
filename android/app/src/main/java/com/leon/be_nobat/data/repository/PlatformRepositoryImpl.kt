@@ -1,4 +1,4 @@
-package com.leon.be_nobat.data.repository
+﻿package com.leon.be_nobat.data.repository
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.data.remote.BeNobatApiClient
@@ -55,6 +55,9 @@ class PlatformRepositoryImpl(
 
     override suspend fun updateCatalogItem(id: String, input: ManagementCatalogInput): Result<ManagementCatalog> =
         api.platformUpdateCatalogItem(id, encode(input))
+
+    override suspend fun setCatalogActive(id: String, active: Boolean): Result<ManagementCatalog> =
+        api.platformSetCatalogActive(id, buildJsonObject { put("active", active) })
 
     override suspend fun deleteCatalogItem(id: String): Result<Unit> = api.platformDeleteCatalogItem(id)
 

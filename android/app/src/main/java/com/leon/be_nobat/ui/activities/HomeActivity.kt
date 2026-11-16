@@ -129,6 +129,20 @@ class HomeActivity : BaseActivity() {
                 }
                 startActivity(intent)
             },
+            onBookClick = { biz ->
+                val intent = Intent(this, BookingActivity::class.java).apply {
+                    putExtra("businessId", biz.id)
+                    putExtra("businessName", biz.name)
+                }
+                startActivity(intent)
+            },
+            onViewReviewsClick = { biz ->
+                val intent = Intent(this, BusinessDetailActivity::class.java).apply {
+                    putExtra("businessId", biz.id)
+                    putExtra("scrollToReviews", true)
+                }
+                startActivity(intent)
+            },
             onFavoriteToggle = { biz, isFav ->
                 lifecycleScope.launch {
                     if (tokenManager.currentSession() == null) {

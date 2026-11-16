@@ -1,4 +1,4 @@
-package com.leon.be_nobat.domain.repository
+﻿package com.leon.be_nobat.domain.repository
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.ManagementBusiness
@@ -42,6 +42,7 @@ interface PlatformRepository {
 
     suspend fun createCatalogItem(input: ManagementCatalogInput): Result<ManagementCatalog>
     suspend fun updateCatalogItem(id: String, input: ManagementCatalogInput): Result<ManagementCatalog>
+    suspend fun setCatalogActive(id: String, active: Boolean): Result<ManagementCatalog>
     suspend fun deleteCatalogItem(id: String): Result<Unit>
 
     // categories

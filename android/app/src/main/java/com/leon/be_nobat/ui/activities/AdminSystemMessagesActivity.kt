@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.activities
+﻿package com.leon.be_nobat.ui.activities
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -52,6 +52,11 @@ class AdminSystemMessagesActivity : BaseActivity() {
         rv.adapter = adapter
 
         findViewById<View>(R.id.fabAdd)?.isVisible = false
+        findViewById<View>(R.id.statusTabs)?.isVisible = false
+
+        findViewById<View>(R.id.btnMarkAllRead)?.setOnClickListener {
+            viewModel.markAllAsRead()
+        }
     }
 
     override fun observeViewModel() {
@@ -66,18 +71,33 @@ class AdminSystemMessagesActivity : BaseActivity() {
         swipeRefresh.isRefreshing = state.loading
         adapter.submitList(state.messages)
 
+        val unreadCount = state.unreadCount
+        val layoutActions = findViewById<View>(R.id.layoutAdminActions)
+        val tvActionsSummary = findViewById<TextView>(R.id.tvAdminActionsSummary)
+        val btnMarkAllRead = findViewById<View>(R.id.btnMarkAllRead)
+
+        layoutActions?.isVisible = !state.loading && state.messages.isNotEmpty()
+        if (unreadCount > 0) {
+            tvActionsSummary?.text = "${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(unreadCount)} پیام خوانده‌نشده"
+            btnMarkAllRead?.isVisible = true
+            btnMarkAllRead?.isEnabled = !state.loading
+        } else {
+            tvActionsSummary?.text = "همه پیام‌ها خوانده شده‌اند"
+            btnMarkAllRead?.isVisible = false
+        }
+
         val emptyView = findViewById<TextView>(R.id.emptyStateText)
         emptyView?.isVisible = !state.loading && state.messages.isEmpty()
         emptyView?.text = "هیچ پیام یا اطلاعیه‌ای در سامانه ثبت نشده است."
 
         findViewById<View>(R.id.cardError)?.isVisible = state.error != null
         findViewById<TextView>(R.id.tvError)?.text = state.error
+
+        state.successMessage?.let { showToast(it) }
     }
 
     private fun formatDisplayDate(iso: String): String {
-        val clean = iso.substringBefore(".").replace("Z", "")
-        val parts = clean.split("T")
-        return if (parts.size >= 2) "${parts[0]} - ${parts[1].take(5)}" else iso
+        return com.leon.be_nobat.helpers.AppDateFormatter.formatDateTime(iso, getCurrentLanguage())
     }
 
     inner class SystemMessagesAdapter(

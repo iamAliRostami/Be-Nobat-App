@@ -42,7 +42,7 @@
 {
     <article class="admin-panel">
         <div class="toolbar filter-toolbar">
-            <input aria-label="جست‌وجوی کاربران" placeholder="جست‌وجوی نام، ایمیل، موبایل یا نقش..." @bind="Query" @bind:event="oninput" />
+            <input aria-label="جست‌وجوی کاربران" placeholder="جست‌وجوی نام، موبایل، ایمیل یا نقش..." @bind="Query" @bind:event="oninput" />
             <select aria-label="فیلتر وضعیت حساب" @bind="StatusFilter"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
             <select aria-label="فیلتر نقش کاربر" @bind="RoleFilter"><option value="">همه نقش‌ها</option>@foreach (var role in AppRoles.All) { <option value="@role">@RoleLabel(role)</option> }</select>
             @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ResetFilters">پاک‌کردن فیلترها</button> }
@@ -63,8 +63,8 @@
                                 <span style="background:#fff3cd; color:#856404; border:1px solid #ffeeba; border-radius:6px; padding:1px 6px; font-size:11px; font-weight:600;">درخواست ریست رمز دارد</span>
                             }
                         </div>
-                        <small>✉ @item.User.Email</small>
                         <small>☎ @(string.IsNullOrWhiteSpace(item.User.PhoneNumber) ? "شماره موبایل ثبت نشده" : item.User.PhoneNumber)</small>
+                        <small>✉ @(string.IsNullOrWhiteSpace(item.User.Email) ? "ایمیل ثبت نشده" : item.User.Email)</small>
                         <small>@($"نقش‌ها: {string.Join("، ", item.Roles.Select(RoleLabel))}")</small>
                     </div>
                     <label>دسترسی سراسری
@@ -88,7 +88,7 @@ else
 {
     <article class="admin-panel">
         <div class="toolbar filter-toolbar">
-            <input aria-label="جست‌وجو در درخواست‌ها" placeholder="جست‌وجوی شناسه، ایمیل یا شماره موبایل..." @bind="ResetQuery" @bind:event="oninput" />
+            <input aria-label="جست‌وجو در درخواست‌ها" placeholder="جست‌وجوی شناسه، شماره موبایل یا ایمیل..." @bind="ResetQuery" @bind:event="oninput" />
             <select aria-label="فیلتر وضعیت درخواست" @bind="ResetStatusFilter">
                 <option value="">همه وضعیت‌ها</option>
                 <option value="pending">در انتظار بررسی</option>
@@ -189,7 +189,7 @@ else
         (StatusFilter != "active" || !x.Disabled) &&
         (StatusFilter != "disabled" || x.Disabled) &&
         (RoleFilter == "" || x.Roles.Contains(RoleFilter)) &&
-        $"{x.User.DisplayName} {x.User.Email} {x.User.PhoneNumber} {string.Join(" ", x.Roles)} {string.Join(" ", x.Roles.Select(RoleLabel))}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
+        $"{x.User.DisplayName} {x.User.PhoneNumber} {x.User.Email} {string.Join(" ", x.Roles)} {string.Join(" ", x.Roles.Select(RoleLabel))}".Contains(Query.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private IEnumerable<PasswordResetRequest> FilteredResets => ResetRequests.Where(r =>
         (string.IsNullOrWhiteSpace(ResetStatusFilter) ||

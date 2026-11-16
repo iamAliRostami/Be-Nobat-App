@@ -47,6 +47,8 @@ public static class DbSeeder
                 Email = adminEmail,
                 EmailConfirmed = true,
                 DisplayName = "مدیر سیستم",
+                PhoneNumber = "09120000000",
+                PhoneNumberConfirmed = true,
             };
 
             var createResult = await userManager.CreateAsync(admin, adminPassword);
@@ -54,6 +56,12 @@ public static class DbSeeder
             {
                 await userManager.AddToRoleAsync(admin, AppRoles.PlatformAdmin);
             }
+        }
+        else if (string.IsNullOrWhiteSpace(admin.PhoneNumber))
+        {
+            admin.PhoneNumber = "09120000000";
+            admin.PhoneNumberConfirmed = true;
+            await userManager.UpdateAsync(admin);
         }
         // An existing email is not proof that an account was provisioned by the
         // seeder. Preserve explicit role revocations and never promote a customer

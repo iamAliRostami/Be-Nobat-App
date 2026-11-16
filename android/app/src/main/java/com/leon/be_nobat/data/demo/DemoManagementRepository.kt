@@ -1088,6 +1088,10 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 reviewStatusMatches(it.status, status) &&
                 (rating == null || it.rating == rating) &&
                 (includeInactive == true || it.active)
+            }.map { r ->
+                val bName = r.businessName ?: s.businesses.firstOrNull { it.id == r.businessId }?.name
+                val brName = r.branchName ?: s.branches.firstOrNull { it.id == r.branchId }?.name
+                r.copy(businessName = bName, branchName = brName)
             }.demoPage(page, pageSize)
         }
     }
@@ -1099,7 +1103,9 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
             require(input.status in listOf("Pending", "Approved", "Published", "Rejected"))
             val normalized = if (input.status == "Published") "Approved" else input.status
             val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
-            val value = old.copy(status = normalized, managerReply = input.managerReply ?: old.managerReply)
+            val bName = old.businessName ?: s.businesses.firstOrNull { it.id == old.businessId }?.name
+            val brName = old.branchName ?: s.branches.firstOrNull { it.id == old.branchId }?.name
+            val value = old.copy(status = normalized, managerReply = input.managerReply ?: old.managerReply, businessName = bName, branchName = brName)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }
@@ -1110,7 +1116,9 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
         update { s ->
             val old = s.reviews.firstOrNull { it.id == id } ?: error("دیدگاه یافت نشد.")
             val newStatus = if (old.status == "Pending") "Published" else old.status
-            val value = old.copy(managerReply = input.managerReply, status = newStatus)
+            val bName = old.businessName ?: s.businesses.firstOrNull { it.id == old.businessId }?.name
+            val brName = old.branchName ?: s.branches.firstOrNull { it.id == old.branchId }?.name
+            val value = old.copy(managerReply = input.managerReply, status = newStatus, businessName = bName, branchName = brName)
             s.copy(reviews = s.reviews.map { if (it.id == id) value else it }) to value
         }
     }

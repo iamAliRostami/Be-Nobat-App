@@ -215,6 +215,8 @@ data class ManagementReview(
     val customerName: String = "",
     val active: Boolean = false,
     val createdAt: String = "",
+    val businessName: String? = null,
+    val branchName: String? = null,
 )
 
 @Serializable
@@ -242,6 +244,7 @@ data class ManagementCatalog(
     val suggestedDurationMinutes: Int = 30,
     val isPublished: Boolean = true,
     val active: Boolean = false,
+    val usageCount: Int = 0,
 )
 
 @Serializable
@@ -335,6 +338,7 @@ data class BusinessRequest(
     @SerialName("hasReceipt")
     val hasReceiptImage: Boolean = false,
     val receiptImageBase64: String? = null,
+    val receiptImageUrl: String? = null,
     val status: String = "Pending",
     val reviewNote: String? = null,
     val approvedBusinessId: String? = null,
@@ -347,7 +351,7 @@ data class BusinessRequest(
     val userPhoneNumber: String? = null,
     val userEmail: String? = null,
 ) {
-    val hasReceipt: Boolean get() = hasReceiptImage || !receiptTrackingCode.isNullOrBlank() || !receiptImageBase64.isNullOrBlank()
+    val hasReceipt: Boolean get() = hasReceiptImage || !receiptTrackingCode.isNullOrBlank() || !receiptImageBase64.isNullOrBlank() || !receiptImageUrl.isNullOrBlank()
 
     val applicantName: String?
         get() = userName?.trim().takeUnless { it.isNullOrBlank() }

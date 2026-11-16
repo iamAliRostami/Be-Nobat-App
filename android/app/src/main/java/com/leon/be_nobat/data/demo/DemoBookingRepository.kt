@@ -190,7 +190,9 @@ class DemoBookingRepository(
             val newReview = ManagementReview(
                 id = newRevId,
                 businessId = appt.businessId,
+                businessName = appt.businessName,
                 branchId = appt.branchId,
+                branchName = appt.branchName,
                 customerId = appt.customerId,
                 customerName = appt.customerName.ifBlank { user.displayName },
                 appointmentId = id,

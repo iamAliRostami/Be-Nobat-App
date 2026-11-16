@@ -149,9 +149,17 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="4dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:minHeight="42dp"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:textSize="12sp"
             android:text="@string/copy_link"
             app:icon="@drawable/ic_copy"
+            app:iconSize="18dp"
+            app:iconPadding="4dp"
             app:iconGravity="textStart" />
 
         <com.google.android.material.button.MaterialButton
@@ -160,9 +168,17 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="6dp"
+            android:layout_marginStart="4dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:minHeight="42dp"
+            android:singleLine="true"
+            android:maxLines="1"
+            android:textSize="12sp"
             android:text="@string/share_link_action"
             app:icon="@drawable/ic_share"
+            app:iconSize="18dp"
+            app:iconPadding="4dp"
             app:iconGravity="textStart" />
     </LinearLayout>
 </LinearLayout>

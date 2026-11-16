@@ -140,11 +140,17 @@ class AdminReviewsActivity : BaseActivity() {
     ) : BaseAdminAdapter<ManagementReview>(simpleDiff({ a, b -> a.id == b.id }, { a, b -> a == b })) {
         override fun bindHolder(holder: AdminViewHolder, item: ManagementReview) {
             holder.binding.apply {
-                tvTitle.text = "${item.customerName} \u2022 \u2605 ${PersianUtils.toPersianDigits(item.rating)}"
+                val starsStr = if (item.rating > 0) "\u2605".repeat(item.rating.coerceIn(1, 5)) else ""
+                tvTitle.text = if (starsStr.isNotEmpty()) "${item.customerName} \u2022 $starsStr" else item.customerName
                 val jalaliDate = item.createdAt.takeIf { it.isNotBlank() }?.let { JalaliDateHelper.formatIsoToJalali(it) }
-                if (!jalaliDate.isNullOrBlank()) {
+                val details = listOfNotNull(
+                    item.businessName?.takeIf { it.isNotBlank() },
+                    item.branchName?.takeIf { it.isNotBlank() },
+                    jalaliDate?.takeIf { it.isNotBlank() }
+                ).joinToString(" \u00B7 ")
+                if (details.isNotBlank()) {
                     tvSubtitle.isVisible = true
-                    tvSubtitle.text = jalaliDate
+                    tvSubtitle.text = details
                 } else {
                     tvSubtitle.isVisible = false
                 }

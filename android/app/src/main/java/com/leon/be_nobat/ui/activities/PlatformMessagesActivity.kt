@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.activities
+﻿package com.leon.be_nobat.ui.activities
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -94,6 +94,10 @@ class PlatformMessagesActivity : BaseActivity() {
         rv.adapter = adapter
 
         findViewById<View>(R.id.fabAdd)?.isVisible = false
+
+        findViewById<View>(R.id.btnMarkAllRead)?.setOnClickListener {
+            viewModel.markAllAsRead()
+        }
     }
 
     override fun observeViewModel() {
@@ -108,6 +112,28 @@ class PlatformMessagesActivity : BaseActivity() {
         swipeRefresh.isRefreshing = state.loading
         adapter.submitList(state.filteredItems)
 
+        val tabs = findViewById<TabLayout>(R.id.statusTabs)
+        if (tabs != null && tabs.tabCount == 3) {
+            tabs.getTabAt(0)?.text = "همه پیام‌ها (${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(state.allCount)})"
+            tabs.getTabAt(1)?.text = "خوانده‌نشده (${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(state.unreadCount)})"
+            tabs.getTabAt(2)?.text = "بررسی‌شده (${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(state.readCount)})"
+        }
+
+        val unreadCount = state.unreadCount
+        val layoutActions = findViewById<View>(R.id.layoutAdminActions)
+        val tvActionsSummary = findViewById<TextView>(R.id.tvAdminActionsSummary)
+        val btnMarkAllRead = findViewById<View>(R.id.btnMarkAllRead)
+
+        layoutActions?.isVisible = !state.loading && state.items.isNotEmpty()
+        if (unreadCount > 0) {
+            tvActionsSummary?.text = "${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(unreadCount)} پیام خوانده‌نشده"
+            btnMarkAllRead?.isVisible = true
+            btnMarkAllRead?.isEnabled = !state.loading
+        } else {
+            tvActionsSummary?.text = "همه پیام‌ها بررسی شده‌اند"
+            btnMarkAllRead?.isVisible = false
+        }
+
         val emptyView = findViewById<TextView>(R.id.emptyStateText)
         emptyView?.isVisible = !state.loading && state.filteredItems.isEmpty()
         emptyView?.text = "هیچ پیامی با این مشخصات یافت نشد."
@@ -119,9 +145,7 @@ class PlatformMessagesActivity : BaseActivity() {
     }
 
     private fun formatDisplayDate(iso: String): String {
-        val clean = iso.substringBefore(".").replace("Z", "")
-        val parts = clean.split("T")
-        return if (parts.size >= 2) "${parts[0]} - ${parts[1].take(5)}" else iso
+        return com.leon.be_nobat.helpers.AppDateFormatter.formatDateTime(iso, getCurrentLanguage())
     }
 
     private fun showReplyDialog(msg: ContactMessageDto) {

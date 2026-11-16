@@ -1,4 +1,4 @@
-package com.leon.be_nobat.data.demo
+﻿package com.leon.be_nobat.data.demo
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.data.local.TokenManager
@@ -15,7 +15,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
             val hasRole = (user?.roles?.any { it == "PlatformAdmin" || it == "Owner" } == true) ||
                           sessionRoles.any { it == "PlatformAdmin" || it == "Owner" } ||
                           id == "user_admin" || id == null
-            require(hasRole) { "دسترسی غیرمجاز: فقط مدیر سامانه مجاز به تغییر تنظیمات است." }
+            require(hasRole) { "Ø¯Ø³ØªØ±Ø³ÛŒ ØºÛŒØ±Ù…Ø¬Ø§Ø²: ÙÙ‚Ø· Ù…Ø¯ÛŒØ± Ø³Ø§Ù…Ø§Ù†Ù‡ Ù…Ø¬Ø§Ø² Ø¨Ù‡ ØªØºÛŒÛŒØ± ØªÙ†Ø¸ÛŒÙ…Ø§Øª Ø§Ø³Øª." }
         }
     }
 
@@ -30,7 +30,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     }
 
     override suspend fun createBusiness(input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
-        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "Ù…Ù‡Ù„Øª Ù„ØºÙˆ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª." }
         simulateNetworkDelay()
         requireAdmin()
         val actor = requireNotNull(tokenManager.currentSession()).user
@@ -51,7 +51,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
 
             val weeklyHours = input.firstBranchWeeklyHours ?: WeeklyHours.defaults()
             require(WeeklyHours.validate(weeklyHours) == null)
-            val branch = ManagementBranch(id = demoId(), businessId = id, name = input.firstBranchName.ifBlank { "شعبه مرکزی" }, address = input.firstBranchAddress.orEmpty(), openHour = 8, closeHour = 20, weeklyHours = weeklyHours, active = true, businessName = input.name)
+            val branch = ManagementBranch(id = demoId(), businessId = id, name = input.firstBranchName.ifBlank { "Ø´Ø¹Ø¨Ù‡ Ù…Ø±Ú©Ø²ÛŒ" }, address = input.firstBranchAddress.orEmpty(), openHour = 8, closeHour = 20, weeklyHours = weeklyHours, active = true, businessName = input.name)
             val ownerId = input.ownerId ?: actor.id
             val ownerUser = s.users.firstOrNull { it.id == ownerId }
             val ownerDisplayName = ownerUser?.displayName ?: actor.displayName
@@ -74,11 +74,11 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     }
 
     override suspend fun updateBusiness(id: String, input: ManagementBusinessInput): Result<ManagementBusiness> = runCatching {
-        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "مهلت لغو معتبر نیست." }
+        require(com.leon.be_nobat.domain.CancellationPolicy.valid(input.cancellationNoticeMinutes)) { "Ù…Ù‡Ù„Øª Ù„ØºÙˆ Ù…Ø¹ØªØ¨Ø± Ù†ÛŒØ³Øª." }
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.")
+            val old = s.businesses.firstOrNull { it.id == id } ?: error("Ú©Ø³Ø¨â€ŒÙˆÚ©Ø§Ø± Ù…ÙˆØ±Ø¯ Ù†Ø¸Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             require(input.name.isNotBlank())
             val value = old.copy(
                 name = input.name,
@@ -93,8 +93,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
             if (input.firstBranchWeeklyHours != null || input.firstBranchAddress != null) {
                 input.firstBranchWeeklyHours?.let { require(WeeklyHours.validate(it) == null) }
                 val branch = branches.firstOrNull { it.id == old.firstBranchId && it.active } ?: branches.firstOrNull { it.businessId == id && it.active }
-                    ?: ManagementBranch(id = demoId(), businessId = id, name = "شعبه مرکزی", openHour = 8, closeHour = 20, active = true, businessName = input.name)
-                val updated = branch.copy(name = input.firstBranchName.ifBlank { "شعبه مرکزی" }, address = input.firstBranchAddress ?: branch.address,
+                    ?: ManagementBranch(id = demoId(), businessId = id, name = "Ø´Ø¹Ø¨Ù‡ Ù…Ø±Ú©Ø²ÛŒ", openHour = 8, closeHour = 20, active = true, businessName = input.name)
+                val updated = branch.copy(name = input.firstBranchName.ifBlank { "Ø´Ø¹Ø¨Ù‡ Ù…Ø±Ú©Ø²ÛŒ" }, address = input.firstBranchAddress ?: branch.address,
                     weeklyHours = input.firstBranchWeeklyHours ?: branch.weeklyHours, businessName = input.name)
                 branches = if (branches.any { it.id == branch.id }) branches.map { if (it.id == branch.id) updated else it } else branches + updated
             }
@@ -106,7 +106,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.businesses.firstOrNull { it.id == id } ?: error("کسب‌وکار مورد نظر یافت نشد.")
+            val old = s.businesses.firstOrNull { it.id == id } ?: error("Ú©Ø³Ø¨â€ŒÙˆÚ©Ø§Ø± Ù…ÙˆØ±Ø¯ Ù†Ø¸Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             val value = old.copy(active = active)
             s.copy(businesses = s.businesses.map { if (it.id == id) value else it }) to value
         }
@@ -118,7 +118,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         dataStore.update { s ->
             require(s.businesses.any { it.id == id })
             require(!(s.branches.any { it.businessId == id } || s.services.any { it.businessId == id } || s.appointments.any { it.businessId == id })) {
-                "ابتدا وابستگی‌ها را حذف کنید یا این مورد را غیرفعال کنید."
+                "Ø§Ø¨ØªØ¯Ø§ ÙˆØ§Ø¨Ø³ØªÚ¯ÛŒâ€ŒÙ‡Ø§ Ø±Ø§ Ø­Ø°Ù Ú©Ù†ÛŒØ¯ ÛŒØ§ Ø§ÛŒÙ† Ù…ÙˆØ±Ø¯ Ø±Ø§ ØºÛŒØ±ÙØ¹Ø§Ù„ Ú©Ù†ÛŒØ¯."
             }
             s.copy(businesses = s.businesses.filterNot { it.id == id }, favorites = s.favorites - id) to Unit
         }
@@ -128,8 +128,11 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.read { s ->
-            s.catalog.filter {
-                it.name.matchesQuery(q) &&
+            s.catalog.map { item ->
+                val count = s.services.filter { it.catalogItemId == item.id }.map { it.businessId }.distinct().count()
+                item.copy(usageCount = count)
+            }.filter {
+                (it.name.matchesQuery(q) || it.slug.matchesQuery(q) || it.category.matchesQuery(q)) &&
                 (category == null || it.category == category) &&
                 (includeInactive == true || it.active)
             }.demoPage(page, pageSize)
@@ -160,7 +163,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.catalog.firstOrNull { it.id == id } ?: error("آیتم کاتالوگ یافت نشد.")
+            val old = s.catalog.firstOrNull { it.id == id } ?: error("Ø¢ÛŒØªÙ… Ú©Ø§ØªØ§Ù„ÙˆÚ¯ ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             require(input.name.isNotBlank() && input.suggestedDurationMinutes > 0)
             val value = old.copy(
                 name = input.name,
@@ -170,6 +173,17 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 suggestedDurationMinutes = input.suggestedDurationMinutes,
                 isPublished = input.isPublished
             )
+            s.copy(catalog = s.catalog.map { if (it.id == id) value else it }) to value
+        }
+    }
+
+    override suspend fun setCatalogActive(id: String, active: Boolean): Result<ManagementCatalog> = runCatching {
+        simulateNetworkDelay()
+        requireAdmin()
+        dataStore.update { s ->
+            val old = s.catalog.firstOrNull { it.id == id } ?: error("Catalog item not found")
+            val count = s.services.filter { it.catalogItemId == id }.map { it.businessId }.distinct().count()
+            val value = old.copy(isPublished = active, active = active, usageCount = count)
             s.copy(catalog = s.catalog.map { if (it.id == id) value else it }) to value
         }
     }
@@ -215,7 +229,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.categories.firstOrNull { it.id == id } ?: error("دسته‌بندی یافت نشد.")
+            val old = s.categories.firstOrNull { it.id == id } ?: error("Ø¯Ø³ØªÙ‡â€ŒØ¨Ù†Ø¯ÛŒ ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             require(input.name.isNotBlank())
             val value = old.copy(
                 name = input.name,
@@ -251,7 +265,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     override suspend fun getUser(id: String): Result<ManagementUser> = runCatching {
         simulateNetworkDelay()
         requireAdmin()
-        dataStore.read { s -> s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.") }
+        dataStore.read { s -> s.users.firstOrNull { it.id == id } ?: error("Ú©Ø§Ø±Ø¨Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.") }
     }
 
     override suspend fun createUser(input: ManagementUserInput): Result<ManagementCreatedUser> = runCatching {
@@ -287,7 +301,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val old = s.users.firstOrNull { it.id == id } ?: error("Ú©Ø§Ø±Ø¨Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             require(input.displayName.isNotBlank())
             require(s.users.none { it.id != id && it.email.equals(input.email, true) })
             val value = old.copy(
@@ -304,7 +318,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val old = s.users.firstOrNull { it.id == id } ?: error("Ú©Ø§Ø±Ø¨Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             val value = old.copy(roles = input.roles)
             s.copy(users = s.users.map { if (it.id == id) value else it }) to value
         }
@@ -314,7 +328,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val old = s.users.firstOrNull { it.id == id } ?: error("کاربر یافت نشد.")
+            val old = s.users.firstOrNull { it.id == id } ?: error("Ú©Ø§Ø±Ø¨Ø± ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             val value = old.copy(active = active)
             s.copy(users = s.users.map { if (it.id == id) value else it }) to value
         }
@@ -340,7 +354,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
     override suspend fun updatePlatformPricing(input: PlatformPricingInput): Result<PlatformPricing> = runCatching {
         simulateNetworkDelay()
         requireAdmin()
-        require(input.baseBusinessPrice >= 0 && input.extraBranchPrice >= 0) { "مبالغ تعرفه نمی‌توانند منفی باشند." }
+        require(input.baseBusinessPrice >= 0 && input.extraBranchPrice >= 0) { "Ù…Ø¨Ø§Ù„Øº ØªØ¹Ø±ÙÙ‡ Ù†Ù…ÛŒâ€ŒØªÙˆØ§Ù†Ù†Ø¯ Ù…Ù†ÙÛŒ Ø¨Ø§Ø´Ù†Ø¯." }
         dataStore.update { s ->
             val updated = s.platformPricing.copy(
                 baseBusinessPrice = input.baseBusinessPrice,
@@ -397,8 +411,8 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("درخواست یافت نشد.")
-            require(req.status == "Pending") { "درخواست قبلاً بررسی شده است." }
+            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("Ø¯Ø±Ø®ÙˆØ§Ø³Øª ÛŒØ§ÙØª Ù†Ø´Ø¯.")
+            require(req.status == "Pending") { "Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ù‚Ø¨Ù„Ø§Ù‹ Ø¨Ø±Ø±Ø³ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª." }
 
             val bizId = demoId()
             val branchId = demoId()
@@ -419,7 +433,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
             val branch = ManagementBranch(
                 id = branchId,
                 businessId = bizId,
-                name = req.firstBranchName.ifBlank { "شعبه مرکزی" },
+                name = req.firstBranchName.ifBlank { "Ø´Ø¹Ø¨Ù‡ Ù…Ø±Ú©Ø²ÛŒ" },
                 address = req.firstBranchAddress,
                 timeZoneId = "Asia/Tehran",
                 openHour = 9,
@@ -435,7 +449,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
                 branchId = branchId,
                 userId = req.userId,
                 role = "Owner",
-                displayName = user?.displayName ?: req.userDisplayName ?: "کاربر",
+                displayName = user?.displayName ?: req.userDisplayName ?: "Ú©Ø§Ø±Ø¨Ø±",
                 email = user?.email,
             )
 
@@ -465,12 +479,12 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("درخواست یافت نشد.")
-            require(req.status == "Pending") { "درخواست قبلاً بررسی شده است." }
+            val req = s.businessRequests.firstOrNull { it.id == id } ?: error("Ø¯Ø±Ø®ÙˆØ§Ø³Øª ÛŒØ§ÙØª Ù†Ø´Ø¯.")
+            require(req.status == "Pending") { "Ø¯Ø±Ø®ÙˆØ§Ø³Øª Ù‚Ø¨Ù„Ø§Ù‹ Ø¨Ø±Ø±Ø³ÛŒ Ø´Ø¯Ù‡ Ø§Ø³Øª." }
 
             val rejectedReq = req.copy(
                 status = "Rejected",
-                reviewNote = input.note?.ifBlank { "درخواست توسط مدیریت سامانه رد شد." } ?: "درخواست توسط مدیریت سامانه رد شد."
+                reviewNote = input.note?.ifBlank { "Ø¯Ø±Ø®ÙˆØ§Ø³Øª ØªÙˆØ³Ø· Ù…Ø¯ÛŒØ±ÛŒØª Ø³Ø§Ù…Ø§Ù†Ù‡ Ø±Ø¯ Ø´Ø¯." } ?: "Ø¯Ø±Ø®ÙˆØ§Ø³Øª ØªÙˆØ³Ø· Ù…Ø¯ÛŒØ±ÛŒØª Ø³Ø§Ù…Ø§Ù†Ù‡ Ø±Ø¯ Ø´Ø¯."
             )
 
             s.copy(
@@ -483,7 +497,7 @@ class DemoPlatformRepository(private val dataStore: DemoDataStore, private val t
         simulateNetworkDelay()
         requireAdmin()
         dataStore.update { s ->
-            val branch = s.branches.firstOrNull { it.id == id } ?: error("شعبه یافت نشد.")
+            val branch = s.branches.firstOrNull { it.id == id } ?: error("Ø´Ø¹Ø¨Ù‡ ÛŒØ§ÙØª Ù†Ø´Ø¯.")
             val approved = branch.copy(isApproved = true)
             s.copy(branches = s.branches.map { if (it.id == id) approved else it }) to approved
         }

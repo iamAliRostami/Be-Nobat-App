@@ -1,5 +1,6 @@
 package com.leon.be_nobat.ui.adapters
 
+import android.content.Intent
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -11,10 +12,14 @@ import com.leon.be_nobat.R
 import com.leon.be_nobat.databinding.ItemBusinessBinding
 import com.leon.be_nobat.domain.model.Business
 import com.leon.be_nobat.helpers.PersianUtils
+import com.leon.be_nobat.ui.activities.BookingActivity
+import com.leon.be_nobat.ui.activities.BusinessDetailActivity
 import java.util.Locale
 
 class BusinessAdapter(
     private val onClick: (Business) -> Unit,
+    private val onBookClick: ((Business) -> Unit)? = null,
+    private val onViewReviewsClick: ((Business) -> Unit)? = null,
     private val onFavoriteToggle: (Business, Boolean) -> Unit,
     private val isFavorite: (String) -> Boolean = { false },
 ) : ListAdapter<Business, BusinessAdapter.VH>(DIFF) {
@@ -118,8 +123,28 @@ class BusinessAdapter(
 
                 // Actions
                 root.setOnClickListener { onClick(item) }
-                btnBook.setOnClickListener { onClick(item) }
-                btnDetails.setOnClickListener { onClick(item) }
+                btnBook.setOnClickListener {
+                    if (onBookClick != null) {
+                        onBookClick.invoke(item)
+                    } else {
+                        val intent = Intent(root.context, BookingActivity::class.java).apply {
+                            putExtra("businessId", item.id)
+                            putExtra("businessName", item.name)
+                        }
+                        root.context.startActivity(intent)
+                    }
+                }
+                btnDetails.setOnClickListener {
+                    if (onViewReviewsClick != null) {
+                        onViewReviewsClick.invoke(item)
+                    } else {
+                        val intent = Intent(root.context, BusinessDetailActivity::class.java).apply {
+                            putExtra("businessId", item.id)
+                            putExtra("scrollToReviews", true)
+                        }
+                        root.context.startActivity(intent)
+                    }
+                }
             }
         }
     }

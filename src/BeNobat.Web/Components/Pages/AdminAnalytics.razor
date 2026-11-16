@@ -123,43 +123,40 @@
     <!-- Breakdown Tabs -->
     <div class="availability-summary" style="margin-top: 24px;">
         <div class="availability-tabs">
-            <button type="button" class="@(ActiveTab == "staff" ? "active" : "")" @onclick='() => ActiveTab = "staff"'>عملکرد کارکنان (@StaffStats.Count)</button>
-            <button type="button" class="@(ActiveTab == "branch" ? "active" : "")" @onclick='() => ActiveTab = "branch"'>عملکرد شعب (@BranchStats.Count)</button>
             @if (BusinessStats.Count > 1)
             {
                 <button type="button" class="@(ActiveTab == "business" ? "active" : "")" @onclick='() => ActiveTab = "business"'>کسب‌وکارها (@BusinessStats.Count)</button>
             }
+            <button type="button" class="@(ActiveTab == "branch" ? "active" : "")" @onclick='() => ActiveTab = "branch"'>شعب (@BranchStats.Count)</button>
+            <button type="button" class="@(ActiveTab == "staff" ? "active" : "")" @onclick='() => ActiveTab = "staff"'>کارمندان و متخصصان (@StaffStats.Count)</button>
         </div>
     </div>
 
     <!-- Breakdown Lists -->
-    @if (ActiveTab == "staff")
+    @if (ActiveTab == "business")
     {
         <div class="availability-list" style="margin-top: 12px;">
-            @if (!StaffStats.Any())
+            @if (!BusinessStats.Any())
             {
-                <p class="empty-state">آماری برای کارکنان در این بازه وجود ندارد.</p>
+                <p class="empty-state">آماری برای کسب‌وکارها در این بازه وجود ندارد.</p>
             }
-            @foreach (var s in StaffStats)
+            @foreach (var biz in BusinessStats)
             {
-                var completionPercent = s.TotalCount > 0 ? Math.Clamp((int)Math.Round((double)s.CompletedCount * 100 / s.TotalCount), 0, 100) : 0;
-                var revPercent = TotalRevenue > 0 ? (int)((s.Revenue * 100) / TotalRevenue) : 0;
+                var completionPercent = biz.TotalCount > 0 ? Math.Clamp((int)Math.Round((double)biz.CompletedCount * 100 / biz.TotalCount), 0, 100) : 0;
+                var revPercent = TotalRevenue > 0 ? (int)((biz.Revenue * 100) / TotalRevenue) : 0;
                 <article class="availability-row" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <div>
-                            <strong style="font-size: 15px;" data-i18n-skip>@s.Name</strong>
-                            <small class="entity-meta" style="margin-right: 8px;" data-i18n-skip>@s.BranchName</small>
-                        </div>
+                        <strong style="font-size: 15px;" data-i18n-skip>@biz.Name</strong>
                         <div style="text-align: left;">
-                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(s.Revenue, UiLocale.Language, "N0") تومان</strong>
-                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(s.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
+                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(biz.Revenue, UiLocale.Language, "N0") تومان</strong>
+                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(biz.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-                            <div style="width: @(completionPercent)%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+                            <div style="width: @(completionPercent)%; height: 100%; background: #8b5cf6; border-radius: 4px;"></div>
                         </div>
-                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(s.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(s.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
+                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(biz.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(biz.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
                     </div>
                 </article>
             }
@@ -200,23 +197,30 @@
     else
     {
         <div class="availability-list" style="margin-top: 12px;">
-            @foreach (var biz in BusinessStats)
+            @if (!StaffStats.Any())
             {
-                var completionPercent = biz.TotalCount > 0 ? Math.Clamp((int)Math.Round((double)biz.CompletedCount * 100 / biz.TotalCount), 0, 100) : 0;
-                var revPercent = TotalRevenue > 0 ? (int)((biz.Revenue * 100) / TotalRevenue) : 0;
+                <p class="empty-state">آماری برای کارکنان در این بازه وجود ندارد.</p>
+            }
+            @foreach (var s in StaffStats)
+            {
+                var completionPercent = s.TotalCount > 0 ? Math.Clamp((int)Math.Round((double)s.CompletedCount * 100 / s.TotalCount), 0, 100) : 0;
+                var revPercent = TotalRevenue > 0 ? (int)((s.Revenue * 100) / TotalRevenue) : 0;
                 <article class="availability-row" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                        <strong style="font-size: 15px;" data-i18n-skip>@biz.Name</strong>
+                        <div>
+                            <strong style="font-size: 15px;" data-i18n-skip>@s.Name</strong>
+                            <small class="entity-meta" style="margin-right: 8px;" data-i18n-skip>@s.BranchName</small>
+                        </div>
                         <div style="text-align: left;">
-                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(biz.Revenue, UiLocale.Language, "N0") تومان</strong>
-                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(biz.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
+                            <strong style="color: #059669; font-size: 15px;">@LocalizedDate.FormatNumber(s.Revenue, UiLocale.Language, "N0") تومان</strong>
+                            <span style="font-size: 12px; color: var(--text-muted, #757575); margin-right: 8px;">(@LocalizedDate.FormatNumber(s.Hours, UiLocale.Language) ساعت کار@(TotalRevenue > 0 && revPercent > 0 ? $" • {LocalizedDate.FormatNumber(revPercent, UiLocale.Language)}٪ درآمد کل" : ""))</span>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
                         <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
-                            <div style="width: @(completionPercent)%; height: 100%; background: #8b5cf6; border-radius: 4px;"></div>
+                            <div style="width: @(completionPercent)%; height: 100%; background: #10b981; border-radius: 4px;"></div>
                         </div>
-                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(biz.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(biz.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
+                        <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(s.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(s.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
                     </div>
                 </article>
             }
@@ -233,7 +237,7 @@
     private string BranchFilter = "";
     private string ResourceFilter = "";
     private string PeriodFilter = "30";
-    private string ActiveTab = "staff";
+    private string ActiveTab = "business";
 
     private decimal TotalRevenue;
     private double TotalWorkHours;
@@ -463,5 +467,10 @@
                 );
             })
             .ToList();
+
+        if (ActiveTab == "business" && BusinessStats.Count <= 1)
+        {
+            ActiveTab = BranchStats.Count > 1 ? "branch" : "staff";
+        }
     }
 }

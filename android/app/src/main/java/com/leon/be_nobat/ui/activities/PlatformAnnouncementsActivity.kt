@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.activities
+﻿package com.leon.be_nobat.ui.activities
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -22,6 +22,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.leon.be_nobat.R
 import com.leon.be_nobat.domain.model.PlatformAnnouncementDto
 import com.leon.be_nobat.helpers.BaseActivity
@@ -89,9 +90,7 @@ class PlatformAnnouncementsActivity : BaseActivity() {
     }
 
     private fun formatDisplayDate(iso: String): String {
-        val clean = iso.substringBefore(".").replace("Z", "")
-        val parts = clean.split("T")
-        return if (parts.size >= 2) "${parts[0]} - ${parts[1].take(5)}" else iso
+        return com.leon.be_nobat.helpers.AppDateFormatter.formatDateTime(iso, getCurrentLanguage())
     }
 
     private fun showSendAnnouncementDialog() {
@@ -100,16 +99,45 @@ class PlatformAnnouncementsActivity : BaseActivity() {
         val etContent = view.findViewById<TextInputEditText>(R.id.etContent)
         val rgPriority = view.findViewById<RadioGroup>(R.id.rgPriority)
         val rgTarget = view.findViewById<RadioGroup>(R.id.rgTarget)
-        val spTargetUser = view.findViewById<Spinner>(R.id.spTargetUser)
+        val layoutTargetUser = view.findViewById<TextInputLayout>(R.id.layoutTargetUser)
+        val etTargetUser = view.findViewById<TextInputEditText>(R.id.etTargetUser)
 
         val users = viewModel.state.value.users
-        val userNames = mutableListOf("انتخاب کاربر…")
-        userNames.addAll(users.map { "${it.displayName} (${it.phoneNumber.orEmpty().ifBlank { it.email ?: "بدون تماس" }})" })
-        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, userNames)
-        spTargetUser.adapter = spinnerAdapter
+        var selectedUserId: String? = null
+
+        val userLabels = users.map { user ->
+            val phone = user.phoneNumber.orEmpty().ifBlank { user.email ?: "بدون تماس" }
+            val localizedPhone = if (getCurrentLanguage() == "en") phone else com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(phone)
+            "${user.displayName} ($localizedPhone)"
+        }
+
+        val openUserPicker = {
+            if (users.isEmpty()) {
+                showToast("کاربری برای انتخاب یافت نشد.")
+            } else {
+                val currentIdx = users.indexOfFirst { it.id == selectedUserId }
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.select_target_user)
+                    .setSingleChoiceItems(userLabels.toTypedArray(), if (currentIdx >= 0) currentIdx else 0) { dialog, which ->
+                        val chosen = users[which]
+                        selectedUserId = chosen.id
+                        etTargetUser.setText(userLabels[which])
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show()
+            }
+        }
+
+        etTargetUser.setOnClickListener { openUserPicker() }
+        layoutTargetUser.setEndIconOnClickListener { openUserPicker() }
 
         rgTarget.setOnCheckedChangeListener { _, checkedId ->
-            spTargetUser.isVisible = checkedId == R.id.rbTargetSingle
+            layoutTargetUser.isVisible = checkedId == R.id.rbTargetSingle
+            if (checkedId == R.id.rbTargetSingle && selectedUserId == null && users.isNotEmpty()) {
+                selectedUserId = users.first().id
+                etTargetUser.setText(userLabels.first())
+            }
         }
 
         MaterialAlertDialogBuilder(this)
@@ -125,9 +153,13 @@ class PlatformAnnouncementsActivity : BaseActivity() {
                 }
 
                 val targetUserId = if (rgTarget.checkedRadioButtonId == R.id.rbTargetSingle) {
-                    val pos = spTargetUser.selectedItemPosition
-                    if (pos > 0) users.getOrNull(pos - 1)?.id else null
+                    selectedUserId
                 } else null
+
+                if (title.isBlank()) {
+                    showToast(getString(R.string.msg_invalid_input))
+                    return@setPositiveButton
+                }
 
                 viewModel.sendAnnouncement(title, content, priority, targetUserId)
             }
@@ -196,11 +228,12 @@ class PlatformAnnouncementsActivity : BaseActivity() {
                     }
                 }
 
-                if (!item.targetUserName.isNullOrBlank()) {
-                    tvTargetUser.text = "گیرنده: ${item.targetUserName}"
+                val targetText = if (!item.targetUserName.isNullOrBlank()) {
+                    "گیرنده: ${item.targetUserName}"
                 } else {
-                    tvTargetUser.text = "گیرنده: تمام مدیران و پرسنل (همگانی)"
+                    "گیرنده: تمام مدیران و پرسنل (همگانی)"
                 }
+                tvTargetUser.text = if (getCurrentLanguage() == "en") targetText else com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(targetText)
 
                 btnDelete.setOnClickListener { onDelete(item) }
             }

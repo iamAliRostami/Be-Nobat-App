@@ -565,7 +565,7 @@ class AdminCalendarActivity : BaseActivity() {
         var selectedDateIso = viewModel.state.value.dateFilter.ifBlank { JalaliDateHelper.getTodayIso() }
         var selectedTime = defaultTime ?: "10:00"
 
-        etDate.setText(JalaliDateHelper.formatIsoToJalaliDisplay(selectedDateIso))
+        etDate.setText(JalaliDateHelper.formatIsoToJalali(selectedDateIso))
         etTime.setText(PersianUtils.toPersianDigits(selectedTime))
 
         var branches = emptyList<com.leon.be_nobat.domain.model.ManagementBranch>()
@@ -578,7 +578,14 @@ class AdminCalendarActivity : BaseActivity() {
 
         fun updateBranch(b: com.leon.be_nobat.domain.model.ManagementBranch?) {
             selectedBranch = b
-            etBranch.setText(b?.let { "${it.businessName} - ${it.name}" } ?: "")
+            etBranch.setText(b?.let {
+                val bName = it.businessName
+                if (!bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
+                    "$bName - ${it.name}"
+                } else {
+                    it.name.ifBlank { bName ?: "" }
+                }
+            } ?: "")
         }
 
         fun updateService(s: com.leon.be_nobat.domain.model.ManagementService?) {
@@ -607,7 +614,14 @@ class AdminCalendarActivity : BaseActivity() {
 
         etBranch.setOnClickListener {
             if (branches.isEmpty()) return@setOnClickListener
-            val names = branches.map { "${it.businessName} - ${it.name}" }.toTypedArray()
+            val names = branches.map {
+                val bName = it.businessName
+                if (!bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
+                    "$bName - ${it.name}"
+                } else {
+                    it.name.ifBlank { bName ?: "" }
+                }
+            }.toTypedArray()
             MaterialAlertDialogBuilder(this)
                 .setTitle("انتخاب شعبه")
                 .setItems(names) { _, which ->
@@ -654,7 +668,7 @@ class AdminCalendarActivity : BaseActivity() {
                 { _, y, m, d ->
                     val chosen = Calendar.getInstance().apply { set(y, m, d) }
                     selectedDateIso = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(chosen.time)
-                    etDate.setText(JalaliDateHelper.formatIsoToJalaliDisplay(selectedDateIso))
+                    etDate.setText(JalaliDateHelper.formatIsoToJalali(selectedDateIso))
                 },
                 cal.get(Calendar.YEAR),
                 cal.get(Calendar.MONTH),

@@ -110,9 +110,11 @@ class PlatformAccessViewModel(
             val matchesQuery = if (trimmed.isEmpty()) {
                 true
             } else {
+                val englishQuery = com.leon.be_nobat.helpers.PersianUtils.toEnglishDigits(trimmed)
                 user.displayName.contains(trimmed, ignoreCase = true) ||
-                    (user.email?.contains(trimmed, ignoreCase = true) == true) ||
                     (user.phoneNumber?.contains(trimmed, ignoreCase = true) == true) ||
+                    (user.phoneNumber?.contains(englishQuery, ignoreCase = true) == true) ||
+                    (user.email?.contains(trimmed, ignoreCase = true) == true) ||
                     user.roles.any { it.contains(trimmed, ignoreCase = true) }
             }
 

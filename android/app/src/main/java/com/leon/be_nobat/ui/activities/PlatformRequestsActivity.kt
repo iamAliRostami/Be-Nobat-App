@@ -17,6 +17,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
@@ -24,9 +25,11 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.leon.be_nobat.R
+import com.leon.be_nobat.data.remote.BeNobatApiConfig
 import com.leon.be_nobat.domain.model.BusinessRequest
 import com.leon.be_nobat.helpers.AdminFormDialog
 import com.leon.be_nobat.helpers.BaseActivity
+import com.leon.be_nobat.helpers.JalaliDateHelper
 import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.helpers.StatusBadgeHelper
 import com.leon.be_nobat.ui.adapters.AdminViewHolder
@@ -157,35 +160,84 @@ class PlatformRequestsActivity : BaseActivity() {
     }
 
     private fun showReceiptDialog(req: BusinessRequest) {
-        val base64 = req.receiptImageBase64
-        val iv = ImageView(this).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (280 * resources.displayMetrics.density).toInt()
-            )
-            adjustViewBounds = true
-            scaleType = ImageView.ScaleType.FIT_CENTER
+        val view = layoutInflater.inflate(R.layout.dialog_view_receipt, null)
+        val tvSubtitle = view.findViewById<android.widget.TextView>(R.id.tvReceiptSubtitle)
+        val ivReceipt = view.findViewById<ImageView>(R.id.ivReceiptImage)
+        val pbLoading = view.findViewById<android.widget.ProgressBar>(R.id.pbReceiptLoading)
+        val tvDate = view.findViewById<android.widget.TextView>(R.id.tvReceiptDate)
+        val tvFee = view.findViewById<android.widget.TextView>(R.id.tvReceiptFee)
+        val tvTrack = view.findViewById<android.widget.TextView>(R.id.tvReceiptTrackingCode)
+        val btnClose = view.findViewById<View>(R.id.btnCloseReceipt)
+        val btnDismiss = view.findViewById<View>(R.id.btnReceiptDismiss)
+
+        val applicant = req.applicantDisplayName.ifBlank { "کاربر" }
+        tvSubtitle.text = "کسب‌وکار: ${req.businessName} (متقاضی: $applicant)"
+
+        if (req.totalFee > 0) {
+            tvFee.isVisible = true
+            tvFee.text = "مبلغ کل: ${PersianUtils.formatPrice(req.totalFee, "تومان")}"
+        } else {
+            tvFee.isVisible = false
         }
+
+        val rawDate = req.receiptUploadedAt ?: req.createdAt
+        val jalali = rawDate.takeIf { it.isNotBlank() }?.let { JalaliDateHelper.formatIsoToJalali(it) }
+        if (!jalali.isNullOrBlank()) {
+            tvDate.isVisible = true
+            tvDate.text = "تاریخ ارسال: ${PersianUtils.toPersianDigits(jalali)}"
+        } else {
+            tvDate.isVisible = false
+        }
+
+        if (!req.receiptTrackingCode.isNullOrBlank()) {
+            tvTrack.isVisible = true
+            tvTrack.text = "کد پیگیری: ${PersianUtils.toPersianDigits(req.receiptTrackingCode)}"
+        } else {
+            tvTrack.isVisible = false
+        }
+
+        var imageLoaded = false
+        val base64 = req.receiptImageBase64
         if (!base64.isNullOrBlank()) {
             try {
                 val clean = if (base64.contains(",")) base64.substringAfter(",") else base64
                 val bytes = Base64.decode(clean, Base64.DEFAULT)
                 val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                iv.setImageBitmap(bmp)
-            } catch (_: Exception) {
-                iv.setImageResource(R.drawable.ic_document)
-            }
-        } else {
-            iv.setImageResource(R.drawable.ic_document)
+                if (bmp != null) {
+                    ivReceipt.setImageBitmap(bmp)
+                    imageLoaded = true
+                }
+            } catch (_: Exception) {}
         }
 
-        val trackInfo = if (!req.receiptTrackingCode.isNullOrBlank()) "\nکد پیگیری: ${req.receiptTrackingCode}" else ""
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.business_request_receipt_view_btn)
-            .setMessage("فیش واریزی ارسال شده برای کسب‌وکار «${req.businessName}»$trackInfo")
-            .setView(iv)
-            .setPositiveButton(R.string.action_close, null)
-            .show()
+        if (!imageLoaded) {
+            val mediaUrl = req.receiptImageUrl ?: "/media/receipt/${req.id}"
+            val fullUrl = BeNobatApiConfig.resolveMediaUrl(mediaUrl)
+            if (!fullUrl.isNullOrBlank()) {
+                pbLoading.isVisible = true
+                ivReceipt.load(fullUrl) {
+                    crossfade(true)
+                    listener(
+                        onSuccess = { _, _ -> pbLoading.isVisible = false },
+                        onError = { _, _ ->
+                            pbLoading.isVisible = false
+                            ivReceipt.setImageResource(R.drawable.ic_document)
+                        }
+                    )
+                }
+            } else {
+                ivReceipt.setImageResource(R.drawable.ic_document)
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(view)
+            .create()
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        btnDismiss.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
     }
 
     override fun observeViewModel() {

@@ -508,7 +508,7 @@
     <!-- User Management Tabs & Search -->
     <string name="status_active">نشط</string>
     <string name="status_inactive">غير نشط</string>
-    <string name="search_users_hint">البحث بالاسم، البريد، الهاتف أو الدور…</string>
+    <string name="search_users_hint">البحث بالاسم، الهاتف، البريد أو الدور…</string>
     <string name="tab_users_all">الكل</string>
     <string name="tab_users_customers">العملاء</string>
     <string name="tab_users_managers">المدراء</string>

@@ -1,4 +1,4 @@
-package com.leon.be_nobat.di.module
+﻿package com.leon.be_nobat.di.module
 
 import com.leon.be_nobat.data.demo.*
 import android.util.Log
@@ -96,6 +96,7 @@ import com.leon.be_nobat.domain.usecase.PlatformListCatalogUseCase
 import com.leon.be_nobat.domain.usecase.PlatformListCategoriesUseCase
 import com.leon.be_nobat.domain.usecase.PlatformListUsersUseCase
 import com.leon.be_nobat.domain.usecase.PlatformResetPasswordUseCase
+import com.leon.be_nobat.domain.usecase.PlatformSetCatalogActiveUseCase
 import com.leon.be_nobat.domain.usecase.PlatformSetUserRolesUseCase
 import com.leon.be_nobat.domain.usecase.PlatformToggleBusinessActiveUseCase
 import com.leon.be_nobat.domain.usecase.PlatformToggleUserActiveUseCase
@@ -271,6 +272,7 @@ val useCaseModule = module {
     factory { PlatformCreateCatalogUseCase(get()) }
     factory { PlatformUpdateCatalogUseCase(get()) }
     factory { PlatformDeleteCatalogUseCase(get()) }
+    factory { PlatformSetCatalogActiveUseCase(get()) }
     factory { PlatformListCategoriesUseCase(get()) }
     factory { PlatformCreateCategoryUseCase(get()) }
     factory { PlatformUpdateCategoryUseCase(get()) }
@@ -313,7 +315,7 @@ val viewModelModule = module {
 
     // Platform
     viewModel { PlatformBusinessesViewModel(get(), get(), get(), get(), get()) }
-    viewModel { PlatformCatalogViewModel(get(), get(), get(), get()) }
+    viewModel { PlatformCatalogViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { PlatformCategoriesViewModel(get(), get(), get(), get()) }
     viewModel { PlatformAccessViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { PlatformRequestsViewModel(get(), get(), get(), get(), get()) }

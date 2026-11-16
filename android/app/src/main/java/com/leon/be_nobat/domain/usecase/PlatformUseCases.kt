@@ -1,4 +1,4 @@
-package com.leon.be_nobat.domain.usecase
+﻿package com.leon.be_nobat.domain.usecase
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.ManagementBusiness
@@ -48,6 +48,10 @@ class PlatformCreateCatalogUseCase(private val repo: PlatformRepository) {
 
 class PlatformUpdateCatalogUseCase(private val repo: PlatformRepository) {
     suspend operator fun invoke(id: String, input: ManagementCatalogInput): Result<ManagementCatalog> = repo.updateCatalogItem(id, input)
+}
+
+class PlatformSetCatalogActiveUseCase(private val repo: PlatformRepository) {
+    suspend operator fun invoke(id: String, active: Boolean): Result<ManagementCatalog> = repo.setCatalogActive(id, active)
 }
 
 class PlatformDeleteCatalogUseCase(private val repo: PlatformRepository) {

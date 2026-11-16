@@ -73,6 +73,11 @@ class BusinessDetailViewModel(
         }
     }
 
+    fun selectBranch(id: String) {
+        branchId = id
+        _state.value = _state.value.copy(selectedBranchId = id)
+    }
+
     fun toggleFavorite() {
         val current = _state.value.isFavorite
         if (businessId.isEmpty()) return

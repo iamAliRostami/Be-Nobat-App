@@ -44,8 +44,12 @@ android {
         }
         release {
             // Override these in your release signing config (e.g. via gradle.properties or CI env vars).
-            buildConfigField("String", "API_BASE_URL", "\"https://api.benobat.example.com/api/v1\"")
-            buildConfigField("String", "MEDIA_BASE_URL", "\"https://api.benobat.example.com\"")
+            val prodApiUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')?.let { "$it/api/v1" }
+                ?: "http://127.0.0.1:8080/api/v1"
+            val prodMediaUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
+                ?: "http://127.0.0.1:8080"
+            buildConfigField("String", "API_BASE_URL", "\"$prodApiUrl\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$prodMediaUrl\"")
             isMinifyEnabled = false
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
@@ -117,7 +121,7 @@ dependencies {
     // Image loading
     implementation(libs.coil)
     implementation(libs.coil.svg)
-    implementation("com.google.zxing:core:3.5.3")
+    implementation(libs.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

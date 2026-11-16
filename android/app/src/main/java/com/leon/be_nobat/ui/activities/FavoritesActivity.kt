@@ -52,6 +52,18 @@ class FavoritesActivity : BaseActivity() {
                     putExtra("businessId", biz.id)
                 })
             },
+            onBookClick = { biz ->
+                startActivity(Intent(this, BookingActivity::class.java).apply {
+                    putExtra("businessId", biz.id)
+                    putExtra("businessName", biz.name)
+                })
+            },
+            onViewReviewsClick = { biz ->
+                startActivity(Intent(this, BusinessDetailActivity::class.java).apply {
+                    putExtra("businessId", biz.id)
+                    putExtra("scrollToReviews", true)
+                })
+            },
             onFavoriteToggle = { biz, _ -> viewModel.remove(biz.id) },
             isFavorite = { true },
         )

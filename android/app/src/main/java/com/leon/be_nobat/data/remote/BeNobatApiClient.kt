@@ -626,6 +626,10 @@ class BeNobatApiClient(
     /** DELETE /platform/catalog/{id}. */
     suspend fun platformDeleteCatalogItem(id: String): Result<Unit> = delete("/platform/catalog/$id")
 
+    /** PUT /platform/catalog/{id}/active. */
+    suspend inline fun <reified T> platformSetCatalogActive(id: String, body: JsonObject): Result<T> =
+        put("/platform/catalog/$id/active", body)
+
     /** GET /platform/categories. */
     suspend inline fun <reified T> platformListCategories(
         kind: String? = null, includeInactive: Boolean? = null, page: Int = 1, pageSize: Int = 100,

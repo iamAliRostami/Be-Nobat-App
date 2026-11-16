@@ -21,7 +21,7 @@
 <div class="stat-cards">
     <a class="stat-card-link" href="@CalendarUrl()"><i class="purple"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg></i><div><small>نوبت‌های امروز</small><strong>@TodayAppointments.Count</strong></div></a>
     <a class="stat-card-link" href="@CalendarUrl(AppointmentStatus.Completed)"><i class="green">✓</i><div><small>انجام‌شده امروز</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Completed)</strong></div></a>
-    <a class="stat-card-link" href="@CalendarUrl(AppointmentStatus.Pending)"><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)</strong></div></a>
+    <a class="stat-card-link" href="@CalendarUrl(AppointmentStatus.Pending, allDates: true)" title="@($"{TodayAppointments.Count(a => a.Status == AppointmentStatus.Pending)} نوبت امروز")"><i class="orange">◷</i><div><small>در انتظار تأیید</small><strong>@PendingAppointments</strong></div></a>
     <a class="stat-card-link" href="@CalendarUrl(allDates: true)"><i class="blue">♧</i><div><small>کل نوبت‌ها</small><strong>@TotalAppointments</strong></div></a>
 </div>
 
@@ -119,6 +119,7 @@
     private DateOnly TodayDate = BranchClock.Today(null);
     private List<Appointment> TodayAppointments = [];
     private int TotalAppointments;
+    private int PendingAppointments;
     private string? Error;
     private bool CanManageBusiness;
     private bool IsPlatformAdmin;
@@ -175,6 +176,7 @@
                 .OrderBy(a => a.StartsAt)
                 .ToListAsync(token);
             var totalAppointments = await appointments.CountAsync(token);
+            var pendingAppointments = await appointments.CountAsync(a => a.Status == AppointmentStatus.Pending, token);
             if (IsDisposed || version != LoadVersion) return;
             Zone = zone;
             TodayDate = today;
@@ -182,6 +184,7 @@
             IsPlatformAdmin = isPlatformAdmin;
             TodayAppointments = todayAppointments;
             TotalAppointments = totalAppointments;
+            PendingAppointments = pendingAppointments;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         finally

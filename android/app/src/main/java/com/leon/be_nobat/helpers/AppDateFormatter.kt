@@ -1,4 +1,4 @@
-package com.leon.be_nobat.helpers
+﻿package com.leon.be_nobat.helpers
 
 import android.os.Build
 import java.text.SimpleDateFormat
@@ -38,7 +38,10 @@ object AppDateFormatter {
 
     fun parseToMillis(isoString: String?): Long? {
         if (isoString.isNullOrBlank()) return null
-        val clean = isoString.trim()
+        var clean = isoString.trim()
+        if (!clean.contains("T") && clean.contains(" ")) {
+            clean = clean.replace(" ", "T")
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 return OffsetDateTime.parse(clean).toInstant().toEpochMilli()
@@ -47,7 +50,10 @@ object AppDateFormatter {
                 return Instant.parse(clean).toEpochMilli()
             } catch (_: Exception) {}
             try {
-                val noFraction = clean.substringBefore(".")
+                var noFraction = clean.substringBefore(".")
+                if (noFraction.length == 16) {
+                    noFraction = "$noFraction:00"
+                }
                 return LocalDateTime.parse(noFraction).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             } catch (_: Exception) {}
         }
@@ -63,6 +69,9 @@ object AppDateFormatter {
             "yyyy-MM-dd'T'HH:mm:ssX",
             "yyyy-MM-dd'T'HH:mm:ssXXX",
             "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
             "yyyy-MM-dd"
         )
         for (fmt in formats) {

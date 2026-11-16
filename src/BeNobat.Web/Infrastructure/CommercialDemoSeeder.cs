@@ -49,6 +49,12 @@ public static class CommercialDemoSeeder
                 Check(await users.CreateAsync(user, password));
                 Check(await users.AddToRoleAsync(user, AppRoles.Customer));
             }
+            else if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+            {
+                user.PhoneNumber = $"0912{100 + i:D3}{2000 + i:D4}";
+                user.PhoneNumberConfirmed = true;
+                await users.UpdateAsync(user);
+            }
             customers.Add(user);
         }
 
@@ -62,10 +68,18 @@ public static class CommercialDemoSeeder
             owner = new AppUser
             {
                 Id = ownerId, UserName = ownerEmail, Email = ownerEmail, EmailConfirmed = true,
-                DisplayName = "سارا رضایی (مالک کسب‌وکار)"
+                DisplayName = "سارا رضایی (مالک کسب‌وکار)",
+                PhoneNumber = "09121112233",
+                PhoneNumberConfirmed = true,
             };
             Check(await users.CreateAsync(owner, password));
             Check(await users.AddToRoleAsync(owner, AppRoles.Owner));
+        }
+        else if (string.IsNullOrWhiteSpace(owner.PhoneNumber))
+        {
+            owner.PhoneNumber = "09121112233";
+            owner.PhoneNumberConfirmed = true;
+            await users.UpdateAsync(owner);
         }
 
         var staffId = Id("demo-staff-elnaz");
@@ -78,10 +92,18 @@ public static class CommercialDemoSeeder
             staffUser = new AppUser
             {
                 Id = staffId, UserName = staffEmail, Email = staffEmail, EmailConfirmed = true,
-                DisplayName = "الناز محمدی (ارائه‌دهنده ونک)"
+                DisplayName = "الناز محمدی (ارائه‌دهنده ونک)",
+                PhoneNumber = "09123334455",
+                PhoneNumberConfirmed = true,
             };
             Check(await users.CreateAsync(staffUser, password));
             Check(await users.AddToRoleAsync(staffUser, AppRoles.Staff));
+        }
+        else if (string.IsNullOrWhiteSpace(staffUser.PhoneNumber))
+        {
+            staffUser.PhoneNumber = "09123334455";
+            staffUser.PhoneNumberConfirmed = true;
+            await users.UpdateAsync(staffUser);
         }
 
         // Price values follow the existing model's IRR currency.
@@ -216,6 +238,7 @@ public static class CommercialDemoSeeder
                     var nameIndex = c * 6 + b * 3 + r;
                     var staffName = $"{firstNames[nameIndex % 12]} {lastNames[(nameIndex / 12) % 4]}";
                     var staffMemberEmail = $"staff.{catalog.Slug}.b{b}.r{r}@demo.benobat.example";
+                    var staffPhone = $"0919{100 + (nameIndex % 900):D3}{3000 + (nameIndex % 7000):D4}";
                     var staffMember = await users.FindByEmailAsync(staffMemberEmail);
                     if (staffMember is null)
                     {
@@ -225,10 +248,18 @@ public static class CommercialDemoSeeder
                             UserName = staffMemberEmail,
                             Email = staffMemberEmail,
                             EmailConfirmed = true,
-                            DisplayName = staffName
+                            DisplayName = staffName,
+                            PhoneNumber = staffPhone,
+                            PhoneNumberConfirmed = true,
                         };
                         Check(await users.CreateAsync(staffMember, password));
                         Check(await users.AddToRoleAsync(staffMember, AppRoles.Staff));
+                    }
+                    else if (string.IsNullOrWhiteSpace(staffMember.PhoneNumber))
+                    {
+                        staffMember.PhoneNumber = staffPhone;
+                        staffMember.PhoneNumberConfirmed = true;
+                        await users.UpdateAsync(staffMember);
                     }
 
                     if (resource is null)

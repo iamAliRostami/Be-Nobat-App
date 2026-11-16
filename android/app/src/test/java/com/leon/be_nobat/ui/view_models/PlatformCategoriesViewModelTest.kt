@@ -1,4 +1,4 @@
-package com.leon.be_nobat.ui.view_models
+﻿package com.leon.be_nobat.ui.view_models
 
 import com.leon.be_nobat.data.remote.ApiPage
 import com.leon.be_nobat.domain.model.*
@@ -128,6 +128,7 @@ class PlatformCategoriesViewModelTest {
             Result.success(ApiPage())
         override suspend fun createCatalogItem(input: ManagementCatalogInput): Result<ManagementCatalog> = TODO()
         override suspend fun updateCatalogItem(id: String, input: ManagementCatalogInput): Result<ManagementCatalog> = TODO()
+        override suspend fun setCatalogActive(id: String, active: Boolean): Result<ManagementCatalog> = TODO()
         override suspend fun deleteCatalogItem(id: String): Result<Unit> = TODO()
 
         override suspend fun listCategories(kind: String?, includeInactive: Boolean?, page: Int, pageSize: Int): Result<ApiPage<ManagementCategory>> {

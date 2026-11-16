@@ -66,7 +66,11 @@ class PlatformSettingsActivity : BaseActivity() {
     }
 
     override fun setupViews() {
-        setupAdminHeader(getString(R.string.platform_settings_title))
+        requirePlatformAdminPermission()
+        setupAdminHeader(
+            getString(R.string.platform_settings_title),
+            currentMenuItemId = R.id.drawer_platform_settings
+        )
 
         etAddress = findViewById(R.id.etSettingsAddress)
         btnPickMap = findViewById(R.id.btnSettingsPickMap)

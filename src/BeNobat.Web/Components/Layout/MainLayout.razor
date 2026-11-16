@@ -22,6 +22,10 @@
                     <NavLink href="/admin" Match="NavLinkMatch.All" title="داشبورد" aria-label="داشبورد">
                         <i>⌂</i> <span class="sidebar-label">داشبورد</span>
                     </NavLink>
+                    <NavLink href="/admin/analytics" title="آمار و گزارش‌ها" aria-label="آمار و گزارش‌ها">
+                        <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5C3.9 3 3 3.9 3 5v14c0 1.1 0.9 2 2 2h14c1.1 0 2-.9 2-2V5C21 3.9 20.1 3 19 3zM19 19H5V5h14V19zM7 10h2v7H7V10zM11 7h2v10h-2V7zM15 13h2v4h-2V13z"/></svg></i>
+                        <span class="sidebar-label">آمار و گزارش‌ها</span>
+                    </NavLink>
                     <NavLink href="/admin/calendar" title="@(pendingAppointmentsCount > 0 ? $"تقویم نوبت‌ها ({pendingAppointmentsCount} نوبت در انتظار تایید)" : "تقویم نوبت‌ها")" aria-label="تقویم نوبت‌ها">
                         <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg></i>
                         <span class="sidebar-label">تقویم نوبت‌ها</span>
@@ -29,10 +33,6 @@
                         {
                             <b title="@pendingAppointmentsCount نوبت در انتظار تایید" class="sidebar-badge-count">@FormatBadgeCount(pendingAppointmentsCount)</b>
                         }
-                    </NavLink>
-                    <NavLink href="/admin/analytics" title="آمار و گزارش‌ها" aria-label="آمار و گزارش‌ها">
-                        <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 3H5C3.9 3 3 3.9 3 5v14c0 1.1 0.9 2 2 2h14c1.1 0 2-.9 2-2V5C21 3.9 20.1 3 19 3zM19 19H5V5h14V19zM7 10h2v7H7V10zM11 7h2v10h-2V7zM15 13h2v4h-2V13z"/></svg></i>
-                        <span class="sidebar-label">آمار و گزارش‌ها</span>
                     </NavLink>
                     <NavLink href="/admin/messages" title="@(unreadBroadcastsCount > 0 ? $"پیام‌های سامانه ({unreadBroadcastsCount} پیام جدید)" : "پیام‌های سامانه")" aria-label="پیام‌های سامانه">
                         <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></i>

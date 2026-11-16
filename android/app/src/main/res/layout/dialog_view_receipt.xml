@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="?attr/colorSurface">
+
+    <!-- Header: Title, Subtitle, & Close 'x' button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/btnCloseReceipt"
+            android:layout_alignParentStart="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReceiptTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_receipt_title"
+                android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                android:id="@+id/tvReceiptSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                android:textSize="13sp"
+                tools:text="کسب‌وکار: تست (متقاضی: علی رستمی)" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseReceipt"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            app:icon="@drawable/ic_close"
+            app:iconSize="20dp"
+            android:contentDescription="@string/action_close" />
+    </RelativeLayout>
+
+    <!-- Receipt Image Container -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardReceiptImage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:strokeWidth="1dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="220dp">
+
+            <ImageView
+                android:id="@+id/ivReceiptImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxHeight="320dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/dialog_receipt_title"
+                tools:src="@drawable/ic_document" />
+
+            <ProgressBar
+                android:id="@+id/pbReceiptLoading"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Meta Details (مبلغ کل، کد پیگیری، تاریخ ارسال) -->
+    <LinearLayout
+        android:id="@+id/layoutReceiptMeta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvReceiptDate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="12.5sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="تاریخ ارسال: ۱۴۰۵/۰۸/۱۷" />
+
+        <TextView
+            android:id="@+id/tvReceiptFee"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="مبلغ کل: ۵۰۰،۰۰۰ تومان" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvReceiptTrackingCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible"
+        tools:text="کد پیگیری: TRK-12345" />
+
+    <!-- Close Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnReceiptDismiss"
+        style="@style/Widget.BeNobat.Button.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_gravity="start"
+        android:layout_marginTop="16dp"
+        android:text="@string/action_close"
+        android:textSize="13sp" />
+
+</LinearLayout>

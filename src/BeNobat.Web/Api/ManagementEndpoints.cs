@@ -357,8 +357,41 @@ public static class ManagementEndpoints
     }
 
     private static IQueryable<ManagementBusinessDto> BusinessDtos(IQueryable<Business> query) => query.Select(x =>
-        new ManagementBusinessDto(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null, x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault(), x.CancellationNoticeMinutes));
-    private static ManagementBusinessDto BusinessDto(Business x) => new(x.Id, x.Name, x.Slug, x.Category, x.City, x.Description, x.RequiresApproval, x.DeletedAt == null, x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault(), x.CancellationNoticeMinutes);
+        new ManagementBusinessDto(
+            x.Id,
+            x.Name,
+            x.Slug,
+            x.Category,
+            x.City,
+            x.Description,
+            x.RequiresApproval,
+            x.DeletedAt == null,
+            x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault(),
+            x.CancellationNoticeMinutes,
+            x.AvatarData != null ? $"/media/business/{x.Id}/avatar" : null,
+            x.HeaderData != null ? $"/media/business/{x.Id}/header" : null,
+            x.DepositPercentage,
+            x.DepositCardNumber,
+            x.DepositIban,
+            x.DepositAccountHolder));
+
+    private static ManagementBusinessDto BusinessDto(Business x) => new(
+        x.Id,
+        x.Name,
+        x.Slug,
+        x.Category,
+        x.City,
+        x.Description,
+        x.RequiresApproval,
+        x.DeletedAt == null,
+        x.Branches.Where(b => b.DeletedAt == null).OrderBy(b => b.CreatedAt).ThenBy(b => b.Id).Select(b => (Guid?)b.Id).FirstOrDefault(),
+        x.CancellationNoticeMinutes,
+        x.AvatarData != null ? $"/media/business/{x.Id}/avatar" : null,
+        x.HeaderData != null ? $"/media/business/{x.Id}/header" : null,
+        x.DepositPercentage,
+        x.DepositCardNumber,
+        x.DepositIban,
+        x.DepositAccountHolder);
 
     private static Task<IResult> ListBusinesses(ApiScope scope, CancellationToken ct, string? q = null, int page = 1, int pageSize = 25)
     {
@@ -392,8 +425,28 @@ public static class ManagementEndpoints
 
     private static void ApplyBusiness(Business x, ManagementBusinessInput input, string slug)
     {
-        x.Name = Clean(input.Name); x.Slug = slug; x.Category = Clean(input.Category); x.City = Clean(input.City);
-        x.CancellationNoticeMinutes = input.CancellationNoticeMinutes ?? x.CancellationNoticeMinutes; x.Description = Clean(input.Description); x.RequiresApproval = input.RequiresApproval; x.UpdatedAt = DateTimeOffset.UtcNow;
+        x.Name = Clean(input.Name);
+        x.Slug = slug;
+        x.Category = Clean(input.Category);
+        x.City = Clean(input.City);
+        x.CancellationNoticeMinutes = input.CancellationNoticeMinutes ?? x.CancellationNoticeMinutes;
+        x.Description = Clean(input.Description);
+        x.RequiresApproval = input.RequiresApproval;
+        if (input.DepositPercentage is not null) x.DepositPercentage = input.DepositPercentage;
+        if (input.DepositCardNumber is not null) x.DepositCardNumber = string.IsNullOrWhiteSpace(input.DepositCardNumber) ? null : input.DepositCardNumber.Trim();
+        if (input.DepositIban is not null) x.DepositIban = string.IsNullOrWhiteSpace(input.DepositIban) ? null : input.DepositIban.Trim();
+        if (input.DepositAccountHolder is not null) x.DepositAccountHolder = string.IsNullOrWhiteSpace(input.DepositAccountHolder) ? null : input.DepositAccountHolder.Trim();
+        if (input.AvatarBase64 is not null)
+        {
+            if (string.IsNullOrWhiteSpace(input.AvatarBase64)) { x.AvatarData = null; x.AvatarContentType = null; }
+            else { try { x.AvatarData = Convert.FromBase64String(input.AvatarBase64); x.AvatarContentType = "image/jpeg"; } catch { } }
+        }
+        if (input.HeaderBase64 is not null)
+        {
+            if (string.IsNullOrWhiteSpace(input.HeaderBase64)) { x.HeaderData = null; x.HeaderContentType = null; }
+            else { try { x.HeaderData = Convert.FromBase64String(input.HeaderBase64); x.HeaderContentType = "image/jpeg"; } catch { } }
+        }
+        x.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     private static async Task<IResult> CreateBusiness(ManagementBusinessInput input, AppDbContext db, UserManager<AppUser> users, CancellationToken ct)
@@ -1320,7 +1373,8 @@ public static class ManagementEndpoints
 
     private static IQueryable<ManagementReviewDto> ReviewDtos(IQueryable<Review> query) => query.Select(r =>
         new ManagementReviewDto(r.Id, r.BusinessId, r.BranchId, r.CustomerId, r.AppointmentId, r.Rating, r.Comment, r.ManagerReply,
-            r.Status.ToString(), r.Customer.DisplayName, r.DeletedAt == null, r.CreatedAt));
+            r.Status.ToString(), r.Customer.DisplayName, r.DeletedAt == null, r.CreatedAt,
+            r.Business.Name, r.Branch != null ? r.Branch.Name : null));
 
     private static Task<IResult> ListReviews(ApiScope scope, CancellationToken ct, Guid? businessId = null, Guid? branchId = null, Guid? customerId = null,
         string? status = null, int? rating = null, bool includeInactive = false, int page = 1, int pageSize = 25)
@@ -1430,8 +1484,10 @@ public static class ManagementEndpoints
     }
 
     private static IQueryable<ManagementCatalogDto> CatalogDtos(IQueryable<ServiceCatalogItem> query) => query.Select(c =>
-        new ManagementCatalogDto(c.Id, c.Name, c.Slug, c.Category, c.Description, c.SuggestedDurationMinutes, c.IsPublished, c.IsPublished && c.DeletedAt == null));
-    private static ManagementCatalogDto CatalogDto(ServiceCatalogItem c) => new(c.Id, c.Name, c.Slug, c.Category, c.Description, c.SuggestedDurationMinutes, c.IsPublished, c.IsPublished && c.DeletedAt == null);
+        new ManagementCatalogDto(c.Id, c.Name, c.Slug, c.Category, c.Description, c.SuggestedDurationMinutes, c.IsPublished, c.IsPublished && c.DeletedAt == null,
+            c.BusinessServices.Where(bs => bs.DeletedAt == null).Select(bs => bs.BusinessId).Distinct().Count()));
+    private static ManagementCatalogDto CatalogDto(ServiceCatalogItem c) => new(c.Id, c.Name, c.Slug, c.Category, c.Description, c.SuggestedDurationMinutes, c.IsPublished, c.IsPublished && c.DeletedAt == null,
+        c.BusinessServices != null ? c.BusinessServices.Where(bs => bs.DeletedAt == null).Select(bs => bs.BusinessId).Distinct().Count() : 0);
 
     private static Task<IResult> ListCatalog(AppDbContext db, CancellationToken ct, string? q = null, string? category = null, bool includeInactive = true, int page = 1, int pageSize = 25)
     {
@@ -1735,6 +1791,7 @@ public static class ManagementEndpoints
     public static BusinessRequestDto ToBusinessRequestDto(BusinessRequest r, string? userName = null, string? userEmail = null, string? userPhone = null)
     {
         var branches = r.GetAdditionalBranches().Select(b => new RequestedBranchDto(b.Name, b.Address)).ToArray();
+        var hasReceipt = r.ReceiptImageData != null && r.ReceiptImageData.Length > 0;
         return new(
             r.Id,
             r.UserId,
@@ -1753,13 +1810,14 @@ public static class ManagementEndpoints
             r.ExtraBranchPrice,
             r.TotalBranchesCount,
             r.TotalFee,
-            r.ReceiptImageData != null && r.ReceiptImageData.Length > 0,
+            hasReceipt,
             r.ReceiptTrackingCode,
             r.ReceiptUploadedAt,
             r.Status.ToString(),
             r.ReviewNote,
             r.ApprovedBusinessId,
-            r.CreatedAt
+            r.CreatedAt,
+            hasReceipt ? $"/media/receipt/{r.Id}?v={r.UpdatedAt.Ticks}" : null
         );
     }
 
@@ -2312,13 +2370,13 @@ public sealed record ManagementAppointmentDto(Guid Id, Guid BranchId, Guid Busin
 {
     public string[] ServiceNames { get; init; } = ServiceNames.Length == 0 ? [ServiceName] : ServiceNames;
 }
-public sealed record ManagementReviewDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid CustomerId, Guid? AppointmentId, int Rating, string Comment, string? ManagerReply, string Status, string CustomerName, bool Active, DateTimeOffset CreatedAt);
+public sealed record ManagementReviewDto(Guid Id, Guid BusinessId, Guid? BranchId, Guid CustomerId, Guid? AppointmentId, int Rating, string Comment, string? ManagerReply, string Status, string CustomerName, bool Active, DateTimeOffset CreatedAt, string? BusinessName = null, string? BranchName = null);
 public sealed record ManagementModerationInput(string Status, string? ManagerReply = null);
 public sealed record ManagementReplyInput(string? ManagerReply);
 public sealed record ManagementCustomerReviewInput(Guid AppointmentId, int Rating, string Comment = "");
 public sealed record ManagementCustomerReviewDto(Guid Id, Guid AppointmentId, Guid BusinessId, Guid BranchId, Guid CustomerId, Guid AuthorId, int Rating, string Comment, string CustomerName, string AuthorName, DateTimeOffset CreatedAt);
 public sealed record ManagementCatalogInput(string Name, string Slug, string Category = "عمومی", string Description = "", int SuggestedDurationMinutes = 30, bool IsPublished = true);
-public sealed record ManagementCatalogDto(Guid Id, string Name, string Slug, string Category, string Description, int SuggestedDurationMinutes, bool IsPublished, bool Active);
+public sealed record ManagementCatalogDto(Guid Id, string Name, string Slug, string Category, string Description, int SuggestedDurationMinutes, bool IsPublished, bool Active, int UsageCount = 0);
 public sealed record ManagementCategoryInput(string Name, string Kind = "Business", int SortOrder = 0, bool IsActive = true);
 public sealed record ManagementCategoryDto(Guid Id, string Name, string Kind, int SortOrder, bool Active);
 public sealed record ManagementUserInput(string DisplayName, string? Email, string PhoneNumber, string Role = AppRoles.Customer);
@@ -2335,7 +2393,7 @@ public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType
     public string EffectiveData => !string.IsNullOrWhiteSpace(DataBase64) ? DataBase64 : (ImageBase64 ?? string.Empty);
 }
 public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "", RequestedBranchDto[]? AdditionalBranches = null);
-public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt);
+public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt, string? ReceiptImageUrl = null);
 public sealed record ReviewBusinessRequestInput(string? Note = null);
 public sealed record ContactMessageReadInput(bool IsRead = true);
 public sealed record ContactMessageReplyInput(string Reply);

@@ -154,21 +154,21 @@ class PlatformAccessActivity : BaseActivity() {
         AdminFormDialog.Builder(this)
             .setTitle(getString(R.string.form_create_user_title))
             .field(getString(R.string.form_label_name))
-            .field(getString(R.string.form_label_email), inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
             .field(getString(R.string.form_label_phone), inputType = android.text.InputType.TYPE_CLASS_PHONE)
+            .field(getString(R.string.form_label_email), inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
             .dropdownField(getString(R.string.form_label_role), roleOptions, default = "Customer")
             .onSubmit { values ->
                 val name = values.getOrNull(0).orEmpty()
-                val email = values.getOrNull(1).orEmpty()
-                val phone = values.getOrNull(2).orEmpty()
+                val phone = values.getOrNull(1).orEmpty()
+                val email = values.getOrNull(2).orEmpty()
                 val role = values.getOrNull(3).orEmpty().ifBlank { "Customer" }
-                if (name.isBlank() || email.isBlank() || phone.isBlank()) {
+                if (name.isBlank() || phone.isBlank()) {
                     Snackbar.make(findViewById(R.id.swipeRefresh), R.string.msg_invalid_input, Snackbar.LENGTH_SHORT).show()
                     return@onSubmit
                 }
                 viewModel.createUser(ManagementUserInput(
                     displayName = name,
-                    email = email,
+                    email = email.ifBlank { "" },
                     phoneNumber = phone,
                     role = role,
                 ))
@@ -234,12 +234,11 @@ class PlatformAccessActivity : BaseActivity() {
             holder.binding.apply {
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyActiveStatusIndicator(viewStatusIndicator, item.active)
                 tvTitle.text = item.displayName
-                val contacts = listOfNotNull(
-                    item.email?.takeIf { it.isNotBlank() }?.let { "✉ $it" },
-                    item.phoneNumber?.takeIf { it.isNotBlank() }?.let { "☎ $it" },
-                ).joinToString("   •   ")
-                tvSubtitle.text = contacts
-                tvSubtitle.isVisible = contacts.isNotBlank()
+                val phoneFormatted = item.phoneNumber?.takeIf { it.isNotBlank() }?.let { "☎ ${com.leon.be_nobat.helpers.PersianUtils.toPersianDigits(it)}" }
+                val emailFormatted = item.email?.takeIf { it.isNotBlank() }?.let { "✉ $it" }
+                val contact = phoneFormatted ?: emailFormatted
+                tvSubtitle.text = contact.orEmpty()
+                tvSubtitle.isVisible = !contact.isNullOrBlank()
 
                 val localizedRoles = item.roles.map { role ->
                     when (role) {

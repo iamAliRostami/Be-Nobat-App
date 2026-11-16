@@ -175,6 +175,66 @@ else
             </div>
         </fieldset>
 
+        <hr style="border:none; border-top:1px solid var(--outline-soft); margin:20px 0;" />
+
+        <!-- بخش ۴: شعبه مرکزی و نشانی -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> شعبه مرکزی و نشانی
+            </legend>
+
+            <div style="display:grid; grid-template-columns:1fr; gap:16px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>نام شعبه مرکزی</span>
+                    <input type="text" placeholder="مثال: شعبه مرکزی" @bind="Form.FirstBranchName" />
+                </label>
+
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                    <span>نشانی شعبه مرکزی</span>
+                    <textarea rows="2" placeholder="خیابان، پلاک، طبقه یا واحد..." @bind="Form.FirstBranchAddress"></textarea>
+                </label>
+            </div>
+        </fieldset>
+
+        <hr style="border:none; border-top:1px solid var(--outline-soft); margin:20px 0;" />
+
+        <!-- بخش ۵: تنظیمات بیعانه نوبت -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> تنظیمات بیعانه نوبت (اختیاری)
+            </legend>
+
+            <div style="background:var(--surface-variant, #f8faf9); padding:16px; border-radius:12px; border:1px solid var(--outline-soft); display:grid; gap:14px;">
+                <p style="margin:0; font-size:12px; color:var(--text-muted);">
+                    در صورت تعیین درصد بیعانه، کاربر برای ثبت نوبت موظف به پرداخت بیعانه و الصاق تصویر فیش واریز خواهد بود.
+                </p>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>درصد بیعانه (۰ تا ۱۰۰)</span>
+                        <input type="number" min="0" max="100" placeholder="مثلاً: ۲۰" @bind="Form.DepositPercentage" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>نام صاحب حساب</span>
+                        <input type="text" placeholder="نام و نام خانوادگی صاحب کارت" @bind="Form.DepositAccountHolder" />
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>شماره کارت (۱۶ رقمی)</span>
+                        <input type="text" dir="ltr" maxlength="19" placeholder="۶۰۳۷-xxxx-xxxx-xxxx" @bind="Form.DepositCardNumber" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>شماره شبا (با IR)</span>
+                        <input type="text" dir="ltr" maxlength="26" placeholder="IRxxxxxxxxxxxxxxxxxxxxxxxx" @bind="Form.DepositIban" />
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+
         <div class="row-actions" style="display:flex; justify-content:flex-end; gap:10px; margin-top:24px;">
             <button type="submit" class="primary-button" disabled="@Saving">
                 @(Saving ? "در حال ذخیره..." : "ذخیره تغییرات")
@@ -207,6 +267,12 @@ else
         public string Description { get; set; } = "";
         public bool RequiresApproval { get; set; } = true;
         public int? CancellationNoticeMinutes { get; set; } = 120;
+        public string FirstBranchName { get; set; } = "شعبه مرکزی";
+        public string FirstBranchAddress { get; set; } = "";
+        public int? DepositPercentage { get; set; }
+        public string? DepositCardNumber { get; set; }
+        public string? DepositIban { get; set; }
+        public string? DepositAccountHolder { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -281,6 +347,10 @@ else
             CategoryOptions.Insert(0, CurrentBusiness.Category);
         }
 
+        var firstBranch = await db.Branches
+            .Where(x => x.BusinessId == id && x.DeletedAt == null)
+            .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).FirstOrDefaultAsync();
+
         Form = new BusinessFormModel
         {
             Name = CurrentBusiness.Name,
@@ -290,6 +360,12 @@ else
             Description = CurrentBusiness.Description,
             RequiresApproval = CurrentBusiness.RequiresApproval,
             CancellationNoticeMinutes = CurrentBusiness.CancellationNoticeMinutes,
+            FirstBranchName = firstBranch?.Name ?? "شعبه مرکزی",
+            FirstBranchAddress = firstBranch?.Address ?? "",
+            DepositPercentage = CurrentBusiness.DepositPercentage,
+            DepositCardNumber = CurrentBusiness.DepositCardNumber,
+            DepositIban = CurrentBusiness.DepositIban,
+            DepositAccountHolder = CurrentBusiness.DepositAccountHolder,
         };
 
         AvatarUrl = CurrentBusiness.AvatarData != null ? $"/media/business/{CurrentBusiness.Id}/avatar?t={DateTime.UtcNow.Ticks}" : null;
@@ -408,6 +484,22 @@ else
             b.Description = (Form.Description ?? "").Trim();
             b.RequiresApproval = Form.RequiresApproval;
             b.CancellationNoticeMinutes = Form.CancellationNoticeMinutes ?? 120;
+            b.DepositPercentage = Form.DepositPercentage;
+            b.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
+            b.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
+            b.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
+
+            var firstBranch = await db.Branches
+                .Where(x => x.BusinessId == b.Id && x.DeletedAt == null)
+                .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id).FirstOrDefaultAsync();
+            if (firstBranch is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(Form.FirstBranchName))
+                    firstBranch.Name = Form.FirstBranchName.Trim();
+                firstBranch.Address = (Form.FirstBranchAddress ?? "").Trim();
+                firstBranch.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
             b.UpdatedAt = DateTimeOffset.UtcNow;
 
             await db.SaveChangesAsync();

@@ -74,6 +74,8 @@ data class ManagementBusinessInput(
     val depositCardNumber: String? = null,
     val depositIban: String? = null,
     val depositAccountHolder: String? = null,
+    val avatarBase64: String? = null,
+    val headerBase64: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
 )
@@ -92,6 +94,8 @@ data class ManagementBranchInput(
     val depositCardNumber: String? = null,
     val depositIban: String? = null,
     val depositAccountHolder: String? = null,
+    val avatarBase64: String? = null,
+    val headerBase64: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
 )
