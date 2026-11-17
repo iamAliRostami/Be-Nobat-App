@@ -113,6 +113,7 @@ import com.leon.be_nobat.domain.usecase.UpdateProfileUseCase
 import com.leon.be_nobat.domain.usecase.UploadAvatarUseCase
 import com.leon.be_nobat.helpers.App
 import com.leon.be_nobat.helpers.PREFERENCES_NAME
+import com.leon.be_nobat.helpers.SslHelper
 import com.leon.be_nobat.ui.view_models.AppointmentsViewModel
 import com.leon.be_nobat.ui.view_models.BookingViewModel
 import com.leon.be_nobat.ui.view_models.BusinessDetailViewModel
@@ -335,11 +336,18 @@ val networkModule = module {
     single {
         HttpClient(Android) {
             expectSuccess = false
+            engine {
+                connectTimeout = 25_000
+                socketTimeout = 30_000
+                sslManager = { httpsURLConnection ->
+                    SslHelper.configureHttps(httpsURLConnection)
+                }
+            }
             install(ContentNegotiation) { json(get()) }
             install(HttpTimeout) {
-                requestTimeoutMillis = 15_000
-                connectTimeoutMillis = 10_000
-                socketTimeoutMillis = 15_000
+                requestTimeoutMillis = 30_000
+                connectTimeoutMillis = 25_000
+                socketTimeoutMillis = 30_000
             }
             if (BuildConfig.DEBUG) {
                 install(Logging) {

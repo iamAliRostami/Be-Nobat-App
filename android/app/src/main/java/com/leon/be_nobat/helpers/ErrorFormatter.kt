@@ -22,18 +22,25 @@ object ErrorFormatter {
 
     fun isConnectionIssue(throwable: Throwable?): Boolean {
         if (throwable == null) return false
-        if (throwable is ConnectException ||
-            throwable is UnknownHostException ||
-            throwable is SocketTimeoutException ||
-            throwable is SocketException ||
-            throwable is HttpRequestTimeoutException ||
-            throwable is AuthException.NetworkUnavailable ||
-            throwable is AuthException.RequestTimedOut ||
-            throwable is IOException
-        ) {
-            return true
+        var current: Throwable? = throwable
+        while (current != null) {
+            if (current is ConnectException ||
+                current is UnknownHostException ||
+                current is SocketTimeoutException ||
+                current is SocketException ||
+                current is HttpRequestTimeoutException ||
+                current is javax.net.ssl.SSLException ||
+                current is java.security.cert.CertificateException ||
+                current is AuthException.NetworkUnavailable ||
+                current is AuthException.RequestTimedOut ||
+                current is IOException
+            ) {
+                return true
+            }
+            if (isConnectionIssue(current.message)) return true
+            current = current.cause
         }
-        return isConnectionIssue(throwable.message)
+        return false
     }
 
     fun isConnectionIssue(message: String?): Boolean {
@@ -58,7 +65,12 @@ object ErrorFormatter {
                 lower.contains("networkunavailable") ||
                 lower.contains("requesttimedout") ||
                 lower.contains("127.0.0.1") ||
-                lower.contains("localhost")
+                lower.contains("localhost") ||
+                lower.contains("ssl") ||
+                lower.contains("handshake") ||
+                lower.contains("cert") ||
+                lower.contains("trust anchor") ||
+                lower.contains("certificate")
     }
 
     fun resolve(context: Context, error: Any?): FormattedError {

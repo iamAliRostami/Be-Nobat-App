@@ -16,8 +16,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Production server URL. Override via -PbackendUrl=... or local.properties.
-        buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8080/api/v1\"")
-        buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8080\"")
+        val defaultBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
+            ?: "https://benobat.serveousercontent.com"
+        buildConfigField("String", "API_BASE_URL", "\"$defaultBackendUrl/api/v1\"")
+        buildConfigField("String", "MEDIA_BASE_URL", "\"$defaultBackendUrl\"")
         buildConfigField("String", "API_VERSION", "\"v1\"")
     }
 
@@ -37,7 +39,11 @@ android {
 
     buildTypes {
         debug {
-            // Talk to the dev server forwarded via `adb reverse tcp:8080 tcp:8080`.
+            val debugBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
+                ?: "https://benobat.serveousercontent.com"
+            /*buildConfigField("String", "API_BASE_URL", "\"$debugBackendUrl/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$debugBackendUrl\"")*/
+
             buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8080/api/v1\"")
             buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8080\"")
             isDebuggable = true
@@ -45,9 +51,9 @@ android {
         release {
             // Override these in your release signing config (e.g. via gradle.properties or CI env vars).
             val prodApiUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')?.let { "$it/api/v1" }
-                ?: "http://127.0.0.1:8080/api/v1"
+                ?: "https://benobat.serveousercontent.com/api/v1"
             val prodMediaUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
-                ?: "http://127.0.0.1:8080"
+                ?: "https://benobat.serveousercontent.com"
             buildConfigField("String", "API_BASE_URL", "\"$prodApiUrl\"")
             buildConfigField("String", "MEDIA_BASE_URL", "\"$prodMediaUrl\"")
             isMinifyEnabled = false
