@@ -17,6 +17,11 @@ import org.koin.core.context.startKoin
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.decode.SvgDecoder
+import java.io.IOException
+import java.net.Proxy
+import java.net.ProxySelector
+import java.net.SocketAddress
+import java.net.URI
 
 const val PREFERENCES_NAME = "setting_prefs"
 
@@ -37,6 +42,25 @@ class App : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Bypass any global or emulator HTTP/SOCKS proxy for local development hosts
+        try {
+            val systemDefault = ProxySelector.getDefault()
+            ProxySelector.setDefault(object : ProxySelector() {
+                override fun select(uri: URI?): List<Proxy> {
+                    val host = uri?.host.orEmpty().lowercase()
+                    if (host == "10.0.2.2" || host == "127.0.0.1" || host == "localhost") {
+                        return listOf(Proxy.NO_PROXY)
+                    }
+                    return systemDefault?.select(uri) ?: listOf(Proxy.NO_PROXY)
+                }
+
+                override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {
+                    systemDefault?.connectFailed(uri, sa, ioe)
+                }
+            })
+        } catch (_: Exception) {}
+
         startKoin {
             androidLogger()
             androidContext(this@App)

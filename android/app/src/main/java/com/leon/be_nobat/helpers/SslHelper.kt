@@ -28,12 +28,13 @@ object SslHelper {
 
     fun configureHttps(connection: HttpsURLConnection) {
         val host = connection.url?.host.orEmpty().lowercase()
-        // For development/tunnel domains or local IP, permit the Let's Encrypt / tunnel certificate
-        if (host.endsWith("serveousercontent.com") || host == "localhost" || host == "10.0.2.2" || host == "127.0.0.1") {
+        // For development/tunnel domains, production domain, or local IP, permit the certificate
+        if (host.endsWith("serveousercontent.com") || host.endsWith("benobat.ir") || host == "localhost" || host == "10.0.2.2" || host == "127.0.0.1") {
             try {
                 connection.sslSocketFactory = tunnelSslContext.socketFactory
                 connection.hostnameVerifier = HostnameVerifier { hostname, session ->
                     hostname.endsWith("serveousercontent.com") ||
+                            hostname.endsWith("benobat.ir") ||
                             HttpsURLConnection.getDefaultHostnameVerifier().verify(hostname, session)
                 }
             } catch (_: Exception) {

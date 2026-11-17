@@ -29,8 +29,8 @@ object BeNobatApiConfig {
 
     private fun normalizeLoopback(url: String): String {
         return if (isEmulator) {
-            url.replace("://127.0.0.1:", "://10.0.2.2:")
-               .replace("://localhost:", "://10.0.2.2:")
+            url.replace("://127.0.0.1", "://10.0.2.2")
+               .replace("://localhost", "://10.0.2.2")
         } else url
     }
 

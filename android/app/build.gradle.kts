@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.serialization)
+}
+
+val localProperties = Properties().apply {
+    val propFile = rootProject.file("local.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
 }
 
 android {
@@ -15,9 +24,9 @@ android {
         versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Production server URL. Override via -PbackendUrl=... or local.properties.
+        // Default backend URL. Override via -PbackendUrl=... or local.properties.
         val defaultBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
-            ?: "https://benobat.serveousercontent.com"
+            ?: "https://benobat.ir"
         buildConfigField("String", "API_BASE_URL", "\"$defaultBackendUrl/api/v1\"")
         buildConfigField("String", "MEDIA_BASE_URL", "\"$defaultBackendUrl\"")
         buildConfigField("String", "API_VERSION", "\"v1\"")
@@ -39,23 +48,29 @@ android {
 
     buildTypes {
         debug {
+            // Local development URL. Priority:
+            // 1. -PbackendUrl=... command-line argument
+            // 2. backendUrl in local.properties
+            // 3. Default: http://127.0.0.1:8080 (auto-mapped to 10.0.2.2 on emulator by BeNobatApiConfig)
             val debugBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
-                ?: "https://benobat.serveousercontent.com"
-            /*buildConfigField("String", "API_BASE_URL", "\"$debugBackendUrl/api/v1\"")
-            buildConfigField("String", "MEDIA_BASE_URL", "\"$debugBackendUrl\"")*/
+                ?: localProperties.getProperty("backendUrl")?.trimEnd('/')
+                ?: "http://127.0.0.1:8080"
 
-            buildConfigField("String", "API_BASE_URL", "\"http://127.0.0.1:8080/api/v1\"")
-            buildConfigField("String", "MEDIA_BASE_URL", "\"http://127.0.0.1:8080\"")
+            buildConfigField("String", "API_BASE_URL", "\"$debugBackendUrl/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$debugBackendUrl\"")
             isDebuggable = true
         }
         release {
-            // Override these in your release signing config (e.g. via gradle.properties or CI env vars).
-            val prodApiUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')?.let { "$it/api/v1" }
-                ?: "https://benobat.serveousercontent.com/api/v1"
-            val prodMediaUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
-                ?: "https://benobat.serveousercontent.com"
-            buildConfigField("String", "API_BASE_URL", "\"$prodApiUrl\"")
-            buildConfigField("String", "MEDIA_BASE_URL", "\"$prodMediaUrl\"")
+            // Production URL: https://benobat.ir. Priority:
+            // 1. -PbackendUrl=... command-line argument
+            // 2. backendUrlRelease in local.properties
+            // 3. Default: https://benobat.ir
+            val releaseBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
+                ?: localProperties.getProperty("backendUrlRelease")?.trimEnd('/')
+                ?: "https://benobat.ir"
+
+            buildConfigField("String", "API_BASE_URL", "\"$releaseBackendUrl/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$releaseBackendUrl\"")
             isMinifyEnabled = false
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")

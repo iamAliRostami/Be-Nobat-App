@@ -23,8 +23,10 @@ if ((seedDemo || seedDemoOnStartup) && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException("داده‌های نمایشی فقط در محیط Development قابل ایجاد هستند.");
 }
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
+var rawConnectionString = builder.Configuration.GetConnectionString("Default")
+    ?? builder.Configuration["DATABASE_URL"]
+    ?? throw new InvalidOperationException("ConnectionStrings:Default or DATABASE_URL is required.");
+var connectionString = NormalizePostgresConnectionString(rawConnectionString);
 
 // Razor components in the same circuit may initialize concurrently (for example,
 // a page and the avatar in its layout). A scoped DbContext would then be shared by
@@ -143,7 +145,7 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.EnsureCreatedAsync();
     await CompatibilitySchemaUpgrade.ApplyAsync(db);
     await DbSeeder.SeedAsync(scope.ServiceProvider, app.Configuration);
-    if (seedDemo || seedDemoOnStartup || app.Environment.IsDevelopment())
+    if (seedDemo || seedDemoOnStartup)
     {
         await DemoSeeder.SeedAsync(scope.ServiceProvider, reset: resetDemo);
     }
@@ -472,4 +474,22 @@ app.Run();
 
 public sealed record DashboardSummary(int Businesses, int Branches, int Services, int Appointments);
 
-public partial class Program;
+public partial class Program
+{
+    private static string NormalizePostgresConnectionString(string connStr)
+    {
+        if (connStr.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+            connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            var uri = new Uri(connStr);
+            var userInfo = uri.UserInfo.Split(':');
+            var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+            var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+            var db = uri.AbsolutePath.TrimStart('/');
+            var host = uri.Host;
+            var port = uri.Port > 0 ? uri.Port : 5432;
+            return $"Host={host};Port={port};Database={db};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        }
+        return connStr;
+    }
+}
