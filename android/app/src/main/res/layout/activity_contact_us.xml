@@ -450,6 +450,45 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Social Media Channels Section -->
+        <LinearLayout
+            android:id="@+id/layoutSocialSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="10dp"
+                android:text="@string/contact_social_section"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:id="@+id/containerSocialChannels"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="?android:attr/dividerHorizontal"
+                    android:orientation="vertical"
+                    android:padding="6dp"
+                    android:showDividers="middle" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
         <!-- Send Message Section -->
         <TextView
             android:layout_width="wrap_content"

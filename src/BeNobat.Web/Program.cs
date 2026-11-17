@@ -164,7 +164,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+var staticContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticContentTypeProvider.Mappings[".apk"] = "application/vnd.android.package-archive";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = staticContentTypeProvider });
 app.Use(async (http, next) =>
 {
     if (!http.Request.Path.StartsWithSegments("/api/v1")) { await next(http); return; }
@@ -466,6 +468,19 @@ app.MapGet("/api/dashboard", async (AppDbContext db, CancellationToken cancellat
     // این شمارنده‌ها سراسری‌اند؛ برای پرسنل و مدیران یک کسب‌وکار نباید قابل مشاهده باشند.
     .RequireAuthorization(Policies.ManagePlatform);
 app.MapHealthChecks("/health");
+app.MapGet("/bazaar", async (AppDbContext db) =>
+{
+    var s = await db.GetPlatformPricingAsync();
+    var u = !string.IsNullOrWhiteSpace(s.CafeBazaarUrl) ? s.CafeBazaarUrl.Trim() : "https://cafebazaar.ir/app/com.leon.be_nobat";
+    return Results.Redirect(u);
+});
+app.MapGet("/download/bazaar", async (AppDbContext db) =>
+{
+    var s = await db.GetPlatformPricingAsync();
+    var u = !string.IsNullOrWhiteSpace(s.CafeBazaarUrl) ? s.CafeBazaarUrl.Trim() : "https://cafebazaar.ir/app/com.leon.be_nobat";
+    return Results.Redirect(u);
+});
+app.MapGet("/download/direct", () => Results.Redirect("/api/v1/app/download-latest"));
 app.MapGroup("/api/v1").MapMobileAuthentication().MapPublicEndpoints().MapCustomerEndpoints().MapManagementEndpoints();
 app.MapFallback("/api/v1/{**path}", () => ApiResults.Error("not_found", "The requested API route was not found.", 404));
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();

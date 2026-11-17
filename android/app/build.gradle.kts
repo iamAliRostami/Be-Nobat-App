@@ -20,8 +20,8 @@ android {
         applicationId = "com.leon.be_nobat"
         minSdk = 24
         targetSdk = 37
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Default backend URL. Override via -PbackendUrl=... or local.properties.

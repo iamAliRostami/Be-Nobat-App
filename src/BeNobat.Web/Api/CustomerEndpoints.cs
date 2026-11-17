@@ -42,7 +42,36 @@ public static class CustomerEndpoints
         root.MapGet("/platform-pricing", async (AppDbContext db, CancellationToken ct) =>
         {
             var p = await db.GetPlatformPricingAsync(ct);
-            return Results.Ok(new PlatformPricingDto((long)Math.Round(p.BaseBusinessPrice), (long)Math.Round(p.ExtraBranchPrice), p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+            return Results.Ok(new PlatformPricingDto(
+                BaseBusinessPrice: (long)Math.Round(p.BaseBusinessPrice),
+                ExtraBranchPrice: (long)Math.Round(p.ExtraBranchPrice),
+                CardNumber: p.CardNumber,
+                Iban: p.Iban,
+                AccountHolder: p.AccountHolder,
+                PaymentInstructions: p.PaymentInstructions,
+                BankName: p.BankName,
+                AccountNumber: p.AccountNumber,
+                Address: p.Address,
+                Latitude: p.Latitude,
+                Longitude: p.Longitude,
+                Phone: p.Phone,
+                SupportPhone: p.SupportPhone,
+                Mobile: p.Mobile,
+                Email: p.Email,
+                InfoEmail: p.InfoEmail,
+                WorkingHoursWeekdays: p.WorkingHoursWeekdays,
+                WorkingHoursThursdays: p.WorkingHoursThursdays,
+                WorkingHoursHolidays: p.WorkingHoursHolidays,
+                Telegram: p.Telegram,
+                Instagram: p.Instagram,
+                Eitaa: p.Eitaa,
+                Twitter: p.Twitter,
+                Bale: p.Bale,
+                Rubika: p.Rubika,
+                WhatsApp: p.WhatsApp,
+                LinkedIn: p.LinkedIn,
+                Aparat: p.Aparat
+            ));
         }).AllowAnonymous();
         var customer = root.MapGroup("").RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = MobileAuthentication.Scheme });
         customer.MapGet("/favorites", async (ApiScope scope, AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>

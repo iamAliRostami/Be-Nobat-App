@@ -55,6 +55,13 @@ public sealed class Business : Entity
     public string? DepositAccountHolder { get; set; }
 
     public ICollection<BusinessGalleryItem> GalleryItems { get; } = [];
+
+    public string PlanType { get; set; } = "Trial7Days";
+    public DateTimeOffset? PlanStartedAt { get; set; }
+    public DateTimeOffset? PlanExpiresAt { get; set; }
+
+    public bool IsPlanExpired => PlanExpiresAt.HasValue && PlanExpiresAt.Value < DateTimeOffset.UtcNow;
+    public int? DaysUntilPlanExpiration => PlanExpiresAt.HasValue ? (int)Math.Ceiling((PlanExpiresAt.Value - DateTimeOffset.UtcNow).TotalDays) : null;
 }
 
 public enum CategoryKind { Business, Service }
@@ -111,6 +118,14 @@ public sealed class Branch : Entity
     public byte[]? ReceiptImageData { get; set; }
     public string? ReceiptTrackingCode { get; set; }
     public DateTimeOffset? ReceiptUploadedAt { get; set; }
+
+    public bool IsActive { get; set; } = true;
+    public string? PlanType { get; set; }
+    public DateTimeOffset? PlanStartedAt { get; set; }
+    public DateTimeOffset? PlanExpiresAt { get; set; }
+    public DateTimeOffset? PausedAt { get; set; }
+
+    public bool IsPlanExpired => (PlanExpiresAt.HasValue && PlanExpiresAt.Value < DateTimeOffset.UtcNow) || (Business != null && Business.IsPlanExpired);
 
     public ICollection<BranchService> BranchServices { get; } = [];
     public ICollection<BranchGalleryItem> GalleryItems { get; } = [];
@@ -342,6 +357,17 @@ public sealed class PlatformPricingSettings : Entity
     public string Telegram { get; set; } = "benobat_support";
     public string Instagram { get; set; } = "benobat.official";
     public string Eitaa { get; set; } = "benobat_support";
+    public string Twitter { get; set; } = "";
+    public string Bale { get; set; } = "";
+    public string Rubika { get; set; } = "";
+    public string WhatsApp { get; set; } = "";
+    public string LinkedIn { get; set; } = "";
+    public string Aparat { get; set; } = "";
+    public string CafeBazaarUrl { get; set; } = "https://cafebazaar.ir/app/com.leon.be_nobat";
+    public string DirectApkUrl { get; set; } = "";
+    public int DiscountPercent3Months { get; set; } = 10;
+    public int DiscountPercent6Months { get; set; } = 20;
+    public int DiscountPercent12Months { get; set; } = 30;
 }
 
 /// <summary>
@@ -364,6 +390,9 @@ public sealed class BusinessRequest : Entity
     public decimal ExtraBranchPrice { get; set; } = 200_000;
     public int TotalBranchesCount { get; set; } = 1;
     public decimal TotalFee { get; set; } = 500_000;
+    public string PlanType { get; set; } = "Trial7Days";
+    public int PlanDurationMonths { get; set; } = 0;
+    public int DiscountPercent { get; set; } = 0;
 
     public string? ReceiptImageContentType { get; set; }
     public byte[]? ReceiptImageData { get; set; }

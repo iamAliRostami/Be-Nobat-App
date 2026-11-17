@@ -238,6 +238,31 @@ public static class CompatibilitySchemaUpgrade
             ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Telegram" text NOT NULL DEFAULT 'benobat_support';
             ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Instagram" text NOT NULL DEFAULT 'benobat.official';
             ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Eitaa" text NOT NULL DEFAULT 'benobat_support';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Twitter" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Bale" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Rubika" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "WhatsApp" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "LinkedIn" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "Aparat" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "CafeBazaarUrl" text NOT NULL DEFAULT 'https://cafebazaar.ir/app/com.leon.be_nobat';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "DirectApkUrl" text NOT NULL DEFAULT '';
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "DiscountPercent3Months" integer NOT NULL DEFAULT 10;
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "DiscountPercent6Months" integer NOT NULL DEFAULT 20;
+            ALTER TABLE benobat."PlatformPricingSettings" ADD COLUMN IF NOT EXISTS "DiscountPercent12Months" integer NOT NULL DEFAULT 30;
+
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanType" text NOT NULL DEFAULT 'Trial7Days';
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanStartedAt" timestamptz NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanExpiresAt" timestamptz NULL;
+
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanType" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanStartedAt" timestamptz NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanExpiresAt" timestamptz NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PausedAt" timestamptz NULL;
+
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "PlanType" text NOT NULL DEFAULT 'Trial7Days';
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "PlanDurationMonths" integer NOT NULL DEFAULT 0;
+            ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "DiscountPercent" integer NOT NULL DEFAULT 0;
 
             ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarContentType" text NULL;
             ALTER TABLE benobat."Resources" ADD COLUMN IF NOT EXISTS "AvatarData" bytea NULL;

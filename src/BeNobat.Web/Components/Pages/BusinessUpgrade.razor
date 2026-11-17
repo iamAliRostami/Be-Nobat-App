@@ -55,23 +55,26 @@
             }
             else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Pending)
             {
+                var isTrial = LatestRequest.PlanType == "Trial7Days";
                 @* مرحله در انتظار پرداخت و تأیید مدیر *@
                 <div style="display:grid; gap:1.25rem;">
                     @* بنر وضعیت درخواست *@
-                    <div style="background:@(LatestRequest.ReceiptImageData != null ? "#ecfdf5" : "#fffbeb"); border:1px solid @(LatestRequest.ReceiptImageData != null ? "#a7f3d0" : "#fde68a"); border-radius:12px; padding:1.2rem; color:@(LatestRequest.ReceiptImageData != null ? "#065f46" : "#92400e");">
+                    <div style="background:@(isTrial || LatestRequest.ReceiptImageData != null ? "#ecfdf5" : "#fffbeb"); border:1px solid @(isTrial || LatestRequest.ReceiptImageData != null ? "#a7f3d0" : "#fde68a"); border-radius:12px; padding:1.2rem; color:@(isTrial || LatestRequest.ReceiptImageData != null ? "#065f46" : "#92400e");">
                         <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.5rem;">
                             <div style="display:flex; align-items:center; gap:0.6rem; font-weight:700; font-size:1rem;">
-                                <span>@(LatestRequest.ReceiptImageData != null ? "⏳" : "💳")</span>
-                                <span>@(LatestRequest.ReceiptImageData != null ? "درخواست شما در انتظار بررسی مدیریت سامانه است" : "در انتظار پرداخت تعرفه و ارسال فیش واریزی")</span>
+                                <span>@(isTrial ? "✨" : LatestRequest.ReceiptImageData != null ? "⏳" : "💳")</span>
+                                <span>@(isTrial ? "درخواست تست رایگان در انتظار بررسی مدیریت سامانه است" : LatestRequest.ReceiptImageData != null ? "درخواست شما در انتظار بررسی مدیریت سامانه است" : "در انتظار پرداخت تعرفه و ارسال فیش واریزی")</span>
                             </div>
-                            <span style="font-size:0.78rem; font-weight:600; padding:0.25rem 0.65rem; border-radius:999px; background:@(LatestRequest.ReceiptImageData != null ? "#d1fae5" : "#fef3c7"); color:@(LatestRequest.ReceiptImageData != null ? "#047857" : "#b45309");">
-                                @(LatestRequest.ReceiptImageData != null ? "فیش ارسال شد — در صف بررسی" : "در انتظار پرداخت")
+                            <span style="font-size:0.78rem; font-weight:600; padding:0.25rem 0.65rem; border-radius:999px; background:@(isTrial || LatestRequest.ReceiptImageData != null ? "#d1fae5" : "#fef3c7"); color:@(isTrial || LatestRequest.ReceiptImageData != null ? "#047857" : "#b45309");">
+                                @(isTrial ? "پلن تست رایگان" : LatestRequest.ReceiptImageData != null ? "فیش ارسال شد — در صف بررسی" : "در انتظار پرداخت")
                             </span>
                         </div>
                         <p style="margin:0.25rem 0 0; font-size:0.88rem; line-height:1.6;">
-                            @(LatestRequest.ReceiptImageData != null
-                                ? $"فیش واریزی شما برای درخواست کسب‌وکار «{LatestRequest.BusinessName}» با موفقیت دریافت شد. پس از بررسی و تأیید توسط مدیریت سامانه، دسترسی مدیریت فعال خواهد شد."
-                                : $"اطلاعات کسب‌وکار «{LatestRequest.BusinessName}» ثبت شده است. لطفاً مبلغ کل تعرفه را طبق تعداد شعب به اطلاعات حساب واریز کرده و تصویر فیش واریزی را در فرم زیر ارسال نمایید.")
+                            @(isTrial
+                                ? $"درخواست کسب‌وکار «{LatestRequest.BusinessName}» با پلن تست رایگان ۷ روزه ثبت شده است و نیازی به واریز وجه ندارد. پس از تأیید مدیریت سامانه دسترسی فعال خواهد شد."
+                                : LatestRequest.ReceiptImageData != null
+                                    ? $"فیش واریزی شما برای درخواست کسب‌وکار «{LatestRequest.BusinessName}» با موفقیت دریافت شد. پس از بررسی و تأیید توسط مدیریت سامانه، دسترسی مدیریت فعال خواهد شد."
+                                    : $"اطلاعات کسب‌وکار «{LatestRequest.BusinessName}» ثبت شده است. لطفاً مبلغ کل تعرفه را طبق تعداد شعب به اطلاعات حساب واریز کرده و تصویر فیش واریزی را در فرم زیر ارسال نمایید.")
                         </p>
                     </div>
 
@@ -83,6 +86,7 @@
                         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; font-size:0.88rem; margin:0.5rem 0;">
                             <div><span style="color:#64748b;">نام کسب‌وکار:</span> <b>@LatestRequest.BusinessName</b></div>
                             <div><span style="color:#64748b;">دسته‌بندی:</span> @LatestRequest.Category</div>
+                            <div><span style="color:#64748b;">پلن انتخابی:</span> <b style="color:var(--primary);">@FormatPlanTitle(LatestRequest.PlanType, LatestRequest.DiscountPercent)</b></div>
                             <div><span style="color:#64748b;">شهر:</span> @LatestRequest.City</div>
                             <div><span style="color:#64748b;">شماره تماس:</span> <span dir="ltr">@LatestRequest.ContactPhone</span></div>
                             <div><span style="color:#64748b;">شعبه اول:</span> @LatestRequest.FirstBranchName (@LatestRequest.FirstBranchAddress)</div>
@@ -113,118 +117,121 @@
                             </div>
                         }
 
-                        @* کادر رقم قابل پرداخت براساس تعداد شعب *@
+                        @* کادر رقم قابل پرداخت براساس تعداد شعب و پلن *@
                         <div style="margin-top:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
                             <div>
                                 <div style="font-size:0.82rem; color:#166534;">تعداد کل شعب: <b>@LatestRequest.TotalBranchesCount شعبه</b> (۱ شعبه اصلی + @(LatestRequest.TotalBranchesCount - 1) شعبه دیگر)</div>
                                 <div style="font-size:0.8rem; color:#15803d; margin-top:2px;">
-                                    تعرفه پایه: @LocalizedDate.FormatNumber(LatestRequest.BasePrice, UiLocale.Language) تومان
-                                    @if (LatestRequest.TotalBranchesCount > 1)
+                                    پلن: @FormatPlanTitle(LatestRequest.PlanType, LatestRequest.DiscountPercent)
+                                    @if (!isTrial)
                                     {
-                                        <span> + شعب مازاد (@(LatestRequest.TotalBranchesCount - 1) × @LocalizedDate.FormatNumber(LatestRequest.ExtraBranchPrice, UiLocale.Language) تومان)</span>
+                                        <span> • تعرفه ماهانه پایه: @LocalizedDate.FormatNumber(LatestRequest.BasePrice, UiLocale.Language) تومان</span>
                                     }
                                 </div>
                             </div>
                             <div style="text-align:left;">
-                                <div style="font-size:0.75rem; color:#166534; font-weight:600;">مبلغ کل قابل پرداخت:</div>
+                                <div style="font-size:0.75rem; color:#166534; font-weight:600;">مبلغ کل:</div>
                                 <div style="font-size:1.35rem; font-weight:800; color:#15803d;">
-                                    @LocalizedDate.FormatNumber(LatestRequest.TotalFee, UiLocale.Language) <small style="font-size:0.75rem; font-weight:600;">تومان</small>
+                                    @(isTrial || LatestRequest.TotalFee == 0 ? "رایگان" : $"{LocalizedDate.FormatNumber(LatestRequest.TotalFee, UiLocale.Language)} تومان")
                                 </div>
                             </div>
                         </div>
                     </article>
 
-                    @* اطلاعات واریز و بانکی *@
-                    <article class="admin-panel profile-form profile-card">
-                        <header class="profile-card-head">
-                            <h2>اطلاعات حساب بانکی جهت واریز</h2>
-                        </header>
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin:0.75rem 0; font-size:0.88rem;">
-                            @if (!string.IsNullOrWhiteSpace(Pricing.CardNumber))
-                            {
-                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
-                                    <div style="color:#64748b; font-size:0.78rem;">شماره کارت:</div>
-                                    <div style="font-size:1.05rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.CardNumber</div>
-                                </div>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(Pricing.Iban))
-                            {
-                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
-                                    <div style="color:#64748b; font-size:0.78rem;">شماره شبا:</div>
-                                    <div style="font-size:0.95rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.Iban</div>
-                                </div>
-                            }
-                            @if (!string.IsNullOrWhiteSpace(Pricing.AccountHolder))
-                            {
-                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
-                                    <div style="color:#64748b; font-size:0.78rem;">به نام:</div>
-                                    <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:3px;">@Pricing.AccountHolder</div>
-                                </div>
-                            }
-                        </div>
-                        @if (!string.IsNullOrWhiteSpace(Pricing.PaymentInstructions))
-                        {
-                            <div style="font-size:0.84rem; color:#475569; line-height:1.6; background:#f1f5f9; padding:0.6rem 0.85rem; border-radius:8px;">
-                                💡 <b>راهنما:</b> @Pricing.PaymentInstructions
-                            </div>
-                        }
-                    </article>
-
-                    @* فرم ارسال یا تغییر فیش واریزی *@
-                    <article class="admin-panel profile-form profile-card">
-                        <header class="profile-card-head">
-                            <h2>ارسال تصویر فیش واریزی</h2>
-                        </header>
-
-                        @if (LatestRequest.ReceiptImageData != null && LatestRequest.ReceiptImageData.Length > 0)
-                        {
-                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-bottom:1rem;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
-                                    <span style="color:#059669; font-weight:700; font-size:0.9rem;">✓ فیش واریزی با موفقیت بارگذاری شده است</span>
-                                    @if (LatestRequest.ReceiptUploadedAt.HasValue)
-                                    {
-                                        <span style="color:#64748b; font-size:0.8rem;">تاریخ ارسال: @LocalizedDate.Format(DateOnly.FromDateTime(LatestRequest.ReceiptUploadedAt.Value.DateTime), UiLocale.Language)</span>
-                                    }
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(LatestRequest.ReceiptTrackingCode))
+                    @if (!isTrial)
+                    {
+                        @* اطلاعات واریز و بانکی *@
+                        <article class="admin-panel profile-form profile-card">
+                            <header class="profile-card-head">
+                                <h2>اطلاعات حساب بانکی جهت واریز</h2>
+                            </header>
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin:0.75rem 0; font-size:0.88rem;">
+                                @if (!string.IsNullOrWhiteSpace(Pricing.CardNumber))
                                 {
-                                    <div style="font-size:0.85rem; color:#334155; margin-bottom:0.75rem;">
-                                        کد پیگیری / ارجاع: <b dir="ltr" style="font-family:monospace;">@LatestRequest.ReceiptTrackingCode</b>
+                                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                        <div style="color:#64748b; font-size:0.78rem;">شماره کارت:</div>
+                                        <div style="font-size:1.05rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.CardNumber</div>
                                     </div>
                                 }
-                                <div>
-                                    <img src="data:@(LatestRequest.ReceiptImageContentType ?? "image/jpeg");base64,@Convert.ToBase64String(LatestRequest.ReceiptImageData)"
-                                         alt="تصویر فیش واریزی"
-                                         style="max-width:320px; width:100%; max-height:240px; object-fit:contain; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff;" />
-                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Pricing.Iban))
+                                {
+                                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                        <div style="color:#64748b; font-size:0.78rem;">شماره شبا:</div>
+                                        <div style="font-size:0.95rem; font-weight:700; font-family:monospace; color:#0f172a; margin-top:3px;" dir="ltr">@Pricing.Iban</div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Pricing.AccountHolder))
+                                {
+                                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:0.75rem;">
+                                        <div style="color:#64748b; font-size:0.78rem;">به نام:</div>
+                                        <div style="font-size:0.95rem; font-weight:700; color:#0f172a; margin-top:3px;">@Pricing.AccountHolder</div>
+                                    </div>
+                                }
                             </div>
-                        }
-
-                        <p style="font-size:0.84rem; color:#64748b; margin-bottom:0.75rem;">
-                            @(LatestRequest.ReceiptImageData != null ? "در صورت تمایل به تغییر یا اصلاح فیش واریزی، فایل جدید را در زیر انتخاب و ذخیره کنید:" : "تصویر فیش انتقال وجه یا اسکرین‌شات رسید همراه با کد رهگیری را ثبت نمایید:")
-                        </p>
-
-                        <div class="profile-fields">
-                            <label>
-                                <span>کد رهگیری یا شماره ارجاع فیش</span>
-                                <input maxlength="50" placeholder="مثلاً: ۱۲۳۴۵۶۷۸ یا شماره پیگیری تراکنش" @bind="ReceiptTrackingCode" disabled="@IsUploadingReceipt" />
-                            </label>
-                            <label>
-                                <span>انتخاب تصویر فیش واریزی <strong class="req">*</strong></span>
-                                <InputFile OnChange="OnReceiptFileSelected" accept="image/png,image/jpeg,image/webp" disabled="@IsUploadingReceipt" />
-                            </label>
-                            @if (!string.IsNullOrWhiteSpace(ReceiptFileName))
+                            @if (!string.IsNullOrWhiteSpace(Pricing.PaymentInstructions))
                             {
-                                <div style="font-size:0.8rem; color:#059669;">فایل انتخاب شده: @ReceiptFileName (@((ReceiptFileBytes?.Length ?? 0) / 1024) کیلوبایت)</div>
+                                <div style="font-size:0.84rem; color:#475569; line-height:1.6; background:#f1f5f9; padding:0.6rem 0.85rem; border-radius:8px;">
+                                    💡 <b>راهنما:</b> @Pricing.PaymentInstructions
+                                </div>
                             }
-                        </div>
+                        </article>
 
-                        <div class="profile-card-actions" style="margin-top:1rem;">
-                            <button type="button" class="primary-button action-primary" disabled="@(IsUploadingReceipt || ReceiptFileBytes == null)" @onclick="SubmitReceipt">
-                                @(IsUploadingReceipt ? "در حال ارسال فیش..." : (LatestRequest.ReceiptImageData != null ? "بروزرسانی تصویر فیش" : "ثبت فیش واریزی"))
-                            </button>
-                        </div>
-                    </article>
+                        @* فرم ارسال یا تغییر فیش واریزی *@
+                        <article class="admin-panel profile-form profile-card">
+                            <header class="profile-card-head">
+                                <h2>ارسال تصویر فیش واریزی</h2>
+                            </header>
+
+                            @if (LatestRequest.ReceiptImageData != null && LatestRequest.ReceiptImageData.Length > 0)
+                            {
+                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+                                        <span style="color:#059669; font-weight:700; font-size:0.9rem;">✓ فیش واریزی با موفقیت بارگذاری شده است</span>
+                                        @if (LatestRequest.ReceiptUploadedAt.HasValue)
+                                        {
+                                            <span style="color:#64748b; font-size:0.8rem;">تاریخ ارسال: @LocalizedDate.Format(DateOnly.FromDateTime(LatestRequest.ReceiptUploadedAt.Value.DateTime), UiLocale.Language)</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(LatestRequest.ReceiptTrackingCode))
+                                    {
+                                        <div style="font-size:0.85rem; color:#334155; margin-bottom:0.75rem;">
+                                            کد پیگیری / ارجاع: <b dir="ltr" style="font-family:monospace;">@LatestRequest.ReceiptTrackingCode</b>
+                                        </div>
+                                    }
+                                    <div>
+                                        <img src="data:@(LatestRequest.ReceiptImageContentType ?? "image/jpeg");base64,@Convert.ToBase64String(LatestRequest.ReceiptImageData)"
+                                             alt="تصویر فیش واریزی"
+                                             style="max-width:320px; width:100%; max-height:240px; object-fit:contain; border-radius:8px; border:1px solid #cbd5e1; background:#ffffff;" />
+                                    </div>
+                                </div>
+                            }
+
+                            <p style="font-size:0.84rem; color:#64748b; margin-bottom:0.75rem;">
+                                @(LatestRequest.ReceiptImageData != null ? "در صورت تمایل به تغییر یا اصلاح فیش واریزی، فایل جدید را در زیر انتخاب و ذخیره کنید:" : "تصویر فیش انتقال وجه یا اسکرین‌شات رسید همراه با کد رهگیری را ثبت نمایید:")
+                            </p>
+
+                            <div class="profile-fields">
+                                <label>
+                                    <span>کد رهگیری یا شماره ارجاع فیش</span>
+                                    <input maxlength="50" placeholder="مثلاً: ۱۲۳۴۵۶۷۸ یا شماره پیگیری تراکنش" @bind="ReceiptTrackingCode" disabled="@IsUploadingReceipt" />
+                                </label>
+                                <label>
+                                    <span>انتخاب تصویر فیش واریزی <strong class="req">*</strong></span>
+                                    <InputFile OnChange="OnReceiptFileSelected" accept="image/png,image/jpeg,image/webp" disabled="@IsUploadingReceipt" />
+                                </label>
+                                @if (!string.IsNullOrWhiteSpace(ReceiptFileName))
+                                {
+                                    <div style="font-size:0.8rem; color:#059669;">فایل انتخاب شده: @ReceiptFileName (@((ReceiptFileBytes?.Length ?? 0) / 1024) کیلوبایت)</div>
+                                }
+                            </div>
+
+                            <div class="profile-card-actions" style="margin-top:1rem;">
+                                <button type="button" class="primary-button action-primary" disabled="@(IsUploadingReceipt || ReceiptFileBytes == null)" @onclick="SubmitReceipt">
+                                    @(IsUploadingReceipt ? "در حال ارسال فیش..." : (LatestRequest.ReceiptImageData != null ? "بروزرسانی تصویر فیش" : "ثبت فیش واریزی"))
+                                </button>
+                            </div>
+                        </article>
+                    }
                 </div>
             }
             else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Rejected && !IsEditingResubmit)
@@ -355,35 +362,111 @@
                                 }
                             </div>
 
+                            @* بخش انتخاب پلن و دوره اشتراک *@
+                            <div style="margin-top:1.25rem;">
+                                <div style="font-weight:700; font-size:0.95rem; color:#1e293b; margin-bottom:0.75rem;">
+                                    انتخاب دوره اشتراک کسب‌وکار <strong class="req">*</strong>
+                                </div>
+                                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+                                    <!-- پلن ۱ هفته تست رایگان -->
+                                    <div class="plan-card @(SelectedPlanType == "Trial7Days" ? "active" : "")" @onclick='() => SelectPlan("Trial7Days")'>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="font-weight:700; font-size:0.9rem; color:#0f172a;">۱ هفته تست</span>
+                                            <span class="plan-tag" style="background:#e0f2fe; color:#0369a1;">رایگان</span>
+                                        </div>
+                                        <div style="font-size:0.78rem; color:#64748b; margin:0.4rem 0;">۷ روز تست کامل امکانات</div>
+                                        <div style="font-size:1.1rem; font-weight:800; color:#0284c7;">۰ <small style="font-size:0.72rem;">تومان</small></div>
+                                    </div>
+
+                                    <!-- پلن ۳ ماهه -->
+                                    <div class="plan-card @(SelectedPlanType == "Quarterly" ? "active" : "")" @onclick='() => SelectPlan("Quarterly")'>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="font-weight:700; font-size:0.9rem; color:#0f172a;">۳ ماهه</span>
+                                            @if (Pricing.DiscountPercent3Months > 0)
+                                            {
+                                                <span class="plan-tag" style="background:#fef3c7; color:#b45309;">@Pricing.DiscountPercent3Months٪ تخفیف</span>
+                                            }
+                                        </div>
+                                        <div style="font-size:0.78rem; color:#64748b; margin:0.4rem 0;">۳ ماه اشتراک مدیریت</div>
+                                        <div style="font-size:1.05rem; font-weight:800; color:#15803d;">
+                                            @LocalizedDate.FormatNumber(CalculatePlanCost("Quarterly"), UiLocale.Language) <small style="font-size:0.72rem;">تومان</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- پلن ۶ ماهه -->
+                                    <div class="plan-card @(SelectedPlanType == "SemiAnnual" ? "active" : "")" @onclick='() => SelectPlan("SemiAnnual")'>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="font-weight:700; font-size:0.9rem; color:#0f172a;">۶ ماهه</span>
+                                            @if (Pricing.DiscountPercent6Months > 0)
+                                            {
+                                                <span class="plan-tag" style="background:#fee2e2; color:#b91c1c;">@Pricing.DiscountPercent6Months٪ تخفیف</span>
+                                            }
+                                        </div>
+                                        <div style="font-size:0.78rem; color:#64748b; margin:0.4rem 0;">۶ ماه اشتراک اقتصادی</div>
+                                        <div style="font-size:1.05rem; font-weight:800; color:#15803d;">
+                                            @LocalizedDate.FormatNumber(CalculatePlanCost("SemiAnnual"), UiLocale.Language) <small style="font-size:0.72rem;">تومان</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- پلن ۱ ساله -->
+                                    <div class="plan-card @(SelectedPlanType == "Annual" ? "active" : "")" @onclick='() => SelectPlan("Annual")'>
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <span style="font-weight:700; font-size:0.9rem; color:#0f172a;">۱ ساله</span>
+                                            @if (Pricing.DiscountPercent12Months > 0)
+                                            {
+                                                <span class="plan-tag" style="background:#dcfce7; color:#15803d;">@Pricing.DiscountPercent12Months٪ تخفیف</span>
+                                            }
+                                        </div>
+                                        <div style="font-size:0.78rem; color:#64748b; margin:0.4rem 0;">۱۲ ماه حداکثر صرفه‌جویی</div>
+                                        <div style="font-size:1.05rem; font-weight:800; color:#15803d;">
+                                            @LocalizedDate.FormatNumber(CalculatePlanCost("Annual"), UiLocale.Language) <small style="font-size:0.72rem;">تومان</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             @* کارت آنلاین محاسبه رقم تعرفه *@
                             <div style="margin-top:1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:1.1rem;">
                                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
                                     <div>
-                                        <div style="font-weight:700; font-size:0.92rem; color:#166534;">محاسبه هزینه تعرفه ثبت کسب‌وکار</div>
+                                        <div style="font-weight:700; font-size:0.92rem; color:#166534;">
+                                            محاسبه هزینه پلن (@FormatPlanTitle(SelectedPlanType, GetDiscountForPlan(SelectedPlanType)))
+                                        </div>
                                         <div style="font-size:0.82rem; color:#15803d; margin-top:2px;">
-                                            تعرفه پایه (۱ شعبه): @LocalizedDate.FormatNumber(Pricing.BaseBusinessPrice, UiLocale.Language) تومان
-                                            @if (ExtraBranches.Count > 0)
+                                            @if (SelectedPlanType == "Trial7Days")
                                             {
-                                                <span> + @ExtraBranches.Count شعبه اضافه (@LocalizedDate.FormatNumber(ExtraBranches.Count * Pricing.ExtraBranchPrice, UiLocale.Language) تومان)</span>
+                                                <span>پلن آزمایشی رایگان برای ۱ هفته، بدون نیاز به پرداخت</span>
+                                            }
+                                            else
+                                            {
+                                                <span>تعرفه ماهانه پایه: @LocalizedDate.FormatNumber(Pricing.BaseBusinessPrice, UiLocale.Language) تومان</span>
+                                                @if (ExtraBranches.Count > 0)
+                                                {
+                                                    <span> + @ExtraBranches.Count شعبه اضافه (هر شعبه ماهانه @LocalizedDate.FormatNumber(Pricing.ExtraBranchPrice, UiLocale.Language) تومان)</span>
+                                                }
+                                                @if (GetDiscountForPlan(SelectedPlanType) > 0)
+                                                {
+                                                    <span> • <b>@GetDiscountForPlan(SelectedPlanType)٪ تخفیف اعمال شد</b></span>
+                                                }
                                             }
                                         </div>
                                     </div>
                                     <div style="text-align:left;">
-                                        <div style="font-size:0.75rem; color:#166534;">مبلغ قابل پرداخت:</div>
+                                        <div style="font-size:0.75rem; color:#166534;">مبلغ کل:</div>
                                         <div style="font-size:1.4rem; font-weight:800; color:#15803d;">
-                                            @LocalizedDate.FormatNumber(LiveTotalFee, UiLocale.Language) <small style="font-size:0.75rem;">تومان</small>
+                                            @(SelectedPlanType == "Trial7Days" ? "رایگان" : $"{LocalizedDate.FormatNumber(LiveTotalFee, UiLocale.Language)} تومان")
                                         </div>
                                     </div>
                                 </div>
                                 <div style="font-size:0.8rem; color:#15803d; border-top:1px dashed #bbf7d0; padding-top:0.5rem;">
-                                    تعداد کل شعب: <b>@(1 + ExtraBranches.Count) شعبه</b> • پس از ثبت، به مرحله بارگذاری فیش واریزی منتقل خواهید شد.
+                                    تعداد کل شعب: <b>@(1 + ExtraBranches.Count) شعبه</b> • @(SelectedPlanType == "Trial7Days" ? "پلن تستی نیازی به پرداخت یا فیش ندارد و با تأیید مدیر فعال خواهد شد." : "پس از ثبت، به مرحله بارگذاری فیش واریزی منتقل خواهید شد.")
                                 </div>
                             </div>
                         </div>
 
                         <div class="profile-card-actions" style="margin-top:1.25rem;">
                             <button type="submit" disabled="@IsSubmitting" class="primary-button action-primary">
-                                @(IsSubmitting ? "در حال ثبت درخواست..." : "ثبت درخواست و انتقال به مرحله پرداخت")
+                                @(IsSubmitting ? "در حال ثبت درخواست..." : (SelectedPlanType == "Trial7Days" ? "ثبت درخواست با پلن رایگان (بدون هزینه)" : "ثبت درخواست و انتقال به مرحله پرداخت"))
                             </button>
                             @if (IsEditingResubmit)
                             {
@@ -396,6 +479,34 @@
         </section>
     </div>
 </div>
+
+<style>
+.plan-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    user-select: none;
+}
+.plan-card:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.plan-card.active {
+    border-color: var(--primary, #146B5D);
+    background: #f0fdfa;
+    box-shadow: 0 0 0 2px rgba(20, 107, 93, 0.2);
+}
+.plan-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+}
+</style>
 
 @code {
     private AppUser? User { get; set; }
@@ -419,7 +530,46 @@
     private string? ReceiptFileContentType { get; set; }
     private string? ReceiptFileName { get; set; }
 
-    private decimal LiveTotalFee => Pricing.BaseBusinessPrice + (ExtraBranches.Count * Pricing.ExtraBranchPrice);
+    private string SelectedPlanType { get; set; } = "Trial7Days";
+
+    private void SelectPlan(string planType)
+    {
+        SelectedPlanType = planType;
+    }
+
+    private decimal MonthlyBaseTotal => Pricing.BaseBusinessPrice + (ExtraBranches.Count * Pricing.ExtraBranchPrice);
+
+    private int GetDiscountForPlan(string planType) => planType switch
+    {
+        "Quarterly" => Pricing.DiscountPercent3Months,
+        "SemiAnnual" => Pricing.DiscountPercent6Months,
+        "Annual" => Pricing.DiscountPercent12Months,
+        _ => 0
+    };
+
+    private decimal CalculatePlanCost(string planType)
+    {
+        var monthly = MonthlyBaseTotal;
+        return planType switch
+        {
+            "Trial7Days" => 0,
+            "Quarterly" => (monthly * 3) * (100 - Pricing.DiscountPercent3Months) / 100m,
+            "SemiAnnual" => (monthly * 6) * (100 - Pricing.DiscountPercent6Months) / 100m,
+            "Annual" => (monthly * 12) * (100 - Pricing.DiscountPercent12Months) / 100m,
+            _ => monthly
+        };
+    }
+
+    private decimal LiveTotalFee => CalculatePlanCost(SelectedPlanType);
+
+    private static string FormatPlanTitle(string? planType, int discount) => planType switch
+    {
+        "Trial7Days" => "تست رایگان (۷ روز)",
+        "Quarterly" => discount > 0 ? $"۳ ماهه ({discount}٪ تخفیف)" : "۳ ماهه",
+        "SemiAnnual" => discount > 0 ? $"۶ ماهه ({discount}٪ تخفیف)" : "۶ ماهه",
+        "Annual" => discount > 0 ? $"۱ ساله ({discount}٪ تخفیف ویژه)" : "۱ ساله",
+        _ => "تعرفه پایه"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -539,7 +689,15 @@
                 .ToList();
 
             var totalBranches = 1 + validExtra.Count;
-            var totalFee = pricing.BaseBusinessPrice + (pricing.ExtraBranchPrice * validExtra.Count);
+            var planDurationMonths = SelectedPlanType switch
+            {
+                "Quarterly" => 3,
+                "SemiAnnual" => 6,
+                "Annual" => 12,
+                _ => 0
+            };
+            var discountPercent = GetDiscountForPlan(SelectedPlanType);
+            var totalFee = CalculatePlanCost(SelectedPlanType);
             var additionalJson = validExtra.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(validExtra) : null;
 
             var req = new BusinessRequest
@@ -553,6 +711,9 @@
                 FirstBranchName = string.IsNullOrWhiteSpace(BusinessForm.FirstBranchName) ? "شعبه مرکزی" : BusinessForm.FirstBranchName.Trim(),
                 FirstBranchAddress = BusinessForm.FirstBranchAddress?.Trim() ?? "",
                 AdditionalBranchesJson = additionalJson,
+                PlanType = SelectedPlanType,
+                PlanDurationMonths = planDurationMonths,
+                DiscountPercent = discountPercent,
                 BasePrice = pricing.BaseBusinessPrice,
                 ExtraBranchPrice = pricing.ExtraBranchPrice,
                 TotalBranchesCount = totalBranches,
@@ -567,7 +728,9 @@
 
             LatestRequest = req;
             IsEditingResubmit = false;
-            SuccessMessage = "درخواست شما با موفقیت ثبت شد و اکنون در مرحله پرداخت تعرفه قرار دارد. لطفاً فیش واریزی را ارسال فرمایید.";
+            SuccessMessage = SelectedPlanType == "Trial7Days"
+                ? "درخواست شما با پلن تست رایگان ۱ هفته با موفقیت ثبت شد و در انتظار تأیید مدیریت سامانه قرار گرفت."
+                : "درخواست شما با موفقیت ثبت شد و اکنون در مرحله پرداخت تعرفه قرار دارد. لطفاً فیش واریزی را ارسال فرمایید.";
         }
         catch (Exception ex)
         {

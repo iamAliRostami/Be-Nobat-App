@@ -13,25 +13,38 @@
 <PageTitle>@T("ارتباط با ما | به‌نوبت", "Contact Us | Be-Nobat", "اتصل بنا | به‌نوبت")</PageTitle>
 
 <div class="contact-page-shell" style="direction: @(UiLocale.Language == "en" ? "ltr" : "rtl");">
+    <!-- Hero Section -->
     <div class="contact-hero">
-        <span class="contact-pill">@T("مرکز پشتیبانی و ارتباطات", "Support & Communications Center", "مركز الدعم والتواصل")</span>
-        <h1>@T("ارتباط با تیم به‌نوبت", "Get in Touch with Be-Nobat Team", "تواصل مع فريق به‌نوبت")</h1>
-        <p>@T("خوشحال می‌شویم صدای گرم شما را بشنویم یا پیام‌تان را بخوانیم. همکاران ما در سریع‌ترین زمان ممکن پاسخگوی شما خواهند بود.",
-               "We would be delighted to hear from you. Our team will respond to your inquiry as quickly as possible.",
-               "يسعدنا سماع صوتك أو قراءة رسالتك. سيقوم زملاؤنا بالرد عليك في أسرع وقت ممكن.")</p>
+        <div class="hero-badge">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 16h-2v-2h2v2zm0-4h-2V7h2v7z"/>
+            </svg>
+            <span>@T("مرکز پشتیبانی و ارتباطات", "Support & Communications Center", "مركز الدعم والتواصل")</span>
+        </div>
+        <h1>@T("ارتباط با تیم پشتیبانی به‌نوبت", "Get in Touch with Be-Nobat Team", "تواصل مع فريق به‌نوبت")</h1>
+        <p>@T("خوشحال می‌شویم صدای گرم شما را بشنویم یا پیام‌تان را بخوانیم. کارشناسان ما آماده پاسخگویی و راهنمایی شما هستند.",
+               "We would be delighted to hear from you. Our specialists are ready to assist you promptly.",
+               "يسعدنا سماع صوتك أو قراءة رسالتك. أخصائيونا مستعدون لمساعدتك فوراً.")</p>
     </div>
 
     @if (submittedSuccess)
     {
-        <div class="contact-alert-success">
-            <div class="alert-icon">✓</div>
-            <div>
-                <h3>@T("پیام شما با موفقیت دریافت شد!", "Your message has been received successfully!", "تم استلام رسالتك بنجاح!")</h3>
-                <p>@T("از پیام شما سپاسگزاریم. کارشناسان پشتیبانی به‌نوبت به زودی درخواست شما را بررسی کرده و در صورت نیاز با شما تماس خواهند گرفت.",
-                       "Thank you for reaching out. Be-Nobat support specialists will review your request shortly and contact you if needed.",
-                       "شكراً لتواصلك معنا. سيقوم أخصائيو الدعم في به‌نوبت بمراجعة طلبك والتواصل معك إذا لزم الأمر.")</p>
-                <button type="button" class="btn-primary-ghost" @onclick="ResetForm">
-                    @T("ارسال پیام جدید", "Send another message", "إرسال رسالة جديدة")
+        <div class="contact-alert-success animate-fade-in">
+            <div class="alert-icon-wrap">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </div>
+            <div class="alert-body">
+                <h3>@T("پیام شما با موفقیت ثبت شد!", "Your message has been received successfully!", "تم استلام رسالتك بنجاح!")</h3>
+                <p>@T("از پیام شما سپاسگزاریم. کارشناسان پشتیبانی به‌نوبت پیام شما را بررسی کرده و در صورت نیاز در اسرع وقت با شما تماس خواهند گرفت.",
+                       "Thank you for reaching out. Our support team will review your message and get back to you shortly.",
+                       "شكراً لتواصلك معنا. سيقوم فريق الدعم بمراجعة رسالتك والتواصل معك في أقرب وقت.")</p>
+                <button type="button" class="btn-success-reset" @onclick="ResetForm">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    <span>@T("ارسال پیام جدید", "Send another message", "إرسال رسالة جديدة")</span>
                 </button>
             </div>
         </div>
@@ -40,118 +53,268 @@
     <div class="contact-grid">
         <!-- ستون اطلاعات تماس مستقیم -->
         <section class="contact-info-panel">
-            <h2>@T("راه‌های تماس مستقیم", "Direct Contact Channels", "قنوات الاتصال المباشر")</h2>
-            <p class="panel-sub">@T("می‌توانید از طریق راه‌های زیر مستقیماً با ما در تماس باشید:",
-                                    "You can contact us directly through the channels below:",
-                                    "يمكنك التواصل معنا مباشرة عبر القنوات التالية:")</p>
+            <div class="panel-header">
+                <div class="panel-icon-badge">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2>@T("راه‌های ارتباطی مستقیم", "Direct Contact Channels", "قنوات الاتصال المباشر")</h2>
+                    <p class="panel-sub">@T("از طریق اطلاعات زیر می‌توانید مستقیماً با ما ارتباط برقرار کنید:",
+                                            "You can contact us directly through the channels below:",
+                                            "يمكنك التواصل معنا مباشرة عبر القنوات التالية:")</p>
+                </div>
+            </div>
 
             <div class="contact-cards-stack">
-                <div class="contact-item-card">
-                    <div class="item-icon phone-icon">📞</div>
-                    <div class="item-content">
-                        <span class="item-title">@T("تلفن‌های تماس و پشتیبانی", "Phone & Support", "هواتف الاتصال والدعم")</span>
-                        <div class="item-links">
-                            @if (!string.IsNullOrEmpty(platformSettings.Phone)) { <a href="tel:@platformSettings.Phone" class="contact-link" dir="ltr">@platformSettings.Phone</a> }
-                            @if (!string.IsNullOrEmpty(platformSettings.SupportPhone)) { <a href="tel:@platformSettings.SupportPhone" class="contact-link" dir="ltr">@platformSettings.SupportPhone</a> }
-                            @if (!string.IsNullOrEmpty(platformSettings.Mobile)) { <a href="tel:@platformSettings.Mobile" class="contact-link" dir="ltr">@platformSettings.Mobile</a> }
+                <!-- تلفن -->
+                <div class="modern-contact-card">
+                    <div class="card-icon-box phone-box">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                        </svg>
+                    </div>
+                    <div class="card-details">
+                        <span class="card-label">@T("تلفن‌های تماس و پشتیبانی", "Phone & Support", "هواتف الاتصال والدعم")</span>
+                        <div class="phone-pills-wrap">
+                            @if (!string.IsNullOrEmpty(platformSettings.Phone))
+                            {
+                                <a href="tel:@platformSettings.Phone" class="contact-action-pill" dir="ltr">
+                                    <span>@platformSettings.Phone</span>
+                                    <small class="pill-tag">@T("دفتر", "Office", "مكتب")</small>
+                                </a>
+                            }
+                            @if (!string.IsNullOrEmpty(platformSettings.SupportPhone))
+                            {
+                                <a href="tel:@platformSettings.SupportPhone" class="contact-action-pill" dir="ltr">
+                                    <span>@platformSettings.SupportPhone</span>
+                                    <small class="pill-tag">@T("پشتیبانی", "Support", "دعم")</small>
+                                </a>
+                            }
+                            @if (!string.IsNullOrEmpty(platformSettings.Mobile))
+                            {
+                                <a href="tel:@platformSettings.Mobile" class="contact-action-pill" dir="ltr">
+                                    <span>@platformSettings.Mobile</span>
+                                    <small class="pill-tag">@T("موبایل", "Mobile", "جوال")</small>
+                                </a>
+                            }
                         </div>
                     </div>
                 </div>
 
-                <div class="contact-item-card">
-                    <div class="item-icon email-icon">✉️</div>
-                    <div class="item-content">
-                        <span class="item-title">@T("پست الکترونیکی", "Email Address", "البريد الإلكتروني")</span>
-                        <div class="item-links">
-                            @if (!string.IsNullOrEmpty(platformSettings.Email)) { <a href="mailto:@platformSettings.Email" class="contact-link" dir="ltr">@platformSettings.Email</a> }
-                            @if (!string.IsNullOrEmpty(platformSettings.InfoEmail)) { <a href="mailto:@platformSettings.InfoEmail" class="contact-link" dir="ltr">@platformSettings.InfoEmail</a> }
+                <!-- ایمیل -->
+                <div class="modern-contact-card">
+                    <div class="card-icon-box email-box">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/>
+                        </svg>
+                    </div>
+                    <div class="card-details">
+                        <span class="card-label">@T("پست الکترونیکی", "Email Address", "البريد الإلكتروني")</span>
+                        <div class="phone-pills-wrap">
+                            @if (!string.IsNullOrEmpty(platformSettings.Email))
+                            {
+                                <a href="mailto:@platformSettings.Email" class="contact-action-pill" dir="ltr">
+                                    <span>@platformSettings.Email</span>
+                                    <small class="pill-tag">@T("پشتیبانی", "Support", "دعم")</small>
+                                </a>
+                            }
+                            @if (!string.IsNullOrEmpty(platformSettings.InfoEmail))
+                            {
+                                <a href="mailto:@platformSettings.InfoEmail" class="contact-action-pill" dir="ltr">
+                                    <span>@platformSettings.InfoEmail</span>
+                                    <small class="pill-tag">@T("اطلاعات", "Info", "معلومات")</small>
+                                </a>
+                            }
                         </div>
                     </div>
                 </div>
 
-                <div class="contact-item-card">
-                    <div class="item-icon location-icon">📍</div>
-                    <div class="item-content">
-                        <span class="item-title">@T("نشانی دفتر مرکزی", "Head Office Address", "عنوان المقر الرئيسي")</span>
-                        <p class="item-text">@platformSettings.Address</p>
-                        <LocationAddressActions Latitude="platformSettings.Latitude" Longitude="platformSettings.Longitude" Address="@platformSettings.Address" Title="@T("دفتر مرکزی به‌نوبت", "Be-Nobat Head Office", "المقر الرئيسي به‌نوبت")" />
+                <!-- نشانی -->
+                <div class="modern-contact-card">
+                    <div class="card-icon-box location-box">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/>
+                        </svg>
+                    </div>
+                    <div class="card-details">
+                        <span class="card-label">@T("نشانی دفتر مرکزی", "Head Office Address", "عنوان المقر الرئيسي")</span>
+                        <p class="address-text">@platformSettings.Address</p>
+                        <div class="address-actions-box">
+                            <LocationAddressActions Latitude="platformSettings.Latitude" Longitude="platformSettings.Longitude" Address="@platformSettings.Address" Title="@T("دفتر مرکزی به‌نوبت", "Be-Nobat Head Office", "المقر الرئيسي به‌نوبت")" />
+                        </div>
                     </div>
                 </div>
 
-                <div class="contact-item-card">
-                    <div class="item-icon clock-icon">⏱️</div>
-                    <div class="item-content">
-                        <span class="item-title">@T("ساعات کاری و پاسخگویی", "Working Hours & Support", "ساعات العمل والرد")</span>
-                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursWeekdays)) { <p class="item-text">@platformSettings.WorkingHoursWeekdays</p> }
-                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursThursdays)) { <p class="item-text">@platformSettings.WorkingHoursThursdays</p> }
-                        @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursHolidays)) { <small class="item-note">@platformSettings.WorkingHoursHolidays</small> }
+                <!-- ساعات کاری -->
+                <div class="modern-contact-card">
+                    <div class="card-icon-box clock-box">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                        </svg>
+                    </div>
+                    <div class="card-details">
+                        <span class="card-label">@T("ساعات کاری و پاسخگویی", "Working Hours & Support", "ساعات العمل والرد")</span>
+                        <div class="hours-list">
+                            @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursWeekdays))
+                            {
+                                <div class="hour-row">
+                                    <span class="hour-bullet"></span>
+                                    <span>@platformSettings.WorkingHoursWeekdays</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursThursdays))
+                            {
+                                <div class="hour-row">
+                                    <span class="hour-bullet"></span>
+                                    <span>@platformSettings.WorkingHoursThursdays</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(platformSettings.WorkingHoursHolidays))
+                            {
+                                <div class="hour-row holiday-note">
+                                    <span class="hour-bullet accent"></span>
+                                    <span>@platformSettings.WorkingHoursHolidays</span>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="contact-social-bar">
-                <span class="social-title">@T("ما را در شبکه‌های اجتماعی دنبال کنید:", "Follow us on social media:", "تابعنا على شبكات التواصل الاجتماعي:")</span>
-                <div class="social-tags">
-                    @if (!string.IsNullOrEmpty(platformSettings.Telegram)) { <span class="social-pill">@T("تلگرام", "Telegram", "تيليجرام"): @@platformSettings.Telegram</span> }
-                    @if (!string.IsNullOrEmpty(platformSettings.Eitaa)) { <span class="social-pill">@T("ایتا", "Eitaa", "إيتا"): @@platformSettings.Eitaa</span> }
-                    @if (!string.IsNullOrEmpty(platformSettings.Instagram)) { <span class="social-pill">@T("اینستاگرام", "Instagram", "إنستغرام"): @@platformSettings.Instagram</span> }
+            <!-- شبکه‌های اجتماعی مدرن و شیک -->
+            @if (socialChannels.Count > 0)
+            {
+                <div class="modern-social-section">
+                    <div class="social-header">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                        </svg>
+                        <span>@T("ما را در شبکه‌های اجتماعی دنبال کنید:", "Follow Us on Social Media:", "تابعنا على شبكات التواصل الاجتماعي:")</span>
+                    </div>
+                    <div class="modern-social-grid">
+                        @foreach (var ch in socialChannels)
+                        {
+                            <a href="@ch.Url" target="_blank" rel="noopener noreferrer" class="social-channel-card" style="--brand-color: @ch.BrandColor;">
+                                <div class="social-channel-icon" style="background: @ch.BrandColor;">
+                                    <svg viewBox="@ch.ViewBox" width="18" height="18" fill="#ffffff">
+                                        <path d="@ch.SvgPath"/>
+                                    </svg>
+                                </div>
+                                <div class="social-channel-info">
+                                    <span class="social-name">@ch.NameFa</span>
+                                    <span class="social-handle" dir="ltr">@ch.Handle</span>
+                                </div>
+                                <div class="social-arrow">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                                    </svg>
+                                </div>
+                            </a>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         </section>
 
         <!-- ستون فرم ارسال پیام -->
         <section class="contact-form-panel">
-            <h2>@T("ارسال پیام به پشتیبانی", "Send a Message to Support", "إرسال رسالة إلى الدعم")</h2>
-            <p class="panel-sub">@T("فرم زیر را تکمیل کنید؛ در اسرع وقت پاسخ شما را خواهیم داد.",
-                                    "Fill out the form below; we will respond to you as soon as possible.",
-                                    "يرجى ملء النموذج أدناه؛ سنرد عليك في أقرب وقت.")</p>
+            <div class="panel-header">
+                <div class="panel-icon-badge form-badge">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2>@T("ارسال پیام به پشتیبانی", "Send a Message to Support", "إرسال رسالة إلى الدعم")</h2>
+                    <p class="panel-sub">@T("فرم زیر را تکمیل نمایید؛ کارشناسان ما در سریع‌ترین زمان پاسخگوی شما خواهند بود.",
+                                            "Fill out the form below; our specialists will respond as quickly as possible.",
+                                            "يرجى ملء النموذج أدناه؛ سنرد عليك في أقرب وقت.")</p>
+                </div>
+            </div>
 
             <EditForm Model="formModel" OnValidSubmit="HandleSubmitMessage" FormName="contactUsForm">
                 <DataAnnotationsValidator />
 
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <div class="form-error-banner">@errorMessage</div>
+                    <div class="form-error-banner animate-fade-in">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                        <span>@errorMessage</span>
+                    </div>
                 }
 
-                <div class="form-group">
-                    <label for="senderName">@T("نام و نام خانوادگی", "Full Name", "الاسم الكامل") <span class="required-star">*</span></label>
-                    <InputText id="senderName" class="form-input" @bind-Value="formModel.Name" placeholder="@T("مثال: علی احمدی", "e.g. John Doe", "مثال: أحمد علي")" />
-                    <ValidationMessage For="() => formModel.Name" class="validation-msg" />
+                <div class="form-group-modern">
+                    <label for="senderName" class="modern-label">
+                        <span>@T("نام و نام خانوادگی", "Full Name", "الاسم الكامل")</span>
+                        <span class="required-star">*</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                        <InputText id="senderName" class="modern-input" @bind-Value="formModel.Name" placeholder="@T("مثال: علی رضایی", "e.g. John Doe", "مثال: أحمد علي")" />
+                    </div>
+                    <ValidationMessage For="() => formModel.Name" class="modern-val-msg" />
                 </div>
 
-                <div class="form-group">
-                    <label for="senderContact">@T("شماره موبایل یا ایمیل", "Mobile Number or Email", "رقم الجوال أو البريد الإلكتروني") <span class="required-star">*</span></label>
-                    <InputText id="senderContact" class="form-input" @bind-Value="formModel.ContactInfo" dir="ltr" placeholder="@T("0912... یا email@example.com", "0912... or email@example.com", "0912... أو email@example.com")" />
-                    <ValidationMessage For="() => formModel.ContactInfo" class="validation-msg" />
+                <div class="form-group-modern">
+                    <label for="senderContact" class="modern-label">
+                        <span>@T("شماره موبایل یا ایمیل", "Mobile Number or Email", "رقم الجوال أو البريد الإلكتروني")</span>
+                        <span class="required-star">*</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                        </svg>
+                        <InputText id="senderContact" class="modern-input" @bind-Value="formModel.ContactInfo" dir="ltr" placeholder="@T("0912... یا email@example.com", "0912... or email@example.com", "0912... أو email@example.com")" />
+                    </div>
+                    <ValidationMessage For="() => formModel.ContactInfo" class="modern-val-msg" />
                 </div>
 
-                <div class="form-group">
-                    <label for="messageSubject">@T("موضوع پیام", "Subject", "موضوع الرسالة")</label>
-                    <InputSelect id="messageSubject" class="form-input" @bind-Value="formModel.Subject">
-                        <option value="پشتیبانی عمومی">@T("پشتیبانی عمومی و پرسش", "General Support & Inquiries", "الدعم العام والاستفسار")</option>
-                        <option value="همکاری و ثبت کسب‌وکار">@T("همکاری و ثبت کسب‌وکار", "Partnership & Business Registration", "التعاون وتسجيل الأعمال")</option>
-                        <option value="انتقاد و پیشنهاد">@T("انتقاد یا پیشنهاد", "Feedback & Suggestions", "المقترحات والملاحظات")</option>
-                        <option value="گزارش مشکل فنی">@T("گزارش مشکل فنی در برنامه", "Report a Technical Issue", "الإبلاغ عن مشكلة فنية")</option>
-                        <option value="امور مالی و حسابداری">@T("امور مالی و فیش پرداختی", "Financial & Payment Receipts", "الشؤون المالية وإيصالات الدفع")</option>
-                    </InputSelect>
+                <div class="form-group-modern">
+                    <label for="messageSubject" class="modern-label">
+                        <span>@T("موضوع پیام", "Subject", "موضوع الرسالة")</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/>
+                        </svg>
+                        <InputSelect id="messageSubject" class="modern-input" @bind-Value="formModel.Subject">
+                            <option value="پشتیبانی عمومی">@T("پشتیبانی عمومی و پرسش", "General Support & Inquiries", "الدعم العام والاستفسار")</option>
+                            <option value="همکاری و ثبت کسب‌وکار">@T("همکاری و ثبت کسب‌وکار", "Partnership & Business Registration", "التعاون وتسجيل الأعمال")</option>
+                            <option value="انتقاد و پیشنهاد">@T("انتقاد یا پیشنهاد", "Feedback & Suggestions", "المقترحات والملاحظات")</option>
+                            <option value="گزارش مشکل فنی">@T("گزارش مشکل فنی در برنامه", "Report a Technical Issue", "الإبلاغ عن مشكلة فنية")</option>
+                            <option value="امور مالی و حسابداری">@T("امور مالی و فیش پرداختی", "Financial & Payment Receipts", "الشؤون المالية وإيصالات الدفع")</option>
+                        </InputSelect>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="messageBody">@T("متن پیام شما", "Your Message", "نص رسالتك") <span class="required-star">*</span></label>
-                    <InputTextArea id="messageBody" class="form-input" rows="5" @bind-Value="formModel.Message" placeholder="@T("پیام، پرسش یا نظر خود را اینجا بنویسید...", "Write your message, question, or comment here...", "اكتب رسالتك أو استفسارك أو تعليقك هنا...")" />
-                    <ValidationMessage For="() => formModel.Message" class="validation-msg" />
+                <div class="form-group-modern">
+                    <label for="messageBody" class="modern-label">
+                        <span>@T("متن پیام شما", "Your Message", "نص رسالتك")</span>
+                        <span class="required-star">*</span>
+                    </label>
+                    <InputTextArea id="messageBody" class="modern-textarea" rows="5" @bind-Value="formModel.Message" placeholder="@T("پیام، سوال یا نظر خود را با جزئیات بنویسید...", "Write your message, question, or inquiry...", "اكتب رسالتك أو استفسارك هنا...")" />
+                    <ValidationMessage For="() => formModel.Message" class="modern-val-msg" />
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-submit" disabled="@isSubmitting">
+                    <button type="submit" class="modern-submit-btn" disabled="@isSubmitting">
                         @if (isSubmitting)
                         {
+                            <span class="btn-spinner"></span>
                             <span>@T("در حال ارسال پیام...", "Sending message...", "جارٍ إرسال الرسالة...")</span>
                         }
                         else
                         {
-                            <span>@T("ارسال پیام", "Send Message", "إرسال الرسالة")</span>
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                            <span>@T("ارسال پیام به پشتیبانی", "Send Message to Support", "إرسال الرسالة إلى الدعم")</span>
                         }
                     </button>
                 </div>
@@ -162,259 +325,475 @@
 
 <style>
 .contact-page-shell {
-    max-width: 1140px;
-    margin: 2rem auto;
-    padding: 0 1.25rem 3rem;
+    max-width: 1180px;
+    margin: 2.5rem auto 4rem;
+    padding: 0 1.25rem;
 }
+
+/* Hero Section */
 .contact-hero {
     text-align: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
 }
-.contact-pill {
-    display: inline-block;
-    padding: 0.35rem 1rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    background: rgba(14, 116, 144, 0.1);
-    color: #0e7490;
-    margin-bottom: 0.75rem;
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.45rem 1.2rem;
+    border-radius: 9999px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    background: rgba(20, 107, 93, 0.1);
+    color: var(--primary, #146B5D);
+    border: 1px solid rgba(20, 107, 93, 0.2);
+    margin-bottom: 1rem;
 }
 .contact-hero h1 {
-    font-size: 2.1rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin: 0 0 0.5rem;
+    font-size: 2.35rem;
+    font-weight: 900;
+    color: var(--text-primary, #0f172a);
+    margin: 0 0 0.85rem;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
 }
 .contact-hero p {
-    color: var(--text-secondary);
-    max-width: 620px;
+    color: var(--text-secondary, #64748b);
+    max-width: 640px;
     margin: 0 auto;
-    line-height: 1.7;
+    line-height: 1.8;
     font-size: 1.05rem;
 }
+
+/* Grid Layout */
 .contact-grid {
     display: grid;
-    grid-template-columns: 1fr 1.2fr;
+    grid-template-columns: 1.05fr 1fr;
     gap: 2rem;
     align-items: start;
 }
-@@media (max-width: 860px) {
+@@media (max-width: 900px) {
     .contact-grid {
         grid-template-columns: 1fr;
+        gap: 1.75rem;
     }
 }
+
+/* Panels */
 .contact-info-panel, .contact-form-panel {
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
     padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+    position: relative;
+    overflow: hidden;
 }
-.contact-info-panel h2, .contact-form-panel h2 {
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin: 0 0 0.35rem;
-    color: var(--text-primary);
-}
-.panel-sub {
-    color: var(--text-secondary);
-    font-size: 0.92rem;
-    margin: 0 0 1.5rem;
-}
-.contact-cards-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-.contact-item-card {
+.panel-header {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1rem;
-    border-radius: 12px;
-    background: var(--surface-variant, #f8fafc);
-    border: 1px solid var(--border-color);
+    margin-bottom: 1.75rem;
 }
-.item-icon {
-    font-size: 1.5rem;
+.panel-icon-badge {
     width: 44px;
     height: 44px;
+    border-radius: 12px;
+    background: rgba(20, 107, 93, 0.12);
+    color: var(--primary, #146B5D);
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     flex-shrink: 0;
 }
-.item-content {
+.panel-icon-badge.form-badge {
+    background: rgba(14, 116, 144, 0.12);
+    color: #0e7490;
+}
+.panel-header h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 0.35rem;
+    color: var(--text-primary, #0f172a);
+}
+.panel-sub {
+    color: var(--text-secondary, #64748b);
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Contact Cards Stack */
+.contact-cards-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+.modern-contact-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.15rem;
+    border-radius: 16px;
+    background: var(--surface-variant, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.modern-contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+    border-color: rgba(20, 107, 93, 0.3);
+}
+
+.card-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+.phone-box { background: #e0f2fe; color: #0284c7; }
+.email-box { background: #fef3c7; color: #d97706; }
+.location-box { background: #fee2e2; color: #dc2626; }
+.clock-box { background: #dcfce7; color: #16a34a; }
+
+.card-details {
     flex: 1;
 }
-.item-title {
+.card-label {
     display: block;
     font-weight: 700;
     font-size: 0.95rem;
-    color: var(--text-primary);
-    margin-bottom: 0.35rem;
+    color: var(--text-primary, #0f172a);
+    margin-bottom: 0.5rem;
 }
-.item-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-.contact-link {
-    color: #0e7490;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: color 0.2s;
-    width: fit-content;
-}
-.contact-link:hover {
-    color: #0891b2;
-    text-decoration: underline;
-}
-.item-text {
-    margin: 0.15rem 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-.item-note {
-    display: block;
-    margin-top: 0.35rem;
-    font-size: 0.8rem;
-    color: #0284c7;
-}
-.contact-social-bar {
-    margin-top: 1.75rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--border-color);
-}
-.social-title {
-    display: block;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 0.6rem;
-}
-.social-tags {
+.phone-pills-wrap {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
-.social-pill {
-    font-size: 0.82rem;
-    background: var(--surface-variant, #f1f5f9);
-    padding: 0.3rem 0.75rem;
+.contact-action-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.35rem 0.75rem;
     border-radius: 8px;
-    color: var(--text-primary);
-    direction: ltr;
-}
-
-/* فرم */
-.form-group {
-    margin-bottom: 1.25rem;
-}
-.form-group label {
-    display: block;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    color: var(--text-primary, #0f172a);
     font-weight: 600;
     font-size: 0.9rem;
-    margin-bottom: 0.4rem;
-    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.contact-action-pill:hover {
+    border-color: var(--primary, #146B5D);
+    color: var(--primary, #146B5D);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.pill-tag {
+    font-size: 0.72rem;
+    background: rgba(20, 107, 93, 0.08);
+    color: var(--primary, #146B5D);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+.address-text {
+    margin: 0 0 0.6rem;
+    font-size: 0.92rem;
+    color: var(--text-secondary, #475569);
+    line-height: 1.6;
+}
+.address-actions-box {
+    margin-top: 0.4rem;
+}
+.hours-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.hour-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #475569);
+}
+.hour-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+}
+.hour-bullet.accent {
+    background: #0ea5e9;
+}
+.holiday-note {
+    color: #0369a1;
+    font-weight: 600;
+}
+
+/* Social Media Channels Section */
+.modern-social-section {
+    margin-top: 1.85rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed var(--border-color, #e2e8f0);
+}
+.social-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-secondary, #475569);
+    margin-bottom: 0.85rem;
+}
+.modern-social-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+.social-channel-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.85rem;
+    border-radius: 12px;
+    background: var(--surface-variant, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    text-decoration: none;
+    color: var(--text-primary, #0f172a);
+    transition: all 0.2s ease;
+}
+.social-channel-card:hover {
+    border-color: var(--brand-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+.social-channel-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.social-channel-info {
+    flex: 1;
+    min-width: 0;
+}
+.social-name {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+.social-handle {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-secondary, #64748b);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.social-arrow {
+    color: var(--text-secondary, #94a3b8);
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+.social-channel-card:hover .social-arrow {
+    transform: translateX(-3px);
+    color: var(--brand-color);
+}
+
+/* Modern Form */
+.form-group-modern {
+    margin-bottom: 1.35rem;
+}
+.modern-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    margin-bottom: 0.45rem;
+    color: var(--text-primary, #0f172a);
 }
 .required-star {
     color: #e11d48;
 }
-.form-input {
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.input-icon {
+    position: absolute;
+    right: 14px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+[dir="ltr"] .input-icon {
+    right: auto;
+    left: 14px;
+}
+.modern-input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
+    padding: 0.8rem 2.75rem 0.8rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #cbd5e1);
     background: var(--input-bg, #ffffff);
-    color: var(--text-primary);
+    color: var(--text-primary, #0f172a);
     font-size: 0.95rem;
     box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
+    font-family: inherit;
 }
-.form-input:focus {
+[dir="ltr"] .modern-input {
+    padding: 0.8rem 1rem 0.8rem 2.75rem;
+}
+.modern-input:focus, .modern-textarea:focus {
     outline: none;
-    border-color: #0e7490;
-    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15);
+    border-color: var(--primary, #146B5D);
+    box-shadow: 0 0 0 3px rgba(20, 107, 93, 0.15);
 }
-.validation-msg {
+.modern-textarea {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background: var(--input-bg, #ffffff);
+    color: var(--text-primary, #0f172a);
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 120px;
+}
+.modern-val-msg {
     color: #e11d48;
     font-size: 0.82rem;
-    margin-top: 0.3rem;
+    margin-top: 0.35rem;
     display: block;
 }
-.btn-submit {
+.modern-submit-btn {
     width: 100%;
-    padding: 0.85rem;
-    border-radius: 10px;
-    background: #0d9488;
-    color: white;
+    padding: 0.95rem 1.5rem;
+    border-radius: 12px;
+    background: var(--primary, #146B5D);
+    color: #ffffff;
     border: none;
     font-size: 1.05rem;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 14px rgba(20, 107, 93, 0.25);
+    transition: all 0.2s ease;
+    font-family: inherit;
 }
-.btn-submit:hover:not(:disabled) {
-    background: #0f766e;
+.modern-submit-btn:hover:not(:disabled) {
+    background: #0f5449;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(20, 107, 93, 0.35);
 }
-.btn-submit:active:not(:disabled) {
-    transform: translateY(1px);
+.modern-submit-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
-.btn-submit:disabled {
+.modern-submit-btn:disabled {
     opacity: 0.65;
     cursor: not-allowed;
 }
+
+/* Success & Alert States */
 .contact-alert-success {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 1.25rem;
     background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    border-radius: 12px;
+    border: 1px solid #6ee7b7;
+    border-radius: 16px;
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.25rem;
     color: #065f46;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.08);
 }
-.alert-icon {
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: #059669;
+.alert-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #10b981;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
-.contact-alert-success h3 {
+.alert-body h3 {
     margin: 0 0 0.35rem;
-    font-size: 1.15rem;
+    font-size: 1.2rem;
+    font-weight: 800;
 }
-.contact-alert-success p {
+.alert-body p {
     margin: 0 0 1rem;
-    line-height: 1.6;
+    line-height: 1.7;
+    color: #047857;
 }
-.btn-primary-ghost {
+.btn-success-reset {
     background: white;
     color: #059669;
-    border: 1px solid #10b981;
+    border: 1px solid #a7f3d0;
     padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
 }
-.btn-primary-ghost:hover {
+.btn-success-reset:hover {
     background: #f0fdf4;
+    border-color: #34d399;
 }
 .form-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     background: #fff1f2;
     border: 1px solid #fecdd3;
     color: #be123c;
     padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
     font-size: 0.9rem;
+    font-weight: 600;
+}
+.btn-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+@@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
 
@@ -425,6 +804,7 @@
     private string? errorMessage;
     private Guid? currentUserId;
     private PlatformPricingSettings platformSettings = new();
+    private List<SocialChannel> socialChannels = new();
 
     private string T(string fa, string en, string ar) => UiLocale.Language switch
     {
@@ -439,6 +819,7 @@
         {
             await using var db = await DbFactory.CreateDbContextAsync();
             platformSettings = await db.GetPlatformPricingAsync();
+            socialChannels = SocialHelper.GetConfiguredChannels(platformSettings);
         }
         catch { }
 

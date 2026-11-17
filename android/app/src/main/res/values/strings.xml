@@ -68,6 +68,16 @@
     <string name="contact_us_title">ارتباط با ما</string>
     <string name="contact_us_subtitle">آماده پاسخگویی به پرسش‌ها و نظرات شما هستیم</string>
     <string name="contact_info_section">راه‌های تماس مستقیم</string>
+    <string name="contact_social_section">شبکه‌های اجتماعی و پیام‌رسان‌ها</string>
+    <string name="contact_social_telegram">تلگرام</string>
+    <string name="contact_social_instagram">اینستاگرام</string>
+    <string name="contact_social_eitaa">ایتا</string>
+    <string name="contact_social_bale">بله</string>
+    <string name="contact_social_rubika">روبیکا</string>
+    <string name="contact_social_twitter">ایکس (توییتر)</string>
+    <string name="contact_social_whatsapp">واتساپ</string>
+    <string name="contact_social_linkedin">لینکدین</string>
+    <string name="contact_social_aparat">آپارات</string>
     <string name="contact_phone_title">تلفن پشتیبانی</string>
     <string name="contact_phone_number">021-91002424</string>
     <string name="contact_mobile_title">شماره همراه</string>
@@ -799,7 +809,15 @@
     <string name="business_request_pricing_extra" formatted="false">هزینه %d شعبه اضافی: %s تومان</string>
     <string name="business_request_pricing_total" formatted="false">مبلغ کل قابل پرداخت: %s تومان</string>
     <string name="business_request_bank_card_label" formatted="false">شماره کارت: %s</string>
-    <string name="business_request_bank_iban_label" formatted="false">شماره شبا: %s (به نام %s)</string>
+    <string name="business_request_bank_iban_label" formatted="false">شماره شبا: %s</string>
+    <string name="business_request_bank_account_number_label" formatted="false">شماره حساب: %s</string>
+    <string name="business_request_bank_info_title">اطلاعات حساب بانکی جهت واریز</string>
+    <string name="card_number_copied">شماره کارت در حافظه کپی شد.</string>
+    <string name="iban_copied">شماره شبا در حافظه کپی شد.</string>
+    <string name="account_number_copied">شماره حساب در حافظه کپی شد.</string>
+    <string name="copy_card_number">کپی شماره کارت</string>
+    <string name="copy_iban">کپی شماره شبا</string>
+    <string name="copy_account_number">کپی شماره حساب</string>
     <string name="business_request_receipt_section">فیش واریز وجه</string>
     <string name="business_request_receipt_uploaded_badge">✓ فیش ارسال شد</string>
     <string name="business_request_receipt_pending_badge">⏳ در انتظار ارسال فیش</string>

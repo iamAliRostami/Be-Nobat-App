@@ -51,6 +51,47 @@ else
         </div>
     }
 
+    @if (CurrentBusiness is not null)
+    {
+        var daysLeft = CurrentBusiness.DaysUntilPlanExpiration;
+        var isExpired = CurrentBusiness.IsPlanExpired;
+        var isWarning = !isExpired && daysLeft.HasValue && daysLeft.Value <= 7;
+
+        <div class="admin-panel plan-banner" style="margin-bottom:20px; max-width:850px; background:@(isExpired ? "#fef2f2" : isWarning ? "#fffbeb" : "#f0fdf4"); border:1px solid @(isExpired ? "#fecaca" : isWarning ? "#fde68a" : "#bbf7d0"); border-radius:12px; padding:16px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="font-size:28px;">
+                        @(isExpired ? "🚫" : isWarning ? "⚠️" : "✨")
+                    </div>
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h3 style="margin:0; font-size:16px; font-weight:700; color:@(isExpired ? "#991b1b" : isWarning ? "#92400e" : "#166534");">
+                                وضعیت اشتراک: @FormatPlanTitle(CurrentBusiness.PlanType)
+                            </h3>
+                            <span class="status @(isExpired ? "cancelled" : isWarning ? "pending" : "confirmed")" style="font-size:11px; padding:2px 8px; border-radius:999px;">
+                                @(isExpired ? "منقضی شده" : isWarning ? $"رو به پایان ({daysLeft} روز باقی‌مانده)" : $"فعال ({daysLeft} روز باقی‌مانده)")
+                            </span>
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin-top:4px; display:flex; gap:14px; flex-wrap:wrap;">
+                            @if (CurrentBusiness.PlanStartedAt.HasValue)
+                            {
+                                <span>شروع: <b>@LocalizedDate.Format(DateOnly.FromDateTime(CurrentBusiness.PlanStartedAt.Value.DateTime), UiLocale.Language)</b></span>
+                            }
+                            @if (CurrentBusiness.PlanExpiresAt.HasValue)
+                            {
+                                <span>پایان: <b>@LocalizedDate.Format(DateOnly.FromDateTime(CurrentBusiness.PlanExpiresAt.Value.DateTime), UiLocale.Language)</b></span>
+                            }
+                            <span>تعداد شعب: <b>@ActiveBranchesCount شعبه فعال</b></span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="primary-button action-primary" style="font-size:13px; padding:8px 18px;" @onclick="OpenRenewModal">
+                    تمدید یا ارتقای پلن
+                </button>
+            </div>
+        </div>
+    }
+
     <EditForm Model="Form" FormName="business-edit" OnValidSubmit="SaveBusiness" class="admin-panel admin-business-form" style="max-width:850px;">
         <!-- بخش ۱: تصاویر و هویت بصری -->
         <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
@@ -243,6 +284,148 @@ else
     </EditForm>
 }
 
+@if (IsRenewModalOpen && CurrentBusiness is not null && PlatformPricing is not null)
+{
+    <div class="modal-backdrop" @onclick="CloseRenewModal">
+        <div class="form-modal" style="max-width:560px;" @onclick:stopPropagation>
+            <div class="modal-header">
+                <div>
+                    <h2>تمدید یا ارتقای اشتراک</h2>
+                    <p class="modal-subtitle">کسب‌وکار: @CurrentBusiness.Name</p>
+                </div>
+                <button type="button" class="close-button" aria-label="بستن" title="بستن" @onclick="CloseRenewModal">×</button>
+            </div>
+            <div class="modal-body">
+                @if (RenewError is not null) { <div class="auth-error" style="margin-bottom:10px;">@RenewError</div> }
+                
+                <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:#334155;">انتخاب پلن تمدید / ارتقا:</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:16px;">
+                    <!-- ۳ ماهه -->
+                    <div class="renew-plan-card @(RenewPlanType == "Quarterly" ? "active" : "")" @onclick='() => SetRenewPlan("Quarterly")'>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>۳ ماهه</b>
+                            @if (PlatformPricing.DiscountPercent3Months > 0)
+                            {
+                                <span class="badge-discount">@PlatformPricing.DiscountPercent3Months٪ تخفیف</span>
+                            }
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۳ ماه اشتراک کسب‌وکار</div>
+                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                            @LocalizedDate.FormatNumber(CalculateRenewCost("Quarterly"), UiLocale.Language) تومان
+                        </div>
+                    </div>
+
+                    <!-- ۶ ماهه -->
+                    <div class="renew-plan-card @(RenewPlanType == "SemiAnnual" ? "active" : "")" @onclick='() => SetRenewPlan("SemiAnnual")'>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>۶ ماهه</b>
+                            @if (PlatformPricing.DiscountPercent6Months > 0)
+                            {
+                                <span class="badge-discount" style="background:#fee2e2; color:#b91c1c;">@PlatformPricing.DiscountPercent6Months٪ تخفیف</span>
+                            }
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۶ ماه اشتراک اقتصادی</div>
+                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                            @LocalizedDate.FormatNumber(CalculateRenewCost("SemiAnnual"), UiLocale.Language) تومان
+                        </div>
+                    </div>
+
+                    <!-- ۱ ساله -->
+                    <div class="renew-plan-card @(RenewPlanType == "Annual" ? "active" : "")" @onclick='() => SetRenewPlan("Annual")'>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>۱ ساله</b>
+                            @if (PlatformPricing.DiscountPercent12Months > 0)
+                            {
+                                <span class="badge-discount" style="background:#dcfce7; color:#15803d;">@PlatformPricing.DiscountPercent12Months٪ تخفیف</span>
+                            }
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۱۲ ماه حداکثر صرفه‌جویی</div>
+                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                            @LocalizedDate.FormatNumber(CalculateRenewCost("Annual"), UiLocale.Language) تومان
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:14px; font-size:13px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span>تعداد شعب فعال کسب‌وکار:</span>
+                        <b>@ActiveBranchesCount شعبه</b>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <span>تعرفه پایه ماهانه:</span>
+                        <span>@LocalizedDate.FormatNumber(PlatformPricing.BaseBusinessPrice, UiLocale.Language) تومان</span>
+                    </div>
+                    @if (ActiveBranchesCount > 1)
+                    {
+                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                            <span>تعرفه شعب مازاد (@(ActiveBranchesCount - 1) شعبه):</span>
+                            <span>@LocalizedDate.FormatNumber((ActiveBranchesCount - 1) * PlatformPricing.ExtraBranchPrice, UiLocale.Language) تومان / ماه</span>
+                        </div>
+                    }
+                    <div style="display:flex; justify-content:space-between; border-top:1px dashed #cbd5e1; padding-top:6px; font-weight:700; color:#15803d; font-size:14px;">
+                        <span>مبلغ کل قابل پرداخت:</span>
+                        <span>@LocalizedDate.FormatNumber(CalculateRenewCost(RenewPlanType), UiLocale.Language) تومان</span>
+                    </div>
+                </div>
+
+                <!-- اطلاعات واریز -->
+                <div style="background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:14px;">
+                    <div>شماره کارت: <b dir="ltr" style="font-family:monospace;">@PlatformPricing.CardNumber</b> @(!string.IsNullOrWhiteSpace(PlatformPricing.AccountHolder) ? $"({PlatformPricing.AccountHolder})" : "")</div>
+                    @if (!string.IsNullOrWhiteSpace(PlatformPricing.Iban))
+                    {
+                        <div>شماره شبا: <b dir="ltr" style="font-family:monospace;">@PlatformPricing.Iban</b></div>
+                    }
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <label style="font-size:13px;">کد پیگیری یا شماره ارجاع فیش
+                        <input type="text" maxlength="50" placeholder="مثلاً: ۱۲۳۴۵۶۷۸" @bind="RenewTrackingCode" disabled="@IsSubmittingRenew" />
+                    </label>
+                    <label style="font-size:13px;">تصویر فیش واریزی
+                        <InputFile OnChange="OnRenewReceiptSelected" accept="image/png,image/jpeg,image/webp" disabled="@IsSubmittingRenew" />
+                    </label>
+                    @if (RenewReceiptFileName is not null)
+                    {
+                        <div style="font-size:12px; color:#15803d;">فایل انتخاب‌شده: @RenewReceiptFileName</div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="action-secondary" @onclick="CloseRenewModal">انصراف</button>
+                <button type="button" class="primary-button action-primary" disabled="@(IsSubmittingRenew || RenewReceiptBytes == null)" @onclick="SubmitRenewRequest">
+                    @(IsSubmittingRenew ? "در حال ارسال..." : "ثبت درخواست و ارسال فیش")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+.renew-plan-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+.renew-plan-card:hover {
+    border-color: #cbd5e1;
+}
+.renew-plan-card.active {
+    border-color: var(--primary, #146B5D);
+    background: #f0fdfa;
+}
+.badge-discount {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #b45309;
+}
+</style>
+
 @code {
     [SupplyParameterFromQuery(Name = "businessId")] public Guid? QueryBusinessId { get; set; }
 
@@ -257,6 +440,155 @@ else
     private List<string> CategoryOptions = [];
     private string? AvatarUrl;
     private string? HeaderUrl;
+
+    private int ActiveBranchesCount;
+    private bool IsRenewModalOpen;
+    private PlatformPricingSettings? PlatformPricing;
+    private string RenewPlanType = "Quarterly";
+    private byte[]? RenewReceiptBytes;
+    private string? RenewReceiptContentType;
+    private string? RenewReceiptFileName;
+    private string? RenewTrackingCode;
+    private bool IsSubmittingRenew;
+    private string? RenewError;
+
+    private static string FormatPlanTitle(string? planType) => planType switch
+    {
+        "Trial7Days" => "تست رایگان (۷ روز)",
+        "Quarterly" => "۳ ماهه",
+        "SemiAnnual" => "۶ ماهه",
+        "Annual" => "۱ ساله",
+        _ => "تعرفه پایه"
+    };
+
+    private void SetRenewPlan(string plan)
+    {
+        RenewPlanType = plan;
+    }
+
+    private decimal CalculateRenewCost(string planType)
+    {
+        if (PlatformPricing is null) return 0;
+        var extraCount = Math.Max(0, ActiveBranchesCount - 1);
+        var monthly = PlatformPricing.BaseBusinessPrice + (extraCount * PlatformPricing.ExtraBranchPrice);
+        return planType switch
+        {
+            "Quarterly" => (monthly * 3) * (100 - PlatformPricing.DiscountPercent3Months) / 100m,
+            "SemiAnnual" => (monthly * 6) * (100 - PlatformPricing.DiscountPercent6Months) / 100m,
+            "Annual" => (monthly * 12) * (100 - PlatformPricing.DiscountPercent12Months) / 100m,
+            _ => monthly
+        };
+    }
+
+    private async Task OpenRenewModal()
+    {
+        if (CurrentBusiness is null) return;
+        RenewError = null;
+        RenewReceiptBytes = null;
+        RenewReceiptFileName = null;
+        RenewTrackingCode = null;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        PlatformPricing = await db.GetPlatformPricingAsync();
+        ActiveBranchesCount = await db.Branches.CountAsync(b => b.BusinessId == CurrentBusiness.Id && b.DeletedAt == null);
+        IsRenewModalOpen = true;
+    }
+
+    private void CloseRenewModal()
+    {
+        IsRenewModalOpen = false;
+        RenewError = null;
+    }
+
+    private async Task OnRenewReceiptSelected(InputFileChangeEventArgs e)
+    {
+        RenewReceiptBytes = null;
+        RenewReceiptContentType = null;
+        RenewReceiptFileName = null;
+        RenewError = null;
+
+        var file = e.File;
+        if (file is null) return;
+        if (file.Size > 4 * 1024 * 1024)
+        {
+            RenewError = "حجم فایل نباید بیشتر از ۴ مگابایت باشد.";
+            return;
+        }
+
+        using var stream = file.OpenReadStream(4 * 1024 * 1024);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        RenewReceiptBytes = ms.ToArray();
+        RenewReceiptContentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+        RenewReceiptFileName = file.Name;
+    }
+
+    private async Task SubmitRenewRequest()
+    {
+        if (CurrentBusiness is null || PlatformPricing is null || RenewReceiptBytes == null || IsSubmittingRenew) return;
+        IsSubmittingRenew = true;
+        RenewError = null;
+        try
+        {
+            var myUserId = await Access.UserIdAsync();
+            var durationMonths = RenewPlanType switch
+            {
+                "Quarterly" => 3,
+                "SemiAnnual" => 6,
+                "Annual" => 12,
+                _ => 1
+            };
+            var discount = RenewPlanType switch
+            {
+                "Quarterly" => PlatformPricing.DiscountPercent3Months,
+                "SemiAnnual" => PlatformPricing.DiscountPercent6Months,
+                "Annual" => PlatformPricing.DiscountPercent12Months,
+                _ => 0
+            };
+            var totalFee = CalculateRenewCost(RenewPlanType);
+
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var req = new BusinessRequest
+            {
+                UserId = myUserId,
+                ApprovedBusinessId = CurrentBusiness.Id,
+                BusinessName = CurrentBusiness.Name,
+                Category = CurrentBusiness.Category,
+                City = CurrentBusiness.City,
+                Description = $"درخواست تمدید/ارتقای پلن به {FormatPlanTitle(RenewPlanType)}",
+                ContactPhone = "",
+                FirstBranchName = Form.FirstBranchName,
+                FirstBranchAddress = Form.FirstBranchAddress,
+                PlanType = RenewPlanType,
+                PlanDurationMonths = durationMonths,
+                DiscountPercent = discount,
+                BasePrice = PlatformPricing.BaseBusinessPrice,
+                ExtraBranchPrice = PlatformPricing.ExtraBranchPrice,
+                TotalBranchesCount = ActiveBranchesCount,
+                TotalFee = totalFee,
+                ReceiptImageData = RenewReceiptBytes,
+                ReceiptImageContentType = RenewReceiptContentType ?? "image/jpeg",
+                ReceiptTrackingCode = RenewTrackingCode?.Trim(),
+                ReceiptUploadedAt = DateTimeOffset.UtcNow,
+                Status = BusinessRequestStatus.Pending,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+
+            db.BusinessRequests.Add(req);
+            await db.SaveChangesAsync();
+
+            IsRenewModalOpen = false;
+            Message = "درخواست تمدید پلن با موفقیت ثبت شد و پس از بررسی مدیریت سامانه فعال خواهد شد.";
+        }
+        catch (Exception ex)
+        {
+            RenewError = "خطا در ثبت درخواست تمدید: " + ex.Message;
+        }
+        finally
+        {
+            IsSubmittingRenew = false;
+        }
+    }
 
     public sealed class BusinessFormModel
     {
@@ -341,6 +673,8 @@ else
             Error = "کسب‌وکار مورد نظر یافت نشد.";
             return;
         }
+
+        ActiveBranchesCount = await db.Branches.CountAsync(b => b.BusinessId == id && b.DeletedAt == null);
 
         if (!CategoryOptions.Contains(CurrentBusiness.Category) && !string.IsNullOrWhiteSpace(CurrentBusiness.Category))
         {

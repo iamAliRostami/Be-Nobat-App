@@ -265,6 +265,12 @@ data class PlatformPricingInput(
     val telegram: String = "",
     val instagram: String = "",
     val eitaa: String = "",
+    val twitter: String = "",
+    val bale: String = "",
+    val rubika: String = "",
+    val whatsApp: String = "",
+    val linkedIn: String = "",
+    val aparat: String = "",
 ) {
     val bankCardNumber: String get() = cardNumber
     val bankIban: String get() = iban

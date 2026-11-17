@@ -56,24 +56,18 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
             } else false
         }
 
-        val scrollView = findViewById<androidx.core.widget.NestedScrollView>(R.id.loginScrollView)
-        fun ensureInputVisible(inputView: View) {
-            scrollView?.postDelayed({
-                if (isFinishing || isDestroyed) return@postDelayed
-                val rect = android.graphics.Rect()
-                inputView.getDrawingRect(rect)
-                scrollView.offsetDescendantRectToMyCoords(inputView, rect)
-                rect.bottom += (56 * resources.displayMetrics.density).toInt()
-                scrollView.requestChildRectangleOnScreen(inputView, rect, false)
-            }, 150)
-        }
+        val etIdentity = findViewById<TextInputEditText>(R.id.etIdentity)
+        val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
 
-        findViewById<TextInputEditText>(R.id.etIdentity).setOnFocusChangeListener { v, hasFocus ->
-            if (hasFocus) ensureInputVisible(v)
+        etIdentity.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) bringCurrentFocusIntoView(200L)
         }
-        findViewById<TextInputEditText>(R.id.etPassword).setOnFocusChangeListener { v, hasFocus ->
-            if (hasFocus) ensureInputVisible(v)
+        etIdentity.setOnClickListener { bringCurrentFocusIntoView(150L) }
+
+        etPassword.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) bringCurrentFocusIntoView(200L)
         }
+        etPassword.setOnClickListener { bringCurrentFocusIntoView(150L) }
         if (intent.getStringExtra(EXTRA_RETURN_TARGET) == null) {
             setupDoubleBackToExit()
         }

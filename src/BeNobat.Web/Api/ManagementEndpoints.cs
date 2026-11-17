@@ -1725,7 +1725,7 @@ public static class ManagementEndpoints
     private static async Task<IResult> GetPlatformPricing(AppDbContext db, CancellationToken ct)
     {
         var p = await db.GetPlatformPricingAsync(ct);
-        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions, p.BankName, p.AccountNumber));
     }
 
     private static async Task<IResult> UpdatePlatformPricing(PlatformPricingInput input, AppDbContext db, CancellationToken ct)
@@ -1739,9 +1739,11 @@ public static class ManagementEndpoints
         p.Iban = input.Iban?.Trim() ?? "";
         p.AccountHolder = input.AccountHolder?.Trim() ?? "";
         p.PaymentInstructions = input.PaymentInstructions?.Trim() ?? "";
+        if (!string.IsNullOrWhiteSpace(input.BankName)) p.BankName = input.BankName.Trim();
+        if (!string.IsNullOrWhiteSpace(input.AccountNumber)) p.AccountNumber = input.AccountNumber.Trim();
         p.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
-        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions));
+        return Results.Ok(new PlatformPricingDto(p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions, p.BankName, p.AccountNumber));
     }
 
     private static async Task<IResult> GetPlatformSettings(AppDbContext db, CancellationToken ct)
@@ -1751,7 +1753,7 @@ public static class ManagementEndpoints
             p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions,
             p.Address, p.Latitude, p.Longitude, p.Phone, p.SupportPhone, p.Mobile, p.Email, p.InfoEmail,
             p.BankName, p.AccountNumber, p.WorkingHoursWeekdays, p.WorkingHoursThursdays, p.WorkingHoursHolidays,
-            p.Telegram, p.Instagram, p.Eitaa
+            p.Telegram, p.Instagram, p.Eitaa, p.Twitter, p.Bale, p.Rubika, p.WhatsApp, p.LinkedIn, p.Aparat
         ));
     }
 
@@ -1782,13 +1784,19 @@ public static class ManagementEndpoints
         p.Telegram = input.Telegram?.Trim() ?? "";
         p.Instagram = input.Instagram?.Trim() ?? "";
         p.Eitaa = input.Eitaa?.Trim() ?? "";
+        p.Twitter = input.Twitter?.Trim() ?? "";
+        p.Bale = input.Bale?.Trim() ?? "";
+        p.Rubika = input.Rubika?.Trim() ?? "";
+        p.WhatsApp = input.WhatsApp?.Trim() ?? "";
+        p.LinkedIn = input.LinkedIn?.Trim() ?? "";
+        p.Aparat = input.Aparat?.Trim() ?? "";
         p.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return Results.Ok(new PlatformSettingsDto(
             p.BaseBusinessPrice, p.ExtraBranchPrice, p.CardNumber, p.Iban, p.AccountHolder, p.PaymentInstructions,
             p.Address, p.Latitude, p.Longitude, p.Phone, p.SupportPhone, p.Mobile, p.Email, p.InfoEmail,
             p.BankName, p.AccountNumber, p.WorkingHoursWeekdays, p.WorkingHoursThursdays, p.WorkingHoursHolidays,
-            p.Telegram, p.Instagram, p.Eitaa
+            p.Telegram, p.Instagram, p.Eitaa, p.Twitter, p.Bale, p.Rubika, p.WhatsApp, p.LinkedIn, p.Aparat
         ));
     }
 
@@ -2538,10 +2546,97 @@ public sealed record ManagementUserInput(string DisplayName, string? Email, stri
 public sealed record ManagementUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, string[] Roles);
 public sealed record ManagementCreatedUserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string TemporaryPassword);
 public sealed record ManagementRolesInput(string[] Roles);
-public sealed record PlatformPricingDto(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
-public sealed record PlatformPricingInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions);
-public sealed record PlatformSettingsDto(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions, string Address, double? Latitude, double? Longitude, string Phone, string SupportPhone, string Mobile, string Email, string InfoEmail, string BankName, string AccountNumber, string WorkingHoursWeekdays, string WorkingHoursThursdays, string WorkingHoursHolidays, string Telegram, string Instagram, string Eitaa);
-public sealed record PlatformSettingsInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions, string Address = "", double? Latitude = null, double? Longitude = null, string Phone = "", string SupportPhone = "", string Mobile = "", string Email = "", string InfoEmail = "", string BankName = "", string AccountNumber = "", string WorkingHoursWeekdays = "", string WorkingHoursThursdays = "", string WorkingHoursHolidays = "", string Telegram = "", string Instagram = "", string Eitaa = "");
+public sealed record PlatformPricingDto(
+    decimal BaseBusinessPrice,
+    decimal ExtraBranchPrice,
+    string CardNumber,
+    string Iban,
+    string AccountHolder,
+    string PaymentInstructions,
+    string BankName = "",
+    string AccountNumber = "",
+    string Address = "",
+    double? Latitude = null,
+    double? Longitude = null,
+    string Phone = "",
+    string SupportPhone = "",
+    string Mobile = "",
+    string Email = "",
+    string InfoEmail = "",
+    string WorkingHoursWeekdays = "",
+    string WorkingHoursThursdays = "",
+    string WorkingHoursHolidays = "",
+    string Telegram = "",
+    string Instagram = "",
+    string Eitaa = "",
+    string Twitter = "",
+    string Bale = "",
+    string Rubika = "",
+    string WhatsApp = "",
+    string LinkedIn = "",
+    string Aparat = ""
+);
+public sealed record PlatformPricingInput(decimal BaseBusinessPrice, decimal ExtraBranchPrice, string CardNumber, string Iban, string AccountHolder, string PaymentInstructions, string BankName = "", string AccountNumber = "");
+public sealed record PlatformSettingsDto(
+    decimal BaseBusinessPrice,
+    decimal ExtraBranchPrice,
+    string CardNumber,
+    string Iban,
+    string AccountHolder,
+    string PaymentInstructions,
+    string Address,
+    double? Latitude,
+    double? Longitude,
+    string Phone,
+    string SupportPhone,
+    string Mobile,
+    string Email,
+    string InfoEmail,
+    string BankName,
+    string AccountNumber,
+    string WorkingHoursWeekdays,
+    string WorkingHoursThursdays,
+    string WorkingHoursHolidays,
+    string Telegram,
+    string Instagram,
+    string Eitaa,
+    string Twitter = "",
+    string Bale = "",
+    string Rubika = "",
+    string WhatsApp = "",
+    string LinkedIn = "",
+    string Aparat = ""
+);
+public sealed record PlatformSettingsInput(
+    decimal BaseBusinessPrice,
+    decimal ExtraBranchPrice,
+    string CardNumber,
+    string Iban,
+    string AccountHolder,
+    string PaymentInstructions,
+    string Address = "",
+    double? Latitude = null,
+    double? Longitude = null,
+    string Phone = "",
+    string SupportPhone = "",
+    string Mobile = "",
+    string Email = "",
+    string InfoEmail = "",
+    string BankName = "",
+    string AccountNumber = "",
+    string WorkingHoursWeekdays = "",
+    string WorkingHoursThursdays = "",
+    string WorkingHoursHolidays = "",
+    string Telegram = "",
+    string Instagram = "",
+    string Eitaa = "",
+    string Twitter = "",
+    string Bale = "",
+    string Rubika = "",
+    string WhatsApp = "",
+    string LinkedIn = "",
+    string Aparat = ""
+);
 public sealed record RequestedBranchDto(string Name, string Address);
 public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string? DataBase64 = null, string? ImageBase64 = null)
 {

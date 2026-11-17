@@ -71,8 +71,9 @@
                         <div><dt>تلفن کسب‌وکار</dt><dd dir="ltr">@req.ContactPhone</dd></div>
                         <div><dt>شعبه اول</dt><dd>@req.FirstBranchName</dd></div>
                         <div><dt>نشانی</dt><dd>@req.FirstBranchAddress</dd></div>
+                        <div><dt>پلن انتخابی</dt><dd><b>@FormatPlanName(req.PlanType, req.DiscountPercent)</b></dd></div>
                         <div><dt>تعداد کل شعب</dt><dd><b>@req.TotalBranchesCount شعبه</b></dd></div>
-                        <div><dt>مبلغ کل تعرفه</dt><dd><b style="color:#059669;">@LocalizedDate.FormatNumber(req.TotalFee, UiLocale.Language) تومان</b></dd></div>
+                        <div><dt>مبلغ کل تعرفه</dt><dd><b style="color:#059669;">@(req.PlanType == "Trial7Days" || req.TotalFee == 0 ? "رایگان (آزمایشی)" : $"{LocalizedDate.FormatNumber(req.TotalFee, UiLocale.Language)} تومان")</b></dd></div>
                         <div><dt>تاریخ ثبت</dt><dd>@LocalizedDate.Format(DateOnly.FromDateTime(req.CreatedAt.DateTime), UiLocale.Language)</dd></div>
                     </dl>
                     @if (req.GetAdditionalBranches().Count > 0)
@@ -89,7 +90,11 @@
                     }
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem; background:#f1f5f9; padding:0.4rem 0.6rem; border-radius:6px; font-size:0.85rem;">
                         <div>
-                            @if (req.ReceiptImageData != null && req.ReceiptImageData.Length > 0)
+                            @if (req.PlanType == "Trial7Days")
+                            {
+                                <span class="status confirmed" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px; background:#e0f2fe; color:#0369a1;">✨ تست رایگان (بدون نیاز به واریز)</span>
+                            }
+                            else if (req.ReceiptImageData != null && req.ReceiptImageData.Length > 0)
                             {
                                 <span class="status confirmed" style="font-size:0.75rem; padding:0.2rem 0.5rem; border-radius:4px;">✓ فیش واریز شد</span>
                                 @if (!string.IsNullOrWhiteSpace(req.ReceiptTrackingCode))
@@ -182,6 +187,17 @@
                     <label>هزینه به ازای هر شعبه اضافی (تومان)
                         <input type="number" min="0" step="10000" @bind="PricingForm.ExtraBranchPrice" />
                     </label>
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.5rem; background:#f8fafc; padding:0.6rem; border-radius:8px; border:1px solid #e2e8f0;">
+                        <label style="font-size:0.8rem; margin:0;">تخفیف ۳ ماهه (%)
+                            <input type="number" min="0" max="100" @bind="PricingForm.DiscountPercent3Months" />
+                        </label>
+                        <label style="font-size:0.8rem; margin:0;">تخفیف ۶ ماهه (%)
+                            <input type="number" min="0" max="100" @bind="PricingForm.DiscountPercent6Months" />
+                        </label>
+                        <label style="font-size:0.8rem; margin:0;">تخفیف ۱ ساله (%)
+                            <input type="number" min="0" max="100" @bind="PricingForm.DiscountPercent12Months" />
+                        </label>
+                    </div>
                     <label>شماره کارت بانکی
                         <input type="text" dir="ltr" maxlength="30" placeholder="مثلاً ۶۰۳۷-۹۹۱۸-..." @bind="PricingForm.CardNumber" />
                     </label>
@@ -266,6 +282,9 @@
             Id = current.Id,
             BaseBusinessPrice = current.BaseBusinessPrice,
             ExtraBranchPrice = current.ExtraBranchPrice,
+            DiscountPercent3Months = current.DiscountPercent3Months,
+            DiscountPercent6Months = current.DiscountPercent6Months,
+            DiscountPercent12Months = current.DiscountPercent12Months,
             CardNumber = current.CardNumber,
             Iban = current.Iban,
             AccountHolder = current.AccountHolder,
@@ -297,6 +316,9 @@
             var current = await db.GetPlatformPricingAsync();
             current.BaseBusinessPrice = PricingForm.BaseBusinessPrice;
             current.ExtraBranchPrice = PricingForm.ExtraBranchPrice;
+            current.DiscountPercent3Months = PricingForm.DiscountPercent3Months;
+            current.DiscountPercent6Months = PricingForm.DiscountPercent6Months;
+            current.DiscountPercent12Months = PricingForm.DiscountPercent12Months;
             current.CardNumber = PricingForm.CardNumber?.Trim() ?? "";
             current.Iban = PricingForm.Iban?.Trim() ?? "";
             current.AccountHolder = PricingForm.AccountHolder?.Trim() ?? "";
@@ -398,6 +420,67 @@
                 return;
             }
 
+            var now = DateTimeOffset.UtcNow;
+            DateTimeOffset expiresAt;
+            var planType = string.IsNullOrWhiteSpace(request.PlanType) ? "Trial7Days" : request.PlanType;
+            if (planType == "Trial7Days")
+            {
+                expiresAt = now.AddDays(7);
+            }
+            else if (planType == "Quarterly" || request.PlanDurationMonths == 3)
+            {
+                expiresAt = now.AddMonths(3);
+            }
+            else if (planType == "SemiAnnual" || request.PlanDurationMonths == 6)
+            {
+                expiresAt = now.AddMonths(6);
+            }
+            else if (planType == "Annual" || request.PlanDurationMonths == 12)
+            {
+                expiresAt = now.AddYears(1);
+            }
+            else if (request.PlanDurationMonths > 0)
+            {
+                expiresAt = now.AddMonths(request.PlanDurationMonths);
+            }
+            else
+            {
+                expiresAt = now.AddMonths(1);
+            }
+
+            // اگر درخواست برای تمدید یا ارتقای یک کسب‌وکار موجود باشد
+            if (request.ApprovedBusinessId.HasValue)
+            {
+                var existingBusiness = await db.Businesses.Include(b => b.Branches).FirstOrDefaultAsync(b => b.Id == request.ApprovedBusinessId.Value);
+                if (existingBusiness != null)
+                {
+                    var baseDate = existingBusiness.PlanExpiresAt.HasValue && existingBusiness.PlanExpiresAt.Value > now
+                        ? existingBusiness.PlanExpiresAt.Value
+                        : now;
+
+                    var months = request.PlanDurationMonths > 0 ? request.PlanDurationMonths : (planType == "Quarterly" ? 3 : planType == "SemiAnnual" ? 6 : planType == "Annual" ? 12 : 1);
+                    existingBusiness.PlanType = planType;
+                    existingBusiness.PlanExpiresAt = planType == "Trial7Days" ? baseDate.AddDays(7) : baseDate.AddMonths(months);
+                    existingBusiness.UpdatedAt = now;
+
+                    foreach (var br in existingBusiness.Branches)
+                    {
+                        br.PlanType = planType;
+                        br.PlanExpiresAt = existingBusiness.PlanExpiresAt;
+                        if (!br.DeletedAt.HasValue) br.IsActive = true;
+                        br.UpdatedAt = now;
+                    }
+
+                    request.Status = BusinessRequestStatus.Approved;
+                    request.UpdatedAt = now;
+                    await db.SaveChangesAsync();
+
+                    Message = $"درخواست تمدید کسب‌وکار «{existingBusiness.Name}» با موفقیت تأیید شد.";
+                    await Load();
+                    return;
+                }
+            }
+
             var slug = CleanSlug(request.BusinessName);
             var uniqueSlug = slug;
             var counter = 1;
@@ -414,8 +497,11 @@
                 City = request.City,
                 Description = request.Description,
                 RequiresApproval = false,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                PlanType = planType,
+                PlanStartedAt = now,
+                PlanExpiresAt = expiresAt,
+                CreatedAt = now,
+                UpdatedAt = now
             };
             db.Businesses.Add(business);
 
@@ -429,8 +515,12 @@
                 OpenHour = 9,
                 CloseHour = 18,
                 IsApproved = true,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
+                IsActive = true,
+                PlanType = planType,
+                PlanStartedAt = now,
+                PlanExpiresAt = expiresAt,
+                CreatedAt = now,
+                UpdatedAt = now
             };
             WeeklySchedule.Replace(branch, WeeklySchedule.Default());
             db.Branches.Add(branch);
@@ -459,8 +549,12 @@
                     OpenHour = 9,
                     CloseHour = 18,
                     IsApproved = true,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                    UpdatedAt = DateTimeOffset.UtcNow
+                    IsActive = true,
+                    PlanType = planType,
+                    PlanStartedAt = now,
+                    PlanExpiresAt = expiresAt,
+                    CreatedAt = now,
+                    UpdatedAt = now
                 };
                 WeeklySchedule.Replace(extraBranch, WeeklySchedule.Default());
                 db.Branches.Add(extraBranch);
@@ -543,4 +637,13 @@
         var s = sb.ToString().Trim('-');
         return string.IsNullOrWhiteSpace(s) ? "biz-" + Guid.NewGuid().ToString("N")[..8] : s;
     }
+
+    private static string FormatPlanName(string? planType, int discount) => planType switch
+    {
+        "Trial7Days" => "تست رایگان (۷ روز)",
+        "Quarterly" => discount > 0 ? $"۳ ماهه ({discount}٪ تخفیف)" : "۳ ماهه",
+        "SemiAnnual" => discount > 0 ? $"۶ ماهه ({discount}٪ تخفیف)" : "۶ ماهه",
+        "Annual" => discount > 0 ? $"۱ ساله ({discount}٪ تخفیف ویژه)" : "۱ ساله",
+        _ => "تعرفه پایه"
+    };
 }

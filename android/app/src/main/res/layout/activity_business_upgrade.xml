@@ -521,27 +521,106 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="اطلاعات حساب بانکی جهت واریز"
+                            android:text="@string/business_request_bank_info_title"
                             android:textAppearance="@style/TextAppearance.BeNobat.Title"
                             android:textSize="13sp" />
 
+                        <!-- Bank Name & Account Holder -->
                         <TextView
-                            android:id="@+id/tvPendingCardNumber"
+                            android:id="@+id/tvPendingAccountHolder"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body"
-                            android:textSize="12.5sp"
-                            tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
-
-                        <TextView
-                            android:id="@+id/tvPendingIban"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                            android:layout_marginBottom="6dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                             android:textSize="12sp"
-                            tools:text="شماره شبا: IR120170000000123456789012 (به نام سامانه نوبت‌دهی به‌نوبت)" />
+                            tools:text="بانک ملت - به نام سامانه نوبت‌دهی به‌نوبت" />
+
+                        <!-- Card Number Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutPendingCardNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvPendingCardNumber"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyPendingCard"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_card_number"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
+
+                        <!-- IBAN Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutPendingIban"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/tvPendingIban"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12sp"
+                                tools:text="شماره شبا: IR120170000000123456789012" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyPendingIban"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_iban"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
+
+                        <!-- Account Number Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutPendingAccountNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/tvPendingAccountNumber"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12sp"
+                                tools:text="شماره حساب: 1234567890" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyPendingAccountNumber"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_account_number"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/tvPendingInstructions"
@@ -972,9 +1051,15 @@
                         android:id="@+id/btnAddExtraBranch"
                         style="@style/Widget.BeNobat.Button.Outlined"
                         android:layout_width="wrap_content"
-                        android:layout_height="38dp"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="38dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:paddingTop="6dp"
+                        android:paddingBottom="6dp"
+                        android:gravity="center"
                         android:text="@string/business_request_add_branch_btn"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -1040,14 +1125,128 @@
                             android:textSize="14sp"
                             tools:text="مبلغ کل قابل پرداخت: ۷۰۰,۰۰۰ تومان" />
 
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="10dp"
+                            android:background="@color/colorOutline" />
+
                         <TextView
-                            android:id="@+id/tvLiveBankInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:text="@string/business_request_bank_info_title"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp" />
+
+                        <!-- Bank Name & Account Holder -->
+                        <TextView
+                            android:id="@+id/tvLiveAccountHolder"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="6dp"
                             android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            tools:text="بانک ملت - به نام سامانه نوبت‌دهی به‌نوبت" />
+
+                        <!-- Card Number Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutLiveCardNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/tvLiveCardNumber"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12.5sp"
+                                tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyLiveCard"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_card_number"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
+
+                        <!-- IBAN Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutLiveIban"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/tvLiveIban"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12sp"
+                                tools:text="شماره شبا: IR120170000000123456789012" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyLiveIban"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_iban"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
+
+                        <!-- Account Number Row -->
+                        <LinearLayout
+                            android:id="@+id/layoutLiveAccountNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:id="@+id/tvLiveAccountNumber"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="12sp"
+                                tools:text="شماره حساب: 1234567890" />
+
+                            <ImageButton
+                                android:id="@+id/btnCopyLiveAccountNumber"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="@string/copy_account_number"
+                                android:src="@drawable/ic_copy"
+                                app:tint="?attr/colorPrimary" />
+                        </LinearLayout>
+
+                        <!-- Instructions -->
+                        <TextView
+                            android:id="@+id/tvLiveInstructions"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textColor="@color/colorWarning"
                             android:textSize="11.5sp"
-                            tools:text="شماره کارت جهت واریز: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸\nپس از ثبت درخواست، تصویر فیش واریز را بارگذاری نمایید." />
+                            android:text="پس از ثبت درخواست، تصویر فیش واریز را بارگذاری نمایید." />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 

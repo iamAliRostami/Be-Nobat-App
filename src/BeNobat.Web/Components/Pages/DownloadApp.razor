@@ -1,0 +1,573 @@
+@page "/download"
+@page "/app"
+@page "/app/download"
+@using BeNobat.Web.Components.Layout
+@using BeNobat.Web.Domain
+@using BeNobat.Web.Infrastructure
+@using Microsoft.EntityFrameworkCore
+@layout PublicLayout
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Nav
+@inject UiLocale UiLocale
+
+<PageTitle>@T("دانلود اپلیکیشن اندروید به‌نوبت | لینک مستقیم و کافه بازار", "Download Be-Nobat Android App | Direct APK & Bazaar", "تحميل تطبيق به‌نوبت للأندرويد")</PageTitle>
+
+<div class="download-page-shell" style="direction: @(UiLocale.Language == "en" ? "ltr" : "rtl");">
+    <div class="download-hero">
+        <span class="download-badge">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9994.4482.9994.9993s-.4483.9997-.9994.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5842 8.4116 13.8557 8.1 12 8.1s-3.5842.3116-5.1368.8497L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/>
+            </svg>
+            <span>@T("نسخه رسمی اندروید", "Official Android Release", "النسخة الرسمية للأندرويد")</span>
+        </span>
+        <h1>@T("دانلود اپلیکیشن موبایل به‌نوبت", "Download Be-Nobat Mobile App", "تحميل تطبيق به‌نوبت للهاتف")</h1>
+        <p>@T("رزرو آنلاین نوبت، مدیریت خدمات، مشاهده تقویم کاری و دریافت اعلان‌های لحظه‌ای در سریع‌ترین زمان ممکن روی تلفن همراه شما.",
+               "Online appointment booking, service management, work calendar, and instant notifications right on your phone.",
+               "حجز المواعيد عبر الإنترنت وإدارة الخدمات والإشعارات الفورية على هاتفك المحمول.")</p>
+    </div>
+
+    <div class="download-container">
+        <!-- کارت اصلی دانلود اپلیکیشن -->
+        <div class="app-card-main">
+            <div class="app-header-row">
+                <div class="app-icon-wrapper">
+                    <img src="/icons/icon-192.png" alt="BeNobat Icon" class="app-icon-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="app-icon-fallback" style="display:none;">
+                        <span>ب</span>
+                    </div>
+                </div>
+                <div class="app-info-col">
+                    <div class="app-title-line">
+                        <h2>@T("به‌نوبت", "Be-Nobat", "به‌نوبت")</h2>
+                        <span class="free-pill">@T("رایگان", "Free", "مجاني")</span>
+                    </div>
+                    <p class="app-category">@T("سامانه رزرو نوبت و خدمات آنلاین", "Appointment & Services Booking Platform", "منصة حجز المواعيد والخدمات")</p>
+                    <div class="app-meta-tags">
+                        <span class="meta-tag">
+                            <strong>@T("نسخه:", "Version:", "الإصدار:")</strong> @(latestRelease != null ? $"v{latestRelease.VersionName}" : "v1.2.0")
+                        </span>
+                        @if (latestRelease?.ApkFileSize > 0)
+                        {
+                            <span class="meta-tag">
+                                <strong>@T("حجم:", "Size:", "الحجم:")</strong> @FormatFileSize(latestRelease.ApkFileSize.Value)
+                            </span>
+                        }
+                        <span class="meta-tag">
+                            <strong>@T("پیش‌نیاز:", "Requires:", "يتطلب:")</strong> @T("اندروید 7.0+", "Android 7.0+", "أندرويد 7.0+")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- دکمه‌های اصلی دانلود -->
+            <div class="download-buttons-group">
+                <!-- دکمه کافه بازار -->
+                <a href="@GetBazaarUrl()" target="_blank" rel="noopener noreferrer" class="btn-download-bazaar">
+                    <div class="btn-icon-area">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                        </svg>
+                    </div>
+                    <div class="btn-text-area">
+                        <span class="btn-subtitle">@T("دانلود و به‌روزرسانی از", "Download & update from", "تحميل وتحديث من")</span>
+                        <strong class="btn-title">@T("کافه بازار", "Cafe Bazaar", "كافيه بازار")</strong>
+                    </div>
+                </a>
+
+                <!-- دکمه دانلود مستقیم فایل APK -->
+                <a href="@GetDirectDownloadUrl()" download class="btn-download-direct">
+                    <div class="btn-icon-area">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                        </svg>
+                    </div>
+                    <div class="btn-text-area">
+                        <span class="btn-subtitle">@T("دانلود مستقیم فایل نصبی", "Direct APK download", "تحميل مباشر لملف APK")</span>
+                        <strong class="btn-title">@T("دانلود فایل APK", "Download APK", "تحميل APK")</strong>
+                    </div>
+                </a>
+            </div>
+
+            <!-- تغییرات آخرین نسخه -->
+            @if (latestRelease != null && !string.IsNullOrWhiteSpace(latestRelease.ReleaseNotes))
+            {
+                <div class="release-notes-box">
+                    <div class="notes-header">
+                        <span class="notes-icon">✨</span>
+                        <h3>@T("تغییرات این نسخه:", "What's new in this version:", "ما الجديد في هذا الإصدار:")</h3>
+                    </div>
+                    <ul class="notes-list">
+                        @foreach (var line in latestRelease.ReleaseNotes.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            var cleanLine = line.TrimStart('-', '*', '•', ' ').Trim();
+                            if (!string.IsNullOrWhiteSpace(cleanLine))
+                            {
+                                <li>@cleanLine</li>
+                            }
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+
+        <!-- ستون اسکن QR و راهنمای نصب -->
+        <div class="app-sidebar-col">
+            <!-- کارت اسکن QR Code -->
+            <div class="card-qr-box">
+                <div class="qr-header">
+                    <span class="qr-icon">📷</span>
+                    <h3>@T("اسکن با دوربین گوشی", "Scan with Phone Camera", "امسح بكاميرا الهاتف")</h3>
+                </div>
+                <p>@T("دوربین گوشی خود را روبه‌روی بارکد زیر بگیرید تا مستقیماً وارد صفحه دانلود شوید:",
+                       "Point your camera at this QR code to open the download page:",
+                       "وجّه الكاميرا نحو الرمز الشريطي لفتح صفحة التحميل:")</p>
+                <div class="qr-image-wrapper">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=@Uri.EscapeDataString(Nav.BaseUri + "download")"
+                         alt="QR Code" width="160" height="160" loading="lazy" />
+                </div>
+                <span class="qr-link-hint">@Nav.BaseUri.TrimEnd('/')/download</span>
+            </div>
+
+            <!-- راهنمای نصب فایل نصبی APK -->
+            <div class="install-guide-card">
+                <h3>@T("راهنمای نصب فایل مستقیم APK", "Direct APK Installation Guide", "دليل تثبيت ملف APK المباشر")</h3>
+                <div class="guide-steps">
+                    <div class="guide-step">
+                        <span class="step-num">۱</span>
+                        <div>
+                            <strong>@T("دانلود فایل نصبی", "Download APK file", "تحميل ملف APK")</strong>
+                            <p>@T("دکمه «دانلود فایل APK» را لمس کنید تا دانلود آغاز شود.",
+                                   "Tap 'Download APK' to start the download.",
+                                   "المس زر 'تحميل APK' لبدء التنزيل.")</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <span class="step-num">۲</span>
+                        <div>
+                            <strong>@T("تأیید نصب از منابع ناشناس", "Allow Unknown Sources", "السماح بالمصادر غير المعروفة")</strong>
+                            <p>@T("در صورت نمایش پیام امنیتی، گزینه Settings یا Allow from this source را تأیید کنید.",
+                                   "If prompted, tap Settings and allow installation from this source.",
+                                   "إذا ظهرت رسالة أمان، اسمح بالتثبيت من هذا المصدر.")</p>
+                        </div>
+                    </div>
+                    <div class="guide-step">
+                        <span class="step-num">۳</span>
+                        <div>
+                            <strong>@T("نصب و ورود به برنامه", "Install & Enjoy", "التثبيت وتسجيل الدخول")</strong>
+                            <p>@T("گزینه Install را بزنید و پس از پایان، برنامه به‌نوبت را باز کنید.",
+                                   "Tap Install, and after completion, open the Be-Nobat app.",
+                                   "المس تثبيت ثم افتح تطبيق به‌نوبت واستمتع بالخدمات.")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.download-page-shell {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+}
+.download-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 2.5rem;
+}
+.download-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    border-radius: 9999px;
+    padding: 6px 16px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+.download-hero h1 {
+    font-size: 2.3rem;
+    font-weight: 800;
+    color: var(--on-surface, #0f172a);
+    margin: 0 0 1rem;
+    line-height: 1.3;
+}
+.download-hero p {
+    color: var(--text-secondary, #64748b);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin: 0;
+}
+.download-container {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+@@media (max-width: 860px) {
+    .download-container {
+        grid-template-columns: 1fr;
+    }
+}
+.app-card-main {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+.app-header-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid var(--border-color, #f1f5f9);
+}
+.app-icon-wrapper {
+    width: 88px;
+    height: 88px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #146B5D, #0B4F46);
+    display: grid;
+    place-items: center;
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(20, 107, 93, 0.25);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.app-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.app-icon-fallback {
+    font-size: 40px;
+    font-weight: 800;
+}
+.app-info-col {
+    flex: 1;
+}
+.app-title-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.app-title-line h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--on-surface, #0f172a);
+}
+.free-pill {
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+.app-category {
+    color: var(--text-secondary, #64748b);
+    font-size: 0.92rem;
+    margin: 4px 0 12px;
+}
+.app-meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.meta-tag {
+    background: var(--surface-variant, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: var(--on-surface-variant, #475569);
+}
+.download-buttons-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+@@media (min-width: 600px) {
+    .download-buttons-group {
+        flex-direction: row;
+    }
+}
+.btn-download-bazaar, .btn-download-direct {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.btn-download-bazaar {
+    background: #118b50;
+    color: #ffffff !important;
+    box-shadow: 0 8px 20px rgba(17, 139, 80, 0.25);
+}
+.btn-download-bazaar:hover {
+    background: #0d7040;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(17, 139, 80, 0.35);
+}
+.btn-download-direct {
+    background: #0e3b34;
+    color: #ffffff !important;
+    box-shadow: 0 8px 20px rgba(14, 59, 52, 0.25);
+}
+.btn-download-direct:hover {
+    background: #146B5D;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(20, 107, 93, 0.35);
+}
+.btn-icon-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.btn-text-area {
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+}
+[dir="ltr"] .btn-text-area {
+    text-align: left;
+}
+.btn-subtitle {
+    font-size: 0.78rem;
+    opacity: 0.88;
+}
+.btn-title {
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+.release-notes-box {
+    background: var(--surface-variant, #f8fafc);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+}
+.notes-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.75rem;
+}
+.notes-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--on-surface, #0f172a);
+}
+.notes-list {
+    margin: 0;
+    padding-inline-start: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-secondary, #475569);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+.app-sidebar-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.card-qr-box {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+.qr-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 0.5rem;
+}
+.qr-header h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+}
+.card-qr-box p {
+    color: var(--text-secondary, #64748b);
+    font-size: 0.86rem;
+    margin: 0 0 1.25rem;
+}
+.qr-image-wrapper {
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.qr-link-hint {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--primary, #146B5D);
+    direction: ltr;
+}
+.install-guide-card {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+.install-guide-card h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 1.25rem;
+}
+.guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.guide-step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e6f0ed;
+    color: #146B5D;
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+.guide-step strong {
+    font-size: 0.92rem;
+    display: block;
+    margin-bottom: 2px;
+}
+.guide-step p {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #64748b);
+    margin: 0;
+    line-height: 1.5;
+}
+html[data-theme="dark"] .download-badge {
+    background: #064e3b;
+    color: #6ee7b7;
+    border-color: #047857;
+}
+html[data-theme="dark"] .free-pill {
+    background: #064e3b;
+    color: #a7f3d0;
+}
+html[data-theme="dark"] .app-card-main,
+html[data-theme="dark"] .card-qr-box,
+html[data-theme="dark"] .install-guide-card {
+    background: #111a18;
+    border-color: #1f2e2b;
+}
+html[data-theme="dark"] .step-num {
+    background: #19352e;
+    color: #5eead4;
+}
+</style>
+
+@code {
+    private PlatformPricingSettings platformSettings = new();
+    private AppRelease? latestRelease;
+
+    [SupplyParameterFromQuery(Name = "bazaar")]
+    public bool? RedirectToBazaar { get; set; }
+
+    [SupplyParameterFromQuery(Name = "direct")]
+    public bool? DirectDownload { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        platformSettings = await db.GetPlatformPricingAsync();
+
+        latestRelease = await db.AppReleases.AsNoTracking()
+            .Where(r => r.IsActive)
+            .OrderByDescending(r => r.VersionCode)
+            .FirstOrDefaultAsync();
+
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var path = uri.AbsolutePath.TrimEnd('/');
+
+        if (path.EndsWith("/bazaar", StringComparison.OrdinalIgnoreCase) || RedirectToBazaar == true)
+        {
+            Nav.NavigateTo(GetBazaarUrl(), forceLoad: true);
+            return;
+        }
+
+        if (path.EndsWith("/direct", StringComparison.OrdinalIgnoreCase) || DirectDownload == true)
+        {
+            Nav.NavigateTo(GetDirectDownloadUrl(), forceLoad: true);
+            return;
+        }
+    }
+
+    private string GetBazaarUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(platformSettings.CafeBazaarUrl))
+        {
+            return platformSettings.CafeBazaarUrl.Trim();
+        }
+
+        var pkg = latestRelease?.BazaarPackageName;
+        if (string.IsNullOrWhiteSpace(pkg))
+        {
+            pkg = "com.leon.be_nobat";
+        }
+        return $"https://cafebazaar.ir/app/{pkg}";
+    }
+
+    private string GetDirectDownloadUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(platformSettings.DirectApkUrl))
+        {
+            return platformSettings.DirectApkUrl.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(latestRelease?.ExternalDownloadUrl))
+        {
+            return latestRelease.ExternalDownloadUrl.Trim();
+        }
+
+        return "/api/v1/app/download-latest";
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        if (bytes <= 0) return "";
+        var mb = bytes / (1024.0 * 1024.0);
+        return $"{mb:F1} مگابایت";
+    }
+
+    private string T(string fa, string en, string ar) => UiLocale.Language switch
+    {
+        "en" => en,
+        "ar" => ar,
+        _ => fa
+    };
+}

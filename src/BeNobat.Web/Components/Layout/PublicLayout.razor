@@ -1,4 +1,8 @@
 @inherits LayoutComponentBase
+@using BeNobat.Web.Domain
+@using BeNobat.Web.Infrastructure
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
 
 <div class="public-shell">
     <header class="public-header">
@@ -33,5 +37,101 @@
         </div>
     </header>
     <main class="public-main">@Body</main>
-    <footer class="public-footer"><div class="public-brand"><span>ب</span><strong>به‌نوبت</strong></div><p>راه ساده‌تر برای پیدا کردن و رزرو بهترین خدمات.</p><div style="margin:0.5rem 0;display:flex;gap:1.5rem;justify-content:center;"><a href="/contact" style="color:var(--text-secondary);font-size:0.875rem;text-decoration:none;">ارتباط با ما و پشتیبانی</a></div><small>© ۱۴۰۵ به‌نوبت؛ همه حقوق محفوظ است.</small></footer>
+    <footer class="public-footer">
+        <div class="public-brand"><span>ب</span><strong>به‌نوبت</strong></div>
+        <p>راه ساده‌تر برای پیدا کردن و رزرو بهترین خدمات.</p>
+        
+        <div class="footer-download-box" style="margin: 0.75rem 0;">
+            <a href="/download" class="footer-app-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993s-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9994.4482.9994.9993s-.4483.9997-.9994.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5842 8.4116 13.8557 8.1 12 8.1s-3.5842.3116-5.1368.8497L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/>
+                </svg>
+                <span>دانلود اپلیکیشن اندروید به‌نوبت</span>
+            </a>
+        </div>
+
+        @if (socialChannels.Count > 0)
+        {
+            <div class="footer-social-row">
+                @foreach (var ch in socialChannels)
+                {
+                    <a href="@ch.Url" target="_blank" rel="noopener noreferrer" class="footer-social-icon-btn" title="@ch.NameFa (@ch.Handle)" aria-label="@ch.NameFa">
+                        <svg viewBox="@ch.ViewBox" width="18" height="18" fill="currentColor">
+                            <path d="@ch.SvgPath" />
+                        </svg>
+                    </a>
+                }
+            </div>
+        }
+
+        <div style="margin:0.25rem 0;display:flex;gap:1.5rem;justify-content:center;align-items:center;">
+            <a href="/contact" style="color:var(--text-secondary);font-size:0.875rem;text-decoration:none;">ارتباط با ما و پشتیبانی</a>
+        </div>
+        <small>© ۱۴۰۵ به‌نوبت؛ همه حقوق محفوظ است.</small>
+    </footer>
+
+    <style>
+    .footer-app-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff !important;
+        padding: 8px 20px;
+        border-radius: 9999px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.25s ease;
+    }
+    .footer-app-btn:hover {
+        background: var(--primary, #146B5D);
+        border-color: var(--primary, #146B5D);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+    .footer-social-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        margin: 0.75rem 0 0.5rem;
+    }
+    .footer-social-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #ffffff !important;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+    .footer-social-icon-btn:hover {
+        background: var(--primary, #146B5D);
+        border-color: var(--primary, #146B5D);
+        transform: translateY(-2px) scale(1.08);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    </style>
 </div>
+
+@code {
+    private List<SocialChannel> socialChannels = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            var settings = await db.GetPlatformPricingAsync();
+            socialChannels = SocialHelper.GetConfiguredChannels(settings);
+        }
+        catch { }
+    }
+}

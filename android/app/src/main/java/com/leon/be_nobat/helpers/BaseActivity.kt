@@ -30,9 +30,15 @@ import com.leon.be_nobat.ui.activities.*
 import com.leon.be_nobat.ui.view_models.base.MainViewModel
 import android.content.res.ColorStateList
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.util.Base64
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.widget.NestedScrollView
+import com.google.android.material.textfield.TextInputLayout
 import coil.load
 import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
@@ -52,6 +58,12 @@ abstract class BaseActivity : AppCompatActivity() {
     protected abstract val layoutResourceId: Int
 
     protected open val applyBottomInsetsOnRoot: Boolean = true
+
+    private val globalFocusChangeListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+        if (newFocus != null && (newFocus is android.widget.EditText || newFocus is com.google.android.material.textfield.TextInputEditText)) {
+            bringCurrentFocusIntoView(150L)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppLocaleManager.currentLanguage = getCurrentLanguage()
@@ -75,6 +87,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 systemBars.right,
                 bottomPadding
             )
+            if (ime.bottom > 0) {
+                bringCurrentFocusIntoView(100L)
+            }
             insets
         }
         val container = findViewById<FrameLayout>(R.id.baseContentContainer)
@@ -115,6 +130,70 @@ abstract class BaseActivity : AppCompatActivity() {
             findViewById<NavigationView>(R.id.navView)?.let { navView ->
                 syncAdminDrawerSelection(navView, menuItemId)
             }
+        }
+        window.decorView.viewTreeObserver.addOnGlobalFocusChangeListener(globalFocusChangeListener)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (window.decorView.viewTreeObserver.isAlive) {
+            window.decorView.viewTreeObserver.removeOnGlobalFocusChangeListener(globalFocusChangeListener)
+        }
+    }
+
+    protected fun bringCurrentFocusIntoView(delayMs: Long = 100L) {
+        val focused = currentFocus ?: return
+        var target: View = focused
+        var p = focused.parent
+        while (p is View && p !is NestedScrollView && p !is ScrollView) {
+            if (p is TextInputLayout) {
+                target = p
+                break
+            }
+            p = p.parent
+        }
+
+        var scrollContainer: View? = null
+        var curr = target.parent
+        while (curr != null) {
+            if (curr is NestedScrollView || curr is ScrollView) {
+                scrollContainer = curr as View
+                break
+            }
+            curr = curr.parent
+        }
+
+        scrollContainer?.let { sc ->
+            sc.postDelayed({
+                if (isFinishing || isDestroyed) return@postDelayed
+                val rect = Rect()
+                target.getDrawingRect(rect)
+                (sc as ViewGroup).offsetDescendantRectToMyCoords(target, rect)
+
+                val density = resources.displayMetrics.density
+                val extraBottom = (100 * density).toInt()
+                val visibleHeight = sc.height - sc.paddingTop - sc.paddingBottom
+                if (visibleHeight <= 0) return@postDelayed
+
+                val targetBottom = rect.bottom + extraBottom
+                val currentScrollY = sc.scrollY
+
+                if (targetBottom > currentScrollY + visibleHeight) {
+                    val newScrollY = currentScrollY + (targetBottom - (currentScrollY + visibleHeight))
+                    if (sc is NestedScrollView) {
+                        sc.smoothScrollTo(0, newScrollY)
+                    } else if (sc is ScrollView) {
+                        sc.smoothScrollTo(0, newScrollY)
+                    }
+                } else if (rect.top < currentScrollY) {
+                    val newScrollY = (rect.top - 16 * density).toInt().coerceAtLeast(0)
+                    if (sc is NestedScrollView) {
+                        sc.smoothScrollTo(0, newScrollY)
+                    } else if (sc is ScrollView) {
+                        sc.smoothScrollTo(0, newScrollY)
+                    }
+                }
+            }, delayMs)
         }
     }
 

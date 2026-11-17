@@ -28,11 +28,14 @@ import com.google.android.material.card.MaterialCardView
 import com.leon.be_nobat.domain.model.BusinessRequestInput
 import com.leon.be_nobat.domain.model.ReceiptUploadInput
 import com.leon.be_nobat.domain.model.RequestedBranch
+import com.leon.be_nobat.helpers.BaseActivity
+import com.leon.be_nobat.helpers.DeepLinkHelper
+import com.leon.be_nobat.helpers.PersianUtils
 import com.leon.be_nobat.helpers.StatusBadgeHelper
+import android.widget.Toast
 import java.io.ByteArrayOutputStream
 import java.text.NumberFormat
 import java.util.Locale
-import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.view_models.ProfileUiState
 import com.leon.be_nobat.ui.view_models.ProfileViewModel
 import kotlinx.coroutines.launch
@@ -299,9 +302,68 @@ class BusinessUpgradeActivity : BaseActivity() {
                     layoutExtra?.isVisible = false
                 }
 
-                // Bank info
-                findViewById<TextView>(R.id.tvPendingCardNumber)?.text = getString(R.string.business_request_bank_card_label, state.pricing.cardNumber)
-                findViewById<TextView>(R.id.tvPendingIban)?.text = getString(R.string.business_request_bank_iban_label, state.pricing.iban, state.pricing.accountHolder)
+                // Bank info in pending state
+                val pendingHolder = findViewById<TextView>(R.id.tvPendingAccountHolder)
+                val pBankParts = mutableListOf<String>()
+                if (state.pricing.bankName.isNotBlank()) pBankParts.add(state.pricing.bankName)
+                if (state.pricing.accountHolder.isNotBlank()) pBankParts.add("به نام ${state.pricing.accountHolder}")
+                pendingHolder?.text = if (pBankParts.isNotEmpty()) pBankParts.joinToString(" - ") else ""
+                pendingHolder?.isVisible = pBankParts.isNotEmpty()
+
+                // Pending Card Number
+                val layoutPCard = findViewById<View>(R.id.layoutPendingCardNumber)
+                val tvPCard = findViewById<TextView>(R.id.tvPendingCardNumber)
+                val btnPCopyCard = findViewById<View>(R.id.btnCopyPendingCard)
+                val pCardNum = state.pricing.cardNumber.trim()
+                if (pCardNum.isNotBlank()) {
+                    layoutPCard?.isVisible = true
+                    tvPCard?.text = getString(R.string.business_request_bank_card_label, PersianUtils.toPersianDigits(pCardNum))
+                    val copyPCardAction = View.OnClickListener {
+                        DeepLinkHelper.copyToClipboard(this, pCardNum, "Card Number")
+                        Toast.makeText(this, R.string.card_number_copied, Toast.LENGTH_SHORT).show()
+                    }
+                    btnPCopyCard?.setOnClickListener(copyPCardAction)
+                    layoutPCard?.setOnClickListener(copyPCardAction)
+                } else {
+                    layoutPCard?.isVisible = false
+                }
+
+                // Pending IBAN
+                val layoutPIban = findViewById<View>(R.id.layoutPendingIban)
+                val tvPIban = findViewById<TextView>(R.id.tvPendingIban)
+                val btnPCopyIban = findViewById<View>(R.id.btnCopyPendingIban)
+                val pIbanNum = state.pricing.iban.trim()
+                if (pIbanNum.isNotBlank()) {
+                    layoutPIban?.isVisible = true
+                    tvPIban?.text = getString(R.string.business_request_bank_iban_label, pIbanNum)
+                    val copyPIbanAction = View.OnClickListener {
+                        DeepLinkHelper.copyToClipboard(this, pIbanNum, "IBAN")
+                        Toast.makeText(this, R.string.iban_copied, Toast.LENGTH_SHORT).show()
+                    }
+                    btnPCopyIban?.setOnClickListener(copyPIbanAction)
+                    layoutPIban?.setOnClickListener(copyPIbanAction)
+                } else {
+                    layoutPIban?.isVisible = false
+                }
+
+                // Pending Account Number
+                val layoutPAcc = findViewById<View>(R.id.layoutPendingAccountNumber)
+                val tvPAcc = findViewById<TextView>(R.id.tvPendingAccountNumber)
+                val btnPCopyAcc = findViewById<View>(R.id.btnCopyPendingAccountNumber)
+                val pAccNum = state.pricing.accountNumber.trim()
+                if (pAccNum.isNotBlank()) {
+                    layoutPAcc?.isVisible = true
+                    tvPAcc?.text = getString(R.string.business_request_bank_account_number_label, PersianUtils.toPersianDigits(pAccNum))
+                    val copyPAccAction = View.OnClickListener {
+                        DeepLinkHelper.copyToClipboard(this, pAccNum, "Account Number")
+                        Toast.makeText(this, R.string.account_number_copied, Toast.LENGTH_SHORT).show()
+                    }
+                    btnPCopyAcc?.setOnClickListener(copyPAccAction)
+                    layoutPAcc?.setOnClickListener(copyPAccAction)
+                } else {
+                    layoutPAcc?.isVisible = false
+                }
+
                 findViewById<TextView>(R.id.tvPendingInstructions)?.text = state.pricing.paymentInstructions
 
                 // Receipt info & status
@@ -441,8 +503,67 @@ class BusinessUpgradeActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvLiveTotalFee)?.text =
             getString(R.string.business_request_pricing_total, formatPrice(totalFee))
 
-        findViewById<TextView>(R.id.tvLiveBankInfo)?.text =
-            getString(R.string.business_request_bank_card_label, pricing.cardNumber) + " (" + pricing.accountHolder + ")"
+        // Bank details in form
+        val tvHolder = findViewById<TextView>(R.id.tvLiveAccountHolder)
+        val bankParts = mutableListOf<String>()
+        if (pricing.bankName.isNotBlank()) bankParts.add(pricing.bankName)
+        if (pricing.accountHolder.isNotBlank()) bankParts.add("به نام ${pricing.accountHolder}")
+        tvHolder?.text = if (bankParts.isNotEmpty()) bankParts.joinToString(" - ") else ""
+        tvHolder?.isVisible = bankParts.isNotEmpty()
+
+        // Card number
+        val layoutCard = findViewById<View>(R.id.layoutLiveCardNumber)
+        val tvCard = findViewById<TextView>(R.id.tvLiveCardNumber)
+        val btnCopyCard = findViewById<View>(R.id.btnCopyLiveCard)
+        val cardNum = pricing.cardNumber.trim()
+        if (cardNum.isNotBlank()) {
+            layoutCard?.isVisible = true
+            tvCard?.text = getString(R.string.business_request_bank_card_label, PersianUtils.toPersianDigits(cardNum))
+            val copyCardAction = View.OnClickListener {
+                DeepLinkHelper.copyToClipboard(this, cardNum, "Card Number")
+                Toast.makeText(this, R.string.card_number_copied, Toast.LENGTH_SHORT).show()
+            }
+            btnCopyCard?.setOnClickListener(copyCardAction)
+            layoutCard?.setOnClickListener(copyCardAction)
+        } else {
+            layoutCard?.isVisible = false
+        }
+
+        // IBAN
+        val layoutIban = findViewById<View>(R.id.layoutLiveIban)
+        val tvIban = findViewById<TextView>(R.id.tvLiveIban)
+        val btnCopyIban = findViewById<View>(R.id.btnCopyLiveIban)
+        val ibanNum = pricing.iban.trim()
+        if (ibanNum.isNotBlank()) {
+            layoutIban?.isVisible = true
+            tvIban?.text = getString(R.string.business_request_bank_iban_label, ibanNum)
+            val copyIbanAction = View.OnClickListener {
+                DeepLinkHelper.copyToClipboard(this, ibanNum, "IBAN")
+                Toast.makeText(this, R.string.iban_copied, Toast.LENGTH_SHORT).show()
+            }
+            btnCopyIban?.setOnClickListener(copyIbanAction)
+            layoutIban?.setOnClickListener(copyIbanAction)
+        } else {
+            layoutIban?.isVisible = false
+        }
+
+        // Account number
+        val layoutAcc = findViewById<View>(R.id.layoutLiveAccountNumber)
+        val tvAcc = findViewById<TextView>(R.id.tvLiveAccountNumber)
+        val btnCopyAcc = findViewById<View>(R.id.btnCopyLiveAccountNumber)
+        val accNum = pricing.accountNumber.trim()
+        if (accNum.isNotBlank()) {
+            layoutAcc?.isVisible = true
+            tvAcc?.text = getString(R.string.business_request_bank_account_number_label, PersianUtils.toPersianDigits(accNum))
+            val copyAccAction = View.OnClickListener {
+                DeepLinkHelper.copyToClipboard(this, accNum, "Account Number")
+                Toast.makeText(this, R.string.account_number_copied, Toast.LENGTH_SHORT).show()
+            }
+            btnCopyAcc?.setOnClickListener(copyAccAction)
+            layoutAcc?.setOnClickListener(copyAccAction)
+        } else {
+            layoutAcc?.isVisible = false
+        }
     }
 
     private fun addExtraBranchField(initialName: String = "", initialAddress: String = "") {

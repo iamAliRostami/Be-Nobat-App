@@ -61,7 +61,14 @@
                     <details class="sidebar-group" open>
                     <summary>مدیریت کسب‌وکار</summary>
                     <div>
-                        <NavLink href="/admin/business" Match="NavLinkMatch.All" title="مشخصات کسب‌وکار" aria-label="مشخصات کسب‌وکار"><i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg></i> <span class="sidebar-label">مشخصات کسب‌وکار</span></NavLink>
+                        <NavLink href="/admin/business" Match="NavLinkMatch.All" title="مشخصات کسب‌وکار" aria-label="مشخصات کسب‌وکار">
+                            <i><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg></i>
+                            <span class="sidebar-label">مشخصات کسب‌وکار</span>
+                            @if (businessPlanDaysLeft is not null)
+                            {
+                                <b class="sidebar-badge-count @(businessPlanDaysLeft <= 0 ? "urgent" : "warning")" title="@businessPlanWarningText">!</b>
+                            }
+                        </NavLink>
                         <NavLink href="/businesses" title="خدمات" aria-label="خدمات"><i>◇</i> <span class="sidebar-label">خدمات</span></NavLink>
                         <NavLink href="/admin/branches" title="شعب و منابع" aria-label="شعب و منابع"><i>⌖</i> <span class="sidebar-label">شعب و منابع</span></NavLink>
                         <NavLink href="/admin/availability" title="زمان‌های خالی" aria-label="زمان‌های خالی"><i>◷</i> <span class="sidebar-label">زمان‌های خالی</span></NavLink>
@@ -120,11 +127,26 @@
                 </Authorized>
             </AuthorizeView>
         </nav>
-        <div class="sidebar-footer">
+        <div class="sidebar-footer" style="display:flex; flex-direction:column; gap:8px;">
             <AuthorizeView>
                 <Authorized>
-                    <UserAvatarBadge User="context.User" />
-                    <div><a class="sidebar-profile-name" href="/account/profile"><b data-i18n-skip>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b></a><small>@RoleLabel(context.User)</small></div>
+                    <div style="display:flex; align-items:center; gap:8px; width:100%;">
+                        <UserAvatarBadge User="context.User" />
+                        <div style="flex:1; min-width:0;">
+                            <a class="sidebar-profile-name" href="/account/profile"><b data-i18n-skip>@(context.User.FindFirst("DisplayName")?.Value ?? context.User.Identity?.Name)</b></a>
+                            <small>@RoleLabel(context.User)</small>
+                        </div>
+                    </div>
+                    @if (businessPlanDaysLeft is not null)
+                    {
+                        <div class="sidebar-plan-notice" style="padding:6px 10px; border-radius:8px; font-size:11px; line-height:1.4; background:@(businessPlanDaysLeft <= 0 ? "#fee2e2" : "#fef3c7"); color:@(businessPlanDaysLeft <= 0 ? "#991b1b" : "#92400e"); border:1px solid @(businessPlanDaysLeft <= 0 ? "#fca5a5" : "#fde68a");">
+                            <div style="font-weight:700; display:flex; align-items:center; gap:4px;">
+                                <span>⚠️</span>
+                                <span>@(businessPlanDaysLeft <= 0 ? "پلن کسب‌وکار منقضی شده" : $"پایان پلن: {businessPlanDaysLeft} روز مانده")</span>
+                            </div>
+                            <a href="/admin/business" style="color:inherit; text-decoration:underline; font-weight:700; display:inline-block; margin-top:3px;">تمدید اشتراک</a>
+                        </div>
+                    }
                 </Authorized>
             </AuthorizeView>
         </div>
@@ -308,6 +330,8 @@ html[data-theme="dark"][data-sidebar-collapsed="true"] .sidebar-badge-count {
     private int unreadContactMessagesCount = 0;
     private int unreadBroadcastsCount = 0;
     private string broadcastBadgeClass = "info";
+    private int? businessPlanDaysLeft;
+    private string? businessPlanWarningText;
 
     protected override async Task OnInitializedAsync()
     {
@@ -368,6 +392,24 @@ html[data-theme="dark"][data-sidebar-collapsed="true"] .sidebar-badge-count {
             // پیام‌های اعلانات سامانه خوانده‌نشده برای این کاربر
             if (userId.HasValue)
             {
+                var myBusiness = await db.BranchMemberships
+                    .AsNoTracking()
+                    .Where(m => m.UserId == userId.Value && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager))
+                    .Select(m => m.Branch.Business)
+                    .FirstOrDefaultAsync();
+
+                if (myBusiness is not null && myBusiness.PlanExpiresAt.HasValue)
+                {
+                    var days = (int)Math.Ceiling((myBusiness.PlanExpiresAt.Value - DateTimeOffset.UtcNow).TotalDays);
+                    if (days <= 7)
+                    {
+                        businessPlanDaysLeft = days;
+                        businessPlanWarningText = days <= 0
+                            ? "اعتبار پلن کسب‌وکار منقضی شده است"
+                            : $"{days} روز تا پایان اعتبار پلن باقی مانده است";
+                    }
+                }
+
                 var targetUid = userId.Value;
                 var eligibleMessages = await db.AdminBroadcastMessages
                     .AsNoTracking()

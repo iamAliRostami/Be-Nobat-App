@@ -45,10 +45,42 @@
                         {
                             <em class="status" style="background:#fef3c7; color:#b45309; border:1px solid #fcd34d;">در انتظار تأیید مدیر کل</em>
                         }
-                        <em class="status @(branch.DeletedAt is null ? "confirmed" : "cancelled")">@(branch.DeletedAt is null ? "فعال" : "غیرفعال")</em>
+                        @if (branch.Business.IsPlanExpired)
+                        {
+                            <em class="status cancelled" style="background:#fee2e2; color:#991b1b;">غیرفعال (پایان پلن کسب‌وکار)</em>
+                        }
+                        else if (branch.DeletedAt is not null)
+                        {
+                            <em class="status cancelled">غیرفعال (پلن متوقف)</em>
+                        }
+                        else if (branch.IsPlanExpired)
+                        {
+                            <em class="status cancelled" style="background:#fee2e2; color:#991b1b;">پلن منقضی شده</em>
+                        }
+                        else
+                        {
+                            <em class="status confirmed">فعال</em>
+                        }
                     </div>
                 </div>
                 <dl>
+                    <div>
+                        <dt>اعتبار پلن شعبه</dt>
+                        <dd>
+                            @if (branch.PlanExpiresAt.HasValue)
+                            {
+                                <span>تا @LocalizedDate.Format(DateOnly.FromDateTime(branch.PlanExpiresAt.Value.DateTime), UiLocale.Language)</span>
+                                @if (branch.DeletedAt is not null)
+                                {
+                                    <small style="color:#d97706; font-size:11px; margin-right:4px;">(زمان متوقف شده)</small>
+                                }
+                            }
+                            else
+                            {
+                                <span>همگام با پلن کسب‌وکار</span>
+                            }
+                        </dd>
+                    </div>
                     <div><dt>ساعت کاری</dt><dd>@(branch.AvailabilityRules.Any(WeeklySchedule.IsWeeklyBranchRule) ? $"{WeeklySchedule.Read(branch).Select(x => x.DayOfWeek).Distinct().Count()} روز فعال، {WeeklySchedule.Read(branch).Count} بازه هفتگی" : $"{branch.OpenHour}:00 تا {branch.CloseHour}:00")</dd></div>
                     <div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div>
                     <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
@@ -86,6 +118,7 @@
                             <button type="button" class="action-success" @onclick="() => ApproveBranch(branch)">تأیید شعبه</button>
                         }
                     }
+                    <button type="button" class="action-info" @onclick="() => OpenReceiptModal(branch)">تمدید / پلن</button>
                     <button type="button" class="action-secondary" @onclick="() => EditBranch(branch)">ویرایش</button>
                     <button type="button" class="action-primary" @onclick="() => AddResource(branch)">+ منبع</button>
                     <button type="button" class="action-info" @onclick="() => OpenMembers(branch)">اعضا</button>
@@ -326,9 +359,61 @@
                 <button type="button" class="close-button" aria-label="بستن پنجره" title="بستن" @onclick="CloseReceiptModal">×</button>
             </div>
             <div class="modal-body">
+                <div style="margin-bottom:14px;">
+                    <div style="font-weight:700; font-size:13px; color:#334155; margin-bottom:8px;">انتخاب طول دوره پلن شعبه:</div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(105px, 1fr)); gap:8px;">
+                        <!-- ۱ ماهه -->
+                        <div class="branch-plan-pill @(SelectedBranchPlanDuration == "1Month" ? "active" : "") @(!IsPlanDurationAllowed(1) ? "disabled" : "")"
+                             @onclick='() => SelectBranchPlan("1Month")'>
+                            <b>۱ ماهه</b>
+                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("1Month"), UiLocale.Language) تومان</div>
+                        </div>
+
+                        <!-- ۳ ماهه -->
+                        <div class="branch-plan-pill @(SelectedBranchPlanDuration == "3Months" ? "active" : "") @(!IsPlanDurationAllowed(3) ? "disabled" : "")"
+                             @onclick='() => SelectBranchPlan("3Months")'>
+                            <b>۳ ماهه</b>
+                            @if ((PricingSettings?.DiscountPercent3Months ?? 0) > 0)
+                            {
+                                <span class="badge-mini">@PricingSettings!.DiscountPercent3Months٪</span>
+                            }
+                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("3Months"), UiLocale.Language) تومان</div>
+                        </div>
+
+                        <!-- ۶ ماهه -->
+                        <div class="branch-plan-pill @(SelectedBranchPlanDuration == "6Months" ? "active" : "") @(!IsPlanDurationAllowed(6) ? "disabled" : "")"
+                             @onclick='() => SelectBranchPlan("6Months")'>
+                            <b>۶ ماهه</b>
+                            @if ((PricingSettings?.DiscountPercent6Months ?? 0) > 0)
+                            {
+                                <span class="badge-mini">@PricingSettings!.DiscountPercent6Months٪</span>
+                            }
+                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("6Months"), UiLocale.Language) تومان</div>
+                        </div>
+
+                        <!-- ۱۲ ماهه -->
+                        <div class="branch-plan-pill @(SelectedBranchPlanDuration == "12Months" ? "active" : "") @(!IsPlanDurationAllowed(12) ? "disabled" : "")"
+                             @onclick='() => SelectBranchPlan("12Months")'>
+                            <b>۱ ساله</b>
+                            @if ((PricingSettings?.DiscountPercent12Months ?? 0) > 0)
+                            {
+                                <span class="badge-mini">@PricingSettings!.DiscountPercent12Months٪</span>
+                            }
+                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("12Months"), UiLocale.Language) تومان</div>
+                        </div>
+                    </div>
+                    @if (ReceiptBranch.Business?.PlanExpiresAt.HasValue == true)
+                    {
+                        <div style="font-size:11px; color:#64748b; margin-top:6px;">
+                            پایان پلن کسب‌وکار: <b>@LocalizedDate.Format(DateOnly.FromDateTime(ReceiptBranch.Business.PlanExpiresAt.Value.DateTime), UiLocale.Language)</b>
+                            (امکان تمدید شعبه حداکثر تا ۱ ماه پس از پایان پلن کسب‌وکار وجود دارد)
+                        </div>
+                    }
+                </div>
+
                 <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; margin-bottom:14px;">
                     <div style="font-weight:700; color:#166534; font-size:15px; margin-bottom:6px;">
-                        مبلغ قابل واریز: @((ReceiptBranch.Fee ?? PricingSettings?.ExtraBranchPrice ?? 200_000).ToString("N0")) تومان
+                        مبلغ قابل واریز: @(CalculateBranchFee(SelectedBranchPlanDuration).ToString("N0")) تومان
                     </div>
                     <div style="font-size:13px; color:#14532d; line-height:1.7;">
                         <div><strong>شماره کارت:</strong> <span dir="ltr" style="font-family:monospace; font-size:14px;">@(PricingSettings?.CardNumber)</span></div>
@@ -670,6 +755,46 @@
     private bool ReceiptSubmitting;
     private Branch? ViewingReceiptBranch;
 
+    private string SelectedBranchPlanDuration = "1Month";
+
+    private bool IsPlanDurationAllowed(int months)
+    {
+        if (ReceiptBranch is null) return true;
+        var biz = ReceiptBranch.Business;
+        if (biz is null || !biz.PlanExpiresAt.HasValue) return true;
+
+        var maxAllowed = biz.PlanExpiresAt.Value.AddDays(30);
+        var baseDate = ReceiptBranch.PlanExpiresAt.HasValue && ReceiptBranch.PlanExpiresAt.Value > DateTimeOffset.UtcNow
+            ? ReceiptBranch.PlanExpiresAt.Value
+            : DateTimeOffset.UtcNow;
+        var targetDate = baseDate.AddMonths(months);
+        return targetDate <= maxAllowed;
+    }
+
+    private void SelectBranchPlan(string duration)
+    {
+        var months = duration switch { "3Months" => 3, "6Months" => 6, "12Months" => 12, _ => 1 };
+        if (!IsPlanDurationAllowed(months))
+        {
+            ReceiptError = "طول پلن شعبه نمی‌تواند بیش از یک ماه از پایان پلن کسب‌وکار فراتر رود. ابتدا باید پلن کسب‌وکار را ارتقا یا تمدید نمایید.";
+            return;
+        }
+        ReceiptError = null;
+        SelectedBranchPlanDuration = duration;
+    }
+
+    private decimal CalculateBranchFee(string duration)
+    {
+        var baseMonthly = PricingSettings?.ExtraBranchPrice ?? 200_000m;
+        return duration switch
+        {
+            "3Months" => (baseMonthly * 3) * (100 - (PricingSettings?.DiscountPercent3Months ?? 10)) / 100m,
+            "6Months" => (baseMonthly * 6) * (100 - (PricingSettings?.DiscountPercent6Months ?? 20)) / 100m,
+            "12Months" => (baseMonthly * 12) * (100 - (PricingSettings?.DiscountPercent12Months ?? 30)) / 100m,
+            _ => baseMonthly
+        };
+    }
+
     private async Task OpenReceiptModal(Branch branch)
     {
         PricingSettings = await Db.GetPlatformPricingAsync();
@@ -682,6 +807,7 @@
             : null;
         ReceiptError = null;
         ReceiptSubmitting = false;
+        SelectedBranchPlanDuration = "1Month";
     }
 
     private void ViewReceipt(Branch branch)
@@ -735,7 +861,15 @@
         ReceiptError = null;
         try
         {
-            var branch = await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == ReceiptBranch.Id);
+            var months = SelectedBranchPlanDuration switch { "3Months" => 3, "6Months" => 6, "12Months" => 12, _ => 1 };
+            if (!IsPlanDurationAllowed(months))
+            {
+                ReceiptError = "طول پلن شعبه نمی‌تواند بیش از یک ماه از پایان پلن کسب‌وکار فراتر رود.";
+                ReceiptSubmitting = false;
+                return;
+            }
+
+            var branch = await Db.Branches.IgnoreQueryFilters().Include(b => b.Business).FirstOrDefaultAsync(b => b.Id == ReceiptBranch.Id);
             if (branch is null)
             {
                 ReceiptError = "شعبه یافت نشد.";
@@ -743,11 +877,37 @@
                 return;
             }
 
+            branch.Fee = CalculateBranchFee(SelectedBranchPlanDuration);
+            branch.PlanType = SelectedBranchPlanDuration switch
+            {
+                "3Months" => "Quarterly",
+                "6Months" => "SemiAnnual",
+                "12Months" => "Annual",
+                _ => "Monthly"
+            };
+
             branch.ReceiptImageData = ReceiptImageData;
             branch.ReceiptImageContentType = ReceiptImageContentType ?? "image/jpeg";
             branch.ReceiptTrackingCode = ReceiptTrackingCode?.Trim();
             branch.ReceiptUploadedAt = DateTimeOffset.UtcNow;
             branch.UpdatedAt = DateTimeOffset.UtcNow;
+
+            if (IsPlatformAdmin)
+            {
+                var now = DateTimeOffset.UtcNow;
+                var baseDate = branch.PlanExpiresAt.HasValue && branch.PlanExpiresAt.Value > now
+                    ? branch.PlanExpiresAt.Value
+                    : now;
+                branch.PlanStartedAt ??= now;
+                branch.PlanExpiresAt = baseDate.AddMonths(months);
+                if (branch.Business?.PlanExpiresAt.HasValue == true && branch.PlanExpiresAt.Value > branch.Business.PlanExpiresAt.Value)
+                {
+                    branch.PlanExpiresAt = branch.Business.PlanExpiresAt.Value;
+                }
+                branch.IsApproved = true;
+                branch.IsActive = true;
+            }
+
             await Db.SaveChangesAsync();
 
             Message = "تصویر فیش واریز با موفقیت برای شعبه ثبت شد.";
@@ -767,31 +927,86 @@
     private async Task ApproveBranch(Branch branch)
     {
         if (!IsPlatformAdmin) return;
-        var item = await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == branch.Id);
+        var item = await Db.Branches.IgnoreQueryFilters().Include(b => b.Business).FirstOrDefaultAsync(x => x.Id == branch.Id);
         if (item is null) return;
         item.IsApproved = true;
-        item.UpdatedAt = DateTimeOffset.UtcNow;
+        item.IsActive = true;
+        var now = DateTimeOffset.UtcNow;
+        item.PlanStartedAt = now;
+        var months = item.PlanType switch
+        {
+            "Quarterly" => 3,
+            "SemiAnnual" => 6,
+            "Annual" => 12,
+            _ => 1
+        };
+        item.PlanExpiresAt = now.AddMonths(months);
+        if (item.Business?.PlanExpiresAt.HasValue == true && item.PlanExpiresAt.Value > item.Business.PlanExpiresAt.Value)
+        {
+            item.PlanExpiresAt = item.Business.PlanExpiresAt.Value;
+        }
+        item.UpdatedAt = now;
         await Db.SaveChangesAsync();
-        Message = $"شعبه «{item.Name}» با موفقیت تأیید شد.";
+        Message = $"شعبه «{item.Name}» با موفقیت تأیید و پلن آن فعال شد.";
         await Load();
     }
 
     private async Task ToggleBranch(Branch branch)
     {
         if (!await Access.CanManageBranchAsync(branch.Id)) { Error = "اجازه‌ی این کار را ندارید."; return; }
-        var item = await Db.Branches.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == branch.Id);
+        var item = await Db.Branches.IgnoreQueryFilters().Include(b => b.Business).FirstOrDefaultAsync(x => x.Id == branch.Id);
         if (item is null) return;
         await Db.Entry(item).ReloadAsync();
-        var deactivate = branch.DeletedAt is null;
-        if (deactivate && item.DeletedAt is null && await Db.Appointments.AnyAsync(a => a.BranchId == branch.Id &&
-                (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
+        var deactivate = item.DeletedAt is null;
+        if (deactivate)
         {
-            Message = null; Error = "این شعبه نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌ها را لغو یا تکمیل کنید.";
-            return;
+            if (await Db.Appointments.AnyAsync(a => a.BranchId == branch.Id &&
+                    (a.Status == AppointmentStatus.Pending || a.Status == AppointmentStatus.Confirmed) && a.EndsAt >= DateTimeOffset.UtcNow))
+            {
+                Message = null; Error = "این شعبه نوبت فعال پیش‌رو دارد؛ ابتدا نوبت‌ها را لغو یا تکمیل کنید.";
+                return;
+            }
+            item.DeletedAt = DateTimeOffset.UtcNow;
+            item.IsActive = false;
+            item.PausedAt = DateTimeOffset.UtcNow;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            await Db.SaveChangesAsync();
+            Message = $"شعبه «{item.Name}» غیرفعال شد و مدت اعتبار باقیمانده پلن آن متوقف گردید.";
         }
-        item.UpdatedAt = DateTimeOffset.UtcNow;
-        item.DeletedAt = deactivate ? item.DeletedAt ?? DateTimeOffset.UtcNow : null;
-        await Db.SaveChangesAsync();
+        else
+        {
+            var business = item.Business ?? await Db.Businesses.FirstOrDefaultAsync(b => b.Id == item.BusinessId);
+            if (business != null && business.IsPlanExpired)
+            {
+                Error = "پلن کسب‌وکار منقضی شده است. تا زمان تمدید پلن کسب‌وکار، امکان فعال‌سازی مجدد شعبه وجود ندارد.";
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            if (item.PausedAt.HasValue)
+            {
+                var paused = now - item.PausedAt.Value;
+                if (paused > TimeSpan.Zero && item.PlanExpiresAt.HasValue && item.PlanExpiresAt.Value > item.PausedAt.Value)
+                {
+                    item.PlanExpiresAt = item.PlanExpiresAt.Value + paused;
+                }
+                item.PausedAt = null;
+            }
+
+            if (business != null && business.PlanExpiresAt.HasValue && item.PlanExpiresAt.HasValue)
+            {
+                if (item.PlanExpiresAt.Value > business.PlanExpiresAt.Value)
+                {
+                    item.PlanExpiresAt = business.PlanExpiresAt.Value;
+                }
+            }
+
+            item.DeletedAt = null;
+            item.IsActive = true;
+            item.UpdatedAt = now;
+            await Db.SaveChangesAsync();
+            Message = $"شعبه «{item.Name}» با موفقیت فعال شد و زمان توقف به اعتبار پلن افزوده شد.";
+        }
         await Load();
     }
 
@@ -1047,3 +1262,38 @@
         public string Role { get; set; } = AppRoles.Staff;
     }
 }
+
+<style>
+.branch-plan-pill {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    background: #ffffff;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+.branch-plan-pill:hover:not(.disabled) {
+    border-color: #94a3b8;
+}
+.branch-plan-pill.active {
+    border-color: var(--primary, #146B5D);
+    background: #f0fdfa;
+    box-shadow: 0 0 0 1px var(--primary, #146B5D);
+}
+.branch-plan-pill.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #f1f5f9;
+}
+.badge-mini {
+    display: inline-block;
+    font-size: 10px;
+    background: #fef3c7;
+    color: #b45309;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+</style>

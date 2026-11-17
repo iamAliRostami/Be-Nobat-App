@@ -190,12 +190,45 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">تعرفه ثبت کسب‌وکار (تومان)</label>
+                        <label class="form-label">تعرفه پایه ماهانه کسب‌وکار (تومان / ماه)</label>
                         <input type="number" step="10000" class="form-control" dir="ltr" @bind="settings.BaseBusinessPrice" />
+                        <small class="form-hint" style="color:var(--text-secondary,#64748b);font-size:0.8rem;margin-top:4px;display:block;">تعرفه ۱ ماه برای کسب‌وکار و شعبه اصلی</small>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">تعرفه هر شعبه اضافی (تومان)</label>
+                        <label class="form-label">تعرفه ماهانه هر شعبه اضافی (تومان / ماه)</label>
                         <input type="number" step="10000" class="form-control" dir="ltr" @bind="settings.ExtraBranchPrice" />
+                        <small class="form-hint" style="color:var(--text-secondary,#64748b);font-size:0.8rem;margin-top:4px;display:block;">تعرفه ۱ ماه به ازای هر شعبه اضافی</small>
+                    </div>
+                </div>
+
+                <div class="section-subtitle">
+                    <span>🏷️</span>
+                    <span>درصد تخفیف دوره‌های اشتراک</span>
+                </div>
+
+                <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
+                    <div class="form-group">
+                        <label class="form-label">تخفیف ۳ ماهه (٪)</label>
+                        <input type="number" min="0" max="100" class="form-control" dir="ltr" @bind="settings.DiscountPercent3Months" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">تخفیف ۶ ماهه (٪)</label>
+                        <input type="number" min="0" max="100" class="form-control" dir="ltr" @bind="settings.DiscountPercent6Months" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">تخفیف ۱ ساله (٪)</label>
+                        <input type="number" min="0" max="100" class="form-control" dir="ltr" @bind="settings.DiscountPercent12Months" />
+                    </div>
+                </div>
+
+                <!-- پیش‌نمایش زنده قیمت پلن‌ها -->
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:0.85rem; margin-top:0.75rem; font-size:0.84rem;">
+                    <span style="font-weight:700; color:#334155; display:block; margin-bottom:0.4rem;">💡 پیش‌نمایش هزینه پلن‌ها برای شعبه اول:</span>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; color:#475569;">
+                        <div>• ۱ هفته تست رایگان: <b>۰ تومان</b></div>
+                        <div>• ۳ ماهه: <b>@((settings.BaseBusinessPrice * 3 * (100 - settings.DiscountPercent3Months) / 100).ToString("N0")) تومان</b> (@settings.DiscountPercent3Months% تخفیف)</div>
+                        <div>• ۶ ماهه: <b>@((settings.BaseBusinessPrice * 6 * (100 - settings.DiscountPercent6Months) / 100).ToString("N0")) تومان</b> (@settings.DiscountPercent6Months% تخفیف)</div>
+                        <div>• ۱ ساله: <b>@((settings.BaseBusinessPrice * 12 * (100 - settings.DiscountPercent12Months) / 100).ToString("N0")) تومان</b> (@settings.DiscountPercent12Months% تخفیف)</div>
                     </div>
                 </div>
 
@@ -215,8 +248,59 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">کانال ایتا</label>
+                    <label class="form-label">کانال یا آیدی ایتا</label>
                     <input class="form-control" dir="ltr" @bind="settings.Eitaa" placeholder="benobat_support" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">کانال یا آیدی بله</label>
+                    <input class="form-control" dir="ltr" @bind="settings.Bale" placeholder="benobat_support" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">کانال یا صفحه روبیکا</label>
+                    <input class="form-control" dir="ltr" @bind="settings.Rubika" placeholder="benobat_official" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">حساب ایکس / توییتر</label>
+                    <input class="form-control" dir="ltr" @bind="settings.Twitter" placeholder="benobat_ir" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">شماره یا لینک واتساپ</label>
+                    <input class="form-control" dir="ltr" @bind="settings.WhatsApp" placeholder="09134588221 یا 989134588221" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">صفحه لینکدین</label>
+                    <input class="form-control" dir="ltr" @bind="settings.LinkedIn" placeholder="benobat یا https://linkedin.com/company/benobat" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">کانال آپارات</label>
+                    <input class="form-control" dir="ltr" @bind="settings.Aparat" placeholder="benobat" />
+                </div>
+
+                <div class="section-subtitle">
+                    <span>📱</span>
+                    <span>دانلود اپلیکیشن و کافه بازار</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">لینک صفحه کافه بازار</label>
+                    <input class="form-control" dir="ltr" @bind="settings.CafeBazaarUrl" placeholder="https://cafebazaar.ir/app/com.leon.be_nobat" />
+                    <small class="form-hint" style="color:var(--text-secondary,#64748b);font-size:0.8rem;margin-top:4px;display:block;">
+                        این لینک در فوتر سایت، صفحه دانلود اپلیکیشن و دکمه‌های ارجاع به کافه بازار استفاده می‌شود.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">لینک مستقیم خارجی فایل APK (اختیاری)</label>
+                    <input class="form-control" dir="ltr" @bind="settings.DirectApkUrl" placeholder="https://dl.benobat.ir/app/latest.apk" />
+                    <small class="form-hint" style="color:var(--text-secondary,#64748b);font-size:0.8rem;margin-top:4px;display:block;">
+                        در صورت خالی بودن، لینک دانلود از سرور داخلی سامانه (/api/v1/app/download-latest) استفاده خواهد شد.
+                    </small>
                 </div>
             </section>
         </div>
@@ -446,10 +530,21 @@ textarea.form-control {
 
             current.BaseBusinessPrice = settings.BaseBusinessPrice;
             current.ExtraBranchPrice = settings.ExtraBranchPrice;
+            current.DiscountPercent3Months = settings.DiscountPercent3Months;
+            current.DiscountPercent6Months = settings.DiscountPercent6Months;
+            current.DiscountPercent12Months = settings.DiscountPercent12Months;
 
             current.Telegram = settings.Telegram?.Trim() ?? "";
             current.Instagram = settings.Instagram?.Trim() ?? "";
             current.Eitaa = settings.Eitaa?.Trim() ?? "";
+            current.Twitter = settings.Twitter?.Trim() ?? "";
+            current.Bale = settings.Bale?.Trim() ?? "";
+            current.Rubika = settings.Rubika?.Trim() ?? "";
+            current.WhatsApp = settings.WhatsApp?.Trim() ?? "";
+            current.LinkedIn = settings.LinkedIn?.Trim() ?? "";
+            current.Aparat = settings.Aparat?.Trim() ?? "";
+            current.CafeBazaarUrl = settings.CafeBazaarUrl?.Trim() ?? "";
+            current.DirectApkUrl = settings.DirectApkUrl?.Trim() ?? "";
 
             current.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
