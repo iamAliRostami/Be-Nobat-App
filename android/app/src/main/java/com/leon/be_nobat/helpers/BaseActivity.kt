@@ -94,6 +94,14 @@ abstract class BaseActivity : AppCompatActivity() {
 
         setupViews()
         observeViewModel()
+
+        // بررسی خودکار به‌روزرسانی اپلیکیشن
+        val apiClient: com.leon.be_nobat.data.remote.BeNobatApiClient? = runCatching {
+            org.koin.java.KoinJavaComponent.get<com.leon.be_nobat.data.remote.BeNobatApiClient>(com.leon.be_nobat.data.remote.BeNobatApiClient::class.java)
+        }.getOrNull()
+        if (apiClient != null) {
+            AppUpdateManager.checkForUpdate(this, apiClient, lifecycleScope)
+        }
     }
 
     protected var currentAdminMenuItemId: Int? = null

@@ -838,6 +838,12 @@ class BeNobatApiClient(
                 }.ensureSuccess().body<T>()
             }
         }
+
+    /** بررسی نسخه اپلیکیشن و دریافت اطلاعات آخرین به‌روزرسانی */
+    suspend fun checkAppUpdate(versionCode: Int): Result<com.leon.be_nobat.domain.model.AppUpdateInfo> =
+        get("/app/check-update") {
+            parameter("versionCode", versionCode)
+        }
 }
 
 /** Lazy access to the JSON instance used by the error parser. */

@@ -562,6 +562,17 @@ class AdminCalendarActivity : BaseActivity() {
         val etNote = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etWalkInNote)
         val tvError = dialogView.findViewById<android.widget.TextView>(R.id.tvWalkInError)
 
+        listOf(etBranch, etService, etResource, etDate, etTime).forEach { et ->
+            et.isFocusable = false
+            et.isFocusableInTouchMode = false
+            et.isClickable = true
+            et.isCursorVisible = false
+            et.keyListener = null
+            et.isSingleLine = true
+            et.maxLines = 1
+            et.ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+
         var selectedDateIso = viewModel.state.value.dateFilter.ifBlank { JalaliDateHelper.getTodayIso() }
         var selectedTime = defaultTime ?: "10:00"
 
@@ -580,7 +591,8 @@ class AdminCalendarActivity : BaseActivity() {
             selectedBranch = b
             etBranch.setText(b?.let {
                 val bName = it.businessName
-                if (!bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
+                val hasMultipleBusinesses = branches.mapNotNull { br -> br.businessName }.distinct().size > 1
+                if (hasMultipleBusinesses && !bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
                     "$bName - ${it.name}"
                 } else {
                     it.name.ifBlank { bName ?: "" }
@@ -614,9 +626,10 @@ class AdminCalendarActivity : BaseActivity() {
 
         etBranch.setOnClickListener {
             if (branches.isEmpty()) return@setOnClickListener
+            val hasMultipleBusinesses = branches.mapNotNull { br -> br.businessName }.distinct().size > 1
             val names = branches.map {
                 val bName = it.businessName
-                if (!bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
+                if (hasMultipleBusinesses && !bName.isNullOrBlank() && it.name.isNotBlank() && !it.name.contains(bName)) {
                     "$bName - ${it.name}"
                 } else {
                     it.name.ifBlank { bName ?: "" }

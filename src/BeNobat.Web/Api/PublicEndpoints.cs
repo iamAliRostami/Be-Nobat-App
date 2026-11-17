@@ -153,6 +153,107 @@ public static class PublicEndpoints
             return Results.Ok(new { message = "پیام شما با موفقیت ثبت شد و به زودی بررسی خواهد شد.", id = msg.Id });
         }).AllowAnonymous();
 
+        root.MapGet("/app/check-update", async (int? versionCode, AppDbContext db, HttpContext http, CancellationToken ct) =>
+        {
+            var latestRelease = await db.AppReleases.AsNoTracking()
+                .Where(r => r.IsActive)
+                .OrderByDescending(r => r.VersionCode)
+                .FirstOrDefaultAsync(ct);
+
+            if (latestRelease is null)
+            {
+                return Results.Ok(new AppUpdateCheckDto(
+                    HasUpdate: false,
+                    IsForceUpdate: false,
+                    VersionCode: 0,
+                    VersionName: string.Empty,
+                    ReleaseNotes: string.Empty,
+                    DownloadUrl: string.Empty,
+                    BazaarPackageName: "com.leon.be_nobat",
+                    BazaarUrl: "bazaar://details?id=com.leon.be_nobat",
+                    FileSize: null
+                ));
+            }
+
+            var currentCode = versionCode ?? 0;
+            var hasUpdate = latestRelease.VersionCode > currentCode;
+
+            // اگر به‌روزرسانی اجباری باشد یا هر نسخه بین نسخه کاربر تا آخرین نسخه اجباری بوده باشد
+            var isForce = false;
+            if (hasUpdate)
+            {
+                isForce = await db.AppReleases.AsNoTracking()
+                    .Where(r => r.IsActive && r.VersionCode > currentCode && r.IsForceUpdate)
+                    .AnyAsync(ct);
+            }
+
+            var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
+            var downloadUrl = !string.IsNullOrWhiteSpace(latestRelease.ExternalDownloadUrl)
+                ? latestRelease.ExternalDownloadUrl
+                : $"{baseUrl}/api/v1/app/download-latest";
+
+            var pkgName = !string.IsNullOrWhiteSpace(latestRelease.BazaarPackageName)
+                ? latestRelease.BazaarPackageName
+                : "com.leon.be_nobat";
+
+            return Results.Ok(new AppUpdateCheckDto(
+                HasUpdate: hasUpdate,
+                IsForceUpdate: isForce,
+                VersionCode: latestRelease.VersionCode,
+                VersionName: latestRelease.VersionName,
+                ReleaseNotes: latestRelease.ReleaseNotes,
+                DownloadUrl: downloadUrl,
+                BazaarPackageName: pkgName,
+                BazaarUrl: $"bazaar://details?id={pkgName}",
+                FileSize: latestRelease.ApkFileSize
+            ));
+        }).AllowAnonymous();
+
+        root.MapGet("/app/download-latest", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var latestRelease = await db.AppReleases.AsNoTracking()
+                .Where(r => r.IsActive && r.ApkData != null)
+                .OrderByDescending(r => r.VersionCode)
+                .FirstOrDefaultAsync(ct);
+
+            if (latestRelease is null || latestRelease.ApkData is null || latestRelease.ApkData.Length == 0)
+            {
+                return Results.NotFound(new { error = "فایل نصبی موجود نیست." });
+            }
+
+            var fileName = !string.IsNullOrWhiteSpace(latestRelease.ApkFileName)
+                ? latestRelease.ApkFileName
+                : $"benobat-v{latestRelease.VersionName}.apk";
+
+            return Results.File(
+                latestRelease.ApkData,
+                contentType: "application/vnd.android.package-archive",
+                fileDownloadName: fileName
+            );
+        }).AllowAnonymous();
+
+        root.MapGet("/app/releases/{id:guid}/download", async (Guid id, AppDbContext db, CancellationToken ct) =>
+        {
+            var release = await db.AppReleases.AsNoTracking()
+                .Where(r => r.Id == id && r.ApkData != null)
+                .FirstOrDefaultAsync(ct);
+
+            if (release is null || release.ApkData is null || release.ApkData.Length == 0)
+            {
+                return Results.NotFound(new { error = "فایل نصبی مورد نظر موجود نیست." });
+            }
+
+            var fileName = !string.IsNullOrWhiteSpace(release.ApkFileName)
+                ? release.ApkFileName
+                : $"benobat-v{release.VersionName}.apk";
+
+            return Results.File(
+                release.ApkData,
+                contentType: "application/vnd.android.package-archive",
+                fileDownloadName: fileName
+            );
+        }).AllowAnonymous();
+
         return root;
     }
     private static IQueryable<Review> PublicReviews(AppDbContext db, Guid businessId) => db.Reviews.AsNoTracking().Where(r => r.BusinessId == businessId && r.Status == ReviewStatus.Published && r.Business.DeletedAt == null && (r.BranchId == null || r.Branch!.DeletedAt == null));
@@ -179,3 +280,14 @@ public sealed record PlatformContactInfoDto(
     string? AccountHolder = null
 );
 public sealed record BusinessDetailDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, IReadOnlyList<BranchDto> Branches, IReadOnlyList<ServiceDto> Services, IReadOnlyList<PublicReviewDto> Reviews, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
+public sealed record AppUpdateCheckDto(
+    bool HasUpdate,
+    bool IsForceUpdate,
+    int VersionCode,
+    string VersionName,
+    string ReleaseNotes,
+    string DownloadUrl,
+    string BazaarPackageName,
+    string BazaarUrl,
+    long? FileSize
+);

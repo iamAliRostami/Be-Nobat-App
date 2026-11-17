@@ -17,6 +17,7 @@ services:
     build: .
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
       DataProtection__KeysPath: /keys
     volumes:

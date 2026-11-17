@@ -470,3 +470,18 @@ public sealed class PasswordResetRequest : Entity
 
     public AppUser? User { get; set; }
 }
+
+public sealed class AppRelease : Entity
+{
+    public required string VersionName { get; set; }
+    public required int VersionCode { get; set; }
+    public string ReleaseNotes { get; set; } = string.Empty;
+    public bool IsForceUpdate { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string? ApkFileName { get; set; }
+    public long? ApkFileSize { get; set; }
+    public string? ApkContentType { get; set; }
+    public byte[]? ApkData { get; set; }
+    public string? ExternalDownloadUrl { get; set; }
+    public string? BazaarPackageName { get; set; } = "com.leon.be_nobat";
+}

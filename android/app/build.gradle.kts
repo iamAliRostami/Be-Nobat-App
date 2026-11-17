@@ -48,10 +48,6 @@ android {
 
     buildTypes {
         debug {
-            // Local development URL. Priority:
-            // 1. -PbackendUrl=... command-line argument
-            // 2. backendUrl in local.properties
-            // 3. Default: http://127.0.0.1:8080 (auto-mapped to 10.0.2.2 on emulator by BeNobatApiConfig)
             val debugBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
                 ?: localProperties.getProperty("backendUrl")?.trimEnd('/')
                 ?: "http://127.0.0.1:8080"
@@ -61,10 +57,6 @@ android {
             isDebuggable = true
         }
         release {
-            // Production URL: https://benobat.ir. Priority:
-            // 1. -PbackendUrl=... command-line argument
-            // 2. backendUrlRelease in local.properties
-            // 3. Default: https://benobat.ir
             val releaseBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
                 ?: localProperties.getProperty("backendUrlRelease")?.trimEnd('/')
                 ?: "https://benobat.ir"
@@ -78,6 +70,36 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        create("releaseHuggingFace") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            val url = (project.findProperty("backendUrlHuggingFace") as? String)?.trimEnd('/')
+                ?: localProperties.getProperty("backendUrlHuggingFace")?.trimEnd('/')
+                ?: "https://benobat.hf.space"
+
+            buildConfigField("String", "API_BASE_URL", "\"$url/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$url\"")
+        }
+        create("releaseLiara") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            val url = (project.findProperty("backendUrlLiara") as? String)?.trimEnd('/')
+                ?: localProperties.getProperty("backendUrlLiara")?.trimEnd('/')
+                ?: "https://benobat.liara.run"
+
+            buildConfigField("String", "API_BASE_URL", "\"$url/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$url\"")
+        }
+        create("releaseChabokan") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            val url = (project.findProperty("backendUrlChabokan") as? String)?.trimEnd('/')
+                ?: localProperties.getProperty("backendUrlChabokan")?.trimEnd('/')
+                ?: "https://benobat.chabokan.net"
+
+            buildConfigField("String", "API_BASE_URL", "\"$url/api/v1\"")
+            buildConfigField("String", "MEDIA_BASE_URL", "\"$url\"")
         }
     }
 

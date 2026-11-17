@@ -33,6 +33,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AdminBroadcastMessage> AdminBroadcastMessages => Set<AdminBroadcastMessage>();
     public DbSet<AdminMessageRead> AdminMessageReads => Set<AdminMessageRead>();
     public DbSet<PasswordResetRequest> PasswordResetRequests => Set<PasswordResetRequest>();
+    public DbSet<AppRelease> AppReleases => Set<AppRelease>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

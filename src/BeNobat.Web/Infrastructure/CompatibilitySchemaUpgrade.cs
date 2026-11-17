@@ -302,6 +302,17 @@ public static class CompatibilitySchemaUpgrade
                 CONSTRAINT "FK_PasswordResetRequests_AspNetUsers_UserId" FOREIGN KEY ("UserId") REFERENCES benobat."AspNetUsers" ("Id") ON DELETE SET NULL);
             CREATE INDEX IF NOT EXISTS "IX_PasswordResetRequests_Status" ON benobat."PasswordResetRequests" ("Status");
             CREATE INDEX IF NOT EXISTS "IX_PasswordResetRequests_CreatedAt" ON benobat."PasswordResetRequests" ("CreatedAt");
+
+            CREATE TABLE IF NOT EXISTS benobat."AppReleases" (
+                "Id" uuid PRIMARY KEY, "CreatedAt" timestamptz NOT NULL, "UpdatedAt" timestamptz NOT NULL,
+                "DeletedAt" timestamptz NULL, "VersionName" text NOT NULL, "VersionCode" integer NOT NULL,
+                "ReleaseNotes" text NOT NULL DEFAULT '', "IsForceUpdate" boolean NOT NULL DEFAULT false,
+                "IsActive" boolean NOT NULL DEFAULT true, "ApkFileName" text NULL,
+                "ApkFileSize" bigint NULL, "ApkContentType" text NULL, "ApkData" bytea NULL,
+                "ExternalDownloadUrl" text NULL, "BazaarPackageName" text NULL DEFAULT 'com.leon.be_nobat');
+            CREATE INDEX IF NOT EXISTS "IX_AppReleases_VersionCode" ON benobat."AppReleases" ("VersionCode");
+            CREATE INDEX IF NOT EXISTS "IX_AppReleases_IsActive" ON benobat."AppReleases" ("IsActive");
+
             DO $$ BEGIN
                 ALTER TABLE benobat."BranchServices" ADD CONSTRAINT "CK_BranchService_CancellationNotice" CHECK ("CancellationNoticeMinutes" BETWEEN 0 AND 129600);
             EXCEPTION WHEN duplicate_object THEN NULL; END $$;

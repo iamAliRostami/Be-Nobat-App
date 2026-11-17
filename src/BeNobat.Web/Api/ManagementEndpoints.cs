@@ -144,6 +144,10 @@ public static class ManagementEndpoints
         platform.MapGet("/announcements", ListAnnouncements);
         platform.MapPost("/announcements", CreateAnnouncement);
         platform.MapDelete("/announcements/{id:guid}", DeleteAnnouncement);
+        platform.MapGet("/releases", ListReleases);
+        platform.MapPost("/releases", CreateRelease);
+        platform.MapPut("/releases/{id:guid}", UpdateRelease);
+        platform.MapDelete("/releases/{id:guid}", DeleteRelease);
         return root;
     }
 
@@ -2340,6 +2344,157 @@ public static class ManagementEndpoints
         await db.SaveChangesAsync(ct);
         return Results.Ok(new { success = true });
     }
+
+    private static async Task<IResult> ListReleases(AppDbContext db, CancellationToken ct)
+    {
+        var items = await db.AppReleases.AsNoTracking()
+            .OrderByDescending(r => r.VersionCode)
+            .Select(r => new AppReleaseDto(
+                r.Id,
+                r.VersionName,
+                r.VersionCode,
+                r.ReleaseNotes,
+                r.IsForceUpdate,
+                r.IsActive,
+                r.ApkFileName,
+                r.ApkFileSize,
+                r.ExternalDownloadUrl,
+                r.BazaarPackageName,
+                r.CreatedAt,
+                r.ApkData != null && r.ApkData.Length > 0
+            ))
+            .ToListAsync(ct);
+
+        return Results.Ok(new { items });
+    }
+
+    private static async Task<IResult> CreateRelease(AppReleaseCreateInput input, AppDbContext db, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.VersionName))
+            return ApiResults.Error("invalid_version", "نام نسخه را وارد کنید.");
+        if (input.VersionCode <= 0)
+            return ApiResults.Error("invalid_code", "شماره نسخه باید یک عدد مثبت باشد.");
+
+        byte[]? apkBytes = null;
+        if (!string.IsNullOrWhiteSpace(input.ApkBase64))
+        {
+            try
+            {
+                var cleanBase64 = input.ApkBase64;
+                var commaIdx = cleanBase64.IndexOf(',');
+                if (commaIdx >= 0) cleanBase64 = cleanBase64[(commaIdx + 1)..];
+                apkBytes = Convert.FromBase64String(cleanBase64);
+            }
+            catch
+            {
+                return ApiResults.Error("invalid_apk", "فرمت فایل APK بارگذاری‌شده نامعتبر است.");
+            }
+        }
+
+        var release = new AppRelease
+        {
+            VersionName = input.VersionName.Trim(),
+            VersionCode = input.VersionCode,
+            ReleaseNotes = input.ReleaseNotes?.Trim() ?? string.Empty,
+            IsForceUpdate = input.IsForceUpdate,
+            IsActive = input.IsActive,
+            ExternalDownloadUrl = string.IsNullOrWhiteSpace(input.ExternalDownloadUrl) ? null : input.ExternalDownloadUrl.Trim(),
+            BazaarPackageName = string.IsNullOrWhiteSpace(input.BazaarPackageName) ? "com.leon.be_nobat" : input.BazaarPackageName.Trim(),
+            ApkFileName = string.IsNullOrWhiteSpace(input.ApkFileName) ? $"benobat-v{input.VersionName.Trim()}.apk" : input.ApkFileName.Trim(),
+            ApkFileSize = apkBytes?.LongLength,
+            ApkContentType = "application/vnd.android.package-archive",
+            ApkData = apkBytes,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        db.AppReleases.Add(release);
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new AppReleaseDto(
+            release.Id,
+            release.VersionName,
+            release.VersionCode,
+            release.ReleaseNotes,
+            release.IsForceUpdate,
+            release.IsActive,
+            release.ApkFileName,
+            release.ApkFileSize,
+            release.ExternalDownloadUrl,
+            release.BazaarPackageName,
+            release.CreatedAt,
+            release.ApkData != null && release.ApkData.Length > 0
+        ));
+    }
+
+    private static async Task<IResult> UpdateRelease(Guid id, AppReleaseUpdateInput input, AppDbContext db, CancellationToken ct)
+    {
+        var release = await db.AppReleases.FindAsync([id], ct);
+        if (release == null) return Missing();
+
+        if (string.IsNullOrWhiteSpace(input.VersionName))
+            return ApiResults.Error("invalid_version", "نام نسخه را وارد کنید.");
+        if (input.VersionCode <= 0)
+            return ApiResults.Error("invalid_code", "شماره نسخه باید یک عدد مثبت باشد.");
+
+        release.VersionName = input.VersionName.Trim();
+        release.VersionCode = input.VersionCode;
+        release.ReleaseNotes = input.ReleaseNotes?.Trim() ?? string.Empty;
+        release.IsForceUpdate = input.IsForceUpdate;
+        release.IsActive = input.IsActive;
+        release.ExternalDownloadUrl = string.IsNullOrWhiteSpace(input.ExternalDownloadUrl) ? null : input.ExternalDownloadUrl.Trim();
+        release.BazaarPackageName = string.IsNullOrWhiteSpace(input.BazaarPackageName) ? "com.leon.be_nobat" : input.BazaarPackageName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(input.ApkBase64))
+        {
+            try
+            {
+                var cleanBase64 = input.ApkBase64;
+                var commaIdx = cleanBase64.IndexOf(',');
+                if (commaIdx >= 0) cleanBase64 = cleanBase64[(commaIdx + 1)..];
+                var bytes = Convert.FromBase64String(cleanBase64);
+                release.ApkData = bytes;
+                release.ApkFileSize = bytes.LongLength;
+                release.ApkContentType = "application/vnd.android.package-archive";
+                if (!string.IsNullOrWhiteSpace(input.ApkFileName))
+                {
+                    release.ApkFileName = input.ApkFileName.Trim();
+                }
+            }
+            catch
+            {
+                return ApiResults.Error("invalid_apk", "فرمت فایل APK بارگذاری‌شده نامعتبر است.");
+            }
+        }
+
+        release.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return Results.Ok(new AppReleaseDto(
+            release.Id,
+            release.VersionName,
+            release.VersionCode,
+            release.ReleaseNotes,
+            release.IsForceUpdate,
+            release.IsActive,
+            release.ApkFileName,
+            release.ApkFileSize,
+            release.ExternalDownloadUrl,
+            release.BazaarPackageName,
+            release.CreatedAt,
+            release.ApkData != null && release.ApkData.Length > 0
+        ));
+    }
+
+    private static async Task<IResult> DeleteRelease(Guid id, AppDbContext db, CancellationToken ct)
+    {
+        var release = await db.AppReleases.FindAsync([id], ct);
+        if (release == null) return Missing();
+
+        db.AppReleases.Remove(release);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true });
+    }
 }
 
 public sealed record ManagementActiveInput(bool Active);
@@ -2399,3 +2554,6 @@ public sealed record ContactMessageReadInput(bool IsRead = true);
 public sealed record ContactMessageReplyInput(string Reply);
 public sealed record AnnouncementCreateInput(string Title, string Content, string Priority = "Normal", Guid? TargetUserId = null);
 public sealed record WalkInAppointmentInput(Guid BranchId, Guid ServiceId, Guid? ResourceId, DateTimeOffset StartsAt, string? CustomerName, string? PhoneNumber, string? Note);
+public sealed record AppReleaseDto(Guid Id, string VersionName, int VersionCode, string ReleaseNotes, bool IsForceUpdate, bool IsActive, string? ApkFileName, long? ApkFileSize, string? ExternalDownloadUrl, string? BazaarPackageName, DateTimeOffset CreatedAt, bool HasApkFile);
+public sealed record AppReleaseCreateInput(string VersionName, int VersionCode, string ReleaseNotes = "", bool IsForceUpdate = false, bool IsActive = true, string? ExternalDownloadUrl = null, string? BazaarPackageName = "com.leon.be_nobat", string? ApkFileName = null, string? ApkBase64 = null);
+public sealed record AppReleaseUpdateInput(string VersionName, int VersionCode, string ReleaseNotes = "", bool IsForceUpdate = false, bool IsActive = true, string? ExternalDownloadUrl = null, string? BazaarPackageName = "com.leon.be_nobat", string? ApkFileName = null, string? ApkBase64 = null);

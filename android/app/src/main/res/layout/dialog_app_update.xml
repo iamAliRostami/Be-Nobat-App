@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- هدر دیالوگ با آیکون به‌روزرسانی -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_sparkle"
+            app:tint="?attr/colorPrimary"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvUpdateTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="نسخه جدید در دسترس است"
+                android:textAppearance="@style/TextAppearance.BeNobat.Headline" />
+
+            <TextView
+                android:id="@+id/tvUpdateVersion"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                tools:text="نسخه ۱.۲.۰" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- کادر تغییرات نسخه -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardBackgroundColor="?attr/colorSurfaceVariant"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="?attr/colorOutline">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="تغییرات این نسخه:"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                android:textStyle="bold" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:maxHeight="160dp">
+
+                <TextView
+                    android:id="@+id/tvReleaseNotes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="4dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                    tools:text="• رفع مشکلات جزئی\n• بهبود عملکرد و سرعت برنامه\n• افزوده شدن قابلیت‌های جدید" />
+            </ScrollView>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- نوار پیشرفت دانلود (در حالت عادی مخفی است) -->
+    <LinearLayout
+        android:id="@+id/layoutDownloadProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/tvDownloadStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="در حال دانلود فایل به‌روزرسانی..."
+            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted" />
+
+        <ProgressBar
+            android:id="@+id/progressBarDownload"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:indeterminate="true" />
+    </LinearLayout>
+
+    <!-- دکمه‌های عملیات -->
+    <LinearLayout
+        android:id="@+id/layoutActionButtons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="vertical">
+
+        <!-- دکمه به‌روزرسانی از کافه‌بازار -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateBazaar"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="به‌روزرسانی از کافه‌بازار"
+            app:icon="@drawable/ic_shopping_bag"
+            app:iconGravity="textStart" />
+
+        <!-- دکمه دانلود و نصب مستقیم -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateDirect"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="دانلود و نصب مستقیم"
+            app:icon="@drawable/ic_download"
+            app:iconGravity="textStart" />
+
+        <!-- دکمه انصراف یا بعداً (در صورت عدم اجباری بودن) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateLater"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="4dp"
+            android:text="یادآوری در زمان دیگر" />
+    </LinearLayout>
+
+</LinearLayout>
