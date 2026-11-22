@@ -197,6 +197,7 @@
                                 android:textSize="13sp" />
 
                             <TextView
+                                android:id="@+id/tvPendingStatusBadge"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/bg_badge_status"
@@ -292,6 +293,32 @@
                                 android:textAppearance="@style/TextAppearance.BeNobat.Body"
                                 android:textSize="12.5sp"
                                 tools:text="زیبایی و آرایش" />
+                        </LinearLayout>
+
+                        <!-- Detail Row: Selected Plan -->
+                        <LinearLayout
+                            android:id="@+id/rowPendingPlan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="8dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="110dp"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_plan_field_label"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp" />
+
+                            <TextView
+                                android:id="@+id/tvPendingPlan"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textColor="?attr/colorPrimary"
+                                android:textSize="12.5sp"
+                                tools:text="تست رایگان (۷ روز)" />
                         </LinearLayout>
 
                         <!-- Detail Row: City -->
@@ -960,10 +987,9 @@
                         android:id="@+id/etReqContactPhone"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="end|center_vertical"
                         android:inputType="phone"
-                        android:maxLength="15"
-                        android:textDirection="ltr" />
+                        android:maxLength="11"
+                        android:digits="0123456789۰۱۲۳۴۵۶۷۸۹" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Description -->
@@ -1072,15 +1098,399 @@
                     android:layout_marginTop="6dp"
                     android:orientation="vertical" />
 
-                <!-- Live Pricing & Bank Information Card in Form -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardLivePricing"
+                <!-- Hint when no extra branches added -->
+                <TextView
+                    android:id="@+id/tvNoExtraBranchesHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="4dp"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12sp"
+                    android:text="@string/business_request_no_extra_branches_hint" />
+
+                <!-- Section: Subscription Plan Selection -->
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="@string/business_request_section_plan_select"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                    android:textSize="13.5sp" />
+
+                <!-- Grid of 4 Plan Cards (2 rows x 2 cols) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
+
+                    <!-- Plan 1: 1 Week Trial (Free) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardPlanTrial"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/plan_card_selected_bg"
+                        app:strokeWidth="2dp"
+                        app:strokeColor="@color/plan_card_selected_stroke">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/business_request_plan_trial_title"
+                                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_trial"
+                                    android:paddingStart="7dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingEnd="7dp"
+                                    android:paddingBottom="2dp"
+                                    android:text="@string/business_request_plan_trial_tag"
+                                    android:textColor="@color/badge_blue_text"
+                                    android:textStyle="bold"
+                                    android:textSize="10.5sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:layout_marginBottom="6dp"
+                                android:text="@string/business_request_plan_trial_desc"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/business_request_plan_trial_price"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"
+                                android:textSize="14sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Plan 2: 1 Month -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardPlan1Month"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/plan_card_default_bg"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="@color/plan_card_default_stroke">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/business_request_plan_1m_title"
+                                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_monthly"
+                                    android:paddingStart="7dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingEnd="7dp"
+                                    android:paddingBottom="2dp"
+                                    android:text="@string/business_request_plan_1m_tag"
+                                    android:textColor="@color/badge_monthly_text"
+                                    android:textStyle="bold"
+                                    android:textSize="10.5sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:layout_marginBottom="6dp"
+                                android:text="@string/business_request_plan_1m_desc"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvPlan1MonthPrice"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"
+                                android:textSize="13.5sp"
+                                tools:text="۳۶۰,۰۰۰ تومان" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
+
+                    <!-- Plan 3: 3 Months -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardPlan3Months"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/plan_card_default_bg"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="@color/plan_card_default_stroke">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/business_request_plan_3m_title"
+                                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/tvPlan3MonthsDiscount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_discount_amber"
+                                    android:paddingStart="7dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingEnd="7dp"
+                                    android:paddingBottom="2dp"
+                                    android:textColor="@color/badge_amber_text"
+                                    android:textStyle="bold"
+                                    android:textSize="10.5sp"
+                                    tools:text="۱۰٪ تخفیف" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:layout_marginBottom="6dp"
+                                android:text="@string/business_request_plan_3m_desc"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvPlan3MonthsPrice"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"
+                                android:textSize="13.5sp"
+                                tools:text="۱,۰۸۰,۰۰۰ تومان" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Plan 4: 6 Months -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardPlan6Months"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="@color/plan_card_default_bg"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="@color/plan_card_default_stroke">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/business_request_plan_6m_title"
+                                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/tvPlan6MonthsDiscount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_badge_discount_red"
+                                    android:paddingStart="7dp"
+                                    android:paddingTop="2dp"
+                                    android:paddingEnd="7dp"
+                                    android:paddingBottom="2dp"
+                                    android:textColor="@color/badge_red_text"
+                                    android:textStyle="bold"
+                                    android:textSize="10.5sp"
+                                    tools:text="۱۵٪ تخفیف" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="5dp"
+                                android:layout_marginBottom="6dp"
+                                android:text="@string/business_request_plan_6m_desc"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="11sp" />
+
+                            <TextView
+                                android:id="@+id/tvPlan6MonthsPrice"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="?attr/colorPrimary"
+                                android:textStyle="bold"
+                                android:textSize="13.5sp"
+                                tools:text="۲,۰۴۰,۰۰۰ تومان" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- Plan 5: 1 Year -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPlan1Year"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="@color/plan_card_default_bg"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="@color/plan_card_default_stroke">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/business_request_plan_1y_title"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/tvPlan1YearDiscount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_badge_discount_green"
+                                android:paddingStart="7dp"
+                                android:paddingTop="2dp"
+                                android:paddingEnd="7dp"
+                                android:paddingBottom="2dp"
+                                android:textColor="@color/badge_green_text"
+                                android:textStyle="bold"
+                                android:textSize="10.5sp"
+                                tools:text="۲۰٪ تخفیف" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:layout_marginBottom="6dp"
+                            android:text="@string/business_request_plan_1y_desc"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvPlan1YearPrice"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/colorPrimary"
+                            android:textStyle="bold"
+                            android:textSize="13.5sp"
+                            tools:text="۳,۸۴۰,۰۰۰ تومان" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Calculation Summary Card matching Web Image 1 -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardPlanCalculation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
                     app:cardCornerRadius="14dp"
                     app:cardElevation="0dp"
-                    app:strokeColor="@color/colorOutline"
+                    app:cardBackgroundColor="@color/plan_calc_card_bg"
+                    app:strokeColor="@color/plan_calc_card_stroke"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -1089,164 +1499,76 @@
                         android:orientation="vertical"
                         android:padding="14dp">
 
-                        <TextView
-                            android:id="@+id/tvLiveBasePrice"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                            android:textSize="12sp"
-                            tools:text="هزینه ثبت کسب‌وکار (شعبه اول): ۵۰۰,۰۰۰ تومان" />
-
-                        <TextView
-                            android:id="@+id/tvLiveExtraCost"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="4dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                            android:textSize="12sp"
-                            android:visibility="gone"
-                            tools:text="هزینه ۱ شعبه اضافی: ۲۰۰,۰۰۰ تومان"
-                            tools:visibility="visible" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginTop="4dp"
-                            android:layout_marginBottom="6dp"
-                            android:background="@color/colorOutline" />
-
-                        <TextView
-                            android:id="@+id/tvLiveTotalFee"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
-                            android:textColor="@color/colorSuccess"
-                            android:textSize="14sp"
-                            tools:text="مبلغ کل قابل پرداخت: ۷۰۰,۰۰۰ تومان" />
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:layout_marginTop="8dp"
-                            android:layout_marginBottom="10dp"
-                            android:background="@color/colorOutline" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:text="@string/business_request_bank_info_title"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
-                            android:textSize="13sp" />
-
-                        <!-- Bank Name & Account Holder -->
-                        <TextView
-                            android:id="@+id/tvLiveAccountHolder"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="6dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                            android:textSize="12sp"
-                            tools:text="بانک ملت - به نام سامانه نوبت‌دهی به‌نوبت" />
-
-                        <!-- Card Number Row -->
                         <LinearLayout
-                            android:id="@+id/layoutLiveCardNumber"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 
-                            <TextView
-                                android:id="@+id/tvLiveCardNumber"
+                            <LinearLayout
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
-                                android:textSize="12.5sp"
-                                tools:text="شماره کارت: ۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸" />
+                                android:orientation="vertical">
 
-                            <ImageButton
-                                android:id="@+id/btnCopyLiveCard"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="@string/copy_card_number"
-                                android:src="@drawable/ic_copy"
-                                app:tint="?attr/colorPrimary" />
+                                <TextView
+                                    android:id="@+id/tvPlanCalcTitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/plan_calc_title"
+                                    android:textStyle="bold"
+                                    android:textSize="13sp"
+                                    tools:text="محاسبه هزینه پلن (تست رایگان (۷ روز))" />
+
+                                <TextView
+                                    android:id="@+id/tvPlanCalcSubtitle"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="3dp"
+                                    android:textColor="@color/plan_calc_subtitle"
+                                    android:textSize="11.5sp"
+                                    tools:text="پلن آزمایشی رایگان برای ۱ هفته، بدون نیاز به پرداخت" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:gravity="end"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/business_request_calc_total_label"
+                                    android:textColor="@color/plan_calc_title"
+                                    android:textSize="11sp" />
+
+                                <TextView
+                                    android:id="@+id/tvPlanCalcTotalFee"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/plan_calc_total"
+                                    android:textStyle="bold"
+                                    android:textSize="17sp"
+                                    tools:text="رایگان" />
+                            </LinearLayout>
                         </LinearLayout>
 
-                        <!-- IBAN Row -->
-                        <LinearLayout
-                            android:id="@+id/layoutLiveIban"
+                        <View
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:visibility="gone"
-                            tools:visibility="visible">
+                            android:layout_height="1dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginBottom="8dp"
+                            android:background="@color/plan_calc_divider" />
 
-                            <TextView
-                                android:id="@+id/tvLiveIban"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
-                                android:textSize="12sp"
-                                tools:text="شماره شبا: IR120170000000123456789012" />
-
-                            <ImageButton
-                                android:id="@+id/btnCopyLiveIban"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="@string/copy_iban"
-                                android:src="@drawable/ic_copy"
-                                app:tint="?attr/colorPrimary" />
-                        </LinearLayout>
-
-                        <!-- Account Number Row -->
-                        <LinearLayout
-                            android:id="@+id/layoutLiveAccountNumber"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:visibility="gone"
-                            tools:visibility="visible">
-
-                            <TextView
-                                android:id="@+id/tvLiveAccountNumber"
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
-                                android:textSize="12sp"
-                                tools:text="شماره حساب: 1234567890" />
-
-                            <ImageButton
-                                android:id="@+id/btnCopyLiveAccountNumber"
-                                android:layout_width="36dp"
-                                android:layout_height="36dp"
-                                android:background="?attr/selectableItemBackgroundBorderless"
-                                android:contentDescription="@string/copy_account_number"
-                                android:src="@drawable/ic_copy"
-                                app:tint="?attr/colorPrimary" />
-                        </LinearLayout>
-
-                        <!-- Instructions -->
                         <TextView
-                            android:id="@+id/tvLiveInstructions"
+                            android:id="@+id/tvPlanCalcFooter"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
-                            android:textColor="@color/colorWarning"
+                            android:textColor="@color/plan_calc_footer"
                             android:textSize="11.5sp"
-                            android:text="پس از ثبت درخواست، تصویر فیش واریز را بارگذاری نمایید." />
+                            tools:text="تعداد کل شعب: ۱ شعبه • پلن تستی نیازی به پرداخت یا فیش ندارد و با تأیید مدیر فعال خواهد شد." />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -1262,7 +1584,7 @@
                         style="@style/Widget.BeNobat.Button"
                         android:layout_width="match_parent"
                         android:layout_height="52dp"
-                        android:text="@string/business_request_submit_to_admin_btn" />
+                        android:text="@string/business_request_submit_trial_btn" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnCancelResubmit"

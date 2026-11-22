@@ -100,6 +100,15 @@ public static class DbSeeder
         var existingSlugs = (await db.ServiceCatalogItems.IgnoreQueryFilters()
             .Select(x => x.Slug).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
         db.ServiceCatalogItems.AddRange(catalog.Where(item => !existingSlugs.Contains(item.Slug)));
+
+        var branchesWithoutInvite = await db.Branches.IgnoreQueryFilters().Where(b => b.InviteCode == null).ToListAsync(cancellationToken);
+        if (branchesWithoutInvite.Count > 0)
+        {
+            foreach (var b in branchesWithoutInvite)
+            {
+                b.InviteCode = BranchInviteCode.Generate();
+            }
+        }
         await db.SaveChangesAsync(cancellationToken);
 
     }

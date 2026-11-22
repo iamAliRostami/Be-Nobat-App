@@ -279,7 +279,7 @@ class AdminServiceEditActivity : BaseActivity() {
             etDescription.setText(service.description)
 
             // Price in Toman
-            val priceToman = (service.price / 10.0).toLong().toString()
+            val priceToman = service.price.toLong().toString()
             etPrice.setText(priceToman)
 
             // Duration
@@ -362,7 +362,7 @@ class AdminServiceEditActivity : BaseActivity() {
                     name = name,
                     description = etDescription.text?.toString()?.trim().orEmpty(),
                     durationMinutes = duration,
-                    price = priceToman * 10.0,
+                    price = priceToman,
                     cancellationNoticeMinutes = cancellationEditor.value,
                 )
 
@@ -383,7 +383,7 @@ class AdminServiceEditActivity : BaseActivity() {
                     name = name,
                     description = etDescription.text?.toString()?.trim().orEmpty(),
                     durationMinutes = duration,
-                    price = priceToman * 10.0,
+                    price = priceToman,
                 )
 
                 updateServiceUseCase(editingServiceId!!, input).onSuccess {

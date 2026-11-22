@@ -73,8 +73,8 @@
             @if (!string.IsNullOrWhiteSpace(BranchScheduleInfo))
             {
                 <div class="schedule-info-box @(IsBranchClosed ? "closed" : "")">
-                    <span>@(IsBranchClosed ? "🔴" : "🟢")</span>
-                    <span>@BranchScheduleInfo</span>
+                    <span class="schedule-info-icon">@(IsBranchClosed ? "🔴" : "🟢")</span>
+                    <span class="schedule-info-text">@BranchScheduleInfo</span>
                 </div>
             }
             <div class="time-range"><label>از<select @bind="StartMinutes" @bind:after="StartTimeChanged">@foreach(var minutes in TimeOptions(Form.StartsAt)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label><label>تا<select @bind="EndMinutes" @bind:after="EndTimeChanged">@foreach(var minutes in TimeOptions(Form.EndsAt, true)){<option value="@minutes">@FormatTimeOption(minutes)</option>}</select></label></div>
@@ -82,8 +82,8 @@
             @if (!string.IsNullOrWhiteSpace(OverlapNotice))
             {
                 <div class="overlap-notice-box @(IsPositiveNotice ? "positive" : "warning")">
-                    <span>@(IsPositiveNotice ? "🟢" : "⚠️")</span>
-                    <span>@OverlapNotice</span>
+                    <span class="overlap-notice-icon">@(IsPositiveNotice ? "🟢" : "⚠️")</span>
+                    <span class="overlap-notice-text">@OverlapNotice</span>
                 </div>
             }
             @if (Error is not null) { <div class="auth-error">@Error</div> }
@@ -585,3 +585,98 @@
     private static string DayLabel(DayOfWeek day) => day switch { DayOfWeek.Saturday => "شنبه", DayOfWeek.Sunday => "یکشنبه", DayOfWeek.Monday => "دوشنبه", DayOfWeek.Tuesday => "سه‌شنبه", DayOfWeek.Wednesday => "چهارشنبه", DayOfWeek.Thursday => "پنجشنبه", _ => "جمعه" };
     private sealed class RuleInput { public Guid BusinessId { get; set; } public Guid? BranchId { get; set; } public Guid? ResourceId { get; set; } public DateOnly EffectiveDate { get; set; } = BranchClock.Today(null); public DayOfWeek DayOfWeek { get; set; } = BranchClock.Today(null).DayOfWeek; public TimeOnly StartsAt { get; set; } = new(9, 0); public TimeOnly EndsAt { get; set; } = new(18, 0); public bool IsAvailable { get; set; } = true; }
 }
+
+<style>
+.schedule-info-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #e6f4f1;
+    border: 1px solid #99d5ca;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+.schedule-info-box .schedule-info-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0d4a3e;
+    line-height: 1.5;
+}
+.schedule-info-box.closed {
+    background-color: #fef2f2;
+    border-color: #fecaca;
+}
+.schedule-info-box.closed .schedule-info-text {
+    color: #991b1b;
+}
+
+/* Dark mode */
+html[data-theme="dark"] .schedule-info-box,
+[data-theme="dark"] .schedule-info-box {
+    background-color: #173830 !important;
+    border-color: #2e695a !important;
+}
+html[data-theme="dark"] .schedule-info-box .schedule-info-text,
+[data-theme="dark"] .schedule-info-box .schedule-info-text,
+html[data-theme="dark"] .schedule-info-box span,
+[data-theme="dark"] .schedule-info-box span {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .schedule-info-box.closed,
+[data-theme="dark"] .schedule-info-box.closed {
+    background-color: #3b1717 !important;
+    border-color: #7f1d1d !important;
+}
+html[data-theme="dark"] .schedule-info-box.closed .schedule-info-text,
+[data-theme="dark"] .schedule-info-box.closed .schedule-info-text,
+html[data-theme="dark"] .schedule-info-box.closed span,
+[data-theme="dark"] .schedule-info-box.closed span {
+    color: #fecaca !important;
+}
+
+/* Overlap Notice Box */
+.overlap-notice-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+.overlap-notice-box.warning {
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+.overlap-notice-box.positive {
+    background-color: #e6f4f1;
+    border: 1px solid #99d5ca;
+    color: #0d4a3e;
+}
+html[data-theme="dark"] .overlap-notice-box.warning,
+[data-theme="dark"] .overlap-notice-box.warning {
+    background-color: #3f2a13 !important;
+    border-color: #854d0e !important;
+    color: #fde68a !important;
+}
+html[data-theme="dark"] .overlap-notice-box.warning span,
+[data-theme="dark"] .overlap-notice-box.warning span {
+    color: #fde68a !important;
+}
+html[data-theme="dark"] .overlap-notice-box.positive,
+[data-theme="dark"] .overlap-notice-box.positive {
+    background-color: #173830 !important;
+    border-color: #2e695a !important;
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .overlap-notice-box.positive span,
+[data-theme="dark"] .overlap-notice-box.positive span {
+    color: #ffffff !important;
+}
+</style>

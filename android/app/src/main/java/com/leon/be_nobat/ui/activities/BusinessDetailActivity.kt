@@ -153,7 +153,8 @@ class BusinessDetailActivity : BaseActivity() {
             if (getCurrentLanguage() == "en") rounded else PersianUtils.toPersianDigits(rounded)
         }
 
-        val branchStr = if (b.branchCount == 1) getString(R.string.branch_count_single) else getString(R.string.branch_count, PersianUtils.toPersianDigits(b.branchCount))
+        val effectiveBranchCount = if (b.branches.isNotEmpty()) b.branches.size else b.branchCount
+        val branchStr = if (effectiveBranchCount == 1) getString(R.string.branch_count_single) else getString(R.string.branch_count, PersianUtils.toPersianDigits(effectiveBranchCount))
         val serviceStr = if (b.serviceCount == 1) getString(R.string.service_count_single) else getString(R.string.service_count, PersianUtils.toPersianDigits(b.serviceCount))
         val reviewStr = getString(R.string.review_count, PersianUtils.toPersianDigits(b.reviewCount))
         val ratingStr = formattedRating?.let { "★ $it" } ?: "—"

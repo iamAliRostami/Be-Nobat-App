@@ -1,10 +1,11 @@
-@page "/admin/branches"
+﻿@page "/admin/branches"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
 @inject AppDbContext Db
 @inject UserManager<AppUser> UserManager
 @inject AdminAccessScope Access
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>شعب و منابع | به‌نوبت</PageTitle>
 <div class="page-title">
@@ -21,7 +22,7 @@
 <article class="admin-panel">
     <div class="toolbar">
         <input aria-label="جست‌وجوی شعب" placeholder="جست‌وجوی شعبه، کسب‌وکار، نشانی یا منبع..." @bind="Query" @bind:event="oninput" />
-        <select aria-label="وضعیت شعب" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
+        <select aria-label="وضعیت شعب" @bind="StatusFilter"><option value="all">همه وضعیت‌ها</option><option value="pending">در انتظار تأیید</option><option value="active">فعال</option><option value="disabled">غیرفعال</option></select>
         <span>@Filtered.Count() شعبه</span>
         @if (HasFilters) { <button type="button" class="action-secondary" @onclick="ClearFilters">پاک کردن فیلترها</button> }
     </div>
@@ -82,6 +83,16 @@
                         </dd>
                     </div>
                     <div><dt>ساعت کاری</dt><dd>@(branch.AvailabilityRules.Any(WeeklySchedule.IsWeeklyBranchRule) ? $"{WeeklySchedule.Read(branch).Select(x => x.DayOfWeek).Distinct().Count()} روز فعال، {WeeklySchedule.Read(branch).Count} بازه هفتگی" : $"{branch.OpenHour}:00 تا {branch.CloseHour}:00")</dd></div>
+                    <div>
+                        <dt>کد دعوت پرسنل</dt>
+                        <dd style="display:flex; align-items:center; gap:6px;">
+                            <code style="font-size:0.92rem; font-weight:700; color:var(--primary); background:var(--primary-container); padding:2px 8px; border-radius:6px; letter-spacing:1px;" dir="ltr">@(branch.InviteCode ?? "-")</code>
+                            @if (!string.IsNullOrWhiteSpace(branch.InviteCode))
+                            {
+                                <button type="button" class="action-secondary" style="font-size:0.75rem; padding:2px 8px; min-height:auto; min-width:auto;" @onclick="() => CopyInviteCode(branch.InviteCode)" title="کپی کد دعوت برای ارسال به پرسنل">کپی</button>
+                            }
+                        </dd>
+                    </div>
                     <div><dt>منابع</dt><dd>@branch.Resources.Count مورد</dd></div>
                     <div><dt>اعضا</dt><dd>@branch.Memberships.Count نفر</dd></div>
                     @if (!branch.IsApproved)
@@ -287,7 +298,13 @@
                                     <small class="member-chip-contact" data-i18n-skip>@membership.User.Email</small>
                                 </div>
                                 <div class="member-chip-actions">
-                                    <span class="member-chip-role role-pill-@membership.Role.ToLowerInvariant()">@RoleLabel(membership.Role)</span>
+                                    <div style="display:inline-flex; flex-wrap:wrap; gap:4px; align-items:center;">
+                                        @foreach (var r in AppRoles.ParseRoles(membership.Role))
+                                        {
+                                            <span class="member-chip-role role-pill-@r.ToLowerInvariant()">@RoleLabel(r)</span>
+                                        }
+                                    </div>
+                                    <button type="button" class="action-icon member-chip-edit" title="ویرایش نقش‌های عضو" aria-label="ویرایش نقش" @onclick="() => EditMemberRoles(membership)">✏️</button>
                                     <button type="button" class="action-icon action-remove-plain member-chip-delete" title="حذف عضو از شعبه" aria-label="@($"حذف {membership.User.DisplayName ?? membership.User.Email} از شعبه")" @onclick="() => RemoveMember(membership)">×</button>
                                 </div>
                             </div>
@@ -307,11 +324,11 @@
                         <label class="member-input-label">
                             <span>انتخاب از اعضای تیم یا کاربران سیستم</span>
                             <input class="select-search" placeholder="جست‌وجوی نام، ایمیل یا موبایل..." @bind="MemberQuery" @bind:event="oninput" />
-                            <select @bind="MemberForm.UserId" class="member-select-input">
+                            <select @bind="MemberForm.UserId" @bind:after="OnMemberUserSelected" class="member-select-input">
                                 <option value="">— انتخاب از لیست کاربران —</option>
                                 @foreach (var candidate in FilteredMemberCandidates)
                                 {
-                                    <option value="@candidate.Id">@MemberLabel(candidate)</option>
+                                    <option value="@candidate.Id">@MemberLabel(candidate) @(Memberships.Any(m => m.UserId == candidate.Id) ? "✓ (عضو فعلی)" : "")</option>
                                 }
                             </select>
                         </label>
@@ -328,16 +345,28 @@
                         </label>
                     </div>
 
+                    <div class="member-role-select-box" style="margin-top:10px; margin-bottom:14px; background:var(--surface-variant); padding:12px; border-radius:10px; border:1px solid var(--outline-soft);">
+                        <span style="display:block; font-size:12px; font-weight:700; margin-bottom:8px; color:var(--on-surface);">نقش‌های عضو در شعبه (امکان انتخاب هم‌زمان چند نقش):</span>
+                        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+                            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600;">
+                                <input type="checkbox" @bind="MemberForm.IsStaff" />
+                                <span>پرسنل / کارمند (ارائه‌دهنده خدمت)</span>
+                            </label>
+                            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600;">
+                                <input type="checkbox" @bind="MemberForm.IsManager" />
+                                <span>مدیر شعبه</span>
+                            </label>
+                            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; font-weight:600;">
+                                <input type="checkbox" @bind="MemberForm.IsOwner" />
+                                <span>مالک شعبه</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="member-form-submit-row">
-                        <label class="member-input-label role-select-label">
-                            <span>نقش در شعبه</span>
-                            <select @bind="MemberForm.Role" class="member-select-input">
-                                <option value="@AppRoles.Staff">پرسنل</option>
-                                <option value="@AppRoles.Manager">مدیر</option>
-                                <option value="@AppRoles.Owner">مالک</option>
-                            </select>
-                        </label>
-                        <button type="submit" class="action-primary add-member-action-btn">+ افزودن به شعبه</button>
+                        <button type="submit" class="action-primary add-member-action-btn" style="width:100%;">
+                            @(IsEditingMember ? "ذخیره تغییرات نقش در شعبه" : "+ افزودن / تعیین نقش در شعبه")
+                        </button>
                     </div>
 
                     @if (Error is not null) { <div class="auth-error" role="alert">@Error</div> }
@@ -360,13 +389,13 @@
             </div>
             <div class="modal-body">
                 <div style="margin-bottom:14px;">
-                    <div style="font-weight:700; font-size:13px; color:#334155; margin-bottom:8px;">انتخاب طول دوره پلن شعبه:</div>
+                    <div class="branch-plan-title">انتخاب طول دوره پلن شعبه:</div>
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(105px, 1fr)); gap:8px;">
                         <!-- ۱ ماهه -->
                         <div class="branch-plan-pill @(SelectedBranchPlanDuration == "1Month" ? "active" : "") @(!IsPlanDurationAllowed(1) ? "disabled" : "")"
                              @onclick='() => SelectBranchPlan("1Month")'>
                             <b>۱ ماهه</b>
-                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("1Month"), UiLocale.Language) تومان</div>
+                            <div class="plan-fee-text">@LocalizedDate.FormatNumber(CalculateBranchFee("1Month"), UiLocale.Language) تومان</div>
                         </div>
 
                         <!-- ۳ ماهه -->
@@ -377,7 +406,7 @@
                             {
                                 <span class="badge-mini">@PricingSettings!.DiscountPercent3Months٪</span>
                             }
-                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("3Months"), UiLocale.Language) تومان</div>
+                            <div class="plan-fee-text">@LocalizedDate.FormatNumber(CalculateBranchFee("3Months"), UiLocale.Language) تومان</div>
                         </div>
 
                         <!-- ۶ ماهه -->
@@ -388,7 +417,7 @@
                             {
                                 <span class="badge-mini">@PricingSettings!.DiscountPercent6Months٪</span>
                             }
-                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("6Months"), UiLocale.Language) تومان</div>
+                            <div class="plan-fee-text">@LocalizedDate.FormatNumber(CalculateBranchFee("6Months"), UiLocale.Language) تومان</div>
                         </div>
 
                         <!-- ۱۲ ماهه -->
@@ -399,23 +428,23 @@
                             {
                                 <span class="badge-mini">@PricingSettings!.DiscountPercent12Months٪</span>
                             }
-                            <div style="font-size:11px; margin-top:2px;">@LocalizedDate.FormatNumber(CalculateBranchFee("12Months"), UiLocale.Language) تومان</div>
+                            <div class="plan-fee-text">@LocalizedDate.FormatNumber(CalculateBranchFee("12Months"), UiLocale.Language) تومان</div>
                         </div>
                     </div>
                     @if (ReceiptBranch.Business?.PlanExpiresAt.HasValue == true)
                     {
-                        <div style="font-size:11px; color:#64748b; margin-top:6px;">
+                        <div class="branch-plan-note">
                             پایان پلن کسب‌وکار: <b>@LocalizedDate.Format(DateOnly.FromDateTime(ReceiptBranch.Business.PlanExpiresAt.Value.DateTime), UiLocale.Language)</b>
                             (امکان تمدید شعبه حداکثر تا ۱ ماه پس از پایان پلن کسب‌وکار وجود دارد)
                         </div>
                     }
                 </div>
 
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; margin-bottom:14px;">
-                    <div style="font-weight:700; color:#166534; font-size:15px; margin-bottom:6px;">
+                <div class="branch-receipt-deposit-box">
+                    <div class="branch-receipt-deposit-title">
                         مبلغ قابل واریز: @(CalculateBranchFee(SelectedBranchPlanDuration).ToString("N0")) تومان
                     </div>
-                    <div style="font-size:13px; color:#14532d; line-height:1.7;">
+                    <div class="branch-receipt-deposit-info">
                         <div><strong>شماره کارت:</strong> <span dir="ltr" style="font-family:monospace; font-size:14px;">@(PricingSettings?.CardNumber)</span></div>
                         @if (!string.IsNullOrWhiteSpace(PricingSettings?.Iban))
                         {
@@ -424,7 +453,7 @@
                         <div><strong>صاحب حساب:</strong> @(PricingSettings?.AccountHolder)</div>
                         @if (!string.IsNullOrWhiteSpace(PricingSettings?.PaymentInstructions))
                         {
-                            <div style="margin-top:4px; font-size:12px; color:#374151;">@PricingSettings.PaymentInstructions</div>
+                            <div class="branch-receipt-instructions">@PricingSettings.PaymentInstructions</div>
                         }
                     </div>
                 </div>
@@ -545,16 +574,23 @@
         .Where(x => FilterBusinessId is null || x.BusinessId == FilterBusinessId)
         .Where(x => FilterBranchId is null || x.Id == FilterBranchId)
         .Where(x => FilterResourceId is null || x.Resources.Any(r => r.Id == FilterResourceId))
-        .Where(x => StatusFilter == "all" || (x.DeletedAt is null) == (StatusFilter == "active"))
+        .Where(x => StatusFilter switch
+        {
+            "pending" => !x.IsApproved && x.DeletedAt == null,
+            "active" => x.DeletedAt == null && x.IsApproved,
+            "disabled" => x.DeletedAt != null,
+            _ => true
+        })
         .Where(x => $"{x.Name} {x.Address} {x.Business.Name} {string.Join(' ', x.Resources.Select(r => r.Name))}".Contains(Query, StringComparison.OrdinalIgnoreCase));
 
     private IEnumerable<AppUser> MemberCandidates =>
-        TeamMembers.Where(u => Memberships.All(m => m.UserId != u.Id));
+        TeamMembers.UnionBy(Memberships.Where(m => m.User != null).Select(m => m.User), u => u.Id);
 
     private IEnumerable<AppUser> FilteredMemberCandidates => MemberCandidates.Where(u => MatchesUser(u, MemberQuery));
     private IEnumerable<AppUser> FilteredTeamMembers => TeamMembers.Where(u => MatchesUser(u, TeamMemberQuery));
     private IEnumerable<AppUser> ResourceTeamMembers => FilteredTeamMembers.Where(u =>
-        ResourceBranch is not null && ResourceBranch.Memberships.Any(m => m.UserId == u.Id));
+        ResourceBranch is not null && ResourceBranch.Memberships.Any(m => m.UserId == u.Id && m.DeletedAt == null));
+    private bool IsEditingMember => MemberForm.UserId is not null && Memberships.Any(m => m.UserId == MemberForm.UserId);
 
     private static bool MatchesUser(AppUser user, string query) =>
         $"{user.DisplayName} {user.Email} {user.PhoneNumber}".Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -570,7 +606,7 @@
     protected override void OnParametersSet()
     {
         Query = FilterQuery?.Trim() ?? "";
-        StatusFilter = FilterStatus is "active" or "disabled" ? FilterStatus : "all";
+        StatusFilter = FilterStatus is "active" or "disabled" or "pending" ? FilterStatus : "all";
     }
     private void ClearFilters()
     {
@@ -1112,6 +1148,7 @@
         MemberForm = new MemberInput();
         MemberQuery = "";
         Error = Message = null;
+        await LoadTeamMembers();
         await LoadMemberships();
     }
 
@@ -1141,21 +1178,42 @@
         if (user is not null) await Db.Entry(user).ReloadAsync();
         var userId = user?.Id ?? Guid.Empty;
         if (user is null || (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow)) { Error = "کاربر فعال پیدا نشد."; return; }
-        if (await Db.BranchMemberships.AnyAsync(x => x.BranchId == branch.Id && x.UserId == userId))
+
+        var roleToAssign = MemberForm.GetEffectiveRole();
+        if (!await Access.CanAssignRoleAsync(roleToAssign, branch.Id))
         {
-            Error = "این کاربر از قبل عضو این شعبه است.";
-            return;
-        }
-        if (!await Access.CanAssignRoleAsync(MemberForm.Role, branch.Id))
-        {
-            Error = MemberForm.Role == AppRoles.Owner ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
+            Error = roleToAssign.Contains(AppRoles.Owner) ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
             return;
         }
 
         await using var transaction = await Db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var existing = await Db.BranchMemberships.FirstOrDefaultAsync(x => x.BranchId == branch.Id && x.UserId == userId);
+        if (existing is not null)
+        {
+            if (existing.Role.Contains(AppRoles.Owner) && !roleToAssign.Contains(AppRoles.Owner) &&
+                !await Db.BranchMemberships.AnyAsync(m => m.BranchId == branch.Id && m.Role.Contains(AppRoles.Owner) && m.Id != existing.Id && m.DeletedAt == null))
+            {
+                Error = "آخرین مالک شعبه را نمی‌توان تنزل داد.";
+                return;
+            }
+            existing.Role = roleToAssign;
+            existing.DeletedAt = null;
+            existing.UpdatedAt = DateTimeOffset.UtcNow;
+            await Db.SaveChangesAsync();
+            await TeamRoleSync.SyncAsync(UserManager, Db, user);
+            await transaction.CommitAsync();
+            Error = null;
+            Message = $"نقش‌های {user.DisplayName ?? user.Email} در شعبه به‌روزرسانی شد ({RoleLabel(roleToAssign)}).";
+            MemberForm = new MemberInput();
+            await LoadTeamMembers();
+            await LoadMemberships();
+            await Load();
+            return;
+        }
+
         var archived = await Db.BranchMemberships.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.BranchId == branch.Id && m.UserId == userId);
-        if (archived is null) Db.BranchMemberships.Add(new BranchMembership { BranchId = branch.Id, UserId = userId, Role = MemberForm.Role });
-        else { await Db.Entry(archived).ReloadAsync(); archived.DeletedAt = null; archived.Role = MemberForm.Role; archived.UpdatedAt = DateTimeOffset.UtcNow; }
+        if (archived is null) Db.BranchMemberships.Add(new BranchMembership { BranchId = branch.Id, UserId = userId, Role = roleToAssign });
+        else { await Db.Entry(archived).ReloadAsync(); archived.DeletedAt = null; archived.Role = roleToAssign; archived.UpdatedAt = DateTimeOffset.UtcNow; }
 
         await Db.SaveChangesAsync();
         await TeamRoleSync.SyncAsync(UserManager, Db, user);
@@ -1168,6 +1226,34 @@
         await Load();
     }
 
+    private void OnMemberUserSelected()
+    {
+        if (MemberForm.UserId is Guid uid)
+        {
+            var existing = Memberships.FirstOrDefault(m => m.UserId == uid);
+            if (existing is not null)
+            {
+                MemberForm.IsStaff = existing.Role.Contains(AppRoles.Staff);
+                MemberForm.IsManager = existing.Role.Contains(AppRoles.Manager);
+                MemberForm.IsOwner = existing.Role.Contains(AppRoles.Owner);
+                MemberForm.Email = existing.User.Email ?? "";
+            }
+        }
+    }
+
+    private void EditMemberRoles(BranchMembership m)
+    {
+        MemberForm = new MemberInput
+        {
+            UserId = m.UserId,
+            Email = m.User.Email ?? "",
+            IsStaff = m.Role.Contains(AppRoles.Staff),
+            IsManager = m.Role.Contains(AppRoles.Manager),
+            IsOwner = m.Role.Contains(AppRoles.Owner)
+        };
+        if (!MemberForm.IsStaff && !MemberForm.IsManager && !MemberForm.IsOwner) MemberForm.IsStaff = true;
+    }
+
     private async Task RemoveMember(BranchMembership membership)
     {
         await using var transaction = await Db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
@@ -1176,13 +1262,13 @@
         await Db.Entry(current).ReloadAsync();
         membership = current;
         if (!await Access.CanManageBranchAsync(membership.BranchId) ||
-            (membership.Role == AppRoles.Owner && !await Access.CanAssignRoleAsync(AppRoles.Owner, membership.BranchId)))
+            (membership.Role.Contains(AppRoles.Owner) && !await Access.CanAssignRoleAsync(AppRoles.Owner, membership.BranchId)))
         {
             Error = "اجازه‌ی حذف این عضو را ندارید.";
             return;
         }
-        if (membership.Role == AppRoles.Owner &&
-            !await Db.BranchMemberships.AnyAsync(m => m.BranchId == membership.BranchId && m.Role == AppRoles.Owner && m.Id != membership.Id))
+        if (membership.Role.Contains(AppRoles.Owner) &&
+            !await Db.BranchMemberships.AnyAsync(m => m.BranchId == membership.BranchId && m.Role.Contains(AppRoles.Owner) && m.Id != membership.Id && m.DeletedAt == null))
         {
             Error = "آخرین مالک شعبه را نمی‌توان حذف کرد.";
             return;
@@ -1211,8 +1297,26 @@
         Error = null;
     }
 
-    private static string MemberLabel(AppUser user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : $"{user.DisplayName} ({user.Email})";
+    private async Task CopyInviteCode(string? code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return;
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", code);
+            Message = $"کد دعوت شعبه ({code}) در کلیپ‌بورد کپی شد.";
+        }
+        catch
+        {
+            Message = $"کد دعوت شعبه: {code}";
+        }
+    }
+
+    private static string MemberLabel(AppUser user)
+    {
+        var contact = !string.IsNullOrWhiteSpace(user.Email) ? user.Email : user.PhoneNumber;
+        var contactPart = !string.IsNullOrWhiteSpace(contact) ? $" ({contact})" : "";
+        return string.IsNullOrWhiteSpace(user.DisplayName) ? (contact ?? "کاربر") : $"{user.DisplayName}{contactPart}";
+    }
 
     private static string KindLabel(string kind) => kind switch
     {
@@ -1222,13 +1326,27 @@
         _ => kind,
     };
 
-    private static string RoleLabel(string role) => role switch
+    private static string RoleLabel(string role)
     {
-        AppRoles.Owner => "مالک",
-        AppRoles.Manager => "مدیر",
-        AppRoles.Staff => "پرسنل",
-        _ => role,
-    };
+        var parts = AppRoles.ParseRoles(role);
+        if (parts.Length == 0)
+        {
+            return role switch
+            {
+                AppRoles.Owner => "مالک",
+                AppRoles.Manager => "مدیر",
+                AppRoles.Staff => "پرسنل",
+                _ => role,
+            };
+        }
+        return string.Join("، ", parts.Select(p => p switch
+        {
+            AppRoles.Owner => "مالک",
+            AppRoles.Manager => "مدیر",
+            AppRoles.Staff => "پرسنل",
+            _ => p
+        }));
+    }
 
     private sealed class BranchInput
     {
@@ -1260,32 +1378,173 @@
         public string Email { get; set; } = "";
         public Guid? UserId { get; set; }
         public string Role { get; set; } = AppRoles.Staff;
+        public bool IsStaff { get; set; } = true;
+        public bool IsManager { get; set; } = false;
+        public bool IsOwner { get; set; } = false;
+
+        public string GetEffectiveRole()
+        {
+            var roles = new List<string>();
+            if (IsOwner) roles.Add(AppRoles.Owner);
+            if (IsManager) roles.Add(AppRoles.Manager);
+            if (IsStaff) roles.Add(AppRoles.Staff);
+            if (roles.Count == 0) roles.Add(AppRoles.Staff);
+            return string.Join(",", roles);
+        }
     }
 }
 
 <style>
+.branch-plan-title {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--on-surface, #0f172a);
+    margin-bottom: 8px;
+}
+.branch-plan-note {
+    font-size: 11px;
+    color: var(--on-surface-variant, #64748b);
+    margin-top: 6px;
+}
+.branch-plan-note b {
+    color: var(--on-surface, #0f172a);
+}
+
 .branch-plan-pill {
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--outline-soft, #cbd5e1);
     border-radius: 8px;
     padding: 8px 10px;
     cursor: pointer;
     background: #ffffff;
+    color: #1e293b;
     transition: all 0.2s ease;
     text-align: center;
+}
+.branch-plan-pill b {
+    display: block;
+    color: #0f172a;
+    font-size: 13px;
+}
+.branch-plan-pill .plan-fee-text {
+    font-size: 11px;
+    margin-top: 2px;
+    color: #64748b;
 }
 .branch-plan-pill:hover:not(.disabled) {
     border-color: #94a3b8;
 }
 .branch-plan-pill.active {
-    border-color: var(--primary, #146B5D);
-    background: #f0fdfa;
-    box-shadow: 0 0 0 1px var(--primary, #146B5D);
+    border-color: #059669 !important;
+    background: #f0fdf4 !important;
+    box-shadow: 0 0 0 1px #059669;
+}
+.branch-plan-pill.active b {
+    color: #065f46 !important;
+}
+.branch-plan-pill.active .plan-fee-text {
+    color: #047857 !important;
+    font-weight: 700;
 }
 .branch-plan-pill.disabled {
-    opacity: 0.45;
+    opacity: 0.75;
     cursor: not-allowed;
-    background: #f1f5f9;
+    background: #f8fafc;
+    border-color: #e2e8f0;
 }
+.branch-plan-pill.disabled b,
+.branch-plan-pill.disabled .plan-fee-text {
+    color: #94a3b8;
+}
+
+/* Dark mode overrides */
+html[data-theme="dark"] .branch-plan-title {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .branch-plan-note {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .branch-plan-note b {
+    color: #5cd2b7 !important;
+}
+html[data-theme="dark"] .branch-plan-pill {
+    background: #1a2624 !important;
+    border-color: #2d3f3b !important;
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .branch-plan-pill b {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .branch-plan-pill .plan-fee-text {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .branch-plan-pill:hover:not(.disabled) {
+    border-color: #3d504c !important;
+}
+html[data-theme="dark"] .branch-plan-pill.active {
+    background: #133830 !important;
+    border-color: #5cd2b7 !important;
+    box-shadow: 0 0 0 1px #5cd2b7 !important;
+}
+html[data-theme="dark"] .branch-plan-pill.active b {
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .branch-plan-pill.active .plan-fee-text {
+    color: #5cd2b7 !important;
+}
+html[data-theme="dark"] .branch-plan-pill.disabled {
+    background: #182321 !important;
+    border-color: #283734 !important;
+    opacity: 0.75 !important;
+}
+html[data-theme="dark"] .branch-plan-pill.disabled b {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .branch-plan-pill.disabled .plan-fee-text {
+    color: #64748b !important;
+}
+html[data-theme="dark"] .badge-mini {
+    background: #451a03 !important;
+    color: #fde68a !important;
+}
+
+.branch-receipt-deposit-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+.branch-receipt-deposit-title {
+    font-weight: 700;
+    color: #166534;
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+.branch-receipt-deposit-info {
+    font-size: 13px;
+    color: #14532d;
+    line-height: 1.7;
+}
+.branch-receipt-instructions {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #374151;
+}
+
+html[data-theme="dark"] .branch-receipt-deposit-box {
+    background: #142823;
+    border-color: #244e43;
+}
+html[data-theme="dark"] .branch-receipt-deposit-title {
+    color: #5eead4;
+}
+html[data-theme="dark"] .branch-receipt-deposit-info {
+    color: #d1fae5;
+}
+html[data-theme="dark"] .branch-receipt-instructions {
+    color: #94a3b8;
+}
+
 .badge-mini {
     display: inline-block;
     font-size: 10px;
@@ -1295,5 +1554,9 @@
     border-radius: 4px;
     font-weight: 700;
     margin-right: 4px;
+}
+html[data-theme="dark"] .badge-mini {
+    background: #451a03;
+    color: #fde68a;
 }
 </style>

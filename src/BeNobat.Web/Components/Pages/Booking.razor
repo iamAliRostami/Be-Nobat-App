@@ -380,7 +380,10 @@ else
         }
 
         if (Business is null) { IsLoading = false; return; }
-        Branches = Business.Branches.OrderBy(x => x.Name).ToList();
+        Branches = Business.Branches
+            .Where(b => b.DeletedAt == null && b.IsActive && b.IsApproved)
+            .OrderBy(x => x.Name)
+            .ToList();
         SelectedBranchId = QueryBranch is Guid q && Branches.Any(x => x.Id == q) ? q : Branches.FirstOrDefault()?.Id ?? Guid.Empty;
         if (Branches.Count > 0)
         {

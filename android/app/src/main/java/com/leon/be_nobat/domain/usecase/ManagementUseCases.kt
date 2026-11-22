@@ -108,6 +108,11 @@ class AdminCreateTeamMemberUseCase(private val repo: ManagementRepository) {
         repo.createTeamMember(input)
 }
 
+class AdminUpdateTeamMemberRoleUseCase(private val repo: ManagementRepository) {
+    suspend operator fun invoke(userId: String, branchId: String, role: String): Result<ManagementPerson> =
+        repo.updateTeamMemberRole(userId, branchId, role)
+}
+
 class AdminCreateCustomerUseCase(private val repo: ManagementRepository) {
     suspend operator fun invoke(input: com.leon.be_nobat.domain.model.ManagementCustomerInput): Result<ManagementPerson> =
         repo.createCustomer(input)

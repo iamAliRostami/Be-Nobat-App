@@ -22,6 +22,9 @@ class RegisterActivity : BaseActivity() {
         setMenuVisibility(false)
         setToolbarTitle(true) // hide the toolbar
 
+        val etPhone = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPhone)
+        etPhone.filters = arrayOf(android.text.InputFilter.LengthFilter(11))
+
         findViewById<android.widget.ImageButton>(R.id.btnBack).setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRegister).setOnClickListener {
@@ -29,7 +32,8 @@ class RegisterActivity : BaseActivity() {
             val email = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etEmail).text.toString()
             val phone = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPhone).text.toString()
             val pass = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPassword).text.toString()
-            viewModel.register(name, email, phone, pass)
+            val inviteCode = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etInviteCode).text?.toString()
+            viewModel.register(name, email, phone, pass, inviteCode)
         }
 
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnGoLogin).setOnClickListener {

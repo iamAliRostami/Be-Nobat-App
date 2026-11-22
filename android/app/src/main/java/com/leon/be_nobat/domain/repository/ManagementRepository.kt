@@ -101,6 +101,7 @@ interface ManagementRepository {
     suspend fun listTeam(q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25): Result<ApiPage<ManagementPerson>>
     suspend fun listCustomers(q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25): Result<ApiPage<ManagementPerson>>
     suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson>
+    suspend fun updateTeamMemberRole(userId: String, branchId: String, role: String): Result<ManagementPerson>
     suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson>
     suspend fun setPersonActive(id: String, active: Boolean): Result<ManagementPerson>
 

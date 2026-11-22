@@ -29,6 +29,7 @@ import com.leon.be_nobat.domain.model.BusinessRequestInput
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.ui.view_models.ProfileUiState
 import com.leon.be_nobat.ui.view_models.ProfileViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -123,17 +124,38 @@ class ProfileActivity : BaseActivity() {
             viewModel.changeEmail(email, current)
         }
 
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btnAddAccount)?.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java).apply {
+                putExtra(LoginActivity.EXTRA_ADD_ACCOUNT, true)
+            }
+            startActivity(intent)
+        }
+
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btnLogout).setOnClickListener {
             MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.logout_confirm_title)
                 .setMessage(R.string.logout_confirm_message)
                 .setPositiveButton(R.string.logout_confirm_positive) { _, _ ->
-                    viewModel.logout()
-                    val intent = Intent(this, StartActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    lifecycleScope.launch {
+                        val current = tokenManager.user.first()
+                        val remaining = if (current != null) tokenManager.removeAccount(current.id) else null
+                        if (remaining == null) {
+                            val intent = Intent(this@ProfileActivity, StartActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
+                            finishAffinity()
+                        } else {
+                            val target = if (remaining.user.isStaff) {
+                                Intent(this@ProfileActivity, AdminHomeActivity::class.java)
+                            } else {
+                                Intent(this@ProfileActivity, HomeActivity::class.java)
+                            }
+                            target.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(target)
+                            finishAffinity()
+                        }
                     }
-                    startActivity(intent)
-                    finishAffinity()
                 }
                 .setNegativeButton(R.string.action_cancel, null)
                 .show()
@@ -182,6 +204,106 @@ class ProfileActivity : BaseActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { render(it) }
             }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                tokenManager.accounts.collect { accountsList ->
+                    renderAccounts(accountsList)
+                }
+            }
+        }
+    }
+
+    private fun renderAccounts(accounts: List<com.leon.be_nobat.domain.model.SavedAccount>) {
+        val container = findViewById<android.widget.LinearLayout>(R.id.layoutAccountsList) ?: return
+        container.removeAllViews()
+        val currentUserId = viewModel.state.value.user?.id
+
+        for (acc in accounts) {
+            val itemView = layoutInflater.inflate(R.layout.item_saved_account, container, false)
+            val tvName = itemView.findViewById<android.widget.TextView>(R.id.tvAccountName)
+            val tvPhone = itemView.findViewById<android.widget.TextView>(R.id.tvAccountPhone)
+            val tvBadge = itemView.findViewById<android.widget.TextView>(R.id.tvActiveBadge)
+            val ivCheck = itemView.findViewById<android.widget.ImageView>(R.id.ivActiveCheck)
+            val btnRemove = itemView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRemoveAccount)
+            val ivAvatar = itemView.findViewById<android.widget.ImageView>(R.id.ivAccountAvatar)
+
+            val u = acc.session.user
+            tvName.text = u.displayName.ifBlank { u.email ?: u.phoneNumber ?: "-" }
+            tvPhone.text = u.phoneNumber ?: u.email ?: ""
+
+            val isActive = u.id == currentUserId
+            tvBadge.isVisible = isActive
+            ivCheck.isVisible = isActive
+
+            val card = itemView.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardAccountItem)
+            if (isActive) {
+                card.strokeColor = getColor(R.color.colorPrimary)
+                card.strokeWidth = (2 * resources.displayMetrics.density).toInt()
+            }
+
+            val avatarUrl = u.avatarUrl
+            if (!avatarUrl.isNullOrBlank()) {
+                val fullUrl = BeNobatApiConfig.resolveMediaUrl(avatarUrl)
+                ivAvatar.load(fullUrl) {
+                    crossfade(true)
+                    placeholder(R.drawable.ic_person)
+                    error(R.drawable.ic_person)
+                }
+            } else {
+                ivAvatar.setImageResource(R.drawable.ic_person)
+            }
+
+            itemView.setOnClickListener {
+                if (!isActive) {
+                    lifecycleScope.launch {
+                        val ok = tokenManager.switchAccount(u.id)
+                        if (ok) {
+                            showToast(getString(R.string.account_switch_success, u.displayName))
+                            val target = if (u.isStaff) {
+                                Intent(this@ProfileActivity, AdminHomeActivity::class.java)
+                            } else {
+                                Intent(this@ProfileActivity, HomeActivity::class.java)
+                            }
+                            target.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(target)
+                            finishAffinity()
+                        }
+                    }
+                }
+            }
+
+            btnRemove.setOnClickListener {
+                MaterialAlertDialogBuilder(this@ProfileActivity)
+                    .setTitle(R.string.account_remove_confirm_title)
+                    .setMessage(getString(R.string.account_remove_confirm_message, u.displayName))
+                    .setPositiveButton(R.string.action_delete) { _, _ ->
+                        lifecycleScope.launch {
+                            val remaining = tokenManager.removeAccount(u.id)
+                            showToast(getString(R.string.account_removed))
+                            if (remaining == null) {
+                                val intent = Intent(this@ProfileActivity, StartActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                }
+                                startActivity(intent)
+                                finishAffinity()
+                            } else if (isActive) {
+                                val target = if (remaining.user.isStaff) {
+                                    Intent(this@ProfileActivity, AdminHomeActivity::class.java)
+                                } else {
+                                    Intent(this@ProfileActivity, HomeActivity::class.java)
+                                }
+                                target.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(target)
+                                finishAffinity()
+                            }
+                        }
+                    }
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .show()
+            }
+
+            container.addView(itemView)
         }
     }
 
@@ -283,6 +405,7 @@ class ProfileActivity : BaseActivity() {
 
     private fun renderBusinessCard(state: ProfileUiState) {
         val user = state.user
+        val cardBusiness = findViewById<View>(R.id.cardBusinessUpgrade)
         val ivIcon = findViewById<android.widget.ImageView>(R.id.ivBusinessStatusIcon) ?: return
         val tvTitle = findViewById<android.widget.TextView>(R.id.tvBusinessCardTitle) ?: return
         val tvBadge = findViewById<android.widget.TextView>(R.id.tvBusinessCardBadge) ?: return
@@ -293,13 +416,18 @@ class ProfileActivity : BaseActivity() {
 
         btnRequest.isEnabled = !state.submittingBusinessRequest
 
+        val roles = user?.roles ?: emptyList()
+        val isPlatformAdmin = user?.isPlatformAdmin == true
+        val isOwner = roles.contains(com.leon.be_nobat.domain.model.User.ROLE_OWNER)
+        val isManager = roles.contains(com.leon.be_nobat.domain.model.User.ROLE_MANAGER)
         val isStaff = user?.isStaff == true
+        val isBranchStaffOnly = isStaff && !isOwner && !isManager && !isPlatformAdmin
         val req = state.businessRequest
 
         when {
-            isStaff -> {
-                ivIcon.setImageResource(R.drawable.ic_dashboard)
-                tvTitle.text = getString(R.string.business_request_status_approved)
+            isPlatformAdmin -> {
+                ivIcon.setImageResource(R.drawable.ic_platform)
+                tvTitle.text = getString(R.string.role_platform_admin)
                 tvBadge.visibility = View.VISIBLE
                 tvBadge.text = getString(R.string.status_active)
                 com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
@@ -307,7 +435,69 @@ class ProfileActivity : BaseActivity() {
                 tvNote.visibility = View.GONE
                 btnRequest.visibility = View.GONE
                 btnGoAdmin.visibility = View.VISIBLE
+                btnGoAdmin.text = getString(R.string.nav_admin)
                 btnGoAdmin.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+                cardBusiness?.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+            }
+            isOwner -> {
+                ivIcon.setImageResource(R.drawable.ic_dashboard)
+                tvTitle.text = if (req?.status.equals("Approved", ignoreCase = true)) {
+                    getString(R.string.business_request_status_approved)
+                } else {
+                    getString(R.string.profile_manager_business_title)
+                }
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.status_active)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
+                tvDesc.text = getString(R.string.profile_manager_active_desc)
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.GONE
+                btnGoAdmin.visibility = View.VISIBLE
+                btnGoAdmin.text = getString(R.string.nav_admin)
+                btnGoAdmin.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+                cardBusiness?.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+            }
+            isManager -> {
+                ivIcon.setImageResource(R.drawable.ic_branch)
+                tvTitle.text = getString(R.string.profile_manager_branch_title)
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.status_active)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
+                tvDesc.text = getString(R.string.profile_manager_branch_desc)
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.GONE
+                btnGoAdmin.visibility = View.VISIBLE
+                btnGoAdmin.text = getString(R.string.nav_admin)
+                btnGoAdmin.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+                cardBusiness?.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+            }
+            isBranchStaffOnly -> {
+                ivIcon.setImageResource(R.drawable.ic_person)
+                tvTitle.text = getString(R.string.profile_staff_active_title)
+                tvBadge.visibility = View.VISIBLE
+                tvBadge.text = getString(R.string.status_active)
+                com.leon.be_nobat.helpers.StatusBadgeHelper.applyBadgeStyle(tvBadge, com.leon.be_nobat.helpers.StatusBadgeHelper.BadgeStyle.COMPLETED)
+                tvDesc.text = getString(R.string.profile_staff_active_desc)
+                tvNote.visibility = View.GONE
+                btnRequest.visibility = View.GONE
+                btnGoAdmin.visibility = View.VISIBLE
+                btnGoAdmin.text = getString(R.string.nav_admin)
+                btnGoAdmin.setOnClickListener {
+                    startActivity(Intent(this, AdminHomeActivity::class.java))
+                }
+                cardBusiness?.setOnClickListener {
                     startActivity(Intent(this, AdminHomeActivity::class.java))
                 }
             }
@@ -320,8 +510,21 @@ class ProfileActivity : BaseActivity() {
                 val details = getString(R.string.profile_request_meta_format, req?.category.orEmpty(), req?.city.orEmpty(), req?.firstBranchName.orEmpty())
                 tvDesc.text = "${getString(R.string.business_request_status_pending, req?.businessName.orEmpty())}\n$details"
                 tvNote.visibility = View.GONE
-                btnRequest.visibility = View.GONE
+                btnRequest.visibility = View.VISIBLE
+                btnRequest.isEnabled = true
+                btnRequest.setIconResource(R.drawable.ic_document)
+                if (req?.hasReceipt == true) {
+                    btnRequest.text = getString(R.string.profile_pending_view_request)
+                } else {
+                    btnRequest.text = getString(R.string.profile_pending_attach_receipt)
+                }
+                btnRequest.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
                 btnGoAdmin.visibility = View.GONE
+                cardBusiness?.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
             }
             req?.status.equals("Rejected", ignoreCase = true) -> {
                 ivIcon.setImageResource(R.drawable.ic_platform)
@@ -342,6 +545,9 @@ class ProfileActivity : BaseActivity() {
                     upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
                 }
                 btnGoAdmin.visibility = View.GONE
+                cardBusiness?.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
             }
             else -> {
                 ivIcon.setImageResource(R.drawable.ic_platform)
@@ -355,6 +561,9 @@ class ProfileActivity : BaseActivity() {
                     upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
                 }
                 btnGoAdmin.visibility = View.GONE
+                cardBusiness?.setOnClickListener {
+                    upgradeLauncher.launch(Intent(this, BusinessUpgradeActivity::class.java))
+                }
             }
         }
     }

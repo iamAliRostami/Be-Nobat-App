@@ -68,7 +68,11 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
             if (hasFocus) bringCurrentFocusIntoView(200L)
         }
         etPassword.setOnClickListener { bringCurrentFocusIntoView(150L) }
-        if (intent.getStringExtra(EXTRA_RETURN_TARGET) == null) {
+        val isAddAccount = intent.getBooleanExtra(EXTRA_ADD_ACCOUNT, false)
+        if (isAddAccount) {
+            findViewById<android.widget.TextView?>(R.id.tvHeaderTitle)?.text = getString(R.string.add_account)
+        }
+        if (intent.getStringExtra(EXTRA_RETURN_TARGET) == null && !isAddAccount) {
             setupDoubleBackToExit()
         }
     }
@@ -200,6 +204,7 @@ class LoginActivity : BaseActivity(), View.OnClickListener {
     companion object {
         const val EXTRA_RETURN_TARGET = "extra_return_target"
         const val EXTRA_BUSINESS_ID = "extra_business_id"
+        const val EXTRA_ADD_ACCOUNT = "extra_add_account"
     }
 
     private fun routeAfterLogin(user: com.leon.be_nobat.domain.model.User) {

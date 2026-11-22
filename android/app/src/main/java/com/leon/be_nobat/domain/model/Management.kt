@@ -88,6 +88,10 @@ data class ManagementBranch(
     val gallery: List<GalleryItem> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val inviteCode: String? = null,
+    val planType: String? = null,
+    val planExpiresAt: String? = null,
+    val isPlanExpired: Boolean = false,
 )
 
 @Serializable
@@ -123,6 +127,10 @@ data class ManagementPerson(
     val rating: Double? = null,
     val role: String? = null,
     val branchName: String? = null,
+    val businessName: String? = null,
+    val branchId: String? = null,
+    val businessId: String? = null,
+    val membershipId: String? = null,
 )
 
 @Serializable
@@ -291,6 +299,9 @@ data class RequestedBranch(
 data class PlatformPricing(
     val baseBusinessPrice: Double = 500_000.0,
     val extraBranchPrice: Double = 200_000.0,
+    val discountPercent3Months: Int = 10,
+    val discountPercent6Months: Int = 15,
+    val discountPercent12Months: Int = 20,
     val cardNumber: String = "",
     val iban: String = "",
     val accountHolder: String = "",
@@ -298,6 +309,7 @@ data class PlatformPricing(
     val address: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val inviteCode: String? = null,
     val phone: String = "",
     val supportPhone: String = "",
     val mobile: String = "",
@@ -339,6 +351,9 @@ data class BusinessRequest(
     val extraBranchPrice: Double = 0.0,
     val totalBranchesCount: Int = 1,
     val totalFee: Double = 0.0,
+    val planType: String = "Trial7Days",
+    val planDurationMonths: Int = 0,
+    val discountPercent: Int = 0,
     val receiptTrackingCode: String? = null,
     val receiptUploadedAt: String? = null,
     @SerialName("hasReceipt")
@@ -460,6 +475,8 @@ data class SidebarBadgesDto(
     val pendingAppointments: Int = 0,
     val pendingReviews: Int = 0,
     val pendingRequests: Int = 0,
+    val pendingBranchRequests: Int = 0,
+    val pendingMyBranches: Int = 0,
     val unreadContactMessages: Int = 0,
     val pendingPasswordResets: Int = 0,
     val unreadBroadcasts: Int = 0,

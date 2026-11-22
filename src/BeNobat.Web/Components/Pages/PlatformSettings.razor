@@ -222,9 +222,9 @@
                 </div>
 
                 <!-- پیش‌نمایش زنده قیمت پلن‌ها -->
-                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:0.85rem; margin-top:0.75rem; font-size:0.84rem;">
-                    <span style="font-weight:700; color:#334155; display:block; margin-bottom:0.4rem;">💡 پیش‌نمایش هزینه پلن‌ها برای شعبه اول:</span>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; color:#475569;">
+                <div class="pricing-preview-card">
+                    <span class="pricing-preview-title">💡 پیش‌نمایش هزینه پلن‌ها برای شعبه اول:</span>
+                    <div class="pricing-preview-grid">
                         <div>• ۱ هفته تست رایگان: <b>۰ تومان</b></div>
                         <div>• ۳ ماهه: <b>@((settings.BaseBusinessPrice * 3 * (100 - settings.DiscountPercent3Months) / 100).ToString("N0")) تومان</b> (@settings.DiscountPercent3Months% تخفیف)</div>
                         <div>• ۶ ماهه: <b>@((settings.BaseBusinessPrice * 6 * (100 - settings.DiscountPercent6Months) / 100).ToString("N0")) تومان</b> (@settings.DiscountPercent6Months% تخفیف)</div>
@@ -364,7 +364,7 @@
 }
 .card {
     background: var(--surface, #fff);
-    border: 1px solid var(--border-color, #e2e8f0);
+    border: 1px solid var(--outline-soft, #e2e8f0);
     border-radius: 16px;
     padding: 1.5rem;
     box-shadow: 0 4px 16px rgba(0,0,0,0.03);
@@ -376,13 +376,13 @@
     align-items: center;
     margin-bottom: 0.5rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--border-color, #eef2f6);
+    border-bottom: 1px solid var(--outline-soft, #eef2f6);
 }
 .card-header h2 {
     font-size: 1.15rem;
     font-weight: 700;
     margin: 0;
-    color: var(--text-primary, #1e293b);
+    color: var(--on-surface, #1e293b);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -392,7 +392,7 @@
 }
 .card-desc {
     font-size: 0.82rem;
-    color: var(--text-secondary, #64748b);
+    color: var(--on-surface-variant, #64748b);
     margin: 0 0 1.25rem;
     line-height: 1.55;
 }
@@ -417,15 +417,15 @@
     font-weight: 600;
     font-size: 0.88rem;
     margin-bottom: 0.45rem;
-    color: var(--text-primary, #1e293b);
+    color: var(--on-surface, #1e293b);
 }
 .form-control {
     width: 100%;
     padding: 0.7rem 0.95rem;
     border-radius: 10px;
-    border: 1.5px solid var(--border-color, #cbd5e1);
+    border: 1.5px solid var(--outline, #cbd5e1);
     background: var(--surface, #fff);
-    color: var(--text-primary, #1e293b);
+    color: var(--on-surface, #1e293b);
     font-family: inherit;
     font-size: 0.92rem;
     box-sizing: border-box;
@@ -437,7 +437,7 @@
     box-shadow: 0 0 0 3px rgba(0, 121, 107, 0.12);
 }
 .form-control::placeholder {
-    color: var(--text-muted, #94a3b8);
+    color: var(--on-surface-variant, #94a3b8);
 }
 textarea.form-control {
     resize: vertical;
@@ -447,10 +447,10 @@ textarea.form-control {
 .section-subtitle {
     font-size: 0.92rem;
     font-weight: 700;
-    color: var(--text-primary, #1e293b);
+    color: var(--on-surface, #1e293b);
     margin: 1.25rem 0 0.85rem;
     padding-top: 0.85rem;
-    border-top: 1px dashed var(--border-color, #e2e8f0);
+    border-top: 1px dashed var(--outline-soft, #e2e8f0);
     display: flex;
     align-items: center;
     gap: 0.45rem;
@@ -461,14 +461,34 @@ textarea.form-control {
     justify-content: space-between;
     padding: 0.75rem 1rem;
     background: var(--surface-variant, #f8fafc);
-    border: 1px solid var(--border-color, #e2e8f0);
+    border: 1px solid var(--outline-soft, #e2e8f0);
     border-radius: 10px;
     margin-top: 0.75rem;
 }
 .preview-nav-label {
     font-size: 0.82rem;
-    color: var(--text-secondary, #64748b);
+    color: var(--on-surface-variant, #64748b);
     font-weight: 500;
+}
+.pricing-preview-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem;
+    margin-top: 0.75rem;
+    font-size: 0.84rem;
+}
+.pricing-preview-title {
+    font-weight: 700;
+    color: #334155;
+    display: block;
+    margin-bottom: 0.4rem;
+}
+.pricing-preview-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    color: #475569;
 }
 .bottom-bar {
     display: flex;
@@ -481,6 +501,81 @@ textarea.form-control {
     align-items: center;
     gap: 8px;
     font-weight: 600;
+}
+
+/* ===== Dark Mode High Contrast Overrides ===== */
+html[data-theme="dark"] .admin-page .page-title h1 {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-page .page-title p {
+    color: #a4b4ae !important;
+}
+html[data-theme="dark"] .admin-page .card {
+    background: #17201e !important;
+    border: 1px solid #273734 !important;
+    box-shadow: none !important;
+}
+html[data-theme="dark"] .admin-page .card-header {
+    border-bottom: 1px solid #273734 !important;
+}
+html[data-theme="dark"] .admin-page .card-header h2 {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-page .card-desc {
+    color: #a4b4ae !important;
+}
+html[data-theme="dark"] .admin-page .form-label {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-page .form-control {
+    background: #121a19 !important;
+    border: 1.5px solid #2e443f !important;
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-page .form-control:focus {
+    border-color: #76d6c3 !important;
+    box-shadow: 0 0 0 3px rgba(118, 214, 195, 0.2) !important;
+}
+html[data-theme="dark"] .admin-page .form-control::placeholder {
+    color: #647a74 !important;
+}
+html[data-theme="dark"] .admin-page .section-subtitle {
+    color: #76d6c3 !important;
+    border-top: 1px dashed #273734 !important;
+}
+html[data-theme="dark"] .admin-page .form-hint {
+    color: #a4b4ae !important;
+}
+html[data-theme="dark"] .admin-page .preview-nav-box {
+    background: #121a19 !important;
+    border: 1px solid #273734 !important;
+}
+html[data-theme="dark"] .admin-page .preview-nav-label {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .admin-page .pricing-preview-card {
+    background: #121a19 !important;
+    border: 1px solid #273734 !important;
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .admin-page .pricing-preview-title {
+    color: #76d6c3 !important;
+}
+html[data-theme="dark"] .admin-page .pricing-preview-grid {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .admin-page .pricing-preview-grid b {
+    color: #5cd2b7 !important;
+}
+html[data-theme="dark"] .admin-page .alert-success {
+    background: #064e3b !important;
+    border-color: #059669 !important;
+    color: #a7f3d0 !important;
+}
+html[data-theme="dark"] .admin-page .alert-danger {
+    background: #450a0a !important;
+    border-color: #b91c1c !important;
+    color: #fecaca !important;
 }
 </style>
 

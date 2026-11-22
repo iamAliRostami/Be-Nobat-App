@@ -75,11 +75,22 @@ public static class AuthenticationEndpoints
 
             return Results.Ok(new { message = "درخواست بازنشانی رمز عبور با موفقیت ثبت شد و توسط مدیر سامانه بررسی خواهد شد." });
         }).AllowAnonymous().RequireRateLimiting("mobile-auth");
-        auth.MapPost("/register", async (RegisterInput input, UserManager<AppUser> users, MobileTokenService tokens) =>
+        auth.MapPost("/register", async (RegisterInput input, UserManager<AppUser> users, MobileTokenService tokens, AppDbContext db) =>
         {
             if (!UserInputValidation.TryNormalizeDisplayName(input.DisplayName, out var displayName) ||
                 string.IsNullOrEmpty(input.Password) || input.Password.Length > 256 || !UserInputValidation.TryNormalizeIranianMobile(input.PhoneNumber, out var phone))
                 return ApiResults.Error("invalid_input", "A name, valid Iranian mobile number and password are required.");
+
+            Branch? invitedBranch = null;
+            if (!string.IsNullOrWhiteSpace(input.InviteCode))
+            {
+                var cleanCode = input.InviteCode.Trim().ToUpperInvariant();
+                invitedBranch = await db.Branches.FirstOrDefaultAsync(b => b.InviteCode == cleanCode && b.DeletedAt == null && b.IsApproved);
+                if (invitedBranch is null)
+                {
+                    return ApiResults.Error("invalid_invite_code", "کد دعوت شعبه وارد شده معتبر نمی‌باشد.", 400);
+                }
+            }
 
             string? email = null;
             if (!string.IsNullOrWhiteSpace(input.Email))
@@ -104,6 +115,19 @@ public static class AuthenticationEndpoints
             }
             var role = await users.AddToRoleAsync(user, AppRoles.Customer);
             if (!role.Succeeded) { await users.DeleteAsync(user); return IdentityError(role); }
+
+            if (invitedBranch is not null)
+            {
+                db.BranchMemberships.Add(new BranchMembership
+                {
+                    BranchId = invitedBranch.Id,
+                    UserId = user.Id,
+                    Role = AppRoles.Staff
+                });
+                await db.SaveChangesAsync();
+                await TeamRoleSync.SyncAsync(users, db, user);
+            }
+
             return Results.Created("/api/v1/me", await tokens.IssueAsync(user));
         }).AllowAnonymous().RequireRateLimiting("mobile-auth");
         auth.MapPost("/logout", async (HttpContext http, UserManager<AppUser> users) =>
@@ -176,7 +200,7 @@ public static class AuthenticationEndpoints
     public static bool ValidImage(byte[] bytes, string contentType) => UserAvatar.ValidImage(bytes, contentType);
 }
 public sealed record LoginInput(string? Email, string? Password, string? PhoneNumber = null, string? Identifier = null);
-public sealed record RegisterInput(string? DisplayName, string? Email, string? PhoneNumber, string? Password);
+public sealed record RegisterInput(string? DisplayName, string? Email, string? PhoneNumber, string? Password, string? InviteCode = null);
 public sealed record ProfileInput(string? DisplayName, string? PhoneNumber);
 public sealed record PasswordInput(string? CurrentPassword, string? NewPassword);
 public sealed record EmailInput(string? Email, string? CurrentPassword);

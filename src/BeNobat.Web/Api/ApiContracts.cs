@@ -1,4 +1,4 @@
-using BeNobat.Web.Domain;
+﻿using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using BeNobat.Web.Security;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +34,7 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
         var id = UserId;
         var query = db.Branches.Where(b => b.DeletedAt == null && b.Business.DeletedAt == null);
         return IsPlatform ? query : query.Where(b => db.BranchMemberships.Any(m => m.DeletedAt == null && m.UserId == id && m.BranchId == b.Id &&
-            ((m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) || (!managed && m.Role == AppRoles.Staff))));
+            ((m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)) || (!managed && m.Role.Contains(AppRoles.Staff)))));
     }
     public IQueryable<Business> Businesses(bool managed = false)
     {
@@ -49,8 +49,8 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
         var query = db.Appointments.IgnoreQueryFilters().Where(a => a.DeletedAt == null);
         return IsPlatform ? query : query.Where(a => db.BranchMemberships.IgnoreQueryFilters().Any(m =>
             m.DeletedAt == null && m.UserId == id && m.BranchId == a.BranchId && m.Branch.Business.DeletedAt == null &&
-            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager ||
-             (m.Role == AppRoles.Staff && a.Resource != null && a.Resource.BranchId == a.BranchId && a.Resource.UserId == id))));
+            (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) ||
+             (m.Role.Contains(AppRoles.Staff) && a.Resource != null && a.Resource.BranchId == a.BranchId && a.Resource.UserId == id))));
     }
     public Task<bool> CanManageBranch(Guid id) => Branches(true).AnyAsync(b => b.Id == id);
     public Task<bool> CanManageBusiness(Guid id) => Businesses(true).AnyAsync(b => b.Id == id);
@@ -69,13 +69,19 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
     {
         if (!await db.Businesses.AnyAsync(b => b.Id == id && b.DeletedAt == null)) return false;
         var user = UserId;
-        return IsPlatform || await db.BranchMemberships.AnyAsync(m => m.DeletedAt == null && m.UserId == user && m.Role == AppRoles.Owner && m.Branch.BusinessId == id && m.Branch.DeletedAt == null && m.Branch.Business.DeletedAt == null);
+        return IsPlatform || await db.BranchMemberships.AnyAsync(m => m.DeletedAt == null && m.UserId == user && m.Role.Contains(AppRoles.Owner) && m.Branch.BusinessId == id && m.Branch.DeletedAt == null && m.Branch.Business.DeletedAt == null);
     }
     public async Task<bool> CanAssignRole(string role, Guid branchId)
     {
-        if (role is not (AppRoles.Owner or AppRoles.Manager or AppRoles.Staff)) return false;
+        var roles = role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (roles.Length == 0 || !roles.All(r => AppRoles.Team.Contains(r))) return false;
         var business = await db.Branches.Where(b => b.Id == branchId && b.Business.DeletedAt == null).Select(b => (Guid?)b.BusinessId).FirstOrDefaultAsync();
-        return business is Guid id && (role == AppRoles.Owner ? await CanOwnBusiness(id) : await CanManageBranch(branchId));
+        if (business is not Guid id) return false;
+        if (roles.Contains(AppRoles.Owner))
+        {
+            return await CanOwnBusiness(id);
+        }
+        return await CanManageBranch(branchId);
     }
     public IQueryable<Review> Reviews()
     {
@@ -85,7 +91,7 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
         var query = db.Reviews.IgnoreQueryFilters();
         return IsPlatform ? query : query.Where(r => r.BranchId != null && db.BranchMemberships.IgnoreQueryFilters().Any(m =>
             m.DeletedAt == null && m.UserId == id && m.BranchId == r.BranchId && m.Branch.BusinessId == r.BusinessId &&
-            m.Branch.Business.DeletedAt == null && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)));
+            m.Branch.Business.DeletedAt == null && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager))));
     }
     public IQueryable<CustomerReview> CustomerReviews()
     {
@@ -93,7 +99,7 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
         var query = db.CustomerReviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null);
         return IsPlatform ? query : query.Where(r => db.BranchMemberships.IgnoreQueryFilters().Any(m =>
             m.DeletedAt == null && m.UserId == id && m.BranchId == r.Appointment.BranchId && m.Branch.Business.DeletedAt == null &&
-            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)));
+            (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager))));
     }
 }
 

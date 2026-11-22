@@ -47,6 +47,7 @@ class AuthRepositoryImpl(
             put("email", input.email)
             put("phoneNumber", input.phoneNumber)
             put("password", input.password)
+            put("inviteCode", input.inviteCode)
         }
         val session = api.register<MobileSession>(body).getOrThrow()
         tokenManager.save(session)
@@ -133,6 +134,9 @@ class AuthRepositoryImpl(
             put("contactPhone", input.contactPhone)
             put("firstBranchName", input.firstBranchName)
             put("firstBranchAddress", input.firstBranchAddress)
+            put("planType", input.planType)
+            put("planDurationMonths", input.planDurationMonths)
+            put("discountPercent", input.discountPercent)
             if (input.additionalBranches.isNotEmpty()) {
                 put("additionalBranches", kotlinx.serialization.json.buildJsonArray {
                     input.additionalBranches.forEach { br ->

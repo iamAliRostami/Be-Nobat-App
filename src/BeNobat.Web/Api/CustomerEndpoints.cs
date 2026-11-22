@@ -16,7 +16,28 @@ public static class CustomerEndpoints
             var ids = ApiResults.ServiceIds(serviceIds);
             if (ids is null) return ApiResults.Error("invalid_input", "Select at least one service.");
             var result = await booking.GetAvailabilityAsync(businessId, branchId, ids, resourceId, date, ct);
-            if (!result.Success) return Failure(result.Failure!.Value);
+            if (!result.Success)
+            {
+                if (result.Failure == BookingFailure.NoEligibleProvider && result.Branch is not null)
+                {
+                    var emptyDepositPct = result.Branch?.DepositPercentage ?? result.Business?.DepositPercentage ?? 0;
+                    var emptyDepositAmount = emptyDepositPct > 0 ? Math.Round((result.TotalPrice * emptyDepositPct) / 100m) : 0m;
+                    return Results.Ok(new {
+                        date,
+                        timeZoneId = result.Branch?.TimeZoneId ?? "Asia/Tehran",
+                        totalDurationMinutes = result.DurationMinutes,
+                        totalPrice = result.TotalPrice,
+                        result.Currency,
+                        depositPercentage = emptyDepositPct,
+                        depositAmount = emptyDepositAmount,
+                        depositCardNumber = result.Branch?.DepositCardNumber ?? result.Business?.DepositCardNumber,
+                        depositIban = result.Branch?.DepositIban ?? result.Business?.DepositIban,
+                        depositAccountHolder = result.Branch?.DepositAccountHolder ?? result.Business?.DepositAccountHolder,
+                        slots = Array.Empty<SlotDto>()
+                    });
+                }
+                return Failure(result.Failure!.Value);
+            }
             var providers = result.Resources.ToDictionary(r => r.Id, r => r.Name);
             var effectiveDepositPct = result.Branch?.DepositPercentage ?? result.Business?.DepositPercentage ?? 0;
             var depositAmount = effectiveDepositPct > 0 ? Math.Round((result.TotalPrice * effectiveDepositPct) / 100m) : 0m;
@@ -164,7 +185,33 @@ public static class CustomerEndpoints
                 .ToList() ?? [];
             var additionalJson = branches.Count > 0 ? System.Text.Json.JsonSerializer.Serialize(branches) : null;
             var totalBranches = 1 + branches.Count;
-            var totalFee = pricing.BaseBusinessPrice + (pricing.ExtraBranchPrice * branches.Count);
+            var planType = string.IsNullOrWhiteSpace(input.PlanType) ? "Trial7Days" : input.PlanType.Trim();
+            var planDurationMonths = planType switch
+            {
+                "Monthly" => 1,
+                "Quarterly" => 3,
+                "SemiAnnual" => 6,
+                "Annual" => 12,
+                _ => 0
+            };
+            var discountPercent = planType switch
+            {
+                "Monthly" => 0,
+                "Quarterly" => pricing.DiscountPercent3Months,
+                "SemiAnnual" => pricing.DiscountPercent6Months,
+                "Annual" => pricing.DiscountPercent12Months,
+                _ => 0
+            };
+            var monthly = pricing.BaseBusinessPrice + (pricing.ExtraBranchPrice * branches.Count);
+            var totalFee = planType switch
+            {
+                "Trial7Days" => 0m,
+                "Monthly" => monthly,
+                "Quarterly" => (monthly * 3m) * (100 - pricing.DiscountPercent3Months) / 100m,
+                "SemiAnnual" => (monthly * 6m) * (100 - pricing.DiscountPercent6Months) / 100m,
+                "Annual" => (monthly * 12m) * (100 - pricing.DiscountPercent12Months) / 100m,
+                _ => monthly
+            };
 
             var req = new BusinessRequest
             {
@@ -177,6 +224,9 @@ public static class CustomerEndpoints
                 FirstBranchName = string.IsNullOrWhiteSpace(input.FirstBranchName) ? "شعبه مرکزی" : input.FirstBranchName.Trim(),
                 FirstBranchAddress = input.FirstBranchAddress?.Trim() ?? "",
                 AdditionalBranchesJson = additionalJson,
+                PlanType = planType,
+                PlanDurationMonths = planDurationMonths,
+                DiscountPercent = discountPercent,
                 BasePrice = pricing.BaseBusinessPrice,
                 ExtraBranchPrice = pricing.ExtraBranchPrice,
                 TotalBranchesCount = totalBranches,
@@ -219,16 +269,26 @@ public static class CustomerEndpoints
     }
     public static IResult Failure(BookingFailure failure)
     {
-        var code = failure switch
+        var (code, msg) = failure switch
         {
-            BookingFailure.InvalidRequest => "invalid_input", BookingFailure.TermsNotAccepted => "terms_required", BookingFailure.InvalidPhone => "invalid_phone",
-            BookingFailure.CustomerNotFound => "unauthorized", BookingFailure.BusinessUnavailable => "business_unavailable", BookingFailure.BranchUnavailable => "branch_unavailable",
-            BookingFailure.ServiceUnavailable => "service_unavailable", BookingFailure.NoEligibleProvider => "no_provider", BookingFailure.OutsideHorizon => "outside_horizon",
-            BookingFailure.TooSoon => "too_soon", BookingFailure.TermsChanged => "terms_changed", BookingFailure.SlotUnavailable => "slot_unavailable",
-            BookingFailure.CustomerOverlap => "customer_overlap", BookingFailure.ActiveLimitReached => "active_limit", _ => "invalid_input",
+            BookingFailure.InvalidRequest => ("invalid_input", "اطلاعات ارسالی نامعتبر است."),
+            BookingFailure.TermsNotAccepted => ("terms_required", "پذیرش شرایط و قوانین الزامی است."),
+            BookingFailure.InvalidPhone => ("invalid_phone", "شماره تلفن همراه نامعتبر است."),
+            BookingFailure.CustomerNotFound => ("unauthorized", "کاربر یافت نشد."),
+            BookingFailure.BusinessUnavailable => ("business_unavailable", "کسب‌وکار مورد نظر در دسترس نیست."),
+            BookingFailure.BranchUnavailable => ("branch_unavailable", "شعبه مورد نظر در دسترس نیست."),
+            BookingFailure.ServiceUnavailable => ("service_unavailable", "خدمات انتخابی در دسترس نیستند."),
+            BookingFailure.NoEligibleProvider => ("no_provider", "هیچ ارائه‌دهنده‌ای برای خدمات انتخاب‌شده یافت نشد."),
+            BookingFailure.OutsideHorizon => ("outside_horizon", "تاریخ انتخابی خارج از محدوده مجاز نوبت‌دهی است."),
+            BookingFailure.TooSoon => ("too_soon", "زمان انتخابی برای رزرو بسیار نزدیک است."),
+            BookingFailure.TermsChanged => ("terms_changed", "شرایط نوبت‌دهی تغییر یافته است."),
+            BookingFailure.SlotUnavailable => ("slot_unavailable", "نوبت انتخابی دیگر در دسترس نیست یا رزرو شده است."),
+            BookingFailure.CustomerOverlap => ("customer_overlap", "شما در این بازه زمانی نوبت فعال دیگری دارید."),
+            BookingFailure.ActiveLimitReached => ("active_limit", "سقف تعداد نوبت‌های فعال شما تکمیل شده است."),
+            _ => ("invalid_input", "امکان تکمیل رزرو وجود ندارد. لطفاً مجدداً بررسی فرمایید."),
         };
         var status = failure is BookingFailure.CustomerNotFound ? 401 : failure is BookingFailure.InvalidRequest or BookingFailure.InvalidPhone or BookingFailure.TermsNotAccepted or BookingFailure.OutsideHorizon or BookingFailure.TooSoon ? 400 : 409;
-        return ApiResults.Error(code, "The booking could not be completed. Refresh availability and check the selected details.", status);
+        return ApiResults.Error(code, msg, status);
     }
     private static IQueryable<Appointment> History(AppDbContext db) => db.Appointments.IgnoreQueryFilters().AsNoTracking().Where(a => a.DeletedAt == null)
         .Include(a => a.Branch).ThenInclude(b => b.Business).Include(a => a.Branch).ThenInclude(b => b.BranchServices).Include(a => a.Service).Include(a => a.Resource).Include(a => a.Services).ThenInclude(s => s.Service);

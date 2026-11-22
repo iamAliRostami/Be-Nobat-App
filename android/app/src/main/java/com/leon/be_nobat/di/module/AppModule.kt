@@ -51,6 +51,7 @@ import com.leon.be_nobat.domain.usecase.AdminListServicesUseCase
 import com.leon.be_nobat.domain.usecase.AdminListTeamUseCase
 import com.leon.be_nobat.domain.usecase.AdminListCustomersUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateTeamMemberUseCase
+import com.leon.be_nobat.domain.usecase.AdminUpdateTeamMemberRoleUseCase
 import com.leon.be_nobat.domain.usecase.AdminCreateCustomerUseCase
 import com.leon.be_nobat.domain.usecase.AdminTogglePersonActiveUseCase
 import com.leon.be_nobat.domain.usecase.AdminModerateReviewUseCase
@@ -242,6 +243,7 @@ val useCaseModule = module {
     factory { AdminDeleteMembershipUseCase(get()) }
     factory { AdminListTeamUseCase(get()) }
     factory { AdminCreateTeamMemberUseCase(get()) }
+    factory { AdminUpdateTeamMemberRoleUseCase(get()) }
     factory { AdminListCustomersUseCase(get()) }
     factory { AdminCreateCustomerUseCase(get()) }
     factory { AdminTogglePersonActiveUseCase(get()) }
@@ -309,7 +311,7 @@ val viewModelModule = module {
     viewModel { AdminBranchesViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { AdminReviewsViewModel(get(), get(), get()) }
     viewModel { AdminCustomersViewModel(get(), get(), get()) }
-    viewModel { AdminTeamViewModel(get(), get(), get(), get()) }
+    viewModel { AdminTeamViewModel(get(), get(), get(), get(), get()) }
     viewModel { AdminServicesViewModel(get(), get(), get(), get()) }
     viewModel { AdminAvailabilityViewModel(get(), get(), get(), get(), get()) }
     viewModel { AdminSystemMessagesViewModel(get()) }

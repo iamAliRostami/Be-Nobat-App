@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using BeNobat.Web.Domain;
 using BeNobat.Web.Infrastructure;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -70,8 +70,8 @@ public sealed class AdminAccessScope(
         return query.Where(a => a.DeletedAt == null && (platform.Any() || (session.Any() && db.BranchMemberships.IgnoreQueryFilters().Any(m =>
             m.DeletedAt == null && m.Branch.Business.DeletedAt == null &&
             m.UserId == id && m.BranchId == a.BranchId &&
-            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager ||
-             (m.Role == AppRoles.Staff && a.Resource != null && a.Resource.BranchId == a.BranchId && a.Resource.UserId == id))))));
+            (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) ||
+             (m.Role.Contains(AppRoles.Staff) && a.Resource != null && a.Resource.BranchId == a.BranchId && a.Resource.UserId == id))))));
     }
 
     /// <summary>شعبه‌هایی که کاربر در آن‌ها عضو است (با هر نقش).</summary>
@@ -82,7 +82,7 @@ public sealed class AdminAccessScope(
         var id = await UserIdAsync();
         return db.Branches.Where(b => b.DeletedAt == null && (platform.Any() || (session.Any() && b.Business.DeletedAt == null &&
             db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
-                m.UserId == id && m.BranchId == b.Id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff)))));
+                m.UserId == id && m.BranchId == b.Id && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff))))));
     }
 
     /// <summary>شعبه‌هایی که کاربر در آن‌ها «مالک» یا «مدیر» است و می‌تواند تنظیماتشان را تغییر دهد.</summary>
@@ -93,7 +93,7 @@ public sealed class AdminAccessScope(
         var id = await UserIdAsync();
         return db.Branches.Where(b => (includeArchived || b.DeletedAt == null) && (platform.Any() || (session.Any() && b.Business.DeletedAt == null &&
             db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
-                m.UserId == id && m.BranchId == b.Id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)))));
+                m.UserId == id && m.BranchId == b.Id && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager))))));
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public sealed class AdminAccessScope(
         var id = await UserIdAsync();
         return await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.DeletedAt == null &&
             m.Branch.Business.DeletedAt == null && m.Branch.DeletedAt == null &&
-            m.UserId == id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) && m.Branch.BusinessId == businessId);
+            m.UserId == id && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)) && m.Branch.BusinessId == businessId);
     }
 
     public async Task<bool> CanManageBranchMediaAsync(Guid branchId)
@@ -131,7 +131,7 @@ public sealed class AdminAccessScope(
         var id = await UserIdAsync();
         return await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.DeletedAt == null &&
             m.Branch.Business.DeletedAt == null && m.Branch.DeletedAt == null &&
-            m.UserId == id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) && m.BranchId == branchId);
+            m.UserId == id && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)) && m.BranchId == branchId);
     }
 
     public async Task<bool> CanManageResourceMediaAsync(Guid resourceId)
@@ -152,7 +152,7 @@ public sealed class AdminAccessScope(
         var id = await UserIdAsync();
         return await db.BranchMemberships.IgnoreQueryFilters().AnyAsync(m => m.DeletedAt == null &&
             m.Branch.Business.DeletedAt == null &&
-            m.UserId == id && m.Role == AppRoles.Owner && m.Branch.BusinessId == businessId);
+            m.UserId == id && m.Role.Contains(AppRoles.Owner) && m.Branch.BusinessId == businessId);
     }
 
     public async Task<bool> CanManageServiceAsync(Guid serviceId)
@@ -181,7 +181,7 @@ public sealed class AdminAccessScope(
         return db.Reviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null && (platform.Any() ||
             (r.BranchId != null && managed.Any(b => b.Id == r.BranchId)) ||
             db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
-                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager))));
+                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)))));
     }
 
     public async Task<IQueryable<CustomerReview>> CustomerReviewsAsync()
@@ -192,7 +192,7 @@ public sealed class AdminAccessScope(
         return db.CustomerReviews.IgnoreQueryFilters().Where(r => r.DeletedAt == null &&
             (platform.Any() || managed.Any(b => b.Id == r.Appointment.BranchId) ||
             db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null &&
-                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager))));
+                m.UserId == id && m.Branch.BusinessId == r.BusinessId && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)))));
     }
 
     public async Task<bool> CanAccessBranchAsync(Guid branchId) =>
@@ -208,7 +208,7 @@ public sealed class AdminAccessScope(
         return await db.Branches.IgnoreQueryFilters().AnyAsync(b => b.Id == branchId &&
             (platform.Any() || (session.Any() && b.Business.DeletedAt == null &&
                 db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null && m.UserId == id &&
-                    m.BranchId == b.Id && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager)))));
+                    m.BranchId == b.Id && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager))))));
     }
 
     public async Task<bool> CanManageAvailabilityAsync(Guid businessId, Guid? branchId, Guid? resourceId)
@@ -223,20 +223,22 @@ public sealed class AdminAccessScope(
     /// <summary>
     /// سلسله‌مراتب واگذاری نقش: «مالک» را فقط مدیر سامانه یا مالک همان کسب‌وکار می‌دهد؛
     /// «مدیر» و «پرسنل» را مدیر/مالک همان شعبه. (قبلاً یک مدیر شعبه می‌توانست خودش یا دیگری را مالک کند.)
+    /// پشتیبانی از چند نقش به صورت رشته چندتایی (مثلاً "Manager,Staff" یا "Owner,Staff").
     /// </summary>
     public async Task<bool> CanAssignRoleAsync(string role, Guid branchId)
     {
-        if (!AppRoles.Team.Contains(role)) return false;
+        var roles = role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (roles.Length == 0 || !roles.All(r => AppRoles.Team.Contains(r))) return false;
         if (!await CanManageBranchAsync(branchId) || !await db.Branches.AnyAsync(b => b.Id == branchId)) return false;
         if (await IsPlatformAdminAsync()) return true;
-        if (role == AppRoles.Owner)
+        if (roles.Contains(AppRoles.Owner))
         {
             var businessId = await db.Branches.IgnoreQueryFilters()
                 .Where(b => b.Id == branchId).Select(b => (Guid?)b.BusinessId).FirstOrDefaultAsync();
-            return businessId is Guid id && await IsBusinessOwnerAsync(id);
+            if (businessId is not Guid id || !await IsBusinessOwnerAsync(id)) return false;
         }
 
-        return (role == AppRoles.Manager || role == AppRoles.Staff) && await CanManageBranchAsync(branchId);
+        return await CanManageBranchAsync(branchId);
     }
 
     /// <summary>آیا کاربر هدف در شعبه‌ای «مالک» است که من مالک آن نیستم؟ (برای جلوگیری از دستکاری مالک‌ها توسط مدیر)</summary>
@@ -246,7 +248,7 @@ public sealed class AdminAccessScope(
         if (!await IsActiveUserAsync()) return true;
         var ids = branchIds.ToList();
         var ownerBranches = await db.BranchMemberships.IgnoreQueryFilters()
-            .Where(m => m.DeletedAt == null && m.UserId == targetUserId && m.Role == AppRoles.Owner && ids.Contains(m.BranchId))
+            .Where(m => m.DeletedAt == null && m.UserId == targetUserId && m.Role.Contains(AppRoles.Owner) && ids.Contains(m.BranchId))
             .Select(m => m.BranchId).ToListAsync();
         foreach (var branchId in ownerBranches)
         {

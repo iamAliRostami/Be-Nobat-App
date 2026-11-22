@@ -510,7 +510,11 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                         phoneNumber = u.phoneNumber,
                         active = u.active,
                         role = role,
-                        branchName = branch?.name
+                        branchName = branch?.name,
+                        businessName = branch?.businessName,
+                        branchId = branch?.id,
+                        businessId = branch?.businessId,
+                        membershipId = m?.id,
                     )
                 }
                 .demoPage(page, pageSize)
@@ -551,9 +555,40 @@ class DemoManagementRepository(private val dataStore: DemoDataStore, private val
                 phoneNumber = user.phoneNumber,
                 active = true,
                 role = input.role,
-                branchName = branch.name
+                branchName = branch.name,
+                businessName = branch.businessName,
+                branchId = branch.id,
+                businessId = branch.businessId,
+                membershipId = membership.id,
             )
             s.copy(users = updatedUsers, memberships = updatedMemberships) to person
+        }
+    }
+
+    override suspend fun updateTeamMemberRole(userId: String, branchId: String, role: String): Result<ManagementPerson> = runCatching {
+        simulateNetworkDelay()
+        requireActor(true)
+        update { s ->
+            val existing = s.memberships.firstOrNull { it.userId == userId && it.branchId == branchId }
+                ?: error("عضویت یافت نشد")
+            val updated = existing.copy(role = role)
+            val newMemberships = s.memberships.map { if (it.id == existing.id) updated else it }
+            val user = s.users.first { it.id == userId }
+            val branch = s.branches.firstOrNull { it.id == branchId }
+            val person = ManagementPerson(
+                id = user.id,
+                displayName = user.displayName,
+                email = user.email,
+                phoneNumber = user.phoneNumber,
+                active = true,
+                role = role,
+                branchName = branch?.name,
+                businessName = branch?.businessName,
+                branchId = branchId,
+                businessId = branch?.businessId,
+                membershipId = existing.id,
+            )
+            s.copy(memberships = newMemberships) to person
         }
     }
 

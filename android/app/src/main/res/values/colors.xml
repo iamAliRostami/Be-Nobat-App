@@ -85,4 +85,39 @@
     <color name="colorSlotBookedText">#8A9693</color>
     <color name="colorSlotBookedBadgeBg">#FCE8E6</color>
     <color name="colorSlotBookedBadgeText">#C5221F</color>
+
+    <!-- Plan calculation summary card (Light) -->
+    <color name="plan_calc_card_bg">#F0FDF4</color>
+    <color name="plan_calc_card_stroke">#BBF7D0</color>
+    <color name="plan_calc_title">#166534</color>
+    <color name="plan_calc_subtitle">#15803D</color>
+    <color name="plan_calc_total">#15803D</color>
+    <color name="plan_calc_footer">#15803D</color>
+    <color name="plan_calc_divider">#BBF7D0</color>
+
+    <!-- Chips & Pills Adaptive Colors (Light) -->
+    <color name="chip_muted_bg">#F0F4F3</color>
+    <color name="chip_muted_stroke">#E2EBE9</color>
+    <color name="category_pill_bg">#F4F8F7</color>
+    <color name="category_pill_stroke">#D0E3DF</color>
+    <color name="rating_pill_bg">#FFFBEB</color>
+    <color name="rating_pill_stroke">#FEF3C7</color>
+
+    <!-- Subscription plan cards (Light) -->
+    <color name="plan_card_default_bg">#FFFFFF</color>
+    <color name="plan_card_default_stroke">#CAD7D2</color>
+    <color name="plan_card_selected_bg">#F0FDF4</color>
+    <color name="plan_card_selected_stroke">#146B5D</color>
+
+    <!-- Plan discount / feature badges (Light) -->
+    <color name="badge_blue_bg">#E0F2FE</color>
+    <color name="badge_blue_text">#0369A1</color>
+    <color name="badge_monthly_bg">#F1F5F9</color>
+    <color name="badge_monthly_text">#475569</color>
+    <color name="badge_amber_bg">#FEF3C7</color>
+    <color name="badge_amber_text">#B45309</color>
+    <color name="badge_red_bg">#FEE2E2</color>
+    <color name="badge_red_text">#B91C1C</color>
+    <color name="badge_green_bg">#DCFCE7</color>
+    <color name="badge_green_text">#15803D</color>
 </resources>

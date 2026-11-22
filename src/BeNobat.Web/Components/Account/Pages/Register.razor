@@ -9,6 +9,7 @@
 @inject UserManager<AppUser> UserManager
 @inject SignInManager<AppUser> SignInManager
 @inject NavigationManager NavigationManager
+@inject AppDbContext Db
 
 <PageTitle>ثبت‌نام | به‌نوبت</PageTitle>
 
@@ -48,15 +49,44 @@
         </label>
         <ValidationMessage For="() => Input!.Phone" />
 
-        <label>رمز عبور
-            <InputText @bind-Value="Input!.Password" type="password" autocomplete="new-password" dir="ltr" />
+        <label for="registerPassword">رمز عبور
+            <div class="password-input-wrap">
+                <InputText @bind-Value="Input!.Password" id="registerPassword" type="password" autocomplete="new-password" dir="ltr" />
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('registerPassword', this)" title="نمایش رمز عبور" aria-label="نمایش یا پنهان‌سازی رمز عبور">
+                    <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-icon eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
         </label>
         <ValidationMessage For="() => Input!.Password" />
 
-        <label>تکرار رمز عبور
-            <InputText @bind-Value="Input!.ConfirmPassword" type="password" autocomplete="new-password" dir="ltr" />
+        <label for="registerConfirmPassword">تکرار رمز عبور
+            <div class="password-input-wrap">
+                <InputText @bind-Value="Input!.ConfirmPassword" id="registerConfirmPassword" type="password" autocomplete="new-password" dir="ltr" />
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('registerConfirmPassword', this)" title="نمایش رمز عبور" aria-label="نمایش یا پنهان‌سازی رمز عبور">
+                    <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-icon eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
         </label>
         <ValidationMessage For="() => Input!.ConfirmPassword" />
+
+        <label>کد دعوت شعبه (اختیاری)
+            <InputText @bind-Value="Input!.InviteCode" placeholder="مثلاً BN-XXXXXX" dir="ltr" />
+        </label>
+        <ValidationMessage For="() => Input!.InviteCode" />
 
         <button type="submit" class="primary-button auth-submit">ثبت‌نام</button>
         <p class="auth-switch">قبلاً ثبت‌نام کرده‌اید؟ <a href="@LoginHref">وارد شوید</a></p>
@@ -89,6 +119,18 @@
     {
         ErrorMessage = null;
         EmailTaken = false;
+
+        Branch? invitedBranch = null;
+        if (!string.IsNullOrWhiteSpace(Input!.InviteCode))
+        {
+            var cleanCode = Input!.InviteCode.Trim().ToUpperInvariant();
+            invitedBranch = await Db.Branches.FirstOrDefaultAsync(b => b.InviteCode == cleanCode && b.DeletedAt == null && b.IsApproved);
+            if (invitedBranch is null)
+            {
+                ErrorMessage = "کد دعوت شعبه وارد شده معتبر نیست.";
+                return;
+            }
+        }
 
         if (Input!.Password != Input!.ConfirmPassword)
         {
@@ -148,15 +190,31 @@
         }
 
         await UserManager.AddToRoleAsync(user, DbSeeder.CustomerRole);
+
+        if (invitedBranch is not null)
+        {
+            Db.BranchMemberships.Add(new BranchMembership
+            {
+                BranchId = invitedBranch.Id,
+                UserId = user.Id,
+                Role = AppRoles.Staff
+            });
+            await Db.SaveChangesAsync();
+            await TeamRoleSync.SyncAsync(UserManager, Db, user);
+        }
+
         await SignInManager.SignInAsync(user, isPersistent: true);
 
-        // کاربری که برای رزرو به ثبت‌نام آمده بود به همان رزرو برمی‌گردد (قبلاً همیشه به صفحه‌ی اصلی می‌رفت).
-        var target = SafeReturnUrl.Length == 0 ? "/" : SafeReturnUrl;
+        // کاربری که برای رزرو یا با کد دعوت به ثبت‌نام آمده بود
+        var target = SafeReturnUrl.Length == 0 ? (invitedBranch != null ? "/admin" : "/") : SafeReturnUrl;
         NavigationManager.NavigateTo(target, forceLoad: true);
     }
 
     private sealed class InputModel
     {
+        [StringLength(20, ErrorMessage = "کد دعوت نباید بیشتر از ۲۰ کاراکتر باشد.")]
+        public string? InviteCode { get; set; }
+
         [Required(ErrorMessage = "نام الزامی است.")]
         [StringLength(80, ErrorMessage = "نام نباید بیشتر از ۸۰ کاراکتر باشد.")]
         public string DisplayName { get; set; } = "";

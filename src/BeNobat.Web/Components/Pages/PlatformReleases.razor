@@ -702,14 +702,14 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: #fbfdfd;
+    background: var(--surface-variant, #f8fafc);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .apk-upload-box:hover {
     border-color: var(--primary, #146B5D);
-    background: #f4faf9;
+    background: var(--primary-container, #f4faf9);
 }
 
 .apk-upload-box.has-file {
@@ -742,13 +742,15 @@
 }
 
 .upload-text strong {
-    font-size: 0.92rem;
+    font-size: 0.95rem;
+    font-weight: 700;
     color: var(--on-surface, #17211F);
 }
 
 .upload-text small {
-    font-size: 0.8rem;
-    color: var(--on-surface-variant, #718096);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--on-surface-variant, #596562);
 }
 
 .file-info-selected {
@@ -1106,25 +1108,25 @@
 }
 
 .item-notes {
-    background: #f8fafc;
+    background: var(--surface-variant, #f8fafc);
     border-radius: 10px;
     padding: 0.75rem 1rem;
     margin-bottom: 0.85rem;
-    border: 1px solid #f1f5f9;
+    border: 1px solid var(--outline-soft, #f1f5f9);
 }
 
 .notes-title {
     display: block;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 700;
-    color: #64748b;
-    margin-bottom: 0.25rem;
+    color: var(--primary, #146B5D);
+    margin-bottom: 0.35rem;
 }
 
 .item-notes p {
     margin: 0;
     font-size: 0.88rem;
-    color: #334155;
+    color: var(--on-surface, #17211F);
     line-height: 1.6;
     white-space: pre-line;
 }
@@ -1196,6 +1198,152 @@
 .date-info {
     font-size: 0.76rem;
     color: #94a3b8;
+}
+
+/* Dark Mode Support */
+html[data-theme="dark"] .stat-card {
+    background: #17201e;
+    border-color: #273734;
+}
+html[data-theme="dark"] .stat-card strong {
+    color: #ecf2ef;
+}
+html[data-theme="dark"] .stat-card small {
+    color: #94a3b8;
+}
+html[data-theme="dark"] .release-card {
+    background: #151d1c;
+    border-color: #273734;
+}
+html[data-theme="dark"] .card-header {
+    background: #151d1c;
+    border-color: #273734;
+}
+html[data-theme="dark"] .card-header h2 {
+    color: #ecf2ef;
+}
+html[data-theme="dark"] .text-input {
+    background: #1e2b29;
+    border-color: #314441;
+    color: #f1f5f9;
+}
+html[data-theme="dark"] .text-input:focus {
+    border-color: var(--primary, #76D6C3);
+}
+html[data-theme="dark"] .field-label {
+    color: #ecf2ef;
+}
+html[data-theme="dark"] .chip-btn {
+    background: #1e2b29;
+    border-color: #314441;
+    color: #cbd5e1;
+}
+html[data-theme="dark"] .chip-btn:hover {
+    background: var(--primary, #76D6C3);
+    color: #063B33;
+}
+html[data-theme="dark"] .apk-upload-box,
+[data-theme="dark"] .apk-upload-box {
+    background: #182321 !important;
+    border-color: #314441 !important;
+}
+html[data-theme="dark"] .apk-upload-box:hover,
+[data-theme="dark"] .apk-upload-box:hover {
+    background: #1e2d2b !important;
+    border-color: var(--primary, #76D6C3) !important;
+}
+html[data-theme="dark"] .apk-upload-box.has-file,
+[data-theme="dark"] .apk-upload-box.has-file {
+    background: #132b21 !important;
+    border-color: #22c55e !important;
+}
+html[data-theme="dark"] .upload-text strong,
+[data-theme="dark"] .upload-text strong {
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .upload-text small,
+[data-theme="dark"] .upload-text small {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .setting-check-card,
+[data-theme="dark"] .setting-check-card {
+    background: #182321;
+    border-color: #283936;
+}
+html[data-theme="dark"] .setting-check-card:hover,
+[data-theme="dark"] .setting-check-card:hover {
+    background: #1e2b29;
+    border-color: #3a4e4a;
+}
+html[data-theme="dark"] .setting-check-card.is-active,
+[data-theme="dark"] .setting-check-card.is-active {
+    background: #17332c;
+    border-color: var(--primary, #76D6C3);
+}
+html[data-theme="dark"] .setting-title,
+[data-theme="dark"] .setting-title {
+    color: #ecf2ef;
+}
+html[data-theme="dark"] .setting-desc,
+[data-theme="dark"] .setting-desc {
+    color: #94a3b8;
+}
+html[data-theme="dark"] .release-item,
+[data-theme="dark"] .release-item {
+    background: #17201e;
+    border-color: #273734;
+}
+html[data-theme="dark"] .release-item:hover,
+[data-theme="dark"] .release-item:hover {
+    border-color: #3d504c;
+}
+html[data-theme="dark"] .item-notes,
+[data-theme="dark"] .item-notes {
+    background: #182321 !important;
+    border-color: #2b3b38 !important;
+}
+html[data-theme="dark"] .notes-title,
+[data-theme="dark"] .notes-title {
+    color: #76D6C3 !important;
+    font-weight: 700 !important;
+}
+html[data-theme="dark"] .item-notes p,
+[data-theme="dark"] .item-notes p {
+    color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .action-btn {
+    background: #1c2725;
+    border-color: #314441;
+    color: #cbd5e1;
+}
+html[data-theme="dark"] .action-btn:hover {
+    background: #253330;
+    color: #ffffff;
+}
+html[data-theme="dark"] .code-badge,
+html[data-theme="dark"] .badge-count,
+html[data-theme="dark"] .bazaar-tag {
+    background: #202d2a;
+    color: #a4b4b0;
+}
+html[data-theme="dark"] .pill-muted {
+    background: #202d2a;
+    color: #8fa09d;
+}
+html[data-theme="dark"] .btn-secondary {
+    background: #1c2725;
+    border-color: #314441;
+    color: #cbd5e1;
+}
+html[data-theme="dark"] .btn-cancel-edit {
+    background: #1c2725;
+    border-color: #314441;
+    color: #cbd5e1;
+}
+html[data-theme="dark"] .download-btn {
+    background: #132d22;
+    border-color: #1e5c3e;
+    color: #4ade80;
 }
 </style>
 

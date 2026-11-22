@@ -404,6 +404,9 @@ class BeNobatApiClient(
     /** POST /admin/team â€” `ManagementTeamMemberInput`. */
     suspend inline fun <reified T> adminCreateTeamMember(body: JsonObject): Result<T> = post("/admin/team", body)
 
+    suspend inline fun <reified T> adminUpdateTeamMemberRole(userId: String, body: JsonObject): Result<T> =
+        put("/admin/team/$userId/role", body)
+
     /** GET /admin/customers?q&branchId&page&pageSize. */
     suspend inline fun <reified T> adminListCustomers(
         q: String? = null, branchId: String? = null, page: Int = 1, pageSize: Int = 25,

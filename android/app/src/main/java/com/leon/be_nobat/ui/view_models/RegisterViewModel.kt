@@ -25,7 +25,7 @@ class RegisterViewModel(
     private val _state = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
     val state: StateFlow<RegisterUiState> = _state.asStateFlow()
 
-    fun register(displayName: String, email: String, phoneNumber: String, password: String) {
+    fun register(displayName: String, email: String, phoneNumber: String, password: String, inviteCode: String? = null) {
         if (_state.value is RegisterUiState.Loading) return
         viewModelScope.launch {
             _state.value = RegisterUiState.Loading
@@ -35,6 +35,7 @@ class RegisterViewModel(
                     email = email.ifBlank { null },
                     phoneNumber = phoneNumber.ifBlank { null },
                     password = password.ifBlank { null },
+                    inviteCode = inviteCode?.ifBlank { null },
                 )
             ).onSuccess { session -> _state.value = RegisterUiState.Success(session) }
                 .onFailure { err -> _state.value = RegisterUiState.Error(err) }

@@ -198,7 +198,7 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
             return new() { Failure = BookingFailure.InvalidRequest };
         var business = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Id == businessId, cancellationToken);
         if (business is null) return new() { Failure = BookingFailure.BusinessUnavailable };
-        var branch = await db.Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == branchId && x.BusinessId == businessId && x.IsApproved, cancellationToken);
+        var branch = await db.Branches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == branchId && x.BusinessId == businessId && x.DeletedAt == null && x.IsActive && x.IsApproved, cancellationToken);
         if (branch is null) return new() { Failure = BookingFailure.BranchUnavailable };
         var ids = serviceIds.Distinct().ToList();
         var services = await db.Services.AsNoTracking().Where(x => x.BusinessId == businessId && ids.Contains(x.Id)).OrderBy(x => x.Id).ToListAsync(cancellationToken);
@@ -215,7 +215,18 @@ public sealed class AppointmentBookingService(IDbContextFactory<AppDbContext> db
         var assignments = await db.ServiceResources.AsNoTracking().Where(x => ids.Contains(x.ServiceId))
             .Select(x => new { x.ServiceId, x.ResourceId }).ToListAsync(cancellationToken);
         resources = resources.Where(r => ids.All(s => assignments.Any(x => x.ResourceId == r.Id && x.ServiceId == s))).ToList();
-        if (resources.Count == 0) return new() { Failure = BookingFailure.NoEligibleProvider };
+        if (resources.Count == 0) return new()
+        {
+            Business = business,
+            Branch = branch,
+            Services = services,
+            BranchServices = branchServices,
+            Resources = resources,
+            DurationMinutes = (int)duration,
+            Currency = currencies[0],
+            TotalPrice = services.Sum(x => branchServices.First(y => y.ServiceId == x.Id).Price ?? x.Price),
+            Failure = BookingFailure.NoEligibleProvider
+        };
         return new BookingAvailability
         {
             Business = business, Branch = branch, Services = services, BranchServices = branchServices, Resources = resources,

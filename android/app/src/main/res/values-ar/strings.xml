@@ -566,6 +566,37 @@
     <string name="business_request_first_branch">اسم الفرع الأول</string>
     <string name="business_request_address">عنوان الفرع</string>
     <string name="business_request_description">الوصف (اختياري)</string>
+    <string name="business_request_section_extra_branches">الفروع الأخرى</string>
+    <string name="business_request_add_branch_btn">+ إضافة فرع آخر</string>
+    <string name="business_request_no_extra_branches_hint">في حال وجود أكثر من فرع، اضغط على «إضافة فرع آخر».</string>
+    <string name="business_request_section_plan_select">اختيار باقة الاشتراك *</string>
+    <string name="business_request_plan_trial_title">أسبوع تجريبي</string>
+    <string name="business_request_plan_trial_tag">مجاني</string>
+    <string name="business_request_plan_trial_desc">تجربة المزايا لمدة 7 أيام</string>
+    <string name="business_request_plan_trial_price">0 تومان</string>
+    <string name="business_request_plan_3m_title">3 أشهر</string>
+    <string name="business_request_plan_discount_format" formatted="false">خصم %d%%</string>
+    <string name="business_request_plan_3m_desc">اشتراك إدارة لمدة 3 أشهر</string>
+    <string name="business_request_plan_6m_title">6 أشهر</string>
+    <string name="business_request_plan_6m_desc">باقة اقتصادية لمدة 6 أشهر</string>
+    <string name="business_request_plan_1y_title">سنة واحدة</string>
+    <string name="business_request_plan_1y_desc">توفير سنوي أقصى</string>
+    <string name="business_request_calc_title_format" formatted="false">حساب رسوم الباقة (%s)</string>
+    <string name="business_request_calc_trial_desc">باقة تجريبية مجانية لمدة أسبوع بدون الحاجة للدفع</string>
+    <string name="business_request_calc_paid_desc_base" formatted="false">التعرفة الشهرية الأساسية: %s تومان</string>
+    <string name="business_request_calc_paid_desc_extra" formatted="false"> + %d فرع إضافي (%s تومان شهرياً لكل فرع)</string>
+    <string name="business_request_calc_paid_desc_discount" formatted="false"> • تم تطبيق خصم %d%%</string>
+    <string name="business_request_calc_total_label">المبلغ الإجمالي:</string>
+    <string name="business_request_free">مجاني</string>
+    <string name="business_request_toman_format" formatted="false">%s تومان</string>
+    <string name="business_request_calc_trial_footer" formatted="false">إجمالي الفروع: %d فرع • الباقة التجريبية لا تتطلب دفعاً أو إيصالاً ويتم تفعيلها بموافقة المدير.</string>
+    <string name="business_request_calc_paid_footer" formatted="false">إجمالي الفروع: %d فرع • بعد التسجيل سيتم نقلك لمرحلة رفع إيصال التحويل.</string>
+    <string name="business_request_submit_trial_btn">تسجيل الطلب بالباقة المجانية (بدون تكلفة)</string>
+    <string name="business_request_submit_paid_btn">تسجيل الطلب والانتقال إلى الدفع</string>
+    <string name="business_request_pending_trial_header">طلب التجربة المجانية قيد مراجعة الإدارة</string>
+    <string name="business_request_pending_trial_badge">باقة تجريبية مجانية</string>
+    <string name="business_request_pending_trial_msg" formatted="false">تم تسجيل طلب النشاط التجاري «%s» مع الباقة التجريبية المجانية لمدة 7 أيام بدون الحاجة للدفع. سيتم التفعيل بعد مراجعة الإدارة.</string>
+    <string name="business_request_plan_field_label">الباقة المختارة:</string>
     <string name="business_request_submit_btn">إرسال طلب النشاط التجاري</string>
     <string name="business_request_submitted_success">تم تسجيل طلب نشاطك التجاري بنجاح وهو في قائمة مراجعة مدير النظام.</string>
     <string name="business_request_status_pending">طلب تسجيل نشاطك التجاري «%1$s» قيد مراجعة مدير النظام.</string>
@@ -586,6 +617,7 @@
     <string name="platform_request_approved_success">تمت الموافقة على الطلب وتفعيل النشاط التجاري وصلاحيات المدير.</string>
     <string name="platform_request_rejected_success">تم رفض الطلب.</string>
     <string name="drawer_platform_requests">طلبات الأنشطة التجارية</string>
+    <string name="drawer_platform_branch_requests">طلبات الفروع</string>
     <string name="drawer_system_messages">رسائل النظام</string>
     <string name="drawer_platform_messages">رسائل المستخدمين (اتصل بنا)</string>
     <string name="drawer_platform_announcements">إرسال تعميم للمدراء</string>
@@ -638,6 +670,17 @@
     <string name="platform_request_desc_label">الوصف: %1$s</string>
     <string name="platform_request_rejection_label">سبب الرفض: %1$s</string>
     <string name="profile_manager_active_desc">أنت نشط كمدير للنشاط التجاري ولديك حق الوصول إلى لوحة إدارة المواعيد والفروع والموظفين.</string>
+    <string name="profile_manager_business_title">مدير نشاط تجاري نشط</string>
+    <string name="profile_manager_branch_title">مدير فرع نشط</string>
+    <string name="profile_manager_branch_desc">أنت مسجل كمدير للفرع ولديك صلاحية إدارة المواعيد والموظفين.</string>
+    <string name="profile_staff_active_title">موظف فرع نشط</string>
+    <string name="profile_staff_active_desc">أنت مسجل كموظف في الفرع ولديك صلاحية الوصول إلى المواعيد وجدول العمل.</string>
+    <string name="action_change_role">تعديل الصلاحيات</string>
+    <string name="profile_pending_attach_receipt">إرفاق إيصال الدفع وعرض الطلب</string>
+    <string name="profile_pending_view_request">عرض حالة الطلب والإيصال</string>
+    <string name="member_role_updated_success">تم تحديث دور وصلاحيات العضو بنجاح.</string>
+    <string name="filter_all_businesses_and_branches">جميع الأنشطة والفروع</string>
+    <string name="filter_team_title">تصفية أعضاء الفريق</string>
     <string name="profile_request_business_title">طلب تسجيل %1$s</string>
     <string name="profile_request_meta_format">الفئة: %1$s  •  المدينة: %2$s  •  الفرع: %3$s</string>
     <string name="profile_request_rejected_info">لم تتم الموافقة على طلبك السابق للنشاط التجاري «%1$s».</string>
@@ -710,6 +753,9 @@
     <string name="reply_submitted_success">تم إرسال الرد بنجاح.</string>
     <string name="manager_reply_prefix">رد المنشأة:</string>
     <string name="business_request_receipt_view_btn">عرض إيصال التحويل</string>
+    <string name="platform_request_total_branches">إجمالي عدد الفروع: %1$s فرع</string>
+    <string name="platform_request_total_fee">المبلغ الإجمالي: %1$s</string>
+    <string name="platform_request_other_branches">الفروع الأخرى المطلوبة (%1$s فرع):</string>
     <string name="platform_request_fee_label">مبلغ الرسوم: %1$s</string>
     <string name="platform_request_total_branches_label">إجمالي عدد الفروع: %1$s فرع</string>
     <string name="platform_request_receipt_uploaded">إيصال التحويل: تم الإرسال</string>

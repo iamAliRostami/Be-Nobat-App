@@ -95,6 +95,7 @@ public sealed class Branch : Entity
     public int OpenHour { get; set; } = 9;
     public int CloseHour { get; set; } = 18;
     public bool IsApproved { get; set; } = true;
+    public string? InviteCode { get; set; }
     public Business Business { get; set; } = null!;
     public ICollection<Resource> Resources { get; } = [];
 
@@ -267,6 +268,17 @@ public sealed class BranchMembership : Entity
     public string Role { get; set; } = "Staff";
     public Branch Branch { get; set; } = null!;
     public AppUser User { get; set; } = null!;
+
+    public bool HasRole(string role) =>
+        Role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(role, StringComparer.OrdinalIgnoreCase);
+
+    public string[] Roles =>
+        Role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    public bool IsOwner => HasRole("Owner");
+    public bool IsManager => HasRole("Manager");
+    public bool IsStaff => HasRole("Staff");
 }
 
 /// <summary>A recurring opening interval. A null BranchId applies to every branch in the business.</summary>

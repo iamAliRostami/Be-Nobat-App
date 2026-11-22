@@ -93,9 +93,51 @@
             <AntiforgeryToken />
             <header class="profile-card-head"><h2 id="profile-password-heading">تغییر گذرواژه</h2></header>
             <div class="profile-fields">
-                <label>گذرواژه‌ی فعلی<input name="currentPassword" type="password" required autocomplete="current-password" dir="ltr" /></label>
-                <label>گذرواژه‌ی جدید<input name="newPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
-                <label>تکرار گذرواژه‌ی جدید<input name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" /></label>
+                <label for="accCurrentPassword">گذرواژه‌ی فعلی
+                    <div class="password-input-wrap">
+                        <input id="accCurrentPassword" name="currentPassword" type="password" required autocomplete="current-password" dir="ltr" />
+                        <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('accCurrentPassword', this)" title="نمایش رمز عبور" aria-label="نمایش یا پنهان‌سازی رمز عبور">
+                            <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </label>
+                <label for="accNewPassword">گذرواژه‌ی جدید
+                    <div class="password-input-wrap">
+                        <input id="accNewPassword" name="newPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" />
+                        <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('accNewPassword', this)" title="نمایش رمز عبور" aria-label="نمایش یا پنهان‌سازی رمز عبور">
+                            <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </label>
+                <label for="accConfirmPassword">تکرار گذرواژه‌ی جدید
+                    <div class="password-input-wrap">
+                        <input id="accConfirmPassword" name="confirmPassword" type="password" required minlength="8" autocomplete="new-password" dir="ltr" />
+                        <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('accConfirmPassword', this)" title="نمایش رمز عبور" aria-label="نمایش یا پنهان‌سازی رمز عبور">
+                            <svg class="eye-icon eye-show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon eye-hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </label>
             </div>
             <div class="profile-card-actions"><button type="submit" class="primary-button action-primary">تغییر گذرواژه</button></div>
         </form>
@@ -110,6 +152,14 @@
                     <span style="color:var(--text-muted, #64748b); font-size:0.9rem;">شما دارای دسترسی مدیریت کسب‌وکار در سامانه هستید.</span>
                 </div>
                 <a class="primary-button action-primary" href="/admin" style="display:inline-block; text-align:center;">ورود به پنل مدیریت</a>
+            }
+            else if (IsStaffOnly)
+            {
+                <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+                    <span class="status confirmed" style="font-size:0.85rem; font-weight:700; padding:0.35rem 0.85rem; border-radius:999px; white-space:nowrap; flex-shrink:0; display:inline-flex; align-items:center; gap:6px;">کارمند فعال</span>
+                    <span style="color:var(--text-muted, #64748b); font-size:0.9rem;">شما به عنوان کارمند شعبه در سامانه فعال هستید و به پنل کاری و نوبت‌های خود دسترسی دارید.</span>
+                </div>
+                <a class="primary-button action-primary" href="/admin" style="display:inline-block; text-align:center;">ورود به پنل کارمند</a>
             }
             else if (LatestRequest is not null && LatestRequest.Status == BusinessRequestStatus.Pending)
             {
@@ -181,6 +231,7 @@
     private bool IsSaving;
 
     private bool IsAlreadyManager;
+    private bool IsStaffOnly;
     private BusinessRequest? LatestRequest;
 
     protected override async Task OnInitializedAsync()
@@ -231,6 +282,7 @@
                            await users.IsInRoleAsync(User, AppRoles.Manager) ||
                            await users.IsInRoleAsync(User, AppRoles.PlatformAdmin);
 
+        IsStaffOnly = !IsAlreadyManager && await users.IsInRoleAsync(User, AppRoles.Staff);
 
         if (!IsAlreadyManager)
         {

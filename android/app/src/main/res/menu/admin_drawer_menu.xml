@@ -89,6 +89,10 @@
                     android:icon="@drawable/ic_document"
                     android:title="@string/drawer_platform_requests" />
                 <item
+                    android:id="@+id/drawer_platform_branch_requests"
+                    android:icon="@drawable/ic_branch"
+                    android:title="@string/drawer_platform_branch_requests" />
+                <item
                     android:id="@+id/drawer_platform_catalog"
                     android:icon="@drawable/ic_document"
                     android:title="@string/platform_catalog" />

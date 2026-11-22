@@ -4,6 +4,7 @@ import android.content.Intent
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -26,6 +27,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.card.MaterialCardView
 import com.leon.be_nobat.domain.model.BusinessRequestInput
+import com.leon.be_nobat.domain.model.LoginIdentifier
 import com.leon.be_nobat.domain.model.ReceiptUploadInput
 import com.leon.be_nobat.domain.model.RequestedBranch
 import com.leon.be_nobat.helpers.BaseActivity
@@ -55,6 +57,7 @@ class BusinessUpgradeActivity : BaseActivity() {
     private var currentCategories: List<String> = fallbackCategories
     private var initializedFromState = false
     private var isEditingResubmit = false
+    private var selectedPlanType: String = "Trial7Days"
 
     private val extraBranchCards = mutableListOf<Pair<TextInputEditText, TextInputEditText>>()
 
@@ -104,10 +107,14 @@ class BusinessUpgradeActivity : BaseActivity() {
             pickReceiptLauncher.launch("image/*")
         }
 
-        if (viewModel.state.value.categories.isEmpty()) {
-            viewModel.loadCategories()
-        }
-        viewModel.loadPricing()
+        findViewById<View>(R.id.cardPlanTrial)?.setOnClickListener { selectPlan("Trial7Days") }
+        findViewById<View>(R.id.cardPlan1Month)?.setOnClickListener { selectPlan("Monthly") }
+        findViewById<View>(R.id.cardPlan3Months)?.setOnClickListener { selectPlan("Quarterly") }
+        findViewById<View>(R.id.cardPlan6Months)?.setOnClickListener { selectPlan("SemiAnnual") }
+        findViewById<View>(R.id.cardPlan1Year)?.setOnClickListener { selectPlan("Annual") }
+
+        viewModel.load()
+        selectPlan(selectedPlanType)
     }
 
     private fun prefillFormFromRequest() {
@@ -115,10 +122,17 @@ class BusinessUpgradeActivity : BaseActivity() {
         findViewById<TextInputEditText>(R.id.etReqBusinessName)?.setText(req.businessName)
         findViewById<MaterialAutoCompleteTextView>(R.id.actvReqCategory)?.setText(req.category, false)
         findViewById<TextInputEditText>(R.id.etReqCity)?.setText(req.city)
-        findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(req.contactPhone)
+        val phone = req.contactPhone.ifBlank {
+            viewModel.state.value.phoneNumber.ifBlank { viewModel.state.value.user?.phoneNumber.orEmpty() }
+        }
+        findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(phone)
         findViewById<TextInputEditText>(R.id.etReqFirstBranchName)?.setText(req.firstBranchName)
         findViewById<TextInputEditText>(R.id.etReqFirstBranchAddress)?.setText(req.firstBranchAddress)
         findViewById<TextInputEditText>(R.id.etReqDescription)?.setText(req.description.orEmpty())
+
+        if (req.planType.isNotBlank()) {
+            selectPlan(req.planType)
+        }
 
         val container = findViewById<LinearLayout>(R.id.layoutExtraBranchesContainer)
         container?.removeAllViews()
@@ -187,6 +201,19 @@ class BusinessUpgradeActivity : BaseActivity() {
         if (hasError) return
 
         val validExtraBranches = collectExtraBranches()
+        val planMonths = when (selectedPlanType) {
+            "Monthly" -> 1
+            "Quarterly" -> 3
+            "SemiAnnual" -> 6
+            "Annual" -> 12
+            else -> 0
+        }
+        val discount = when (selectedPlanType) {
+            "Quarterly" -> viewModel.state.value.pricing.discountPercent3Months
+            "SemiAnnual" -> viewModel.state.value.pricing.discountPercent6Months
+            "Annual" -> viewModel.state.value.pricing.discountPercent12Months
+            else -> 0
+        }
         val input = BusinessRequestInput(
             businessName = name,
             category = cat,
@@ -196,6 +223,9 @@ class BusinessUpgradeActivity : BaseActivity() {
             firstBranchAddress = address,
             description = desc,
             additionalBranches = validExtraBranches,
+            planType = selectedPlanType,
+            planDurationMonths = planMonths,
+            discountPercent = discount,
         )
         viewModel.submitBusinessRequest(input)
     }
@@ -254,19 +284,30 @@ class BusinessUpgradeActivity : BaseActivity() {
                 cardIntroInfo?.isVisible = false
                 formFieldsContainer?.isVisible = false
 
+                val isTrial = req?.planType == "Trial7Days"
                 val tvPendingHeader = findViewById<TextView>(R.id.tvPendingHeader)
                 val tvPendingDescMsg = findViewById<TextView>(R.id.tvPendingDescMsg)
-                if (req?.hasReceipt == true) {
+                val badgePending = findViewById<TextView>(R.id.tvPendingStatusBadge)
+
+                if (isTrial) {
+                    tvPendingHeader?.text = getString(R.string.business_request_pending_trial_header)
+                    tvPendingDescMsg?.text =
+                        getString(R.string.business_request_pending_trial_msg, req?.businessName.orEmpty())
+                    badgePending?.text = getString(R.string.business_request_pending_trial_badge)
+                } else if (req?.hasReceipt == true) {
                     tvPendingHeader?.text = getString(R.string.business_request_pending_header)
                     tvPendingDescMsg?.text =
-                        getString(R.string.business_request_pending_detail_msg, req.businessName)
+                        getString(R.string.business_request_pending_detail_msg, req?.businessName.orEmpty())
+                    badgePending?.text = getString(R.string.platform_tab_pending)
                 } else {
                     tvPendingHeader?.text = getString(R.string.business_request_pending_payment_header)
                     tvPendingDescMsg?.text =
                         getString(R.string.business_request_pending_payment_msg, req?.businessName.orEmpty())
+                    badgePending?.text = getString(R.string.platform_tab_pending)
                 }
                 findViewById<TextView>(R.id.tvPendingBizName)?.text = req?.businessName.orEmpty()
                 findViewById<TextView>(R.id.tvPendingCategory)?.text = req?.category.orEmpty()
+                findViewById<TextView>(R.id.tvPendingPlan)?.text = formatPlanTitle(req?.planType, req?.discountPercent ?: 0)
                 findViewById<TextView>(R.id.tvPendingCity)?.text = req?.city.orEmpty()
                 findViewById<TextView>(R.id.tvPendingPhone)?.text = req?.contactPhone.orEmpty()
                 findViewById<TextView>(R.id.tvPendingBranch)?.text = req?.firstBranchName.orEmpty()
@@ -284,9 +325,16 @@ class BusinessUpgradeActivity : BaseActivity() {
 
                 // Total branches and fee
                 val totalBranches = req?.totalBranchesCount ?: 1
-                val totalFee = req?.totalFee ?: state.pricing.baseBusinessPrice
-                findViewById<TextView>(R.id.tvPendingTotalBranches)?.text = getString(R.string.platform_request_total_branches, totalBranches)
-                findViewById<TextView>(R.id.tvPendingTotalFee)?.text = getString(R.string.platform_request_total_fee, formatPrice(totalFee))
+                val totalFee = req?.totalFee ?: 0.0
+                findViewById<TextView>(R.id.tvPendingTotalBranches)?.text = getString(
+                    R.string.platform_request_total_branches,
+                    PersianUtils.toPersianDigits(totalBranches.toString())
+                )
+                findViewById<TextView>(R.id.tvPendingTotalFee)?.text = if (isTrial || totalFee == 0.0) {
+                    getString(R.string.platform_request_total_fee, getString(R.string.business_request_free))
+                } else {
+                    getString(R.string.platform_request_total_fee, getString(R.string.business_request_toman_format, formatPrice(totalFee)))
+                }
 
                 // Extra branches list
                 val layoutExtra = findViewById<View>(R.id.layoutPendingExtraBranches)
@@ -294,7 +342,10 @@ class BusinessUpgradeActivity : BaseActivity() {
                 val tvExtraList = findViewById<TextView>(R.id.tvPendingExtraBranchesList)
                 if (!req?.additionalBranches.isNullOrEmpty()) {
                     layoutExtra?.isVisible = true
-                    tvExtraTitle?.text = getString(R.string.platform_request_other_branches, req!!.additionalBranches.size)
+                    tvExtraTitle?.text = getString(
+                        R.string.platform_request_other_branches,
+                        PersianUtils.toPersianDigits(req!!.additionalBranches.size.toString())
+                    )
                     tvExtraList?.text = req.additionalBranches.joinToString("\n") { br ->
                         "• ${br.name}" + if (br.address.isNotBlank()) " (${br.address})" else ""
                     }
@@ -302,107 +353,113 @@ class BusinessUpgradeActivity : BaseActivity() {
                     layoutExtra?.isVisible = false
                 }
 
-                // Bank info in pending state
-                val pendingHolder = findViewById<TextView>(R.id.tvPendingAccountHolder)
-                val pBankParts = mutableListOf<String>()
-                if (state.pricing.bankName.isNotBlank()) pBankParts.add(state.pricing.bankName)
-                if (state.pricing.accountHolder.isNotBlank()) pBankParts.add("به نام ${state.pricing.accountHolder}")
-                pendingHolder?.text = if (pBankParts.isNotEmpty()) pBankParts.joinToString(" - ") else ""
-                pendingHolder?.isVisible = pBankParts.isNotEmpty()
+                // Hide bank info and receipt upload card if Trial
+                findViewById<View>(R.id.cardPendingBankInfo)?.isVisible = !isTrial
+                findViewById<View>(R.id.cardPendingReceipt)?.isVisible = !isTrial
 
-                // Pending Card Number
-                val layoutPCard = findViewById<View>(R.id.layoutPendingCardNumber)
-                val tvPCard = findViewById<TextView>(R.id.tvPendingCardNumber)
-                val btnPCopyCard = findViewById<View>(R.id.btnCopyPendingCard)
-                val pCardNum = state.pricing.cardNumber.trim()
-                if (pCardNum.isNotBlank()) {
-                    layoutPCard?.isVisible = true
-                    tvPCard?.text = getString(R.string.business_request_bank_card_label, PersianUtils.toPersianDigits(pCardNum))
-                    val copyPCardAction = View.OnClickListener {
-                        DeepLinkHelper.copyToClipboard(this, pCardNum, "Card Number")
-                        Toast.makeText(this, R.string.card_number_copied, Toast.LENGTH_SHORT).show()
+                if (!isTrial) {
+                    // Bank info in pending state
+                    val pendingHolder = findViewById<TextView>(R.id.tvPendingAccountHolder)
+                    val pBankParts = mutableListOf<String>()
+                    if (state.pricing.bankName.isNotBlank()) pBankParts.add(state.pricing.bankName)
+                    if (state.pricing.accountHolder.isNotBlank()) pBankParts.add("به نام ${state.pricing.accountHolder}")
+                    pendingHolder?.text = if (pBankParts.isNotEmpty()) pBankParts.joinToString(" - ") else ""
+                    pendingHolder?.isVisible = pBankParts.isNotEmpty()
+
+                    // Pending Card Number
+                    val layoutPCard = findViewById<View>(R.id.layoutPendingCardNumber)
+                    val tvPCard = findViewById<TextView>(R.id.tvPendingCardNumber)
+                    val btnPCopyCard = findViewById<View>(R.id.btnCopyPendingCard)
+                    val pCardNum = state.pricing.cardNumber.trim()
+                    if (pCardNum.isNotBlank()) {
+                        layoutPCard?.isVisible = true
+                        tvPCard?.text = getString(R.string.business_request_bank_card_label, PersianUtils.toPersianDigits(pCardNum))
+                        val copyPCardAction = View.OnClickListener {
+                            DeepLinkHelper.copyToClipboard(this, pCardNum, "Card Number")
+                            Toast.makeText(this, R.string.card_number_copied, Toast.LENGTH_SHORT).show()
+                        }
+                        btnPCopyCard?.setOnClickListener(copyPCardAction)
+                        layoutPCard?.setOnClickListener(copyPCardAction)
+                    } else {
+                        layoutPCard?.isVisible = false
                     }
-                    btnPCopyCard?.setOnClickListener(copyPCardAction)
-                    layoutPCard?.setOnClickListener(copyPCardAction)
-                } else {
-                    layoutPCard?.isVisible = false
-                }
 
-                // Pending IBAN
-                val layoutPIban = findViewById<View>(R.id.layoutPendingIban)
-                val tvPIban = findViewById<TextView>(R.id.tvPendingIban)
-                val btnPCopyIban = findViewById<View>(R.id.btnCopyPendingIban)
-                val pIbanNum = state.pricing.iban.trim()
-                if (pIbanNum.isNotBlank()) {
-                    layoutPIban?.isVisible = true
-                    tvPIban?.text = getString(R.string.business_request_bank_iban_label, pIbanNum)
-                    val copyPIbanAction = View.OnClickListener {
-                        DeepLinkHelper.copyToClipboard(this, pIbanNum, "IBAN")
-                        Toast.makeText(this, R.string.iban_copied, Toast.LENGTH_SHORT).show()
+                    // Pending IBAN
+                    val layoutPIban = findViewById<View>(R.id.layoutPendingIban)
+                    val tvPIban = findViewById<TextView>(R.id.tvPendingIban)
+                    val btnPCopyIban = findViewById<View>(R.id.btnCopyPendingIban)
+                    val pIbanNum = state.pricing.iban.trim()
+                    if (pIbanNum.isNotBlank()) {
+                        layoutPIban?.isVisible = true
+                        tvPIban?.text = getString(R.string.business_request_bank_iban_label, pIbanNum)
+                        val copyPIbanAction = View.OnClickListener {
+                            DeepLinkHelper.copyToClipboard(this, pIbanNum, "IBAN")
+                            Toast.makeText(this, R.string.iban_copied, Toast.LENGTH_SHORT).show()
+                        }
+                        btnPCopyIban?.setOnClickListener(copyPIbanAction)
+                        layoutPIban?.setOnClickListener(copyPIbanAction)
+                    } else {
+                        layoutPIban?.isVisible = false
                     }
-                    btnPCopyIban?.setOnClickListener(copyPIbanAction)
-                    layoutPIban?.setOnClickListener(copyPIbanAction)
-                } else {
-                    layoutPIban?.isVisible = false
-                }
 
-                // Pending Account Number
-                val layoutPAcc = findViewById<View>(R.id.layoutPendingAccountNumber)
-                val tvPAcc = findViewById<TextView>(R.id.tvPendingAccountNumber)
-                val btnPCopyAcc = findViewById<View>(R.id.btnCopyPendingAccountNumber)
-                val pAccNum = state.pricing.accountNumber.trim()
-                if (pAccNum.isNotBlank()) {
-                    layoutPAcc?.isVisible = true
-                    tvPAcc?.text = getString(R.string.business_request_bank_account_number_label, PersianUtils.toPersianDigits(pAccNum))
-                    val copyPAccAction = View.OnClickListener {
-                        DeepLinkHelper.copyToClipboard(this, pAccNum, "Account Number")
-                        Toast.makeText(this, R.string.account_number_copied, Toast.LENGTH_SHORT).show()
+                    // Pending Account Number
+                    val layoutPAcc = findViewById<View>(R.id.layoutPendingAccountNumber)
+                    val tvPAcc = findViewById<TextView>(R.id.tvPendingAccountNumber)
+                    val btnPCopyAcc = findViewById<View>(R.id.btnCopyPendingAccountNumber)
+                    val pAccNum = state.pricing.accountNumber.trim()
+                    if (pAccNum.isNotBlank()) {
+                        layoutPAcc?.isVisible = true
+                        tvPAcc?.text = getString(R.string.business_request_bank_account_number_label, PersianUtils.toPersianDigits(pAccNum))
+                        val copyPAccAction = View.OnClickListener {
+                            DeepLinkHelper.copyToClipboard(this, pAccNum, "Account Number")
+                            Toast.makeText(this, R.string.account_number_copied, Toast.LENGTH_SHORT).show()
+                        }
+                        btnPCopyAcc?.setOnClickListener(copyPAccAction)
+                        layoutPAcc?.setOnClickListener(copyPAccAction)
+                    } else {
+                        layoutPAcc?.isVisible = false
                     }
-                    btnPCopyAcc?.setOnClickListener(copyPAccAction)
-                    layoutPAcc?.setOnClickListener(copyPAccAction)
-                } else {
-                    layoutPAcc?.isVisible = false
-                }
 
-                findViewById<TextView>(R.id.tvPendingInstructions)?.text = state.pricing.paymentInstructions
+                    findViewById<TextView>(R.id.tvPendingInstructions)?.text = state.pricing.paymentInstructions
 
-                // Receipt info & status
-                val badgeReceipt = findViewById<TextView>(R.id.tvPendingReceiptBadge)
-                val btnUpload = findViewById<MaterialButton>(R.id.btnUploadReceipt)
-                val ivPreview = findViewById<ImageView>(R.id.ivPendingReceiptPreview)
-                val pbReceipt = findViewById<ProgressBar>(R.id.pbReceiptLoading)
-                pbReceipt?.isVisible = state.uploadingReceipt
-                btnUpload?.isEnabled = !state.uploadingReceipt
+                    // Receipt info & status
+                    val badgeReceipt = findViewById<TextView>(R.id.tvPendingReceiptBadge)
+                    val btnUpload = findViewById<MaterialButton>(R.id.btnUploadReceipt)
+                    val ivPreview = findViewById<ImageView>(R.id.ivPendingReceiptPreview)
+                    val pbReceipt = findViewById<ProgressBar>(R.id.pbReceiptLoading)
+                    pbReceipt?.isVisible = state.uploadingReceipt
+                    btnUpload?.isEnabled = !state.uploadingReceipt
 
-                val etTracking = findViewById<TextInputEditText>(R.id.etPendingTrackingCode)
-                if (etTracking?.text.isNullOrBlank() && !req?.receiptTrackingCode.isNullOrBlank()) {
-                    etTracking?.setText(req.receiptTrackingCode)
-                }
+                    val etTracking = findViewById<TextInputEditText>(R.id.etPendingTrackingCode)
+                    if (etTracking?.text.isNullOrBlank() && !req?.receiptTrackingCode.isNullOrBlank()) {
+                        etTracking?.setText(req.receiptTrackingCode)
+                    }
 
-                if (req?.hasReceipt == true) {
-                    badgeReceipt?.text = getString(R.string.business_request_receipt_uploaded_badge)
-                    StatusBadgeHelper.applyBadgeStyle(badgeReceipt, StatusBadgeHelper.BadgeStyle.CONFIRMED)
-                    btnUpload?.text = getString(R.string.business_request_receipt_change_btn)
+                    if (req?.hasReceipt == true) {
+                        badgeReceipt?.text = getString(R.string.business_request_receipt_uploaded_badge)
+                        StatusBadgeHelper.applyBadgeStyle(badgeReceipt, StatusBadgeHelper.BadgeStyle.CONFIRMED)
+                        btnUpload?.text = getString(R.string.business_request_receipt_change_btn)
 
-                    if (!req.receiptImageBase64.isNullOrBlank()) {
-                        try {
-                            val decoded = Base64.decode(req.receiptImageBase64, Base64.DEFAULT)
-                            val bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.size)
-                            if (bmp != null) {
-                                ivPreview?.isVisible = true
-                                ivPreview?.setImageBitmap(bmp)
+                        if (!req.receiptImageBase64.isNullOrBlank()) {
+                            try {
+                                val decoded = Base64.decode(req.receiptImageBase64, Base64.DEFAULT)
+                                val bmp = BitmapFactory.decodeByteArray(decoded, 0, decoded.size)
+                                if (bmp != null) {
+                                    ivPreview?.isVisible = true
+                                    ivPreview?.setImageBitmap(bmp)
+                                }
+                            } catch (_: Exception) {
+                                ivPreview?.isVisible = false
                             }
-                        } catch (_: Exception) {
+                        } else {
                             ivPreview?.isVisible = false
                         }
                     } else {
+                        badgeReceipt?.text = getString(R.string.business_request_receipt_pending_badge)
+                        StatusBadgeHelper.applyBadgeStyle(badgeReceipt, StatusBadgeHelper.BadgeStyle.PENDING)
+                        btnUpload?.text = getString(R.string.business_request_receipt_upload_btn)
                         ivPreview?.isVisible = false
                     }
-                } else {
-                    badgeReceipt?.text = getString(R.string.business_request_receipt_pending_badge)
-                    StatusBadgeHelper.applyBadgeStyle(badgeReceipt, StatusBadgeHelper.BadgeStyle.PENDING)
-                    btnUpload?.text = getString(R.string.business_request_receipt_upload_btn)
-                    ivPreview?.isVisible = false
                 }
             }
             isRejected && !isEditingResubmit -> {
@@ -428,25 +485,26 @@ class BusinessUpgradeActivity : BaseActivity() {
                 formFieldsContainer?.isVisible = true
                 btnCancelResubmit?.isVisible = isRejected && isEditingResubmit
 
+                val resolvedPhone = state.phoneNumber.ifBlank { state.user?.phoneNumber.orEmpty() }.ifBlank {
+                    val email = state.user?.email.orEmpty().trim()
+                    if (LoginIdentifier.isIranianMobile(email)) LoginIdentifier.normalizeIranianMobileDigits(email) else ""
+                }
+
                 if (!initializedFromState) {
                     if (req != null) {
                         initializedFromState = true
                         prefillFormFromRequest()
-                    } else {
-                        val userPhone = state.phoneNumber.ifBlank { state.user?.phoneNumber.orEmpty() }
-                        if (userPhone.isNotBlank()) {
-                            initializedFromState = true
-                            findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(userPhone)
-                        }
+                    } else if (resolvedPhone.isNotBlank()) {
+                        initializedFromState = true
+                        findViewById<TextInputEditText>(R.id.etReqContactPhone)?.setText(resolvedPhone)
                     }
                 }
                 val etPhone = findViewById<TextInputEditText>(R.id.etReqContactPhone)
-                if (etPhone?.text.isNullOrBlank()) {
-                    val userPhone = state.phoneNumber.ifBlank { state.user?.phoneNumber.orEmpty() }
-                    if (userPhone.isNotBlank()) {
-                        etPhone?.setText(userPhone)
-                    }
+                if (etPhone?.text.isNullOrBlank() && resolvedPhone.isNotBlank()) {
+                    etPhone?.setText(resolvedPhone)
                 }
+
+                updateLivePricing()
             }
         }
 
@@ -482,88 +540,152 @@ class BusinessUpgradeActivity : BaseActivity() {
         }
     }
 
+    private fun selectPlan(planType: String) {
+        selectedPlanType = planType
+        val selectedStroke = ContextCompat.getColor(this, R.color.plan_card_selected_stroke)
+        val defaultStroke = ContextCompat.getColor(this, R.color.plan_card_default_stroke)
+        val selectedBg = ContextCompat.getColorStateList(this, R.color.plan_card_selected_bg)
+        val defaultBg = ContextCompat.getColorStateList(this, R.color.plan_card_default_bg)
+        val density = resources.displayMetrics.density
+        val strokeSelected = (2 * density).toInt()
+        val strokeDefault = (1 * density).toInt()
+
+        val cards = listOf(
+            Pair("Trial7Days", findViewById<MaterialCardView>(R.id.cardPlanTrial)),
+            Pair("Monthly", findViewById<MaterialCardView>(R.id.cardPlan1Month)),
+            Pair("Quarterly", findViewById<MaterialCardView>(R.id.cardPlan3Months)),
+            Pair("SemiAnnual", findViewById<MaterialCardView>(R.id.cardPlan6Months)),
+            Pair("Annual", findViewById<MaterialCardView>(R.id.cardPlan1Year))
+        )
+
+        cards.forEach { (type, card) ->
+            if (card != null) {
+                if (type == selectedPlanType) {
+                    card.strokeWidth = strokeSelected
+                    card.strokeColor = selectedStroke
+                    card.setCardBackgroundColor(selectedBg)
+                } else {
+                    card.strokeWidth = strokeDefault
+                    card.strokeColor = defaultStroke
+                    card.setCardBackgroundColor(defaultBg)
+                }
+            }
+        }
+        updateLivePricing()
+    }
+
+    private fun formatPlanTitle(planType: String?, discount: Int): String = when (planType) {
+        "Trial7Days" -> getString(R.string.business_request_plan_trial_title) + " (۷ روز)"
+        "Monthly" -> getString(R.string.business_request_plan_1m_title)
+        "Quarterly" -> if (discount > 0) "۳ ماهه ($discount٪ تخفیف)" else "۳ ماهه"
+        "SemiAnnual" -> if (discount > 0) "۶ ماهه ($discount٪ تخفیف)" else "۶ ماهه"
+        "Annual" -> if (discount > 0) "۱ ساله ($discount٪ تخفیف ویژه)" else "۱ ساله"
+        else -> "تعرفه پایه"
+    }
+
     private fun updateLivePricing() {
         val pricing = viewModel.state.value.pricing
         val extraCount = collectExtraBranches().size
-        val basePrice = pricing.baseBusinessPrice
-        val extraCost = extraCount * pricing.extraBranchPrice
-        val totalFee = basePrice + extraCost
+        val totalBranches = 1 + extraCount
+        val monthly = pricing.baseBusinessPrice + (extraCount * pricing.extraBranchPrice)
 
-        findViewById<TextView>(R.id.tvLiveBasePrice)?.text =
-            getString(R.string.business_request_pricing_base, formatPrice(basePrice))
+        val cost3m = (monthly * 3.0) * (100 - pricing.discountPercent3Months) / 100.0
+        val cost6m = (monthly * 6.0) * (100 - pricing.discountPercent6Months) / 100.0
+        val cost1y = (monthly * 12.0) * (100 - pricing.discountPercent12Months) / 100.0
 
-        val tvExtra = findViewById<TextView>(R.id.tvLiveExtraCost)
-        if (extraCount > 0) {
-            tvExtra?.isVisible = true
-            tvExtra?.text = getString(R.string.business_request_pricing_extra, extraCount, formatPrice(extraCost))
-        } else {
-            tvExtra?.isVisible = false
-        }
-
-        findViewById<TextView>(R.id.tvLiveTotalFee)?.text =
-            getString(R.string.business_request_pricing_total, formatPrice(totalFee))
-
-        // Bank details in form
-        val tvHolder = findViewById<TextView>(R.id.tvLiveAccountHolder)
-        val bankParts = mutableListOf<String>()
-        if (pricing.bankName.isNotBlank()) bankParts.add(pricing.bankName)
-        if (pricing.accountHolder.isNotBlank()) bankParts.add("به نام ${pricing.accountHolder}")
-        tvHolder?.text = if (bankParts.isNotEmpty()) bankParts.joinToString(" - ") else ""
-        tvHolder?.isVisible = bankParts.isNotEmpty()
-
-        // Card number
-        val layoutCard = findViewById<View>(R.id.layoutLiveCardNumber)
-        val tvCard = findViewById<TextView>(R.id.tvLiveCardNumber)
-        val btnCopyCard = findViewById<View>(R.id.btnCopyLiveCard)
-        val cardNum = pricing.cardNumber.trim()
-        if (cardNum.isNotBlank()) {
-            layoutCard?.isVisible = true
-            tvCard?.text = getString(R.string.business_request_bank_card_label, PersianUtils.toPersianDigits(cardNum))
-            val copyCardAction = View.OnClickListener {
-                DeepLinkHelper.copyToClipboard(this, cardNum, "Card Number")
-                Toast.makeText(this, R.string.card_number_copied, Toast.LENGTH_SHORT).show()
+        // Update discount tags on cards
+        findViewById<TextView>(R.id.tvPlan3MonthsDiscount)?.apply {
+            if (pricing.discountPercent3Months > 0) {
+                isVisible = true
+                text = getString(R.string.business_request_plan_discount_format, pricing.discountPercent3Months)
+            } else {
+                isVisible = false
             }
-            btnCopyCard?.setOnClickListener(copyCardAction)
-            layoutCard?.setOnClickListener(copyCardAction)
-        } else {
-            layoutCard?.isVisible = false
+        }
+        findViewById<TextView>(R.id.tvPlan6MonthsDiscount)?.apply {
+            if (pricing.discountPercent6Months > 0) {
+                isVisible = true
+                text = getString(R.string.business_request_plan_discount_format, pricing.discountPercent6Months)
+            } else {
+                isVisible = false
+            }
+        }
+        findViewById<TextView>(R.id.tvPlan1YearDiscount)?.apply {
+            if (pricing.discountPercent12Months > 0) {
+                isVisible = true
+                text = getString(R.string.business_request_plan_discount_format, pricing.discountPercent12Months)
+            } else {
+                isVisible = false
+            }
         }
 
-        // IBAN
-        val layoutIban = findViewById<View>(R.id.layoutLiveIban)
-        val tvIban = findViewById<TextView>(R.id.tvLiveIban)
-        val btnCopyIban = findViewById<View>(R.id.btnCopyLiveIban)
-        val ibanNum = pricing.iban.trim()
-        if (ibanNum.isNotBlank()) {
-            layoutIban?.isVisible = true
-            tvIban?.text = getString(R.string.business_request_bank_iban_label, ibanNum)
-            val copyIbanAction = View.OnClickListener {
-                DeepLinkHelper.copyToClipboard(this, ibanNum, "IBAN")
-                Toast.makeText(this, R.string.iban_copied, Toast.LENGTH_SHORT).show()
-            }
-            btnCopyIban?.setOnClickListener(copyIbanAction)
-            layoutIban?.setOnClickListener(copyIbanAction)
+        // Update card prices
+        findViewById<TextView>(R.id.tvPlan1MonthPrice)?.text =
+            getString(R.string.business_request_toman_format, formatPrice(monthly))
+        findViewById<TextView>(R.id.tvPlan3MonthsPrice)?.text =
+            getString(R.string.business_request_toman_format, formatPrice(cost3m))
+        findViewById<TextView>(R.id.tvPlan6MonthsPrice)?.text =
+            getString(R.string.business_request_toman_format, formatPrice(cost6m))
+        findViewById<TextView>(R.id.tvPlan1YearPrice)?.text =
+            getString(R.string.business_request_toman_format, formatPrice(cost1y))
+
+        // Update calculation card
+        val planDiscount = when (selectedPlanType) {
+            "Quarterly" -> pricing.discountPercent3Months
+            "SemiAnnual" -> pricing.discountPercent6Months
+            "Annual" -> pricing.discountPercent12Months
+            else -> 0
+        }
+        val planTitle = formatPlanTitle(selectedPlanType, planDiscount)
+        findViewById<TextView>(R.id.tvPlanCalcTitle)?.text =
+            getString(R.string.business_request_calc_title_format, planTitle)
+
+        val tvSubtitle = findViewById<TextView>(R.id.tvPlanCalcSubtitle)
+        if (selectedPlanType == "Trial7Days") {
+            tvSubtitle?.text = getString(R.string.business_request_calc_trial_desc)
         } else {
-            layoutIban?.isVisible = false
+            val sb = StringBuilder(getString(R.string.business_request_calc_paid_desc_base, formatPrice(pricing.baseBusinessPrice)))
+            if (extraCount > 0) {
+                sb.append(getString(R.string.business_request_calc_paid_desc_extra, extraCount, formatPrice(pricing.extraBranchPrice)))
+            }
+            if (planDiscount > 0) {
+                sb.append(getString(R.string.business_request_calc_paid_desc_discount, planDiscount))
+            }
+            tvSubtitle?.text = sb.toString()
         }
 
-        // Account number
-        val layoutAcc = findViewById<View>(R.id.layoutLiveAccountNumber)
-        val tvAcc = findViewById<TextView>(R.id.tvLiveAccountNumber)
-        val btnCopyAcc = findViewById<View>(R.id.btnCopyLiveAccountNumber)
-        val accNum = pricing.accountNumber.trim()
-        if (accNum.isNotBlank()) {
-            layoutAcc?.isVisible = true
-            tvAcc?.text = getString(R.string.business_request_bank_account_number_label, PersianUtils.toPersianDigits(accNum))
-            val copyAccAction = View.OnClickListener {
-                DeepLinkHelper.copyToClipboard(this, accNum, "Account Number")
-                Toast.makeText(this, R.string.account_number_copied, Toast.LENGTH_SHORT).show()
-            }
-            btnCopyAcc?.setOnClickListener(copyAccAction)
-            layoutAcc?.setOnClickListener(copyAccAction)
-        } else {
-            layoutAcc?.isVisible = false
+        val liveFee = when (selectedPlanType) {
+            "Trial7Days" -> 0.0
+            "Monthly" -> monthly
+            "Quarterly" -> cost3m
+            "SemiAnnual" -> cost6m
+            "Annual" -> cost1y
+            else -> monthly
         }
+        findViewById<TextView>(R.id.tvPlanCalcTotalFee)?.text = if (selectedPlanType == "Trial7Days" || liveFee == 0.0) {
+            getString(R.string.business_request_free)
+        } else {
+            getString(R.string.business_request_toman_format, formatPrice(liveFee))
+        }
+
+        findViewById<TextView>(R.id.tvPlanCalcFooter)?.text = if (selectedPlanType == "Trial7Days") {
+            getString(R.string.business_request_calc_trial_footer, totalBranches)
+        } else {
+            getString(R.string.business_request_calc_paid_footer, totalBranches)
+        }
+
+        // Button text
+        findViewById<MaterialButton>(R.id.btnSubmitReq)?.let { btn ->
+            if (btn.isEnabled) {
+                btn.text = if (selectedPlanType == "Trial7Days") {
+                    getString(R.string.business_request_submit_trial_btn)
+                } else {
+                    getString(R.string.business_request_submit_paid_btn)
+                }
+            }
+        }
+
+        findViewById<View>(R.id.tvNoExtraBranchesHint)?.isVisible = extraBranchCards.isEmpty()
     }
 
     private fun addExtraBranchField(initialName: String = "", initialAddress: String = "") {
@@ -692,7 +814,7 @@ class BusinessUpgradeActivity : BaseActivity() {
                 )
             }
         } catch (e: Exception) {
-            showToast("خطا در خواندن تصویر فیش: ")
+            showToast("خطا در خواندن تصویر فیش: ${e.message}")
         }
     }
 }

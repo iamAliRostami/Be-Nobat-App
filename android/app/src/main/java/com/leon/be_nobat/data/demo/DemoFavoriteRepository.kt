@@ -21,7 +21,7 @@ class DemoFavoriteRepository(
             val paged = if (start < total) favBusinesses.drop(start).take(pageSize) else emptyList()
 
             val mapped = paged.map { mb ->
-                val branchCount = state.branches.count { it.businessId == mb.id && it.active }
+                val branchCount = state.branches.count { it.businessId == mb.id && it.active && it.isApproved }
                 val serviceCount = state.services.count { it.businessId == mb.id && it.active }
                 val reviews = state.reviews.filter { it.businessId == mb.id && it.active && it.status in listOf("Approved", "Published") }
                 val rating = if (reviews.isNotEmpty()) reviews.map { it.rating }.average() else null

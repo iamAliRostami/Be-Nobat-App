@@ -1,4 +1,4 @@
-@* [fix] مسیرهای /admin/team و /admin/customers در سایدبار و داشبورد لینک شده بودند
+﻿@* [fix] مسیرهای /admin/team و /admin/customers در سایدبار و داشبورد لینک شده بودند
    ولی این کامپوننت فقط روی /admin/people/{Mode} ثبت شده بود؛ بنابراین کلیک روی
    «اعضای تیم» و «مشتریان» به صفحه‌ی «پیدا نشد» می‌رسید و بین این دو حالت سوییچ
    نمی‌شد. حالا هر سه مسیر به همین کامپوننت می‌رسند. *@
@@ -116,13 +116,26 @@
                         @foreach (var branch in ManagedBranches) { <option value="@branch.Id" data-i18n-skip>@branch.Business.Name · @branch.Name</option> }
                     </select>
                 </label>
-                <label>نقش در شعبه
-                    <select @bind="Form.Role">
-                        <option value="@AppRoles.Staff">پرسنل</option>
-                        <option value="@AppRoles.Manager">مدیر</option>
-                        <option value="@AppRoles.Owner">مالک</option>
-                    </select>
-                </label>
+                <div class="member-role-select-box" style="margin-bottom:12px;">
+                    <span style="display:block; font-size:12px; font-weight:700; margin-bottom:6px;">نقش‌های عضو در شعبه:</span>
+                    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+                            <input type="checkbox" @bind="Form.IsStaff" />
+                            <span>پرسنل / کارمند (ارائه‌دهنده خدمت)</span>
+                        </label>
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+                            <input type="checkbox" @bind="Form.IsManager" />
+                            <span>مدیر شعبه</span>
+                        </label>
+                        @if (IsPlatformAdmin || IsCurrentBusinessOwner)
+                        {
+                            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+                                <input type="checkbox" @bind="Form.IsOwner" />
+                                <span>مالک</span>
+                            </label>
+                        }
+                    </div>
+                </div>
                 @if (ManagedBranches.Count == 0) { <small>ابتدا یک شعبه تعریف کنید تا بتوانید عضو اضافه کنید.</small> }
             }
             else if (IsTeam)
@@ -158,6 +171,7 @@
     private List<PersonScope> TeamScopes = [];
     private List<PersonScope> CustomerScopes = [];
     private bool IsPlatformAdmin;
+    private bool IsCurrentBusinessOwner;
     private bool Disposed;
 
     // [fix] قبلاً IsTeam از روی کل URL و با EndsWith("/team") حساب می‌شد؛ با
@@ -260,6 +274,7 @@
     {
         IsPlatformAdmin = await Access.IsPlatformAdminAsync();
         ManagedBranches = await (await Access.ManagedBranchesAsync()).Include(x => x.Business).OrderBy(x => x.Name).ToListAsync();
+        IsCurrentBusinessOwner = IsPlatformAdmin || (ManagedBranches.Count > 0 && await Access.IsBusinessOwnerAsync(ManagedBranches[0].BusinessId));
         var scopeBranches = await (await Access.ManagedBranchesAsync()).AsNoTracking().Include(x => x.Memberships).Include(x => x.Resources).ToListAsync();
         VisibleResources = scopeBranches.SelectMany(b => b.Resources).ToList();
         TeamScopes = scopeBranches.SelectMany(b => b.Memberships.Select(m => new PersonScope(m.UserId, b.Id, b.BusinessId, null)))
@@ -356,9 +371,10 @@
                     Error = "یک شعبه‌ی معتبر انتخاب کنید.";
                     return;
                 }
-                if (!await Access.CanAssignRoleAsync(Form.Role, selectedBranch))
+                var roleToAssign = Form.GetEffectiveRole();
+                if (!await Access.CanAssignRoleAsync(roleToAssign, selectedBranch))
                 {
-                    Error = Form.Role == AppRoles.Owner ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
+                    Error = roleToAssign.Contains(AppRoles.Owner) ? "نقش «مالک» را فقط مالک کسب‌وکار یا مدیر سامانه می‌تواند بدهد." : "اجازه‌ی واگذاری این نقش را ندارید.";
                     return;
                 }
             }
@@ -395,7 +411,8 @@
 
             if (IsTeam)
             {
-                Db.BranchMemberships.Add(new BranchMembership { BranchId = Form.BranchId!.Value, UserId = user.Id, Role = Form.Role });
+                var roleToAssign = Form.GetEffectiveRole();
+                Db.BranchMemberships.Add(new BranchMembership { BranchId = Form.BranchId!.Value, UserId = user.Id, Role = roleToAssign });
                 await Db.SaveChangesAsync();
                 await TeamRoleSync.SyncAsync(UserManager, Db, user);
             }
@@ -475,18 +492,34 @@
     private static string DisplayNameOf(AppUser user) =>
         string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? "کاربر" : user.DisplayName;
 
-    private static string RoleLabel(string role) => role switch
+    private static string RoleLabel(string role)
     {
-        AppRoles.Owner => "مالک",
-        AppRoles.Manager => "مدیر",
-        AppRoles.Staff => "پرسنل",
-        AppRoles.Customer => "مشتری",
-        _ => role,
-    };
+        var parts = AppRoles.ParseRoles(role);
+        if (parts.Length == 0)
+        {
+            return role switch
+            {
+                AppRoles.Owner => "مالک",
+                AppRoles.Manager => "مدیر",
+                AppRoles.Staff => "پرسنل",
+                AppRoles.Customer => "مشتری",
+                _ => role,
+            };
+        }
+        return string.Join("، ", parts.Select(p => p switch
+        {
+            AppRoles.Owner => "مالک",
+            AppRoles.Manager => "مدیر",
+            AppRoles.Staff => "پرسنل",
+            _ => p
+        }));
+    }
 
     private sealed record Person(AppUser User, IList<string> Roles, int Visits, bool IsDisabled, double? Rating)
     {
-        public string Role => TeamRoles.FirstOrDefault(Roles.Contains) ?? (Roles.Contains(AppRoles.Customer) ? AppRoles.Customer : "");
+        public string Role => Roles.Any(TeamRoles.Contains)
+            ? string.Join("، ", Roles.Where(TeamRoles.Contains).Select(RoleLabel))
+            : (Roles.Contains(AppRoles.Customer) ? AppRoles.Customer : "");
     }
     private sealed record PersonScope(Guid UserId, Guid BranchId, Guid BusinessId, Guid? ResourceId);
 
@@ -497,5 +530,18 @@
         public string Phone { get; set; } = "";
         public string Role { get; set; } = AppRoles.Staff;
         public Guid? BranchId { get; set; }
+        public bool IsStaff { get; set; } = true;
+        public bool IsManager { get; set; } = false;
+        public bool IsOwner { get; set; } = false;
+
+        public string GetEffectiveRole()
+        {
+            var roles = new List<string>();
+            if (IsOwner) roles.Add(AppRoles.Owner);
+            if (IsManager) roles.Add(AppRoles.Manager);
+            if (IsStaff) roles.Add(AppRoles.Staff);
+            if (roles.Count == 0) roles.Add(AppRoles.Staff);
+            return string.Join(",", roles);
+        }
     }
 }

@@ -39,16 +39,301 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/branch_payment_title"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Headline" />
+                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvPaymentSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="3dp"
                     android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                    android:textSize="12.5sp"
                     tools:text="شعبه مرکزی" />
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- Section: Plan Duration Selection -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="10dp"
+            android:text="انتخاب طول دوره پلن شعبه:"
+            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+            android:textSize="13.5sp" />
+
+        <!-- Grid Row 1: 1 Month & 3 Months -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <!-- 1 Month -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBranchPlan1M"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="5dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/plan_card_selected_bg"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/plan_card_selected_stroke">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanTitle1M"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="۱ ماهه"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_monthly"
+                            android:paddingStart="7dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="7dp"
+                            android:paddingBottom="2dp"
+                            android:textColor="@color/badge_monthly_text"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:text="عادی" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBranchPlanFee1M"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="۳۰۰,۰۰۰ تومان" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3 Months -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBranchPlan3M"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/plan_card_default_bg"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/plan_card_default_stroke">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanTitle3M"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="۳ ماهه"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanDiscount3M"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_discount_amber"
+                            android:paddingStart="7dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="7dp"
+                            android:paddingBottom="2dp"
+                            android:textColor="@color/badge_amber_text"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:text="۱۰٪ تخفیف" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBranchPlanFee3M"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="۸۱۰,۰۰۰ تومان" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- Grid Row 2: 6 Months & 12 Months -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <!-- 6 Months -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBranchPlan6M"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="5dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/plan_card_default_bg"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/plan_card_default_stroke">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanTitle6M"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="۶ ماهه"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanDiscount6M"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_discount_red"
+                            android:paddingStart="7dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="7dp"
+                            android:paddingBottom="2dp"
+                            android:textColor="@color/badge_red_text"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:text="۱۵٪ تخفیف" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBranchPlanFee6M"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="۱,۵۳۰,۰۰۰ تومان" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 12 Months -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardBranchPlan12M"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/plan_card_default_bg"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/plan_card_default_stroke">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanTitle12M"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="۱ ساله"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvBranchPlanDiscount12M"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_discount_green"
+                            android:paddingStart="7dp"
+                            android:paddingTop="2dp"
+                            android:paddingEnd="7dp"
+                            android:paddingBottom="2dp"
+                            android:textColor="@color/badge_green_text"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:text="۲۰٪ تخفیف" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvBranchPlanFee12M"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:text="۲,۸۸۰,۰۰۰ تومان" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <!-- Pricing & Bank Details Card -->
@@ -73,10 +358,11 @@
                     android:id="@+id/tvPaymentFee"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                    android:textAppearance="@style/TextAppearance.BeNobat.Title"
+                    android:textSize="15.5sp"
                     android:textColor="?attr/colorPrimary"
                     android:textStyle="bold"
-                    tools:text="هزینه ثبت شعبه: ۲۰۰,۰۰۰ تومان" />
+                    tools:text="مبلغ قابل واریز (۱ ماهه): ۳۰۰,۰۰۰ تومان" />
 
                 <View
                     android:layout_width="match_parent"

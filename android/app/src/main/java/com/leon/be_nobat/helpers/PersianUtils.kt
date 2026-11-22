@@ -78,10 +78,9 @@ object PersianUtils {
         val isEn = isEnglishLocale()
         val isAr = isArabicLocale()
         val (tomanAmount, label) = when {
-            curClean == "IRT" || curClean == "TOMAN" || currency?.trim() == "تومان" -> raw to (if (isEn) "Toman" else if (isAr) "تومان" else "تومان")
             curClean == "USD" || curClean == "$" -> raw to "$"
             curClean == "EUR" || curClean == "€" -> raw to "€"
-            else -> (raw / 10.0) to (if (isEn) "Toman" else if (isAr) "تومان" else "تومان")
+            else -> raw to (if (isEn) "Toman" else if (isAr) "تومان" else "تومان")
         }
         val formatted = NumberFormat.getNumberInstance(Locale.US).format(tomanAmount.toLong())
         return if (isEn) {

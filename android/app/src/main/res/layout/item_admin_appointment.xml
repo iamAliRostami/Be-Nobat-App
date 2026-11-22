@@ -116,6 +116,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
@@ -128,8 +129,11 @@
                 android:minHeight="38dp"
                 android:paddingTop="6dp"
                 android:paddingBottom="6dp"
-                android:textSize="13sp"
-                app:cornerRadius="12dp"
+                android:textSize="12.5sp"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                app:cornerRadius="10dp"
                 tools:text="فعال‌سازی" />
 
             <com.google.android.material.button.MaterialButton
@@ -142,8 +146,11 @@
                 android:minHeight="38dp"
                 android:paddingTop="6dp"
                 android:paddingBottom="6dp"
-                android:textSize="13sp"
-                app:cornerRadius="12dp"
+                android:textSize="12.5sp"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:ellipsize="end"
+                app:cornerRadius="10dp"
                 tools:text="ویرایش" />
 
             <com.google.android.material.button.MaterialButton

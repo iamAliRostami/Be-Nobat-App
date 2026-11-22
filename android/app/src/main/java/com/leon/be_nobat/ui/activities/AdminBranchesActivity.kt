@@ -51,7 +51,10 @@ class AdminBranchesActivity : BaseActivity() {
     }
 
     override fun setupViews() {
-        setupAdminHeader(getString(R.string.admin_branches), currentMenuItemId = R.id.drawer_branches)
+        val isPendingFilter = intent.getStringExtra("status") == "pending"
+        val headerTitle = if (isPendingFilter) getString(R.string.drawer_platform_branch_requests) else getString(R.string.admin_branches)
+        val menuItemId = if (isPendingFilter) R.id.drawer_platform_branch_requests else R.id.drawer_branches
+        setupAdminHeader(headerTitle, currentMenuItemId = menuItemId)
 
         swipeRefresh = findViewById(R.id.swipeRefresh)
         swipeRefresh.setOnRefreshListener { viewModel.load() }
@@ -62,7 +65,16 @@ class AdminBranchesActivity : BaseActivity() {
             onDelete = { branch -> viewModel.delete(branch.id) },
             onApprove = { branch -> viewModel.approveBranch(branch.id) },
             onShowReceipt = { branch ->
-                BranchPaymentReceiptHelper.showReceiptDialog(this, branch)
+                BranchPaymentReceiptHelper.showReceiptDialog(this, branch, onEditReceipt = {
+                    BranchPaymentReceiptHelper.showPaymentAndUploadDialog(
+                        activity = this,
+                        branch = branch,
+                        managementRepository = managementRepository,
+                        pickImageLauncher = pickReceiptLauncher,
+                        onSelectedUriCallbackSetter = { callback -> onImagePickedCallback = callback },
+                        onReceiptUploaded = { viewModel.load() }
+                    )
+                })
             },
             onUploadReceipt = { branch ->
                 BranchPaymentReceiptHelper.showPaymentAndUploadDialog(
@@ -118,7 +130,9 @@ class AdminBranchesActivity : BaseActivity() {
         findViewById<android.widget.ProgressBar>(R.id.loadingProgress).isVisible = state.loading && state.items.isEmpty()
         findViewById<android.widget.TextView>(R.id.emptyStateText).isVisible = !state.loading && state.items.isEmpty()
         renderAdminError(state.error) { viewModel.load() }
-        adapter.submitList(state.items)
+        val isPendingFilter = intent.getStringExtra("status") == "pending"
+        val displayedItems = if (isPendingFilter) state.items.filter { !it.isApproved } else state.items
+        adapter.submitList(displayedItems)
 
         state.message?.let { msg ->
             if (msg == "branch_approved") {
@@ -180,7 +194,29 @@ class AdminBranchesActivity : BaseActivity() {
                         bodyLines.add(root.context.getString(R.string.branch_receipt_not_uploaded))
                     }
                 }
+                if (!item.planExpiresAt.isNullOrBlank()) {
+                    val expJalali = com.leon.be_nobat.helpers.JalaliDateHelper.formatIsoToJalali(item.planExpiresAt)
+                    val expPersian = PersianUtils.toPersianDigits(expJalali ?: item.planExpiresAt)
+                    if (item.isPlanExpired == true) {
+                        bodyLines.add("اعتبار پلن شعبه: ⚠️ منقضی شده ($expPersian)")
+                    } else {
+                        bodyLines.add("اعتبار پلن شعبه: $expPersian")
+                    }
+                }
+                item.inviteCode?.takeIf { it.isNotBlank() }?.let { code ->
+                    bodyLines.add("🔑 کد دعوت پرسنل: $code (لمس برای کپی)")
+                }
                 tvBody.text = bodyLines.joinToString("\n")
+                if (!item.inviteCode.isNullOrBlank()) {
+                    tvBody.setOnClickListener {
+                        val clip = android.content.ClipData.newPlainText("BranchInviteCode", item.inviteCode)
+                        val clipboard = root.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(clip)
+                        android.widget.Toast.makeText(root.context, root.context.getString(R.string.invite_code_copied), android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    tvBody.setOnClickListener(null)
+                }
 
                 if (!item.isApproved) {
                     tvStatus.text = root.context.getString(R.string.branch_pending_approval)
@@ -223,7 +259,18 @@ class AdminBranchesActivity : BaseActivity() {
                     btnAction2.isVisible = true
                     btnAction2.text = root.context.getString(R.string.action_edit)
                     btnAction2.setOnClickListener { onEdit(item) }
-                    btnAction3.isVisible = false
+
+                    btnAction3.isVisible = true
+                    if (item.hasReceipt) {
+                        btnAction3.text = "مشاهده فیش / تمدید"
+                        btnAction3.setIconResource(R.drawable.ic_document)
+                        btnAction3.setOnClickListener { onShowReceipt(item) }
+                    } else {
+                        btnAction3.text = "تمدید / پلن"
+                        btnAction3.setIconResource(R.drawable.ic_document)
+                        btnAction3.setOnClickListener { onUploadReceipt(item) }
+                    }
+                    btnAction3.iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
                 }
                 btnQrCode.isVisible = true
                 btnQrCode.setOnClickListener {

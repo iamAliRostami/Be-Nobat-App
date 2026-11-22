@@ -61,7 +61,8 @@
                     android:inputType="phone"
                     android:maxLines="1"
                     android:singleLine="true"
-                    android:textDirection="ltr" />
+                    android:maxLength="11"
+                    android:digits="0123456789۰۱۲۳۴۵۶۷۸۹" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Branch Dropdown -->

@@ -543,6 +543,8 @@ abstract class BaseActivity : AppCompatActivity() {
                     updateDrawerBadge(menu.findItem(R.id.drawer_calendar), badges.pendingAppointments, R.drawable.bg_drawer_badge_red)
                     updateDrawerBadge(menu.findItem(R.id.drawer_reviews), badges.pendingReviews, R.drawable.bg_drawer_badge_amber)
                     updateDrawerBadge(menu.findItem(R.id.drawer_platform_requests), badges.pendingRequests, R.drawable.bg_drawer_badge_red)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_platform_branch_requests), badges.pendingBranchRequests, R.drawable.bg_drawer_badge_red)
+                    updateDrawerBadge(menu.findItem(R.id.drawer_branches), badges.pendingMyBranches, R.drawable.bg_drawer_badge_amber)
                     updateDrawerBadge(menu.findItem(R.id.drawer_platform_messages), badges.unreadContactMessages, R.drawable.bg_drawer_badge_amber)
                     updateDrawerBadge(menu.findItem(R.id.drawer_platform_access), badges.pendingPasswordResets, R.drawable.bg_drawer_badge_red)
 
@@ -657,6 +659,14 @@ abstract class BaseActivity : AppCompatActivity() {
                     R.id.drawer_platform_requests -> {
                         if (!isPlatform) showToast(R.string.error_access_denied)
                         else navigateAdminDestination(PlatformRequestsActivity::class.java)
+                    }
+                    R.id.drawer_platform_branch_requests -> {
+                        if (!isPlatform) showToast(R.string.error_access_denied)
+                        else {
+                            startActivity(Intent(this@BaseActivity, AdminBranchesActivity::class.java).apply {
+                                putExtra("status", "pending")
+                            })
+                        }
                     }
                     R.id.drawer_platform_messages -> {
                         if (!isPlatform) showToast(R.string.error_access_denied)

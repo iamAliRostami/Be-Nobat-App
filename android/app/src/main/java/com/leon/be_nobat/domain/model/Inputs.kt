@@ -20,6 +20,7 @@ data class RegisterInput(
     val email: String? = null,
     val phoneNumber: String? = null,
     val password: String? = null,
+    val inviteCode: String? = null,
 )
 
 @Serializable
@@ -239,12 +240,18 @@ data class BusinessRequestInput(
     val firstBranchName: String = "شعبه مرکزی",
     val firstBranchAddress: String = "",
     val additionalBranches: List<RequestedBranch> = emptyList(),
+    val planType: String = "Trial7Days",
+    val planDurationMonths: Int = 0,
+    val discountPercent: Int = 0,
 )
 
 @Serializable
 data class PlatformPricingInput(
     val baseBusinessPrice: Double = 500_000.0,
     val extraBranchPrice: Double = 200_000.0,
+    val discountPercent3Months: Int = 10,
+    val discountPercent6Months: Int = 15,
+    val discountPercent12Months: Int = 20,
     val cardNumber: String = "",
     val iban: String = "",
     val accountHolder: String = "",
@@ -283,6 +290,18 @@ data class ReceiptUploadInput(
     val dataBase64: String = imageBase64,
     val contentType: String = "image/jpeg",
     val trackingCode: String? = null,
+    val planType: String? = null,
+    val planDurationMonths: Int? = null,
+)
+
+@Serializable
+data class BusinessRenewInput(
+    val planType: String = "Monthly",
+    val planDurationMonths: Int = 1,
+    val trackingCode: String? = null,
+    val contentType: String = "image/jpeg",
+    val imageBase64: String = "",
+    val dataBase64: String = imageBase64,
 )
 
 @Serializable

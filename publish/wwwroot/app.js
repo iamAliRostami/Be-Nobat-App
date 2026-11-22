@@ -1,4 +1,16 @@
 if(typeof navigator!=='undefined'&&/android/i.test(navigator.userAgent)){document.documentElement.classList.add('is-android');}
+window.togglePasswordVisibility = function(inputId, btn) {
+    var input = typeof inputId === 'string' ? document.getElementById(inputId) : inputId;
+    if (!input) return;
+    var isNowText = input.type === 'password';
+    input.type = isNowText ? 'text' : 'password';
+    if (!btn && typeof event !== 'undefined') btn = event.currentTarget;
+    if (btn) {
+        btn.classList.toggle('is-visible', isNowText);
+        btn.setAttribute('aria-pressed', isNowText ? 'true' : 'false');
+        btn.setAttribute('title', isNowText ? 'پنهان‌سازی رمز عبور' : 'نمایش رمز عبور');
+    }
+};
 window.beNobat = {
     // [fix] اسکرول به نتایج جست‌وجو کار نمی‌کرد. دو دلیل داشت:
     //   ۱) بخش نتایج داخل .public-main است که overflow:hidden دارد؛ مرورگر آن را

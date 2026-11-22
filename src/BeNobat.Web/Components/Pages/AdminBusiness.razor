@@ -102,7 +102,7 @@ else
                 <!-- لوگو / آواتار -->
                 <div style="border:1px solid var(--outline-soft); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;">
                     <span style="font-size:13px; font-weight:600;">لوگو / نشان کسب‌وکار</span>
-                    <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid var(--outline); background:#f1f5f4; display:grid; place-items:center;">
+                    <div style="width:84px; height:84px; border-radius:50%; overflow:hidden; border:2px solid var(--outline-soft); background:var(--surface-variant); display:grid; place-items:center;">
                         @if (!string.IsNullOrEmpty(AvatarUrl))
                         {
                             <img src="@AvatarUrl" alt="لوگو" style="width:100%; height:100%; object-fit:cover;" />
@@ -122,7 +122,7 @@ else
                 <!-- بنر / کاور هدر -->
                 <div style="border:1px solid var(--outline-soft); border-radius:12px; padding:16px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px;">
                     <span style="font-size:13px; font-weight:600;">تصویر پس‌زمینه (کاور)</span>
-                    <div style="width:100%; height:84px; border-radius:8px; overflow:hidden; border:1px solid var(--outline); background:#f1f5f4; display:grid; place-items:center;">
+                    <div style="width:100%; height:84px; border-radius:8px; overflow:hidden; border:1px solid var(--outline-soft); background:var(--surface-variant); display:grid; place-items:center;">
                         @if (!string.IsNullOrEmpty(HeaderUrl))
                         {
                             <img src="@HeaderUrl" alt="کاور" style="width:100%; height:100%; object-fit:cover;" />
@@ -298,19 +298,31 @@ else
             <div class="modal-body">
                 @if (RenewError is not null) { <div class="auth-error" style="margin-bottom:10px;">@RenewError</div> }
                 
-                <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:#334155;">انتخاب پلن تمدید / ارتقا:</div>
-                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:16px;">
+                <div style="font-weight:700; font-size:14px; margin-bottom:10px; color:var(--on-surface);">انتخاب پلن تمدید / ارتقا:</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+                    <!-- ۱ ماهه -->
+                    <div class="renew-plan-card @(RenewPlanType == "Monthly" ? "active" : "")" @onclick='() => SetRenewPlan("Monthly")'>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <b>۱ ماهه</b>
+                            <span class="badge-discount badge-monthly">عادی</span>
+                        </div>
+                        <div class="renew-plan-subtitle">۱ ماه اشتراک مدیریت</div>
+                        <div class="renew-plan-price">
+                            @LocalizedDate.FormatNumber(CalculateRenewCost("Monthly"), UiLocale.Language) تومان
+                        </div>
+                    </div>
+
                     <!-- ۳ ماهه -->
                     <div class="renew-plan-card @(RenewPlanType == "Quarterly" ? "active" : "")" @onclick='() => SetRenewPlan("Quarterly")'>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <b>۳ ماهه</b>
                             @if (PlatformPricing.DiscountPercent3Months > 0)
                             {
-                                <span class="badge-discount">@PlatformPricing.DiscountPercent3Months٪ تخفیف</span>
+                                <span class="badge-discount badge-quarterly">@PlatformPricing.DiscountPercent3Months٪ تخفیف</span>
                             }
                         </div>
-                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۳ ماه اشتراک کسب‌وکار</div>
-                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                        <div class="renew-plan-subtitle">۳ ماه اشتراک کسب‌وکار</div>
+                        <div class="renew-plan-price">
                             @LocalizedDate.FormatNumber(CalculateRenewCost("Quarterly"), UiLocale.Language) تومان
                         </div>
                     </div>
@@ -321,11 +333,11 @@ else
                             <b>۶ ماهه</b>
                             @if (PlatformPricing.DiscountPercent6Months > 0)
                             {
-                                <span class="badge-discount" style="background:#fee2e2; color:#b91c1c;">@PlatformPricing.DiscountPercent6Months٪ تخفیف</span>
+                                <span class="badge-discount badge-semiannual">@PlatformPricing.DiscountPercent6Months٪ تخفیف</span>
                             }
                         </div>
-                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۶ ماه اشتراک اقتصادی</div>
-                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                        <div class="renew-plan-subtitle">۶ ماه اشتراک اقتصادی</div>
+                        <div class="renew-plan-price">
                             @LocalizedDate.FormatNumber(CalculateRenewCost("SemiAnnual"), UiLocale.Language) تومان
                         </div>
                     </div>
@@ -336,44 +348,44 @@ else
                             <b>۱ ساله</b>
                             @if (PlatformPricing.DiscountPercent12Months > 0)
                             {
-                                <span class="badge-discount" style="background:#dcfce7; color:#15803d;">@PlatformPricing.DiscountPercent12Months٪ تخفیف</span>
+                                <span class="badge-discount badge-annual">@PlatformPricing.DiscountPercent12Months٪ تخفیف</span>
                             }
                         </div>
-                        <div style="font-size:12px; color:#64748b; margin:6px 0;">۱۲ ماه حداکثر صرفه‌جویی</div>
-                        <div style="font-size:14px; font-weight:800; color:#15803d;">
+                        <div class="renew-plan-subtitle">۱۲ ماه حداکثر صرفه‌جویی</div>
+                        <div class="renew-plan-price">
                             @LocalizedDate.FormatNumber(CalculateRenewCost("Annual"), UiLocale.Language) تومان
                         </div>
                     </div>
                 </div>
 
-                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:14px; font-size:13px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <div class="renew-calc-box">
+                    <div class="renew-calc-row">
                         <span>تعداد شعب فعال کسب‌وکار:</span>
                         <b>@ActiveBranchesCount شعبه</b>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                    <div class="renew-calc-row">
                         <span>تعرفه پایه ماهانه:</span>
                         <span>@LocalizedDate.FormatNumber(PlatformPricing.BaseBusinessPrice, UiLocale.Language) تومان</span>
                     </div>
                     @if (ActiveBranchesCount > 1)
                     {
-                        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <div class="renew-calc-row">
                             <span>تعرفه شعب مازاد (@(ActiveBranchesCount - 1) شعبه):</span>
                             <span>@LocalizedDate.FormatNumber((ActiveBranchesCount - 1) * PlatformPricing.ExtraBranchPrice, UiLocale.Language) تومان / ماه</span>
                         </div>
                     }
-                    <div style="display:flex; justify-content:space-between; border-top:1px dashed #cbd5e1; padding-top:6px; font-weight:700; color:#15803d; font-size:14px;">
+                    <div class="renew-calc-row renew-calc-total">
                         <span>مبلغ کل قابل پرداخت:</span>
                         <span>@LocalizedDate.FormatNumber(CalculateRenewCost(RenewPlanType), UiLocale.Language) تومان</span>
                     </div>
                 </div>
 
                 <!-- اطلاعات واریز -->
-                <div style="background:#f1f5f9; border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.6; margin-bottom:14px;">
-                    <div>شماره کارت: <b dir="ltr" style="font-family:monospace;">@PlatformPricing.CardNumber</b> @(!string.IsNullOrWhiteSpace(PlatformPricing.AccountHolder) ? $"({PlatformPricing.AccountHolder})" : "")</div>
+                <div class="renew-bank-box">
+                    <div class="renew-bank-row"><span>شماره کارت:</span> <b dir="ltr">@PlatformPricing.CardNumber</b> @(!string.IsNullOrWhiteSpace(PlatformPricing.AccountHolder) ? $"({PlatformPricing.AccountHolder})" : "")</div>
                     @if (!string.IsNullOrWhiteSpace(PlatformPricing.Iban))
                     {
-                        <div>شماره شبا: <b dir="ltr" style="font-family:monospace;">@PlatformPricing.Iban</b></div>
+                        <div class="renew-bank-row"><span>شماره شبا:</span> <b dir="ltr">@PlatformPricing.Iban</b></div>
                     }
                 </div>
 
@@ -402,20 +414,79 @@ else
 
 <style>
 .renew-plan-card {
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--outline-soft, #e2e8f0);
     border-radius: 10px;
     padding: 10px 12px;
     cursor: pointer;
-    background: #ffffff;
+    background: var(--surface, #ffffff);
+    color: var(--on-surface, #0f172a);
     transition: all 0.2s ease;
 }
 .renew-plan-card:hover {
-    border-color: #cbd5e1;
+    border-color: var(--outline, #cbd5e1);
 }
 .renew-plan-card.active {
     border-color: var(--primary, #146B5D);
-    background: #f0fdfa;
+    background: var(--primary-container, #f0fdfa);
 }
+.renew-plan-subtitle {
+    font-size: 12px;
+    color: #64748b;
+    margin: 6px 0;
+}
+.renew-plan-price {
+    font-size: 14px;
+    font-weight: 800;
+    color: #15803d;
+}
+
+.renew-calc-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    color: #334155;
+}
+.renew-calc-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    color: #475569;
+}
+.renew-calc-row b {
+    color: #0f172a;
+}
+.renew-calc-total {
+    border-top: 1px dashed #cbd5e1;
+    padding-top: 8px;
+    margin-top: 6px;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--primary, #146B5D);
+}
+
+.renew-bank-box {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    color: #1e293b;
+}
+.renew-bank-row {
+    margin-bottom: 4px;
+    color: #334155;
+}
+.renew-bank-row b {
+    font-family: monospace;
+    font-size: 13px;
+    color: #0f172a;
+}
+
 .badge-discount {
     font-size: 11px;
     font-weight: 700;
@@ -424,10 +495,126 @@ else
     background: #fef3c7;
     color: #b45309;
 }
+.badge-discount.badge-monthly { background: #e0f2fe; color: #0369a1; }
+.badge-discount.badge-quarterly { background: #fef3c7; color: #b45309; }
+.badge-discount.badge-semiannual { background: #fee2e2; color: #b91c1c; }
+.badge-discount.badge-annual { background: #dcfce7; color: #15803d; }
+
+/* Dark mode overrides for modal and plan cards */
+html[data-theme="dark"] .renew-plan-card {
+    background: #182623 !important;
+    border-color: #283e39 !important;
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .renew-plan-card:hover {
+    border-color: #3f6159 !important;
+    background: #1c2e2a !important;
+}
+html[data-theme="dark"] .renew-plan-card.active {
+    background: #133931 !important;
+    border-color: #5cd2b7 !important;
+    box-shadow: 0 0 0 1px #5cd2b7 !important;
+}
+html[data-theme="dark"] .renew-plan-card b {
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .renew-plan-subtitle {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .renew-plan-price {
+    color: #5cd2b7 !important;
+}
+
+html[data-theme="dark"] .renew-calc-box {
+    background: #14201e !important;
+    border-color: #283e39 !important;
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .renew-calc-box b {
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .renew-calc-row {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .renew-calc-total {
+    border-top-color: #283e39 !important;
+    color: #5cd2b7 !important;
+}
+html[data-theme="dark"] .renew-calc-total span {
+    color: #5cd2b7 !important;
+}
+
+html[data-theme="dark"] .renew-bank-box {
+    background: #132723 !important;
+    border-color: #244840 !important;
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .renew-bank-row {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .renew-bank-row b {
+    color: #76d6c3 !important;
+}
+
+html[data-theme="dark"] .badge-discount.badge-monthly { background: #0c4a6e !important; color: #7dd3fc !important; }
+html[data-theme="dark"] .badge-discount.badge-quarterly { background: #451a03 !important; color: #fde68a !important; }
+html[data-theme="dark"] .badge-discount.badge-semiannual { background: #4c0519 !important; color: #fecdd3 !important; }
+html[data-theme="dark"] .badge-discount.badge-annual { background: #052e16 !important; color: #86efac !important; }
+html[data-theme="dark"] .plan-banner {
+    background: #16201f !important;
+    border-color: #273734 !important;
+}
+html[data-theme="dark"] .admin-business-form {
+    background: #141d1c !important;
+    border-color: #273734 !important;
+}
+html[data-theme="dark"] .admin-business-form .form-section {
+    background: #182321 !important;
+    border-color: #2b3b38 !important;
+}
+html[data-theme="dark"] .admin-business-form .form-section legend {
+    color: #76d6c3 !important;
+}
+html[data-theme="dark"] .admin-business-form label,
+html[data-theme="dark"] .admin-business-form label span {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-business-form :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    background: #131c1a !important;
+    border: 1px solid #314441 !important;
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-business-form :is(input, textarea)::placeholder {
+    color: #82968e !important;
+}
+html[data-theme="dark"] .admin-business-form .input-prefix-wrapper {
+    background: #131c1a !important;
+    border-color: #314441 !important;
+}
+html[data-theme="dark"] .admin-business-form .input-prefix {
+    background: #1d2725 !important;
+    border-color: #314441 !important;
+    color: #82968e !important;
+}
+html[data-theme="dark"] .admin-business-form .input-prefix-wrapper input {
+    background: transparent !important;
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-business-form .check-card {
+    background: #131c1a !important;
+    border: 1px solid #314441 !important;
+}
+html[data-theme="dark"] .admin-business-form .check-card b {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .admin-business-form .check-card small {
+    color: #82968e !important;
+}
 </style>
 
 @code {
     [SupplyParameterFromQuery(Name = "businessId")] public Guid? QueryBusinessId { get; set; }
+    [SupplyParameterFromQuery(Name = "renew")] public bool AutoRenew { get; set; }
 
     private bool Loading = true;
     private bool Saving = false;
@@ -497,6 +684,11 @@ else
     {
         IsRenewModalOpen = false;
         RenewError = null;
+        if (AutoRenew)
+        {
+            AutoRenew = false;
+            Navigation.NavigateTo("/admin/business", replace: true);
+        }
     }
 
     private async Task OnRenewReceiptSelected(InputFileChangeEventArgs e)
@@ -619,6 +811,10 @@ else
             SelectedBusinessId = QueryBusinessId.Value;
             await SelectBusiness(SelectedBusinessId);
         }
+        if (AutoRenew && CurrentBusiness is not null && !IsRenewModalOpen)
+        {
+            await OpenRenewModal();
+        }
     }
 
     private async Task LoadBusinesses()
@@ -646,6 +842,10 @@ else
                     : ManagedBusinesses[0].Id;
                 SelectedBusinessId = targetId;
                 await SelectBusiness(targetId);
+                if (AutoRenew && !IsRenewModalOpen)
+                {
+                    await OpenRenewModal();
+                }
             }
         }
         catch (Exception ex)

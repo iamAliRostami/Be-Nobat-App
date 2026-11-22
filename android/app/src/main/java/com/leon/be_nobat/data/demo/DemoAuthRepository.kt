@@ -54,12 +54,14 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         val user = dataStore.update { s ->
             if (!input.email.isNullOrBlank() && s.users.any { it.email.equals(input.email, true) }) throw AuthException.DuplicateEmail
             if (s.users.any { it.phoneNumber == input.phoneNumber }) throw AuthException.DuplicatePhone
+            val isStaff = !input.inviteCode.isNullOrBlank()
+            val roles = if (isStaff) listOf("Customer", "Staff") else listOf("Customer")
             val u = ManagementUser(
                 id = demoId(),
                 displayName = input.displayName.trim(),
                 email = input.email?.trim() ?: "",
                 phoneNumber = input.phoneNumber,
-                roles = listOf("Customer"),
+                roles = roles,
                 active = true
             )
             s.copy(users = s.users + u, passwords = s.passwords + (u.id to input.password)) to u.toUser()
@@ -163,6 +165,16 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
         dataStore.update { s ->
             val pending = s.businessRequests.any { it.userId == actor.id && it.status == "Pending" }
             require(!pending) { "شما در حال حاضر یک درخواست در حال بررسی دارید." }
+            val pricing = s.platformPricing
+            val branchesCount = 1 + input.additionalBranches.size
+            val monthly = pricing.baseBusinessPrice + (input.additionalBranches.size * pricing.extraBranchPrice)
+            val fee = when (input.planType) {
+                "Trial7Days" -> 0.0
+                "Quarterly" -> (monthly * 3.0) * (100 - pricing.discountPercent3Months) / 100.0
+                "SemiAnnual" -> (monthly * 6.0) * (100 - pricing.discountPercent6Months) / 100.0
+                "Annual" -> (monthly * 12.0) * (100 - pricing.discountPercent12Months) / 100.0
+                else -> monthly
+            }
             val req = BusinessRequest(
                 id = demoId(),
                 userId = actor.id,
@@ -173,6 +185,14 @@ class DemoAuthRepository(private val dataStore: DemoDataStore, private val token
                 contactPhone = input.contactPhone.trim(),
                 firstBranchName = input.firstBranchName.trim().ifBlank { "شعبه مرکزی" },
                 firstBranchAddress = input.firstBranchAddress.trim(),
+                additionalBranches = input.additionalBranches,
+                basePrice = pricing.baseBusinessPrice,
+                extraBranchPrice = pricing.extraBranchPrice,
+                totalBranchesCount = branchesCount,
+                totalFee = fee,
+                planType = input.planType,
+                planDurationMonths = input.planDurationMonths,
+                discountPercent = input.discountPercent,
                 status = "Pending",
                 createdAt = demoNow(),
                 userDisplayName = actor.displayName,

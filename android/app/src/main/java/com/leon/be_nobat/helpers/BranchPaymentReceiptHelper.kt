@@ -15,15 +15,18 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.remote.BeNobatApiConfig
 import com.leon.be_nobat.domain.model.ManagementBranch
+import com.leon.be_nobat.domain.model.PlatformPricing
 import com.leon.be_nobat.domain.model.ReceiptUploadInput
 import com.leon.be_nobat.domain.repository.ManagementRepository
 import coil.load
@@ -32,7 +35,11 @@ import java.io.ByteArrayOutputStream
 
 object BranchPaymentReceiptHelper {
 
-    fun showReceiptDialog(context: Context, branch: ManagementBranch) {
+    fun showReceiptDialog(
+        context: Context,
+        branch: ManagementBranch,
+        onEditReceipt: (() -> Unit)? = null,
+    ) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_view_receipt, null)
         val tvTitle = view.findViewById<TextView>(R.id.tvReceiptTitle)
         val tvSubtitle = view.findViewById<TextView>(R.id.tvReceiptSubtitle)
@@ -43,6 +50,7 @@ object BranchPaymentReceiptHelper {
         val tvTrack = view.findViewById<TextView>(R.id.tvReceiptTrackingCode)
         val btnClose = view.findViewById<View>(R.id.btnCloseReceipt)
         val btnDismiss = view.findViewById<View>(R.id.btnReceiptDismiss)
+        val btnEditOrRenew = view.findViewById<MaterialButton>(R.id.btnReceiptEditOrRenew)
 
         tvTitle.setText(R.string.branch_view_receipt)
         val bizPart = branch.businessName?.takeIf { it.isNotBlank() }?.let { "کسب‌وکار: $it · " } ?: ""
@@ -114,6 +122,15 @@ object BranchPaymentReceiptHelper {
 
         btnClose.setOnClickListener { dialog.dismiss() }
         btnDismiss.setOnClickListener { dialog.dismiss() }
+        if (onEditReceipt != null) {
+            btnEditOrRenew?.isVisible = true
+            btnEditOrRenew?.setOnClickListener {
+                dialog.dismiss()
+                onEditReceipt()
+            }
+        } else {
+            btnEditOrRenew?.isVisible = false
+        }
 
         dialog.show()
     }
@@ -146,10 +163,86 @@ object BranchPaymentReceiptHelper {
         val btnSubmitReceipt = dialogView.findViewById<MaterialButton>(R.id.btnSubmitReceipt)
         val btnCancelReceipt = dialogView.findViewById<MaterialButton>(R.id.btnCancelReceipt)
 
-        tvSubtitle.text = branch.name
+        // Plan Cards & Badges
+        val cardBranchPlan1M = dialogView.findViewById<MaterialCardView>(R.id.cardBranchPlan1M)
+        val cardBranchPlan3M = dialogView.findViewById<MaterialCardView>(R.id.cardBranchPlan3M)
+        val cardBranchPlan6M = dialogView.findViewById<MaterialCardView>(R.id.cardBranchPlan6M)
+        val cardBranchPlan12M = dialogView.findViewById<MaterialCardView>(R.id.cardBranchPlan12M)
+
+        val tvBranchPlanFee1M = dialogView.findViewById<TextView>(R.id.tvBranchPlanFee1M)
+        val tvBranchPlanFee3M = dialogView.findViewById<TextView>(R.id.tvBranchPlanFee3M)
+        val tvBranchPlanFee6M = dialogView.findViewById<TextView>(R.id.tvBranchPlanFee6M)
+        val tvBranchPlanFee12M = dialogView.findViewById<TextView>(R.id.tvBranchPlanFee12M)
+
+        val tvBranchPlanDiscount3M = dialogView.findViewById<TextView>(R.id.tvBranchPlanDiscount3M)
+        val tvBranchPlanDiscount6M = dialogView.findViewById<TextView>(R.id.tvBranchPlanDiscount6M)
+        val tvBranchPlanDiscount12M = dialogView.findViewById<TextView>(R.id.tvBranchPlanDiscount12M)
+
+        val bizPart = branch.businessName?.takeIf { it.isNotBlank() }?.let { "کسب‌وکار: $it · " } ?: ""
+        tvSubtitle.text = "${bizPart}شعبه: ${branch.name}"
         if (!branch.receiptTrackingCode.isNullOrBlank()) {
             etTrackingCode.setText(branch.receiptTrackingCode)
         }
+
+        var selectedDurationMonths = 1
+        var selectedPlanType = "Monthly"
+        var cachedPricing: PlatformPricing? = null
+        var currentBasePrice = branch.fee?.takeIf { it > 0 } ?: 300_000.0
+
+        fun calculatePlanFee(months: Int, base: Double, pricing: PlatformPricing?): Double {
+            val discount = when (months) {
+                3 -> pricing?.discountPercent3Months ?: 10
+                6 -> pricing?.discountPercent6Months ?: 15
+                12 -> pricing?.discountPercent12Months ?: 20
+                else -> 0
+            }
+            return (base * months) * (100 - discount) / 100.0
+        }
+
+        fun updateSelection(durationMonths: Int) {
+            selectedDurationMonths = durationMonths
+            selectedPlanType = when (durationMonths) {
+                3 -> "Quarterly"
+                6 -> "SemiAnnual"
+                12 -> "Annual"
+                else -> "Monthly"
+            }
+
+            val selectedFee = calculatePlanFee(durationMonths, currentBasePrice, cachedPricing)
+            val durationLabel = when (durationMonths) {
+                3 -> "۳ ماهه"
+                6 -> "۶ ماهه"
+                12 -> "۱ ساله"
+                else -> "۱ ماهه"
+            }
+            tvPaymentFee.text = "مبلغ قابل واریز ($durationLabel): ${PersianUtils.formatPrice(selectedFee, "تومان")}"
+
+            val cards = listOf(
+                1 to cardBranchPlan1M,
+                3 to cardBranchPlan3M,
+                6 to cardBranchPlan6M,
+                12 to cardBranchPlan12M
+            )
+            val selectedBg = ContextCompat.getColorStateList(activity, R.color.plan_card_selected_bg)
+            val defaultBg = ContextCompat.getColorStateList(activity, R.color.plan_card_default_bg)
+            val selectedStroke = ContextCompat.getColor(activity, R.color.plan_card_selected_stroke)
+            val defaultStroke = ContextCompat.getColor(activity, R.color.plan_card_default_stroke)
+            val density = activity.resources.displayMetrics.density
+            val dp1 = (1 * density).toInt()
+            val dp2 = (2 * density).toInt()
+
+            cards.forEach { (m, card) ->
+                val isSelected = m == durationMonths
+                card.strokeWidth = if (isSelected) dp2 else dp1
+                card.strokeColor = if (isSelected) selectedStroke else defaultStroke
+                card.setCardBackgroundColor(if (isSelected) selectedBg else defaultBg)
+            }
+        }
+
+        cardBranchPlan1M.setOnClickListener { updateSelection(1) }
+        cardBranchPlan3M.setOnClickListener { updateSelection(3) }
+        cardBranchPlan6M.setOnClickListener { updateSelection(6) }
+        cardBranchPlan12M.setOnClickListener { updateSelection(12) }
 
         var selectedBase64: String? = null
         var selectedContentType = "image/jpeg"
@@ -162,8 +255,41 @@ object BranchPaymentReceiptHelper {
         // Load Platform Pricing
         activity.lifecycleScope.launch {
             managementRepository.getPlatformPricing().onSuccess { pricing ->
-                val feeToPay = branch.fee?.takeIf { it > 0 } ?: pricing.extraBranchPrice
-                tvPaymentFee.text = activity.getString(R.string.branch_payment_fee_label, PersianUtils.formatPrice(feeToPay, "تومان"))
+                cachedPricing = pricing
+                currentBasePrice = branch.fee?.takeIf { it > 0 } ?: pricing.extraBranchPrice
+
+                val fee1M = calculatePlanFee(1, currentBasePrice, pricing)
+                val fee3M = calculatePlanFee(3, currentBasePrice, pricing)
+                val fee6M = calculatePlanFee(6, currentBasePrice, pricing)
+                val fee12M = calculatePlanFee(12, currentBasePrice, pricing)
+
+                tvBranchPlanFee1M.text = PersianUtils.formatPrice(fee1M, "تومان")
+                tvBranchPlanFee3M.text = PersianUtils.formatPrice(fee3M, "تومان")
+                tvBranchPlanFee6M.text = PersianUtils.formatPrice(fee6M, "تومان")
+                tvBranchPlanFee12M.text = PersianUtils.formatPrice(fee12M, "تومان")
+
+                if (pricing.discountPercent3Months > 0) {
+                    tvBranchPlanDiscount3M.text = "${PersianUtils.toPersianDigits(pricing.discountPercent3Months)}٪ تخفیف"
+                    tvBranchPlanDiscount3M.isVisible = true
+                } else {
+                    tvBranchPlanDiscount3M.isVisible = false
+                }
+
+                if (pricing.discountPercent6Months > 0) {
+                    tvBranchPlanDiscount6M.text = "${PersianUtils.toPersianDigits(pricing.discountPercent6Months)}٪ تخفیف"
+                    tvBranchPlanDiscount6M.isVisible = true
+                } else {
+                    tvBranchPlanDiscount6M.isVisible = false
+                }
+
+                if (pricing.discountPercent12Months > 0) {
+                    tvBranchPlanDiscount12M.text = "${PersianUtils.toPersianDigits(pricing.discountPercent12Months)}٪ تخفیف"
+                    tvBranchPlanDiscount12M.isVisible = true
+                } else {
+                    tvBranchPlanDiscount12M.isVisible = false
+                }
+
+                updateSelection(selectedDurationMonths)
 
                 val cardStr = pricing.cardNumber.trim()
                 if (cardStr.isNotBlank()) {
@@ -192,8 +318,18 @@ object BranchPaymentReceiptHelper {
                 tvAccountHolder.text = "${activity.getString(R.string.platform_pricing_holder_label)}: ${pricing.accountHolder}"
                 tvPaymentInstructions.text = pricing.paymentInstructions
             }.onFailure {
-                val fallbackFee = branch.fee ?: 200_000.0
-                tvPaymentFee.text = activity.getString(R.string.branch_payment_fee_label, PersianUtils.formatPrice(fallbackFee, "تومان"))
+                currentBasePrice = branch.fee ?: 200_000.0
+                val fee1M = calculatePlanFee(1, currentBasePrice, null)
+                val fee3M = calculatePlanFee(3, currentBasePrice, null)
+                val fee6M = calculatePlanFee(6, currentBasePrice, null)
+                val fee12M = calculatePlanFee(12, currentBasePrice, null)
+
+                tvBranchPlanFee1M.text = PersianUtils.formatPrice(fee1M, "تومان")
+                tvBranchPlanFee3M.text = PersianUtils.formatPrice(fee3M, "تومان")
+                tvBranchPlanFee6M.text = PersianUtils.formatPrice(fee6M, "تومان")
+                tvBranchPlanFee12M.text = PersianUtils.formatPrice(fee12M, "تومان")
+
+                updateSelection(selectedDurationMonths)
             }
         }
 
@@ -255,7 +391,9 @@ object BranchPaymentReceiptHelper {
                 trackingCode = tracking?.takeIf { it.isNotBlank() },
                 contentType = selectedContentType,
                 dataBase64 = selectedBase64!!,
-                imageBase64 = selectedBase64!!
+                imageBase64 = selectedBase64!!,
+                planType = selectedPlanType,
+                planDurationMonths = selectedDurationMonths
             )
 
             activity.lifecycleScope.launch {

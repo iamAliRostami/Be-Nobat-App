@@ -50,7 +50,7 @@ android {
         debug {
             val debugBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
                 ?: localProperties.getProperty("backendUrl")?.trimEnd('/')
-                ?: "http://127.0.0.1:8080"
+                ?: "http://127.0.0.1:5000"
 
             buildConfigField("String", "API_BASE_URL", "\"$debugBackendUrl/api/v1\"")
             buildConfigField("String", "MEDIA_BASE_URL", "\"$debugBackendUrl\"")

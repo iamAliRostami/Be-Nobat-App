@@ -238,7 +238,18 @@ class BookingViewModel(
                 )
             }
             .onFailure { e ->
-                _state.value = _state.value.copy(loadingSlots = false, error = e.message)
+                val emptySlotsResponse = SlotsResponse(
+                    date = s.date,
+                    timeZoneId = "Asia/Tehran",
+                    totalDurationMinutes = s.totalDuration,
+                    totalPrice = s.totalPrice,
+                    currency = "IRR",
+                    slots = emptyList()
+                )
+                _state.value = _state.value.copy(
+                    slots = emptySlotsResponse,
+                    loadingSlots = false,
+                )
             }
     }
 

@@ -148,6 +148,7 @@ sealed class AuthException : Exception() {
                         "unauthorized" -> Unauthorized
                         "forbidden" -> Forbidden
                         "not_found" -> NotFound
+                        "invalid_invite_code" -> InvalidInput(throwable.message?.takeIf { it.isNotBlank() } ?: "کد دعوت شعبه معتبر نمی‌باشد.")
                         "invalid_input" -> if (!throwable.message.isNullOrBlank()) InvalidInput(throwable.message) else InvalidIdentifier
                         else -> Unexpected
                     }

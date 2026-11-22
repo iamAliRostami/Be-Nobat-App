@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using BeNobat.Web.Application;
 using BeNobat.Web.Domain;
@@ -35,6 +35,8 @@ public static class ManagementEndpoints
         admin.MapGet("/branches/{id:guid}/gallery", ListBranchGallery);
         admin.MapPost("/branches/{id:guid}/gallery", AddBranchGalleryItem);
         admin.MapDelete("/branches/gallery/{id:guid}", DeleteBranchGalleryItem);
+        admin.MapPost("/branches/{id:guid}/receipt", UploadBranchReceipt);
+        admin.MapPost("/businesses/{id:guid}/renew", RenewBusinessPlan);
 
         admin.MapPost("/resources/{id:guid}/avatar", UploadResourceAvatar);
         admin.MapGet("/resources/{id:guid}/gallery", ListResourceGallery);
@@ -60,6 +62,7 @@ public static class ManagementEndpoints
         admin.MapDelete("/memberships/{id:guid}", DeleteMembership);
         admin.MapGet("/team", ListTeam);
         admin.MapPost("/team", CreateTeamMember);
+        admin.MapPut("/team/{userId:guid}/role", UpdateTeamMemberRole);
         admin.MapGet("/customers", ListCustomers);
         admin.MapPost("/customers", CreateCustomer);
         admin.MapPut("/people/{id:guid}/active", SetPersonActive);
@@ -169,7 +172,7 @@ public static class ManagementEndpoints
 
     private static IQueryable<BranchMembership> OtherOwners(AppDbContext db, Guid branchId, Guid membershipId) =>
         db.BranchMemberships.IgnoreQueryFilters().Where(m => m.DeletedAt == null && m.BranchId == branchId &&
-            m.Id != membershipId && m.Role == AppRoles.Owner);
+            m.Id != membershipId && m.Role.Contains(AppRoles.Owner));
 
     // Membership, derived Identity roles and last-owner/admin checks must commit as
     // one operation. Serializable snapshots prevent two owners removing each other.
@@ -339,7 +342,8 @@ public static class ManagementEndpoints
     {
         var memberships = await db.BranchMemberships.Where(m => m.UserId == scope.UserId && m.Branch.DeletedAt == null && m.Branch.Business.DeletedAt == null)
             .OrderBy(m => m.Branch.Name).Select(m => new ManagementContextMembership(m.BranchId, m.Branch.BusinessId, m.Branch.Name, m.Role,
-                m.Role == AppRoles.Owner || m.Role == AppRoles.Manager, m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff)).ToListAsync(ct);
+                m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager),
+                m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff))).ToListAsync(ct);
         return Results.Ok(new
         {
             userId = scope.UserId,
@@ -546,8 +550,32 @@ public static class ManagementEndpoints
             x.AvatarData != null ? $"/media/branch/{x.Id}/avatar" : null,
             x.HeaderData != null ? $"/media/branch/{x.Id}/header" : null,
             x.DepositPercentage, x.DepositCardNumber, x.DepositIban, x.DepositAccountHolder,
-            x.Latitude, x.Longitude));
-    private static ManagementBranchDto BranchDto(Branch x) => new(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null, WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved, x.CancellationNoticeMinutes, x.AvatarData != null ? $"/media/branch/{x.Id}/avatar" : null, x.HeaderData != null ? $"/media/branch/{x.Id}/header" : null, x.DepositPercentage, x.DepositCardNumber, x.DepositIban, x.DepositAccountHolder, x.Latitude, x.Longitude);
+            x.Latitude, x.Longitude, x.InviteCode,
+            x.Fee,
+            x.ReceiptImageData != null && x.ReceiptImageData.Length > 0,
+            x.ReceiptTrackingCode,
+            x.ReceiptUploadedAt != null ? x.ReceiptUploadedAt.Value.ToString("O") : null,
+            x.ReceiptImageData != null && x.ReceiptImageData.Length > 0 ? $"/media/branch/{x.Id}/receipt" : null,
+            x.PlanType,
+            x.PlanExpiresAt,
+            (x.PlanExpiresAt.HasValue && x.PlanExpiresAt.Value < DateTimeOffset.UtcNow) || (x.Business != null && x.Business.PlanExpiresAt.HasValue && x.Business.PlanExpiresAt.Value < DateTimeOffset.UtcNow)));
+    private static ManagementBranchDto BranchDto(Branch x) => new(
+        x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null,
+        WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved,
+        x.CancellationNoticeMinutes,
+        x.AvatarData != null ? $"/media/branch/{x.Id}/avatar" : null,
+        x.HeaderData != null ? $"/media/branch/{x.Id}/header" : null,
+        x.DepositPercentage, x.DepositCardNumber, x.DepositIban, x.DepositAccountHolder,
+        x.Latitude, x.Longitude, x.InviteCode,
+        x.Fee,
+        x.ReceiptImageData != null && x.ReceiptImageData.Length > 0,
+        x.ReceiptTrackingCode,
+        x.ReceiptUploadedAt != null ? x.ReceiptUploadedAt.Value.ToString("O") : null,
+        x.ReceiptImageData != null && x.ReceiptImageData.Length > 0 ? $"/media/branch/{x.Id}/receipt" : null,
+        x.PlanType,
+        x.PlanExpiresAt,
+        x.IsPlanExpired
+    );
 
     private static Task<IResult> ListBranches(AppDbContext db, ApiScope scope, CancellationToken ct, Guid? businessId = null, string? q = null, bool includeInactive = false, int page = 1, int pageSize = 25)
     {
@@ -587,7 +615,7 @@ public static class ManagementEndpoints
         {
             if (!ValidBranch(input)) return Invalid("Provide a name, valid time zone and opening hours between 0 and 24.");
             if (!await scope.CanOwnBusiness(input.BusinessId)) return Missing();
-            var item = new Branch { BusinessId = input.BusinessId, Name = Clean(input.Name), IsApproved = scope.IsPlatform }; ApplyBranch(item, input); WeeklySchedule.Replace(item, input.WeeklyHours ?? WeeklySchedule.Default()); db.Branches.Add(item);
+            var item = new Branch { BusinessId = input.BusinessId, Name = Clean(input.Name), IsApproved = scope.IsPlatform, InviteCode = BranchInviteCode.Generate() }; ApplyBranch(item, input); WeeklySchedule.Replace(item, input.WeeklyHours ?? WeeklySchedule.Default()); db.Branches.Add(item);
             if (!scope.IsPlatform) db.BranchMemberships.Add(new BranchMembership { Branch = item, UserId = scope.UserId, Role = AppRoles.Owner });
             await db.SaveChangesAsync(ct);
             if (!scope.IsPlatform && await users.FindByIdAsync(scope.UserId.ToString()) is { } user) await TeamRoleSync.SyncAsync(users, db, user);
@@ -645,7 +673,7 @@ public static class ManagementEndpoints
         if (input.UserId is Guid userId)
         {
             if (!await db.BranchMemberships.AnyAsync(m => m.BranchId == input.BranchId && m.UserId == userId &&
-                (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff) &&
+                (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff)) &&
                 (!m.User.LockoutEnabled || m.User.LockoutEnd == null || m.User.LockoutEnd <= DateTimeOffset.UtcNow), ct))
                 return Invalid("The staff account must be a member of the same branch.");
             if (await db.Resources.AnyAsync(r => r.Id != id && r.BranchId == input.BranchId && r.UserId == userId, ct))
@@ -694,7 +722,7 @@ public static class ManagementEndpoints
             scope.Branches(true).Any(b => b.Id == r.BranchId)).SingleOrDefaultAsync(ct);
         if (item is null) return Missing();
         if (item.Kind == "staff" && (item.UserId is null || !await db.BranchMemberships.AnyAsync(m => m.BranchId == item.BranchId && m.UserId == item.UserId &&
-            (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff) &&
+            (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff)) &&
             (!m.User.LockoutEnabled || m.User.LockoutEnd == null || m.User.LockoutEnd <= DateTimeOffset.UtcNow), ct)))
             return Conflict("Restore the staff account's branch membership first.");
         if (item.UserId is Guid user && await db.Resources.AnyAsync(r => r.Id != id && r.BranchId == item.BranchId && r.UserId == user, ct))
@@ -719,14 +747,15 @@ public static class ManagementEndpoints
     {
         return await Atomic(db, async () =>
         {
-            if (!TeamRoles.Contains(input.Role)) return Invalid("Membership role must be Owner, Manager or Staff.");
-            if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(input.Role, input.BranchId)) return Denied();
+            if (!AppRoles.IsValidRoleString(input.Role)) return Invalid("Membership role must be Owner, Manager or Staff.");
+            var normalizedRole = AppRoles.NormalizeRoles(input.Role);
+            if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(normalizedRole, input.BranchId)) return Denied();
             var user = await users.FindByIdAsync(input.UserId.ToString());
             if (user is null || (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow)) return Invalid("The active account does not exist.");
             var item = await db.BranchMemberships.IgnoreQueryFilters().SingleOrDefaultAsync(m => m.BranchId == input.BranchId && m.UserId == input.UserId, ct);
             if (item is { DeletedAt: null }) return Conflict("The account is already a member of this branch.");
             if (item is null) { item = new BranchMembership { BranchId = input.BranchId, UserId = input.UserId }; db.BranchMemberships.Add(item); }
-            item.Role = input.Role; item.DeletedAt = null; item.UpdatedAt = DateTimeOffset.UtcNow;
+            item.Role = normalizedRole; item.DeletedAt = null; item.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct); await TeamRoleSync.SyncAsync(users, db, user);
             return Results.Created($"/api/v1/admin/memberships/{item.Id}", new ManagementMembershipDto(item.Id, item.BranchId, item.UserId, item.Role, user.DisplayName, user.Email));
         }, ct);
@@ -736,16 +765,17 @@ public static class ManagementEndpoints
     {
         return await Atomic(db, async () =>
         {
-            if (!TeamRoles.Contains(input.Role)) return Invalid("Membership role must be Owner, Manager or Staff.");
+            if (!AppRoles.IsValidRoleString(input.Role)) return Invalid("Membership role must be Owner, Manager or Staff.");
+            var normalizedRole = AppRoles.NormalizeRoles(input.Role);
             var item = await ScopedMemberships(db, scope).SingleOrDefaultAsync(m => m.Id == id, ct);
             if (item is null) return Missing();
             if (item.BranchId != input.BranchId || item.UserId != input.UserId) return Invalid("Membership branch and account cannot be changed.");
-            if (!await scope.CanAssignRole(input.Role, item.BranchId) ||
-                (item.Role == AppRoles.Owner && !await scope.CanAssignRole(AppRoles.Owner, item.BranchId))) return Denied();
-            if (item.Role == AppRoles.Owner && input.Role != AppRoles.Owner &&
+            if (!await scope.CanAssignRole(normalizedRole, item.BranchId) ||
+                (item.Role.Contains(AppRoles.Owner) && !await scope.CanAssignRole(AppRoles.Owner, item.BranchId))) return Denied();
+            if (item.Role.Contains(AppRoles.Owner) && !normalizedRole.Contains(AppRoles.Owner) &&
                 !await OtherOwners(db, item.BranchId, id).AnyAsync(ct))
                 return Conflict("A branch's last owner cannot be demoted.");
-            item.Role = input.Role; item.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct);
+            item.Role = normalizedRole; item.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct);
             var user = await users.FindByIdAsync(item.UserId.ToString());
             if (user is not null) await TeamRoleSync.SyncAsync(users, db, user);
             return Results.Ok(new ManagementMembershipDto(item.Id, item.BranchId, item.UserId, item.Role, user?.DisplayName ?? "", user?.Email));
@@ -758,8 +788,8 @@ public static class ManagementEndpoints
         {
             var item = await ScopedMemberships(db, scope).SingleOrDefaultAsync(m => m.Id == id, ct);
             if (item is null) return Missing();
-            if (item.Role == AppRoles.Owner && !await scope.CanAssignRole(AppRoles.Owner, item.BranchId)) return Denied();
-            if (item.Role == AppRoles.Owner && !await OtherOwners(db, item.BranchId, id).AnyAsync(ct))
+            if (item.Role.Contains(AppRoles.Owner) && !await scope.CanAssignRole(AppRoles.Owner, item.BranchId)) return Denied();
+            if (item.Role.Contains(AppRoles.Owner) && !await OtherOwners(db, item.BranchId, id).AnyAsync(ct))
                 return Conflict("A branch's last owner cannot be removed.");
             var resources = await db.Resources.IgnoreQueryFilters().Where(r => r.DeletedAt == null && r.BranchId == item.BranchId && r.UserId == item.UserId).ToListAsync(ct);
             var resourceIds = resources.Select(r => r.Id).ToArray(); var now = DateTimeOffset.UtcNow;
@@ -775,10 +805,10 @@ public static class ManagementEndpoints
 
     private static async Task<IResult> ListTeam(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
     {
-        var memberships = ScopedMemberships(db, scope).Include(m => m.Branch).AsQueryable();
+        var memberships = ScopedMemberships(db, scope).Include(m => m.Branch).ThenInclude(b => b.Business).AsQueryable();
         if (branchId is Guid branch) memberships = memberships.Where(m => m.BranchId == branch);
         var memberUsers = await memberships
-            .Select(m => new { m.UserId, m.Role, BranchName = m.Branch.Name })
+            .Select(m => new { m.UserId, m.Role, BranchName = m.Branch.Name, BusinessName = m.Branch.Business.Name, BranchId = m.BranchId, BusinessId = m.Branch.BusinessId, MembershipId = m.Id })
             .ToListAsync(ct);
         var userIds = memberUsers.Select(m => m.UserId).Distinct().ToList();
         var query = db.Users.Where(u => userIds.Contains(u.Id));
@@ -797,10 +827,47 @@ public static class ManagementEndpoints
                 u.PhoneNumber,
                 !u.LockoutEnabled || u.LockoutEnd == null || u.LockoutEnd <= now,
                 Role: m?.Role ?? AppRoles.Staff,
-                BranchName: m?.BranchName
+                BranchName: m?.BranchName,
+                BusinessName: m?.BusinessName,
+                BranchId: m?.BranchId,
+                BusinessId: m?.BusinessId,
+                MembershipId: m?.MembershipId
             );
         }).ToList();
         return Results.Ok(new ApiPage<ManagementPersonDto>(dtos, page, pageSize, total));
+    }
+
+    private static async Task<IResult> UpdateTeamMemberRole(Guid userId, ManagementTeamRoleInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
+    {
+        return await Atomic(db, async () =>
+        {
+            if (!AppRoles.IsValidRoleString(input.Role)) return Invalid("Role must contain Owner, Manager or Staff.");
+            var normalizedRole = AppRoles.NormalizeRoles(input.Role);
+            var item = await ScopedMemberships(db, scope).Include(m => m.Branch).ThenInclude(b => b.Business).SingleOrDefaultAsync(m => m.UserId == userId && m.BranchId == input.BranchId, ct);
+            if (item is null) return Missing();
+            if (!await scope.CanAssignRole(normalizedRole, item.BranchId) ||
+                (item.Role.Contains(AppRoles.Owner) && !await scope.CanAssignRole(AppRoles.Owner, item.BranchId))) return Denied();
+            if (item.Role.Contains(AppRoles.Owner) && !normalizedRole.Contains(AppRoles.Owner) &&
+                !await OtherOwners(db, item.BranchId, item.Id).AnyAsync(ct))
+                return Conflict("A branch's last owner cannot be demoted.");
+            item.Role = normalizedRole; item.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(ct);
+            var user = await users.FindByIdAsync(item.UserId.ToString());
+            if (user is not null) await TeamRoleSync.SyncAsync(users, db, user);
+            var now = DateTimeOffset.UtcNow;
+            return Results.Ok(new ManagementPersonDto(
+                user?.Id ?? userId,
+                user?.DisplayName ?? "",
+                user?.Email,
+                user?.PhoneNumber,
+                user == null || !user.LockoutEnabled || user.LockoutEnd == null || user.LockoutEnd <= now,
+                Role: item.Role,
+                BranchName: item.Branch.Name,
+                BusinessName: item.Branch.Business?.Name,
+                BranchId: item.BranchId,
+                BusinessId: item.Branch.BusinessId,
+                MembershipId: item.Id
+            ));
+        }, ct);
     }
 
     private static async Task<IResult> CreateTeamMember(ManagementTeamMemberInput input, AppDbContext db, ApiScope scope, UserManager<AppUser> users, CancellationToken ct)
@@ -809,9 +876,10 @@ public static class ManagementEndpoints
             return Invalid("Provide a valid name.");
         if (!UserInputValidation.TryNormalizeIranianMobile(input.Phone, out var phone))
             return Invalid("Mobile number must be 11 digits starting with 09.");
-        if (!TeamRoles.Contains(input.Role))
-            return Invalid("Role must be Owner, Manager or Staff.");
-        if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(input.Role, input.BranchId))
+        if (!AppRoles.IsValidRoleString(input.Role))
+            return Invalid("Role must contain Owner, Manager or Staff.");
+        var normalizedRole = AppRoles.NormalizeRoles(input.Role);
+        if (!await scope.CanManageBranch(input.BranchId) || !await scope.CanAssignRole(normalizedRole, input.BranchId))
             return Denied();
 
         string? email = null;
@@ -846,20 +914,20 @@ public static class ManagementEndpoints
         if (existingMembership is { DeletedAt: null }) return Conflict("The user is already a member of this branch.");
         if (existingMembership is null)
         {
-            existingMembership = new BranchMembership { BranchId = input.BranchId, UserId = user.Id, Role = input.Role };
+            existingMembership = new BranchMembership { BranchId = input.BranchId, UserId = user.Id, Role = normalizedRole };
             db.BranchMemberships.Add(existingMembership);
         }
         else
         {
-            existingMembership.Role = input.Role;
+            existingMembership.Role = normalizedRole;
             existingMembership.DeletedAt = null;
             existingMembership.UpdatedAt = DateTimeOffset.UtcNow;
         }
         await db.SaveChangesAsync(ct);
         await TeamRoleSync.SyncAsync(users, db, user);
 
-        var branchName = await db.Branches.Where(b => b.Id == input.BranchId).Select(b => b.Name).FirstOrDefaultAsync(ct) ?? "";
-        return Results.Created($"/api/v1/admin/team/{user.Id}", new ManagementPersonDto(user.Id, user.DisplayName, user.Email, user.PhoneNumber, true, Role: input.Role, BranchName: branchName));
+        var branch = await db.Branches.Include(b => b.Business).Where(b => b.Id == input.BranchId).FirstOrDefaultAsync(ct);
+        return Results.Created($"/api/v1/admin/team/{user.Id}", new ManagementPersonDto(user.Id, user.DisplayName, user.Email, user.PhoneNumber, true, Role: normalizedRole, BranchName: branch?.Name, BusinessName: branch?.Business?.Name, BranchId: branch?.Id, BusinessId: branch?.BusinessId, MembershipId: existingMembership?.Id));
     }
 
     private static async Task<IResult> ListCustomers(AppDbContext db, ApiScope scope, CancellationToken ct, string? q = null, Guid? branchId = null, int page = 1, int pageSize = 25)
@@ -1829,7 +1897,10 @@ public static class ManagementEndpoints
             r.ReviewNote,
             r.ApprovedBusinessId,
             r.CreatedAt,
-            hasReceipt ? $"/media/receipt/{r.Id}?v={r.UpdatedAt.Ticks}" : null
+            hasReceipt ? $"/media/receipt/{r.Id}?v={r.UpdatedAt.Ticks}" : null,
+            r.PlanType,
+            r.PlanDurationMonths,
+            r.DiscountPercent
         );
     }
 
@@ -1883,6 +1954,7 @@ public static class ManagementEndpoints
                 OpenHour = 8,
                 CloseHour = 20,
                 IsApproved = true,
+                InviteCode = BranchInviteCode.Generate(),
             };
             WeeklySchedule.Replace(branch, WeeklySchedule.Default());
             db.Businesses.Add(business);
@@ -2024,6 +2096,158 @@ public static class ManagementEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> UploadBranchReceipt(Guid id, ReceiptUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanManageBranch(id)) return Denied();
+        var branch = await db.Branches.IgnoreQueryFilters().Include(b => b.Business).FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (branch is null) return Missing();
+
+        var rawData = input.EffectiveData;
+        if (string.IsNullOrWhiteSpace(rawData)) return Invalid("تصویر فیش الزامی است.");
+
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(rawData); }
+        catch { return Invalid("فرمت تصویر فیش نامعتبر است."); }
+
+        if (bytes.Length > 5 * 1024 * 1024) return Invalid("حجم تصویر فیش نمی‌تواند بیش از ۵ مگابایت باشد.");
+
+        var pricing = await db.GetPlatformPricingAsync();
+        var durationMonths = input.PlanDurationMonths switch
+        {
+            3 => 3,
+            6 => 6,
+            12 => 12,
+            _ => 1
+        };
+
+        var discount = durationMonths switch
+        {
+            3 => pricing.DiscountPercent3Months,
+            6 => pricing.DiscountPercent6Months,
+            12 => pricing.DiscountPercent12Months,
+            _ => 0
+        };
+
+        var planType = durationMonths switch
+        {
+            3 => "Quarterly",
+            6 => "SemiAnnual",
+            12 => "Annual",
+            _ => "Monthly"
+        };
+
+        var baseMonthly = pricing.ExtraBranchPrice > 0 ? pricing.ExtraBranchPrice : 300_000m;
+        var totalFee = (baseMonthly * durationMonths) * (100 - discount) / 100m;
+
+        branch.Fee = totalFee;
+        branch.PlanType = input.PlanType ?? planType;
+        branch.ReceiptImageData = bytes;
+        branch.ReceiptImageContentType = string.IsNullOrWhiteSpace(input.ContentType) ? "image/jpeg" : input.ContentType.Trim();
+        branch.ReceiptTrackingCode = input.TrackingCode?.Trim();
+        branch.ReceiptUploadedAt = DateTimeOffset.UtcNow;
+        branch.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (scope.IsPlatform)
+        {
+            var now = DateTimeOffset.UtcNow;
+            var baseDate = branch.PlanExpiresAt.HasValue && branch.PlanExpiresAt.Value > now
+                ? branch.PlanExpiresAt.Value
+                : now;
+            branch.PlanStartedAt ??= now;
+            branch.PlanExpiresAt = baseDate.AddMonths(durationMonths);
+            if (branch.Business?.PlanExpiresAt.HasValue == true && branch.PlanExpiresAt.Value > branch.Business.PlanExpiresAt.Value)
+            {
+                branch.PlanExpiresAt = branch.Business.PlanExpiresAt.Value;
+            }
+            branch.IsApproved = true;
+            branch.IsActive = true;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(BranchDto(branch));
+    }
+
+    private static async Task<IResult> RenewBusinessPlan(Guid id, BusinessRenewInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
+    {
+        if (!await scope.CanOwnBusiness(id)) return Denied();
+        var business = await db.Businesses.IgnoreQueryFilters().Include(b => b.Branches).FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (business is null) return Missing();
+
+        var rawData = input.EffectiveData;
+        if (string.IsNullOrWhiteSpace(rawData)) return Invalid("تصویر فیش الزامی است.");
+
+        byte[] bytes;
+        try { bytes = Convert.FromBase64String(rawData); }
+        catch { return Invalid("فرمت تصویر فیش نامعتبر است."); }
+
+        if (bytes.Length > 5 * 1024 * 1024) return Invalid("حجم تصویر فیش نمی‌تواند بیش از ۵ مگابایت باشد.");
+
+        var pricing = await db.GetPlatformPricingAsync();
+        var durationMonths = input.PlanDurationMonths switch
+        {
+            3 => 3,
+            6 => 6,
+            12 => 12,
+            _ => 1
+        };
+
+        var discount = durationMonths switch
+        {
+            3 => pricing.DiscountPercent3Months,
+            6 => pricing.DiscountPercent6Months,
+            12 => pricing.DiscountPercent12Months,
+            _ => 0
+        };
+
+        var planType = input.PlanType switch
+        {
+            "Quarterly" or "3Months" => "Quarterly",
+            "SemiAnnual" or "6Months" => "SemiAnnual",
+            "Annual" or "12Months" => "Annual",
+            _ => "Monthly"
+        };
+
+        var activeBranchesCount = business.Branches.Count(b => b.DeletedAt == null && b.IsApproved);
+        if (activeBranchesCount < 1) activeBranchesCount = 1;
+        var extraBranches = Math.Max(0, activeBranchesCount - 1);
+
+        var baseMonthly = pricing.BaseBusinessPrice + (extraBranches * pricing.ExtraBranchPrice);
+        var totalFee = (baseMonthly * durationMonths) * (100 - discount) / 100m;
+
+        var firstBranch = business.Branches.FirstOrDefault(b => b.DeletedAt == null);
+
+        var req = new BusinessRequest
+        {
+            UserId = scope.UserId,
+            ApprovedBusinessId = business.Id,
+            BusinessName = business.Name,
+            Category = business.Category,
+            City = business.City,
+            Description = $"درخواست تمدید/ارتقای پلن به {planType} از طریق اپلیکیشن",
+            ContactPhone = "",
+            FirstBranchName = firstBranch?.Name ?? "شعبه اصلی",
+            FirstBranchAddress = firstBranch?.Address ?? "",
+            PlanType = planType,
+            PlanDurationMonths = durationMonths,
+            DiscountPercent = discount,
+            BasePrice = pricing.BaseBusinessPrice,
+            ExtraBranchPrice = pricing.ExtraBranchPrice,
+            TotalBranchesCount = activeBranchesCount,
+            TotalFee = totalFee,
+            ReceiptImageData = bytes,
+            ReceiptImageContentType = string.IsNullOrWhiteSpace(input.ContentType) ? "image/jpeg" : input.ContentType.Trim(),
+            ReceiptTrackingCode = input.TrackingCode?.Trim(),
+            ReceiptUploadedAt = DateTimeOffset.UtcNow,
+            Status = BusinessRequestStatus.Pending,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+
+        db.BusinessRequests.Add(req);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { success = true, requestId = req.Id });
+    }
+
     private static async Task<IResult> UploadResourceAvatar(Guid id, ImageUploadInput input, ApiScope scope, AppDbContext db, CancellationToken ct)
     {
         var resource = await db.Resources.FirstOrDefaultAsync(r => r.Id == id, ct);
@@ -2142,14 +2366,22 @@ public static class ManagementEndpoints
         var pendingReviews = await scope.Reviews().CountAsync(r => r.DeletedAt == null && r.Status == ReviewStatus.Pending, ct);
 
         int pendingRequests = 0;
+        int pendingBranchRequests = 0;
+        int pendingMyBranches = 0;
         int unreadContactMessages = 0;
         int pendingPasswordResets = 0;
 
         if (scope.IsPlatform)
         {
             pendingRequests = await db.BusinessRequests.CountAsync(r => r.Status == BusinessRequestStatus.Pending, ct);
+            pendingBranchRequests = await db.Branches.CountAsync(b => !b.IsApproved && b.DeletedAt == null, ct);
             unreadContactMessages = await db.ContactMessages.CountAsync(m => !m.IsRead, ct);
             pendingPasswordResets = await db.PasswordResetRequests.CountAsync(r => r.Status == PasswordResetRequestStatus.Pending, ct);
+        }
+        else
+        {
+            var myBranchIds = await scope.Branches(managed: true).Select(b => b.Id).ToListAsync(ct);
+            pendingMyBranches = await db.Branches.IgnoreQueryFilters().CountAsync(b => myBranchIds.Contains(b.Id) && !b.IsApproved && b.DeletedAt == null, ct);
         }
 
         var eligibleMessages = await db.AdminBroadcastMessages
@@ -2180,6 +2412,8 @@ public static class ManagementEndpoints
             pendingAppointments,
             pendingReviews,
             pendingRequests,
+            pendingBranchRequests,
+            pendingMyBranches,
             unreadContactMessages,
             pendingPasswordResets,
             unreadBroadcasts,
@@ -2509,14 +2743,15 @@ public sealed record ManagementActiveInput(bool Active);
 public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
 public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
 public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null, double? Latitude = null, double? Longitude = null);
-public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, double? Latitude = null, double? Longitude = null);
+public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, double? Latitude = null, double? Longitude = null, string? InviteCode = null, decimal? Fee = null, bool HasReceipt = false, string? ReceiptTrackingCode = null, string? ReceiptUploadedAt = null, string? ReceiptImageUrl = null, string? PlanType = null, DateTimeOffset? PlanExpiresAt = null, bool IsPlanExpired = false);
 public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null, string? AvatarBase64 = null);
 public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active, string? AvatarUrl = null);
 public sealed record ImageUploadInput(string? Data, string? ContentType);
 public sealed record AddGalleryItemInput(string ImageBase64, string? ContentType = "image/jpeg", string? Caption = null, int SortOrder = 0);
 public sealed record ManagementMembershipInput(Guid BranchId, Guid UserId, string Role = AppRoles.Staff);
 public sealed record ManagementMembershipDto(Guid Id, Guid BranchId, Guid UserId, string Role, string DisplayName, string? Email);
-public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, int Visits = 0, double? Rating = null, string? Role = null, string? BranchName = null);
+public sealed record ManagementPersonDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, bool Active, int Visits = 0, double? Rating = null, string? Role = null, string? BranchName = null, string? BusinessName = null, Guid? BranchId = null, Guid? BusinessId = null, Guid? MembershipId = null);
+public sealed record ManagementTeamRoleInput(Guid BranchId, string Role);
 public sealed record ManagementTeamMemberInput(string Name, string? Email, string? Phone, Guid BranchId, string Role = AppRoles.Staff);
 public sealed record ManagementCustomerInput(string Name, string? Email, string? Phone);
 public sealed record ManagementServiceInput(Guid BusinessId, string Name, string Description = "", int DurationMinutes = 30, decimal Price = 0, string Currency = "IRR", Guid? CatalogItemId = null, Guid? BranchId = null, Guid[]? ResourceIds = null, int? CancellationNoticeMinutes = null);
@@ -2638,12 +2873,16 @@ public sealed record PlatformSettingsInput(
     string Aparat = ""
 );
 public sealed record RequestedBranchDto(string Name, string Address);
-public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string? DataBase64 = null, string? ImageBase64 = null)
+public sealed record ReceiptUploadInput(string? TrackingCode, string ContentType, string? DataBase64 = null, string? ImageBase64 = null, string? PlanType = null, int? PlanDurationMonths = null)
 {
     public string EffectiveData => !string.IsNullOrWhiteSpace(DataBase64) ? DataBase64 : (ImageBase64 ?? string.Empty);
 }
-public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "", RequestedBranchDto[]? AdditionalBranches = null);
-public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt, string? ReceiptImageUrl = null);
+public sealed record BusinessRenewInput(string PlanType, int PlanDurationMonths, string? TrackingCode, string ContentType, string? DataBase64 = null, string? ImageBase64 = null)
+{
+    public string EffectiveData => !string.IsNullOrWhiteSpace(DataBase64) ? DataBase64 : (ImageBase64 ?? string.Empty);
+}
+public sealed record BusinessRequestInput(string BusinessName, string Category = "عمومی", string City = "تهران", string Description = "", string ContactPhone = "", string FirstBranchName = "شعبه مرکزی", string FirstBranchAddress = "", RequestedBranchDto[]? AdditionalBranches = null, string PlanType = "Trial7Days", int PlanDurationMonths = 0, int DiscountPercent = 0);
+public sealed record BusinessRequestDto(Guid Id, Guid UserId, string UserName, string? UserEmail, string? UserPhone, string BusinessName, string Category, string City, string Description, string ContactPhone, string FirstBranchName, string FirstBranchAddress, RequestedBranchDto[] AdditionalBranches, decimal BasePrice, decimal ExtraBranchPrice, int TotalBranchesCount, decimal TotalFee, bool HasReceipt, string? ReceiptTrackingCode, DateTimeOffset? ReceiptUploadedAt, string Status, string? ReviewNote, Guid? ApprovedBusinessId, DateTimeOffset CreatedAt, string? ReceiptImageUrl = null, string PlanType = "Trial7Days", int PlanDurationMonths = 0, int DiscountPercent = 0);
 public sealed record ReviewBusinessRequestInput(string? Note = null);
 public sealed record ContactMessageReadInput(bool IsRead = true);
 public sealed record ContactMessageReplyInput(string Reply);

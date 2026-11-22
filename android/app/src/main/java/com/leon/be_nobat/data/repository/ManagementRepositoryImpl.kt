@@ -140,6 +140,14 @@ class ManagementRepositoryImpl(
     override suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson> =
         api.adminCreateTeamMember(encode(input))
 
+    override suspend fun updateTeamMemberRole(userId: String, branchId: String, role: String): Result<ManagementPerson> {
+        val body = buildJsonObject {
+            put("branchId", branchId)
+            put("role", role)
+        }
+        return api.adminUpdateTeamMemberRole(userId, body)
+    }
+
     override suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson> =
         api.adminCreateCustomer(encode(input))
 

@@ -414,6 +414,15 @@ app.MapGet("/media/branch-receipt/{id:guid}", async (Guid id, HttpContext http, 
     return Results.File(item.ReceiptImageData!, item.ReceiptImageContentType ?? "image/jpeg");
 }).AllowAnonymous();
 
+app.MapGet("/media/branch/{id:guid}/receipt", async (Guid id, HttpContext http, AppDbContext db, CancellationToken ct) =>
+{
+    var item = await db.Branches.IgnoreQueryFilters().AsNoTracking().Where(b => b.Id == id && b.ReceiptImageData != null).Select(b => new { b.ReceiptImageData, b.ReceiptImageContentType }).FirstOrDefaultAsync(ct);
+    if (item is null) return Results.NotFound();
+    http.Response.Headers.CacheControl = "public, max-age=604800";
+    http.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    return Results.File(item.ReceiptImageData!, item.ReceiptImageContentType ?? "image/jpeg");
+}).AllowAnonymous();
+
 app.MapGet("/media/avatar/{id:guid}", async (Guid id, HttpContext http, AppDbContext db, CancellationToken cancellationToken) =>
 {
     var avatar = await db.Users

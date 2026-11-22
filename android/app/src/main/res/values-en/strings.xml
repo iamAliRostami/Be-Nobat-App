@@ -526,6 +526,37 @@
     <string name="business_request_first_branch">First Branch Name</string>
     <string name="business_request_address">Branch Address</string>
     <string name="business_request_description">Description (optional)</string>
+    <string name="business_request_section_extra_branches">Other Branches</string>
+    <string name="business_request_add_branch_btn">+ Add Another Branch</string>
+    <string name="business_request_no_extra_branches_hint">If you have more than one branch, click \"Add Another Branch\".</string>
+    <string name="business_request_section_plan_select">Select Subscription Plan *</string>
+    <string name="business_request_plan_trial_title">1 Week Trial</string>
+    <string name="business_request_plan_trial_tag">Free</string>
+    <string name="business_request_plan_trial_desc">7 days full access test</string>
+    <string name="business_request_plan_trial_price">0 Toman</string>
+    <string name="business_request_plan_3m_title">3 Months</string>
+    <string name="business_request_plan_discount_format" formatted="false">%d%% Off</string>
+    <string name="business_request_plan_3m_desc">3 months management subscription</string>
+    <string name="business_request_plan_6m_title">6 Months</string>
+    <string name="business_request_plan_6m_desc">6 months economical subscription</string>
+    <string name="business_request_plan_1y_title">1 Year</string>
+    <string name="business_request_plan_1y_desc">12 months maximum savings</string>
+    <string name="business_request_calc_title_format" formatted="false">Plan Fee Calculation (%s)</string>
+    <string name="business_request_calc_trial_desc">Free trial plan for 1 week, no payment required</string>
+    <string name="business_request_calc_paid_desc_base" formatted="false">Monthly base fee: %s Toman</string>
+    <string name="business_request_calc_paid_desc_extra" formatted="false"> + %d extra branch (%s Toman/month each)</string>
+    <string name="business_request_calc_paid_desc_discount" formatted="false"> • %d%% discount applied</string>
+    <string name="business_request_calc_total_label">Total Fee:</string>
+    <string name="business_request_free">Free</string>
+    <string name="business_request_toman_format" formatted="false">%s Toman</string>
+    <string name="business_request_calc_trial_footer" formatted="false">Total branches: %d • Trial plan requires no payment or receipt and will activate upon admin approval.</string>
+    <string name="business_request_calc_paid_footer" formatted="false">Total branches: %d • After submission, you will be taken to receipt upload.</string>
+    <string name="business_request_submit_trial_btn">Submit with Free Plan (No Cost)</string>
+    <string name="business_request_submit_paid_btn">Submit Request &amp; Proceed to Payment</string>
+    <string name="business_request_pending_trial_header">Free trial request is awaiting admin review</string>
+    <string name="business_request_pending_trial_badge">Free Trial Plan</string>
+    <string name="business_request_pending_trial_msg" formatted="false">Business request for \"%s\" with 7-day free trial is registered and requires no payment. Access will be activated upon admin approval.</string>
+    <string name="business_request_plan_field_label">Selected Plan:</string>
     <string name="business_request_submit_btn">Submit Business Request</string>
     <string name="business_request_submitted_success">Your business request has been submitted and is pending platform administrator review.</string>
     <string name="business_request_status_pending">Your business registration request for \"%1$s\" is currently pending admin review.</string>
@@ -546,6 +577,7 @@
     <string name="platform_request_approved_success">Request approved, business and owner access activated.</string>
     <string name="platform_request_rejected_success">Request rejected.</string>
     <string name="drawer_platform_requests">Business Requests</string>
+    <string name="drawer_platform_branch_requests">Branch Requests</string>
     <string name="drawer_system_messages">System Messages</string>
     <string name="drawer_platform_messages">User Messages (Contact Us)</string>
     <string name="drawer_platform_announcements">Send Announcement</string>
@@ -642,6 +674,17 @@
     <string name="platform_request_desc_label">Description: %1$s</string>
     <string name="platform_request_rejection_label">Rejection reason: %1$s</string>
     <string name="profile_manager_active_desc">You are active as a business manager and have access to the appointments, branches, and staff management panel.</string>
+    <string name="profile_manager_business_title">Active Business Manager</string>
+    <string name="profile_manager_branch_title">Active Branch Manager</string>
+    <string name="profile_manager_branch_desc">You are active as a branch manager and have access to branch appointments and staff.</string>
+    <string name="profile_staff_active_title">Active Branch Staff</string>
+    <string name="profile_staff_active_desc">You are active as branch staff and have access to your schedule and appointments.</string>
+    <string name="action_change_role">Change Permissions</string>
+    <string name="profile_pending_attach_receipt">Attach Payment Receipt &amp; View Request</string>
+    <string name="profile_pending_view_request">View Request Status &amp; Receipt</string>
+    <string name="member_role_updated_success">Team member role and permissions were updated successfully.</string>
+    <string name="filter_all_businesses_and_branches">All Businesses &amp; Branches</string>
+    <string name="filter_team_title">Filter Team Members</string>
     <string name="profile_request_business_title">Registration request for %1$s</string>
     <string name="profile_request_meta_format">Category: %1$s  •  City: %2$s  •  Branch: %3$s</string>
     <string name="profile_request_rejected_info">Your previous request for business "%1$s" was not approved.</string>
@@ -714,6 +757,9 @@
     <string name="reply_submitted_success">Reply submitted successfully.</string>
     <string name="manager_reply_prefix">Business reply:</string>
     <string name="business_request_receipt_view_btn">View Payment Receipt</string>
+    <string name="platform_request_total_branches">Total branches: %1$s</string>
+    <string name="platform_request_total_fee">Total amount: %1$s</string>
+    <string name="platform_request_other_branches">Other requested branches (%1$s):</string>
     <string name="platform_request_fee_label">Fee: %1$s</string>
     <string name="platform_request_total_branches_label">Total branches: %1$s</string>
     <string name="platform_request_receipt_uploaded">Payment receipt: Uploaded</string>

@@ -92,13 +92,13 @@
     <!-- Chart: Daily Trend of Revenue and Appointments -->
     @if (DailyTrend.Any())
     {
-        <section class="admin-panel" style="margin-top: 24px; padding: 20px; background: var(--surface-card, #ffffff); border: 1px solid var(--border-color, #e0e0e0); border-radius: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 16px;">نمودار روند روزانه درآمد و نوبت‌ها</h3>
-                <span style="font-size: 12px; color: var(--text-muted, #757575);">@DailyTrend.Count روز ثبت‌شده</span>
+        <section class="analytics-chart-panel">
+            <div class="chart-header">
+                <h3>نمودار روند روزانه درآمد و نوبت‌ها</h3>
+                <span class="chart-subtitle">@DailyTrend.Count روز ثبت‌شده</span>
             </div>
             
-            <div style="display: flex; align-items: flex-end; gap: 8px; height: 160px; padding: 12px 0; border-bottom: 2px solid var(--border-color, #e0e0e0); overflow-x: auto;">
+            <div class="chart-bars-track">
                 @{
                     var maxRev = DailyTrend.Max(d => d.Revenue);
                     if (maxRev <= 0) maxRev = 1;
@@ -106,15 +106,15 @@
                 @foreach (var day in DailyTrend)
                 {
                     var heightPercent = Math.Max(8, (int)((day.Revenue * 100) / maxRev));
-                    <div style="flex: 1; min-width: 32px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative;" title="@($"{day.DateLabel}: {day.Completed} نوبت انجام‌شده، {day.Revenue:N0} تومان")">
-                        <span style="font-size: 10px; margin-bottom: 4px; color: var(--text-muted, #757575);">@day.Completed</span>
-                        <div style="width: 100%; max-width: 24px; height: @(heightPercent)%; background: linear-gradient(180deg, #10b981 0%, #059669 100%); border-radius: 6px 6px 0 0; transition: height 0.3s ease;"></div>
-                        <span style="font-size: 10px; margin-top: 6px; white-space: nowrap; transform: rotate(-30deg); transform-origin: top right;">@day.ShortDate</span>
+                    <div class="chart-bar-col" title="@($"{day.DateLabel}: {day.Completed} نوبت انجام‌شده، {day.Revenue:N0} تومان")">
+                        <span class="chart-bar-count">@day.Completed</span>
+                        <div class="chart-bar-pillar" style="height: @(heightPercent)%;"></div>
+                        <span class="chart-bar-date">@day.ShortDate</span>
                     </div>
                 }
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-muted, #757575);">
-                <span><span style="display: inline-block; width: 10px; height: 10px; background: #10b981; border-radius: 2px; margin-left: 4px;"></span>ارتفاع ستون: درآمد روز</span>
+            <div class="chart-legend-box">
+                <span><span class="chart-legend-indicator"></span>ارتفاع ستون: درآمد روز</span>
                 <span>عدد بالای ستون: نوبت‌های تکمیل‌شده</span>
             </div>
         </section>
@@ -153,7 +153,7 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                        <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                        <div class="progress-track">
                             <div style="width: @(completionPercent)%; height: 100%; background: #8b5cf6; border-radius: 4px;"></div>
                         </div>
                         <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(biz.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(biz.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
@@ -185,7 +185,7 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                        <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                        <div class="progress-track">
                             <div style="width: @(completionPercent)%; height: 100%; background: #3b82f6; border-radius: 4px;"></div>
                         </div>
                         <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(b.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(b.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
@@ -217,7 +217,7 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                        <div style="flex: 1; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden;">
+                        <div class="progress-track">
                             <div style="width: @(completionPercent)%; height: 100%; background: #10b981; border-radius: 4px;"></div>
                         </div>
                         <span style="font-size: 12px; min-width: 120px; text-align: left;">@LocalizedDate.FormatNumber(s.CompletedCount, UiLocale.Language) از @LocalizedDate.FormatNumber(s.TotalCount, UiLocale.Language) نوبت (@LocalizedDate.FormatNumber(completionPercent, UiLocale.Language)٪)</span>
@@ -227,6 +227,137 @@
         </div>
     }
 </article>
+
+<style>
+.analytics-chart-panel {
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--outline-soft, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.chart-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--on-surface, #0f172a);
+}
+.chart-subtitle {
+    font-size: 12px;
+    color: #64748b;
+}
+.chart-bars-track {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 160px;
+    padding: 12px 0;
+    border-bottom: 2px solid var(--outline-soft, #e2e8f0);
+    overflow-x: auto;
+}
+.chart-bar-col {
+    flex: 1;
+    min-width: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    position: relative;
+}
+.chart-bar-count {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #64748b;
+}
+.chart-bar-pillar {
+    width: 100%;
+    max-width: 24px;
+    background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+    border-radius: 6px 6px 0 0;
+    transition: height 0.3s ease;
+}
+.chart-bar-date {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+    white-space: nowrap;
+    transform: rotate(-30deg);
+    transform-origin: top right;
+    color: var(--on-surface, #0f172a);
+}
+.chart-legend-box {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: #64748b;
+}
+.chart-legend-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 2px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+.progress-track {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Dark mode overrides for Analytics page */
+html[data-theme="dark"] .analytics-chart-panel {
+    background: #141d1c !important;
+    border: 1px solid #273734 !important;
+    box-shadow: none !important;
+}
+html[data-theme="dark"] .chart-header h3 {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .chart-subtitle {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .chart-bars-track {
+    border-bottom: 2px solid #273734 !important;
+}
+html[data-theme="dark"] .chart-bar-count {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .chart-bar-pillar {
+    background: linear-gradient(180deg, #34d399 0%, #059669 100%) !important;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.3) !important;
+}
+html[data-theme="dark"] .chart-bar-date {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .chart-legend-box {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .progress-track {
+    background: #243532 !important;
+}
+html[data-theme="dark"] .availability-row strong {
+    color: #ecf2ef !important;
+}
+html[data-theme="dark"] .availability-row strong[style*="color: #059669"] {
+    color: #5cd2b7 !important;
+}
+</style>
 
 @code {
     private List<Business> FilterBusinesses = [];

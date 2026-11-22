@@ -27,20 +27,23 @@ public static class TeamRoleSync
     public static async Task SyncAsync(UserManager<AppUser> users, AppDbContext db, AppUser user)
     {
         var membershipRoles = await db.BranchMemberships
-            .Where(m => m.UserId == user.Id)
+            .Where(m => m.UserId == user.Id && m.DeletedAt == null)
             .Select(m => m.Role)
             .ToListAsync();
 
-        var target = membershipRoles.OrderByDescending(Rank).FirstOrDefault();
-        if (target is not null && Rank(target) == 0) target = null;
+        var targetRoles = membershipRoles
+            .SelectMany(r => r.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct()
+            .Where(r => TeamRoles.Contains(r))
+            .ToList();
 
         var current = await users.GetRolesAsync(user);
-        var toRemove = current.Where(r => TeamRoles.Contains(r) && r != target).ToList();
-        var needsAdd = target is not null && !current.Contains(target);
+        var toRemove = current.Where(r => TeamRoles.Contains(r) && !targetRoles.Contains(r)).ToList();
+        var toAdd = targetRoles.Where(r => !current.Contains(r)).ToList();
 
         if (toRemove.Count > 0) Ensure(await users.RemoveFromRolesAsync(user, toRemove));
-        if (needsAdd) Ensure(await users.AddToRoleAsync(user, target!));
-        if (toRemove.Count > 0 || needsAdd) Ensure(await users.UpdateSecurityStampAsync(user));
+        if (toAdd.Count > 0) Ensure(await users.AddToRolesAsync(user, toAdd));
+        if (toRemove.Count > 0 || toAdd.Count > 0) Ensure(await users.UpdateSecurityStampAsync(user));
     }
 
     private static void Ensure(IdentityResult result)

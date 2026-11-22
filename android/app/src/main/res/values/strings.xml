@@ -636,6 +636,7 @@
     <string name="platform_request_approved_success">درخواست تأیید شد و کسب‌وکار و دسترسی مدیر فعال گردید.</string>
     <string name="platform_request_rejected_success">درخواست رد شد.</string>
     <string name="drawer_platform_requests">درخواست‌های کسب‌وکار</string>
+    <string name="drawer_platform_branch_requests">درخواست‌های شعب</string>
     <string name="drawer_system_messages">پیام‌های سامانه</string>
     <string name="drawer_platform_messages">پیام‌های تماس با ما</string>
     <string name="drawer_platform_announcements">ارسال پیام به مدیران</string>
@@ -732,6 +733,17 @@
     <string name="platform_request_desc_label">توضیحات: %1$s</string>
     <string name="platform_request_rejection_label">علت رد: %1$s</string>
     <string name="profile_manager_active_desc">شما به عنوان مدیر کسب‌وکار فعال هستید و به پنل مدیریت نوبت‌ها، شعب و پرسنل دسترسی دارید.</string>
+    <string name="profile_manager_business_title">مدیر فعال کسب‌وکار</string>
+    <string name="profile_manager_branch_title">مدیر فعال شعبه</string>
+    <string name="profile_manager_branch_desc">شما به عنوان مدیر شعبه فعال هستید و به پنل مدیریت نوبت‌ها و پرسنل شعبه دسترسی دارید.</string>
+    <string name="profile_staff_active_title">کارمند فعال شعبه</string>
+    <string name="profile_staff_active_desc">شما به عنوان کارمند در شعبه فعال هستید و به پنل نوبت‌ها و تقویم کاری خود دسترسی دارید.</string>
+    <string name="action_change_role">تغییر دسترسی</string>
+    <string name="profile_pending_attach_receipt">الصاق فیش واریزی و مشاهده درخواست</string>
+    <string name="profile_pending_view_request">مشاهده وضعیت درخواست و فیش</string>
+    <string name="member_role_updated_success">نقش و دسترسی‌های عضو با موفقیت به‌روزرسانی شد.</string>
+    <string name="filter_all_businesses_and_branches">همه کسب‌وکارها و شعب</string>
+    <string name="filter_team_title">فیلتر اعضای تیم</string>
     <string name="profile_request_business_title">درخواست ثبت %1$s</string>
     <string name="profile_request_meta_format">دسته‌بندی: %1$s  •  شهر: %2$s  •  شعبه: %3$s</string>
     <string name="profile_request_rejected_info">درخواست قبلی شما برای کسب‌وکار «%1$s» مورد تأیید قرار نگرفت.</string>
@@ -797,8 +809,42 @@
     <string name="today_slots_city_filter">شهر: %1$s</string>
     <string name="today_slots_select_city">انتخاب شهر</string>
     <string name="today_slots_empty_filtered">نوبتی با فیلترهای انتخابی یافت نشد.</string>
-    <string name="business_request_section_extra_branches">شعب اضافی (اختیاری)</string>
+    <string name="business_request_section_extra_branches">شعب دیگر کسب‌وکار</string>
     <string name="business_request_add_branch_btn">+ افزودن شعبه دیگر</string>
+    <string name="business_request_no_extra_branches_hint">در صورت داشتن بیش از یک شعبه، دکمه «افزودن شعبه دیگر» را بزنید.</string>
+    <string name="business_request_section_plan_select">انتخاب دوره اشتراک کسب‌وکار *</string>
+    <string name="business_request_plan_trial_title">۱ هفته تست</string>
+    <string name="business_request_plan_trial_tag">رایگان</string>
+    <string name="business_request_plan_trial_desc">۷ روز تست کامل امکانات</string>
+    <string name="business_request_plan_trial_price">۰ تومان</string>
+    <string name="business_request_plan_1m_title">۱ ماهه</string>
+    <string name="business_request_plan_1m_tag">عادی</string>
+    <string name="business_request_plan_1m_desc">۱ ماه اشتراک مدیریت</string>
+    <string name="invite_code_optional">کد دعوت شعبه (اختیاری)</string>
+    <string name="invite_code_copied">کد دعوت شعبه در کلیپ‌بورد کپی شد.</string>
+    <string name="business_request_plan_3m_title">۳ ماهه</string>
+    <string name="business_request_plan_discount_format" formatted="false">%d٪ تخفیف</string>
+    <string name="business_request_plan_3m_desc">۳ ماه اشتراک مدیریت</string>
+    <string name="business_request_plan_6m_title">۶ ماهه</string>
+    <string name="business_request_plan_6m_desc">۶ ماه اشتراک اقتصادی</string>
+    <string name="business_request_plan_1y_title">۱ ساله</string>
+    <string name="business_request_plan_1y_desc">۱۲ ماه حداکثر صرفه‌جویی</string>
+    <string name="business_request_calc_title_format" formatted="false">محاسبه هزینه پلن (%s)</string>
+    <string name="business_request_calc_trial_desc">پلن آزمایشی رایگان برای ۱ هفته، بدون نیاز به پرداخت</string>
+    <string name="business_request_calc_paid_desc_base" formatted="false">تعرفه ماهانه پایه: %s تومان</string>
+    <string name="business_request_calc_paid_desc_extra" formatted="false"> + %d شعبه اضافه (هر شعبه ماهانه %s تومان)</string>
+    <string name="business_request_calc_paid_desc_discount" formatted="false"> • %d٪ تخفیف اعمال شد</string>
+    <string name="business_request_calc_total_label">مبلغ کل:</string>
+    <string name="business_request_free">رایگان</string>
+    <string name="business_request_toman_format" formatted="false">%s تومان</string>
+    <string name="business_request_calc_trial_footer" formatted="false">تعداد کل شعب: %d شعبه • پلن تستی نیازی به پرداخت یا فیش ندارد و با تأیید مدیر فعال خواهد شد.</string>
+    <string name="business_request_calc_paid_footer" formatted="false">تعداد کل شعب: %d شعبه • پس از ثبت، به مرحله بارگذاری فیش واریزی منتقل خواهید شد.</string>
+    <string name="business_request_submit_trial_btn">ثبت درخواست با پلن رایگان (بدون هزینه)</string>
+    <string name="business_request_submit_paid_btn">ثبت درخواست و انتقال به مرحله پرداخت</string>
+    <string name="business_request_pending_trial_header">درخواست تست رایگان در انتظار بررسی مدیریت سامانه است</string>
+    <string name="business_request_pending_trial_badge">پلن تست رایگان</string>
+    <string name="business_request_pending_trial_msg" formatted="false">درخواست کسب‌وکار «%s» با پلن تست رایگان ۷ روزه ثبت شده است و نیازی به واریز وجه ندارد. پس از تأیید مدیریت سامانه دسترسی فعال خواهد شد.</string>
+    <string name="business_request_plan_field_label">پلن انتخابی:</string>
     <string name="business_request_extra_branch_title" formatted="false">شعبه شماره %d</string>
     <string name="business_request_extra_branch_name">نام شعبه</string>
     <string name="business_request_extra_branch_name_hint">مثال: شعبه تجریش</string>
@@ -837,9 +883,9 @@
     <string name="platform_pricing_instructions_label">توضیحات و راهنمای پرداخت</string>
     <string name="platform_pricing_save_success">تنظیمات تعرفه با موفقیت ذخیره شد.</string>
     <string name="platform_request_view_receipt">مشاهده تصویر فیش</string>
-    <string name="platform_request_total_branches">تعداد کل شعب: %1 شعبه</string>
-    <string name="platform_request_total_fee">مبلغ کل: %1 تومان</string>
-    <string name="platform_request_other_branches">سایر شعب درخواستی (%1 شعبه):</string>
+    <string name="platform_request_total_branches">تعداد کل شعب: %1$s شعبه</string>
+    <string name="platform_request_total_fee">مبلغ کل: %1$s</string>
+    <string name="platform_request_other_branches">سایر شعب درخواستی (%1$s شعبه):</string>
     <string name="platform_request_fee_label">مبلغ تعرفه: %1$s</string>
     <string name="platform_request_total_branches_label">تعداد کل شعب: %1$s شعبه</string>
     <string name="platform_request_receipt_uploaded">فیش واریزی: ارسال شده</string>
@@ -925,4 +971,13 @@
     <string name="team_branch_prefix">شعبه</string>
     <string name="action_share_qr">کد QR و اشتراک</string>
     <string name="not_registered">ثبت نشده</string>
+
+    <!-- Multi-Account Login (Telegram Style) -->
+    <string name="accounts_title">حساب‌های کاربری</string>
+    <string name="add_account">افزودن حساب</string>
+    <string name="account_active">حساب فعال</string>
+    <string name="account_switch_success">ورود با حساب %1$s انجام شد</string>
+    <string name="account_remove_confirm_title">خروج و حذف حساب</string>
+    <string name="account_remove_confirm_message">آیا از حذف حساب کاربری «%1$s» از این دستگاه اطمینان دارید؟</string>
+    <string name="account_removed">حساب کاربری حذف شد</string>
 </resources>
