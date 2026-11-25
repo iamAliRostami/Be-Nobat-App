@@ -514,7 +514,7 @@ public partial class Program
             var db = uri.AbsolutePath.TrimStart('/');
             var host = uri.Host;
             var port = uri.Port > 0 ? uri.Port : 5432;
-            return $"Host={host};Port={port};Database={db};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+            return $"Host={host};Port={port};Database={db};Username={username};Password={password};SSL Mode=Prefer;Trust Server Certificate=true";
         }
         return connStr;
     }
