@@ -96,7 +96,7 @@ android {
             matchingFallbacks += listOf("release")
             val url = (project.findProperty("backendUrlChabokan") as? String)?.trimEnd('/')
                 ?: localProperties.getProperty("backendUrlChabokan")?.trimEnd('/')
-                ?: "https://benobat.chabokan.net"
+                ?: "https://benobat.chbkn.dev"
 
             buildConfigField("String", "API_BASE_URL", "\"$url/api/v1\"")
             buildConfigField("String", "MEDIA_BASE_URL", "\"$url\"")
