@@ -3,8 +3,10 @@ WORKDIR /app
 COPY ./publish .
 RUN mkdir -p /tmp/keys && chown -R $APP_UID:0 /tmp/keys
 USER $APP_UID
+EXPOSE 8080
 EXPOSE 7860
-ENV ASPNETCORE_HTTP_PORTS=7860
+ENV ASPNETCORE_HTTP_PORTS=8080;7860
+ENV ASPNETCORE_URLS=http://+:8080;http://+:7860
 ENV DataProtection__KeysPath=/tmp/keys
 ENTRYPOINT ["dotnet", "BeNobat.Web.dll"]
 
