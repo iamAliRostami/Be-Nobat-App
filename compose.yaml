@@ -18,7 +18,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      ConnectionStrings__Default: Host=services.irn4.chabokan.net;Port=46612;Database=isabell;Username=postgres;Password=g7P9IjpYRGrlHFXe;SSL Mode=Prefer;Trust Server Certificate=true
       DataProtection__KeysPath: /keys
     volumes:
       - dataprotection_keys:/keys
@@ -34,7 +34,7 @@ services:
     command: ["--seed-demo"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      ConnectionStrings__Default: Host=services.irn4.chabokan.net;Port=46612;Database=isabell;Username=postgres;Password=g7P9IjpYRGrlHFXe;SSL Mode=Prefer;Trust Server Certificate=true
       DataProtection__KeysPath: /keys
       Seed__DemoPassword: Demo123456
     volumes:
@@ -49,7 +49,7 @@ services:
     command: ["--reset-demo"]
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Default: Host=postgres;Port=5432;Database=benobat;Username=benobat;Password=benobat-dev-only
+      ConnectionStrings__Default: Host=services.irn4.chabokan.net;Port=46612;Database=isabell;Username=postgres;Password=g7P9IjpYRGrlHFXe;SSL Mode=Prefer;Trust Server Certificate=true
       DataProtection__KeysPath: /keys
       Seed__DemoPassword: Demo123456
     volumes:
