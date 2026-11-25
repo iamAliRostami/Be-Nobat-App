@@ -46,6 +46,15 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = localProperties.getProperty("release.keyAlias") ?: "ali_angel"
+            keyPassword = localProperties.getProperty("release.keyPassword") ?: "kaka019930"
+            storeFile = file(localProperties.getProperty("release.storeFile") ?: "D:/Keys/MyFourthKey.jks")
+            storePassword = localProperties.getProperty("release.storePassword") ?: "kaka019930"
+        }
+    }
+
     buildTypes {
         debug {
             val debugBackendUrl = (project.findProperty("backendUrl") as? String)?.trimEnd('/')
@@ -65,7 +74,7 @@ android {
             buildConfigField("String", "MEDIA_BASE_URL", "\"$releaseBackendUrl\"")
             isMinifyEnabled = false
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
