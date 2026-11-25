@@ -23,9 +23,11 @@ if ((seedDemo || seedDemoOnStartup) && !builder.Environment.IsDevelopment())
 {
     throw new InvalidOperationException("داده‌های نمایشی فقط در محیط Development قابل ایجاد هستند.");
 }
-var rawConnectionString = builder.Configuration.GetConnectionString("Default")
-    ?? builder.Configuration["DATABASE_URL"]
-    ?? throw new InvalidOperationException("ConnectionStrings:Default or DATABASE_URL is required.");
+var databaseUrl = builder.Configuration["DATABASE_URL"];
+var rawConnectionString = !string.IsNullOrWhiteSpace(databaseUrl)
+    ? databaseUrl
+    : (builder.Configuration.GetConnectionString("Default")
+        ?? throw new InvalidOperationException("ConnectionStrings:Default or DATABASE_URL is required."));
 var connectionString = NormalizePostgresConnectionString(rawConnectionString);
 
 // Razor components in the same circuit may initialize concurrently (for example,
