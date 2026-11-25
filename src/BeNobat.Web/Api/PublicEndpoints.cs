@@ -22,7 +22,8 @@ public static class PublicEndpoints
         root.MapGet("/catalog", async (AppDbContext db, int? page, int? pageSize, CancellationToken ct) =>
         {
             var (p, size) = ApiResults.Pagination(page, pageSize);
-            var query = db.ServiceCatalogItems.AsNoTracking().Where(c => c.IsPublished);
+            var query = db.ServiceCatalogItems.AsNoTracking()
+                .Where(c => c.IsPublished && db.CategoryDefinitions.Any(cat => cat.Kind == CategoryKind.Service && cat.IsActive && cat.Name == c.Category));
             return Results.Ok(new ApiPage<object>(await query.OrderBy(c => c.Name).Skip((p - 1) * size).Take(size).Select(c => (object)new { c.Id, c.Name, c.Slug, c.Category, c.Description, c.SuggestedDurationMinutes }).ToListAsync(ct), p, size, await query.CountAsync(ct)));
         }).AllowAnonymous();
         root.MapGet("/businesses", async (AppDbContext db, string? q, string? category, string? city, int? page, int? pageSize, CancellationToken ct) =>

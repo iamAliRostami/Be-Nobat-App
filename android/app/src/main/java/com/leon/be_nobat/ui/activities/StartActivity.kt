@@ -29,7 +29,8 @@ import org.koin.android.ext.android.inject
 class StartActivity : AppCompatActivity() {
     companion object {
         private const val DEFAULT_LANGUAGE_TAG = "fa"
-        private const val STANDARD_SPLASH_DURATION_MS = 10000L
+        private const val STANDARD_SPLASH_DURATION_MS = 6500L
+        private const val TARGET_SPLASH_DURATION_MS = 5500f
     }
 
     private val tokenManager: TokenManager by inject()
@@ -96,7 +97,6 @@ class StartActivity : AppCompatActivity() {
 
             // Fallback timeout to guarantee transition even if video playback has issues
             delay(STANDARD_SPLASH_DURATION_MS)
-
             navigateToTarget(target)
         }
     }
@@ -126,6 +126,21 @@ class StartActivity : AppCompatActivity() {
                         videoHeight = mp.videoHeight
                     }
                     adjustVideoAspect(this, videoWidth, videoHeight)
+                    try {
+                        val naturalDurationMs = mp.duration
+                        val speed = if (naturalDurationMs > 0) {
+                            (naturalDurationMs.toFloat() / TARGET_SPLASH_DURATION_MS).coerceIn(1.0f, 3.0f)
+                        } else {
+                            1.4f
+                        }
+                        val params = mp.playbackParams
+                        params.speed = speed
+                        mp.playbackParams = params
+                    } catch (_: Exception) {
+                    }
+                    mp.setOnCompletionListener {
+                        resolvedTarget?.let { target -> navigateToTarget(target) }
+                    }
                     start()
                 }
                 setOnCompletionListener {

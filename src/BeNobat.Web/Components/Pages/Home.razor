@@ -116,21 +116,29 @@
 
     private static readonly string[] QuickTags = ["کوتاهی مو", "دندانپزشکی", "ماساژ"];
 
-    private static readonly (string Name, string Icon, string CssClass)[] Categories =
-    [
-        ("زیبایی و آرایش", "✦", "beauty"),
-        ("پیرایش آقایان", "✄", "repair"),
-        ("پزشکی", "✚", "health"),
-        ("دندانپزشکی", "♡", "health"),
-        ("فیزیوتراپی و توان‌بخشی", "⚕", "consult"),
-        ("ماساژ و تندرستی", "♙", "sport"),
-        ("مشاوره و روان‌شناسی", "⌁", "consult"),
-        ("ورزش و تناسب اندام", "⚖", "sport"),
-        ("پوست و زیبایی", "✦", "beauty"),
-        ("ناخن", "✿", "beauty"),
-        ("مو و آرایش", "✂", "beauty"),
-        ("دامپزشکی", "🐾", "education"),
-    ];
+    private List<(string Name, string Icon, string CssClass)> Categories { get; set; } = [];
+
+    private static (string Icon, string CssClass) GetCategoryVisual(string name) => name switch
+    {
+        "زیبایی و آرایش" => ("✦", "beauty"),
+        "پوست و زیبایی" => ("✦", "beauty"),
+        "مو و آرایش" => ("✂", "beauty"),
+        "ناخن" => ("✿", "beauty"),
+        "لیزر" or "لیزر و زیبایی" => ("✧", "beauty"),
+        "پیرایش آقایان" => ("✄", "repair"),
+        "پزشکی" or "پزشکی عمومی" => ("✚", "health"),
+        "دندانپزشکی" => ("♡", "health"),
+        "فیزیوتراپی و توان‌بخشی" => ("⚕", "consult"),
+        "ماساژ" or "ماساژ و تندرستی" => ("♙", "sport"),
+        "سلامت و تندرستی" => ("♥", "health"),
+        "مشاوره و روان‌شناسی" => ("⌁", "consult"),
+        "ورزش و تناسب اندام" => ("⚖", "sport"),
+        "دامپزشکی" => ("🐾", "education"),
+        "آموزش" => ("✎", "education"),
+        "خدمات خودرو" => ("⚙", "repair"),
+        "خدمات منزل" => ("⌂", "repair"),
+        _ => ("◈", "consult")
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,6 +147,25 @@
 
         await using (var db = await DbFactory.CreateDbContextAsync())
         {
+            var activeCats = await db.CategoryDefinitions.AsNoTracking()
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.Kind)
+                .ThenBy(c => c.SortOrder)
+                .ThenBy(c => c.Name)
+                .Select(c => c.Name)
+                .ToListAsync();
+
+            Categories = activeCats
+                .Distinct()
+                .Where(name => name != "عمومی")
+                .Take(12)
+                .Select(name =>
+                {
+                    var (icon, css) = GetCategoryVisual(name);
+                    return (name, icon, css);
+                })
+                .ToList();
+
             TotalBusinesses = await db.Businesses.CountAsync(b => b.Branches.Any());
             if (CurrentUserId is Guid userId)
             {

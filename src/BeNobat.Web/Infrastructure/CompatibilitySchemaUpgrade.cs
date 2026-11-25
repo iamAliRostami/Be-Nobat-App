@@ -253,6 +253,10 @@ public static class CompatibilitySchemaUpgrade
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanType" text NOT NULL DEFAULT 'Trial7Days';
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanStartedAt" timestamptz NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanExpiresAt" timestamptz NULL;
+            UPDATE benobat."Businesses"
+            SET "PlanStartedAt" = COALESCE("PlanStartedAt", NOW()),
+                "PlanExpiresAt" = COALESCE("PlanExpiresAt", NOW() + INTERVAL '7 days')
+            WHERE "PlanExpiresAt" IS NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Telegram" text NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Instagram" text NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "WhatsApp" text NULL;

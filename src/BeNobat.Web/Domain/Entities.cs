@@ -82,8 +82,8 @@ public sealed class Business : Entity, ISocialMediaHolder
     public ICollection<BusinessGalleryItem> GalleryItems { get; } = [];
 
     public string PlanType { get; set; } = "Trial7Days";
-    public DateTimeOffset? PlanStartedAt { get; set; }
-    public DateTimeOffset? PlanExpiresAt { get; set; }
+    public DateTimeOffset? PlanStartedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? PlanExpiresAt { get; set; } = DateTimeOffset.UtcNow.AddDays(7);
 
     public bool IsPlanExpired => PlanExpiresAt.HasValue && PlanExpiresAt.Value < DateTimeOffset.UtcNow;
     public int? DaysUntilPlanExpiration => PlanExpiresAt.HasValue ? (int)Math.Ceiling((PlanExpiresAt.Value - DateTimeOffset.UtcNow).TotalDays) : null;
