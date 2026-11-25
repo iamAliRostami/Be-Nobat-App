@@ -139,6 +139,53 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3 class="section-title"><span>🌐</span> شبکه‌های اجتماعی و راه‌های ارتباطی</h3>
+                    <p style="font-size:12px;color:var(--text-muted,#757575);margin-top:2px;margin-bottom:12px;">آدرس شبکه‌های اجتماعی کسب‌وکار را برای نمایش در صفحه عمومی وارد کنید (آیدی کاربری یا لینک کامل).</p>
+                    <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <label class="field-full">
+                            <span>اینستاگرام</span>
+                            <input dir="ltr" @bind="Form.Instagram" placeholder="instagram.com/your_id یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>تلگرام</span>
+                            <input dir="ltr" @bind="Form.Telegram" placeholder="t.me/your_id یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>واتساپ</span>
+                            <input dir="ltr" @bind="Form.WhatsApp" placeholder="wa.me/98912... یا شماره همراه" />
+                        </label>
+                        <label class="field-full">
+                            <span>ایتا</span>
+                            <input dir="ltr" @bind="Form.Eitaa" placeholder="eitaa.com/your_channel یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>بله</span>
+                            <input dir="ltr" @bind="Form.Bale" placeholder="ble.ir/your_channel یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>روبیکا</span>
+                            <input dir="ltr" @bind="Form.Rubika" placeholder="rubika.ir/your_channel یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>لینکدین</span>
+                            <input dir="ltr" @bind="Form.LinkedIn" placeholder="linkedin.com/in/... یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>ایکس (توییتر)</span>
+                            <input dir="ltr" @bind="Form.Twitter" placeholder="x.com/your_id یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>آپارات</span>
+                            <input dir="ltr" @bind="Form.Aparat" placeholder="aparat.com/your_id یا your_id" />
+                        </label>
+                        <label class="field-full">
+                            <span>وب‌سایت</span>
+                            <input dir="ltr" @bind="Form.Website" placeholder="https://example.com" />
+                        </label>
+                    </div>
+                </div>
+
                 @if (EditingId is null)
                 {
                     <div class="form-section">
@@ -270,6 +317,16 @@
             DepositCardNumber = x.DepositCardNumber,
             DepositIban = x.DepositIban,
             DepositAccountHolder = x.DepositAccountHolder,
+            Telegram = x.Telegram,
+            Instagram = x.Instagram,
+            WhatsApp = x.WhatsApp,
+            Eitaa = x.Eitaa,
+            Bale = x.Bale,
+            Rubika = x.Rubika,
+            LinkedIn = x.LinkedIn,
+            Twitter = x.Twitter,
+            Aparat = x.Aparat,
+            Website = x.Website,
         };
         ShowForm = true;
     }
@@ -363,6 +420,16 @@
             business.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
             business.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
             business.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
+            business.Telegram = string.IsNullOrWhiteSpace(Form.Telegram) ? null : Form.Telegram.Trim();
+            business.Instagram = string.IsNullOrWhiteSpace(Form.Instagram) ? null : Form.Instagram.Trim();
+            business.WhatsApp = string.IsNullOrWhiteSpace(Form.WhatsApp) ? null : Form.WhatsApp.Trim();
+            business.Eitaa = string.IsNullOrWhiteSpace(Form.Eitaa) ? null : Form.Eitaa.Trim();
+            business.Bale = string.IsNullOrWhiteSpace(Form.Bale) ? null : Form.Bale.Trim();
+            business.Rubika = string.IsNullOrWhiteSpace(Form.Rubika) ? null : Form.Rubika.Trim();
+            business.LinkedIn = string.IsNullOrWhiteSpace(Form.LinkedIn) ? null : Form.LinkedIn.Trim();
+            business.Twitter = string.IsNullOrWhiteSpace(Form.Twitter) ? null : Form.Twitter.Trim();
+            business.Aparat = string.IsNullOrWhiteSpace(Form.Aparat) ? null : Form.Aparat.Trim();
+            business.Website = string.IsNullOrWhiteSpace(Form.Website) ? null : Form.Website.Trim();
             business.UpdatedAt = DateTimeOffset.UtcNow;
 
             if (EditingId is null) db.Businesses.Add(business);
@@ -411,6 +478,16 @@
                     fallbackBiz.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
                     fallbackBiz.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
                     fallbackBiz.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
+                    fallbackBiz.Telegram = string.IsNullOrWhiteSpace(Form.Telegram) ? null : Form.Telegram.Trim();
+                    fallbackBiz.Instagram = string.IsNullOrWhiteSpace(Form.Instagram) ? null : Form.Instagram.Trim();
+                    fallbackBiz.WhatsApp = string.IsNullOrWhiteSpace(Form.WhatsApp) ? null : Form.WhatsApp.Trim();
+                    fallbackBiz.Eitaa = string.IsNullOrWhiteSpace(Form.Eitaa) ? null : Form.Eitaa.Trim();
+                    fallbackBiz.Bale = string.IsNullOrWhiteSpace(Form.Bale) ? null : Form.Bale.Trim();
+                    fallbackBiz.Rubika = string.IsNullOrWhiteSpace(Form.Rubika) ? null : Form.Rubika.Trim();
+                    fallbackBiz.LinkedIn = string.IsNullOrWhiteSpace(Form.LinkedIn) ? null : Form.LinkedIn.Trim();
+                    fallbackBiz.Twitter = string.IsNullOrWhiteSpace(Form.Twitter) ? null : Form.Twitter.Trim();
+                    fallbackBiz.Aparat = string.IsNullOrWhiteSpace(Form.Aparat) ? null : Form.Aparat.Trim();
+                    fallbackBiz.Website = string.IsNullOrWhiteSpace(Form.Website) ? null : Form.Website.Trim();
                     fallbackBiz.UpdatedAt = DateTimeOffset.UtcNow;
                     await fallbackDb.SaveChangesAsync();
                     Message = "تغییرات با موفقیت ذخیره شد.";
@@ -474,5 +551,15 @@
         public string? DepositCardNumber { get; set; }
         public string? DepositIban { get; set; }
         public string? DepositAccountHolder { get; set; }
+        public string? Telegram { get; set; }
+        public string? Instagram { get; set; }
+        public string? WhatsApp { get; set; }
+        public string? Eitaa { get; set; }
+        public string? Bale { get; set; }
+        public string? Rubika { get; set; }
+        public string? LinkedIn { get; set; }
+        public string? Twitter { get; set; }
+        public string? Aparat { get; set; }
+        public string? Website { get; set; }
     }
 }

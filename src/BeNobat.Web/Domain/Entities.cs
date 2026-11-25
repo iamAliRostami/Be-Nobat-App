@@ -24,7 +24,21 @@ public sealed class AppUser : IdentityUser<Guid>
     public ICollection<Review> Reviews { get; } = [];
 }
 
-public sealed class Business : Entity
+public interface ISocialMediaHolder
+{
+    string? Telegram { get; set; }
+    string? Instagram { get; set; }
+    string? WhatsApp { get; set; }
+    string? Eitaa { get; set; }
+    string? Bale { get; set; }
+    string? Rubika { get; set; }
+    string? LinkedIn { get; set; }
+    string? Twitter { get; set; }
+    string? Aparat { get; set; }
+    string? Website { get; set; }
+}
+
+public sealed class Business : Entity, ISocialMediaHolder
 {
     public int CancellationNoticeMinutes { get; set; } = 120;
 
@@ -33,6 +47,17 @@ public sealed class Business : Entity
     public string Category { get; set; } = "عمومی";
     public string City { get; set; } = "تهران";
     public string Description { get; set; } = string.Empty;
+
+    public string? Telegram { get; set; }
+    public string? Instagram { get; set; }
+    public string? WhatsApp { get; set; }
+    public string? Eitaa { get; set; }
+    public string? Bale { get; set; }
+    public string? Rubika { get; set; }
+    public string? LinkedIn { get; set; }
+    public string? Twitter { get; set; }
+    public string? Aparat { get; set; }
+    public string? Website { get; set; }
 
     /// <summary>
     /// اگر درست باشد نوبت‌های تازه «در انتظار تأیید» ثبت می‌شوند و مجموعه باید آن‌ها را
@@ -82,13 +107,14 @@ public sealed class FavoriteBusiness : Entity
     public Business Business { get; set; } = null!;
 }
 
-public sealed class Branch : Entity
+public sealed class Branch : Entity, ISocialMediaHolder
 {
     public int? CancellationNoticeMinutes { get; set; }
 
     public Guid BusinessId { get; set; }
     public required string Name { get; set; }
     public string Address { get; set; } = string.Empty;
+    public string? Phone { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string TimeZoneId { get; set; } = "Asia/Tehran";
@@ -98,6 +124,17 @@ public sealed class Branch : Entity
     public string? InviteCode { get; set; }
     public Business Business { get; set; } = null!;
     public ICollection<Resource> Resources { get; } = [];
+
+    public string? Telegram { get; set; }
+    public string? Instagram { get; set; }
+    public string? WhatsApp { get; set; }
+    public string? Eitaa { get; set; }
+    public string? Bale { get; set; }
+    public string? Rubika { get; set; }
+    public string? LinkedIn { get; set; }
+    public string? Twitter { get; set; }
+    public string? Aparat { get; set; }
+    public string? Website { get; set; }
 
     // [fix] این سه نویگیشن در AppDbContext با WithMany(...) استفاده شده بودند
     // ولی روی موجودیت تعریف نشده بودند؛ پروژه کامپایل نمی‌شد.

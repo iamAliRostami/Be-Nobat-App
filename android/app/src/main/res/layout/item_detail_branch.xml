@@ -46,18 +46,42 @@
                 android:textColor="?attr/colorOnSurface"
                 tools:text="شعبه سعادت‌آباد" />
 
-            <TextView
-                android:id="@+id/tvBranchSelectedBadge"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_category_pill"
-                android:paddingHorizontal="8dp"
-                android:paddingVertical="3dp"
-                android:textSize="11sp"
-                android:textColor="?attr/colorPrimary"
-                android:text="✓ انتخاب‌شده"
-                android:visibility="gone"
-                tools:visibility="visible" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvBranchSelectedBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_category_pill"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:textSize="11sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:text="✓ انتخاب‌شده"
+                    android:visibility="gone"
+                    android:layout_marginEnd="6dp"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="مشاهده شعبه"
+                    android:textSize="11.5sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:fontFamily="@font/app_font" />
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="2dp"
+                    android:src="@drawable/ic_back"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="@null" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
@@ -88,6 +112,26 @@
                 android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
                 android:textSize="11.5sp"
                 tools:text="ساعت کاری: ۰۹:۰۰ الی ۱۸:۰۰" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutBranchPhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="28dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/tvBranchPhone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                android:textSize="11.5sp"
+                tools:text="تلفن تماس: ۰۲۱۲۲۳۳۴۴۵۵" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

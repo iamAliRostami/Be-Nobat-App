@@ -211,6 +211,53 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <h3 class="section-title"><span>🌐</span> شبکه‌های اجتماعی و راه‌های ارتباطی شعبه (اختیاری)</h3>
+                    <p style="font-size:12px;color:var(--text-muted,#757575);margin-top:2px;margin-bottom:12px;">در صورت خالی گذاشتن هر فیلد، مقدار ثبت‌شده در کسب‌وکار برای این شعبه اعمال خواهد شد.</p>
+                    <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <label class="field-full">
+                            <span>شماره تماس مستقیم شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Phone" placeholder="۰۲۱..." />
+                        </label>
+                        <label class="field-full">
+                            <span>اینستاگرام شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Instagram" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>تلگرام شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Telegram" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>واتساپ شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.WhatsApp" placeholder="۰۹۱۲..." />
+                        </label>
+                        <label class="field-full">
+                            <span>ایتا شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Eitaa" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>بله شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Bale" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>روبیکا شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Rubika" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>لینکدین شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.LinkedIn" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>آپارات شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Aparat" placeholder="mehr_branch..." />
+                        </label>
+                        <label class="field-full">
+                            <span>وب‌سایت اختصاصی شعبه</span>
+                            <input dir="ltr" @bind="BranchForm.Website" placeholder="https://..." />
+                        </label>
+                    </div>
+                </div>
+
                 @if (Error is not null) { <div class="auth-error">@Error</div> }
             </div>
             <div class="modal-footer">
@@ -675,6 +722,17 @@
             DepositCardNumber = branch.DepositCardNumber,
             DepositIban = branch.DepositIban,
             DepositAccountHolder = branch.DepositAccountHolder,
+            Phone = branch.Phone,
+            Telegram = branch.Telegram,
+            Instagram = branch.Instagram,
+            WhatsApp = branch.WhatsApp,
+            Eitaa = branch.Eitaa,
+            Bale = branch.Bale,
+            Rubika = branch.Rubika,
+            LinkedIn = branch.LinkedIn,
+            Twitter = branch.Twitter,
+            Aparat = branch.Aparat,
+            Website = branch.Website,
         };
         Error = Message = null;
         ShowBranchForm = true;
@@ -732,6 +790,17 @@
             branch.DepositCardNumber = string.IsNullOrWhiteSpace(BranchForm.DepositCardNumber) ? null : BranchForm.DepositCardNumber.Trim();
             branch.DepositIban = string.IsNullOrWhiteSpace(BranchForm.DepositIban) ? null : BranchForm.DepositIban.Trim();
             branch.DepositAccountHolder = string.IsNullOrWhiteSpace(BranchForm.DepositAccountHolder) ? null : BranchForm.DepositAccountHolder.Trim();
+            branch.Phone = string.IsNullOrWhiteSpace(BranchForm.Phone) ? null : BranchForm.Phone.Trim();
+            branch.Telegram = string.IsNullOrWhiteSpace(BranchForm.Telegram) ? null : BranchForm.Telegram.Trim();
+            branch.Instagram = string.IsNullOrWhiteSpace(BranchForm.Instagram) ? null : BranchForm.Instagram.Trim();
+            branch.WhatsApp = string.IsNullOrWhiteSpace(BranchForm.WhatsApp) ? null : BranchForm.WhatsApp.Trim();
+            branch.Eitaa = string.IsNullOrWhiteSpace(BranchForm.Eitaa) ? null : BranchForm.Eitaa.Trim();
+            branch.Bale = string.IsNullOrWhiteSpace(BranchForm.Bale) ? null : BranchForm.Bale.Trim();
+            branch.Rubika = string.IsNullOrWhiteSpace(BranchForm.Rubika) ? null : BranchForm.Rubika.Trim();
+            branch.LinkedIn = string.IsNullOrWhiteSpace(BranchForm.LinkedIn) ? null : BranchForm.LinkedIn.Trim();
+            branch.Twitter = string.IsNullOrWhiteSpace(BranchForm.Twitter) ? null : BranchForm.Twitter.Trim();
+            branch.Aparat = string.IsNullOrWhiteSpace(BranchForm.Aparat) ? null : BranchForm.Aparat.Trim();
+            branch.Website = string.IsNullOrWhiteSpace(BranchForm.Website) ? null : BranchForm.Website.Trim();
 
             var isNewNonPlatform = EditingBranchId is null && !IsPlatformAdmin;
             if (EditingBranchId is null)
@@ -1364,6 +1433,17 @@
         public string? DepositCardNumber { get; set; }
         public string? DepositIban { get; set; }
         public string? DepositAccountHolder { get; set; }
+        public string? Phone { get; set; }
+        public string? Telegram { get; set; }
+        public string? Instagram { get; set; }
+        public string? WhatsApp { get; set; }
+        public string? Eitaa { get; set; }
+        public string? Bale { get; set; }
+        public string? Rubika { get; set; }
+        public string? LinkedIn { get; set; }
+        public string? Twitter { get; set; }
+        public string? Aparat { get; set; }
+        public string? Website { get; set; }
     }
 
     private sealed class ResourceInput

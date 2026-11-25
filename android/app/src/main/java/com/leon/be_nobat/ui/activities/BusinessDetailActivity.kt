@@ -21,6 +21,7 @@ import com.leon.be_nobat.R
 import com.leon.be_nobat.data.remote.BeNobatApiConfig
 import com.leon.be_nobat.helpers.BaseActivity
 import com.leon.be_nobat.helpers.PersianUtils
+import com.leon.be_nobat.helpers.SocialChannelHelper
 import com.leon.be_nobat.ui.adapters.GalleryAdapter
 import com.leon.be_nobat.ui.view_models.BusinessDetailUiState
 import com.leon.be_nobat.ui.view_models.BusinessDetailViewModel
@@ -244,6 +245,25 @@ class BusinessDetailActivity : BaseActivity() {
             btnBook.text = getString(R.string.book_now)
         }
 
+        // Social & Communication channels
+        val cardSocialSection = findViewById<View>(R.id.cardSocialSection)
+        val containerSocialChannels = findViewById<LinearLayout>(R.id.containerSocialChannels)
+        val tvSocialTitle = findViewById<TextView>(R.id.tvSocialTitle)
+        val channels = SocialChannelHelper.resolveEffectiveChannels(b, selectedBranch)
+        if (channels.isNotEmpty()) {
+            cardSocialSection?.isVisible = true
+            if (selectedBranch != null) {
+                tvSocialTitle?.text = "راه‌های ارتباطی شعبه ${selectedBranch.name}"
+            } else {
+                tvSocialTitle?.text = "راه‌های ارتباطی و شبکه‌های اجتماعی"
+            }
+            if (containerSocialChannels != null) {
+                SocialChannelHelper.bindSocialChannels(this, containerSocialChannels, channels)
+            }
+        } else {
+            cardSocialSection?.isVisible = false
+        }
+
         // Section Badges
         val actualBranchCount = b.branches.size
         val actualServiceCount = b.services.size
@@ -284,8 +304,20 @@ class BusinessDetailActivity : BaseActivity() {
                 layoutHours?.isVisible = false
             }
 
+            val layoutPhone = branchView.findViewById<View>(R.id.layoutBranchPhone)
+            val tvPhone = branchView.findViewById<TextView>(R.id.tvBranchPhone)
+            val phone = br.phone?.trim()?.takeIf { it.isNotBlank() }
+            if (!phone.isNullOrBlank()) {
+                layoutPhone?.isVisible = true
+                tvPhone?.text = "تلفن تماس: ${PersianUtils.toPersianDigits(phone)}"
+            } else {
+                layoutPhone?.isVisible = false
+            }
+
             branchView.setOnClickListener {
                 viewModel.selectBranch(br.id)
+                val intent = BranchDetailActivity.createIntent(this, branchId = br.id, businessId = b.id)
+                startActivity(intent)
             }
             layoutBranchesList?.addView(branchView)
         }

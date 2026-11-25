@@ -74,6 +74,29 @@ class AdminBranchEditActivity : BaseActivity() {
     private lateinit var etDepositCardNumber: TextInputEditText
     private lateinit var etDepositIban: TextInputEditText
     private lateinit var etDepositAccountHolder: TextInputEditText
+
+    private lateinit var etBranchPhone: TextInputEditText
+    private lateinit var tilBranchInstagram: TextInputLayout
+    private lateinit var etBranchInstagram: TextInputEditText
+    private lateinit var tilBranchTelegram: TextInputLayout
+    private lateinit var etBranchTelegram: TextInputEditText
+    private lateinit var tilBranchWhatsApp: TextInputLayout
+    private lateinit var etBranchWhatsApp: TextInputEditText
+    private lateinit var tilBranchEitaa: TextInputLayout
+    private lateinit var etBranchEitaa: TextInputEditText
+    private lateinit var tilBranchBale: TextInputLayout
+    private lateinit var etBranchBale: TextInputEditText
+    private lateinit var tilBranchRubika: TextInputLayout
+    private lateinit var etBranchRubika: TextInputEditText
+    private lateinit var tilBranchLinkedIn: TextInputLayout
+    private lateinit var etBranchLinkedIn: TextInputEditText
+    private lateinit var tilBranchTwitter: TextInputLayout
+    private lateinit var etBranchTwitter: TextInputEditText
+    private lateinit var tilBranchAparat: TextInputLayout
+    private lateinit var etBranchAparat: TextInputEditText
+    private lateinit var tilBranchWebsite: TextInputLayout
+    private lateinit var etBranchWebsite: TextInputEditText
+
     private lateinit var weeklyHoursEditor: WeeklyHoursEditor
     private lateinit var cancellationEditor: com.leon.be_nobat.helpers.CancellationNoticeEditor
     private lateinit var cardBranchDetails: View
@@ -132,6 +155,29 @@ class AdminBranchEditActivity : BaseActivity() {
         etDepositCardNumber = findViewById(R.id.etDepositCardNumber)
         etDepositIban = findViewById(R.id.etDepositIban)
         etDepositAccountHolder = findViewById(R.id.etDepositAccountHolder)
+
+        etBranchPhone = findViewById(R.id.etBranchPhone)
+        tilBranchInstagram = findViewById(R.id.tilBranchInstagram)
+        etBranchInstagram = findViewById(R.id.etBranchInstagram)
+        tilBranchTelegram = findViewById(R.id.tilBranchTelegram)
+        etBranchTelegram = findViewById(R.id.etBranchTelegram)
+        tilBranchWhatsApp = findViewById(R.id.tilBranchWhatsApp)
+        etBranchWhatsApp = findViewById(R.id.etBranchWhatsApp)
+        tilBranchEitaa = findViewById(R.id.tilBranchEitaa)
+        etBranchEitaa = findViewById(R.id.etBranchEitaa)
+        tilBranchBale = findViewById(R.id.tilBranchBale)
+        etBranchBale = findViewById(R.id.etBranchBale)
+        tilBranchRubika = findViewById(R.id.tilBranchRubika)
+        etBranchRubika = findViewById(R.id.etBranchRubika)
+        tilBranchLinkedIn = findViewById(R.id.tilBranchLinkedIn)
+        etBranchLinkedIn = findViewById(R.id.etBranchLinkedIn)
+        tilBranchTwitter = findViewById(R.id.tilBranchTwitter)
+        etBranchTwitter = findViewById(R.id.etBranchTwitter)
+        tilBranchAparat = findViewById(R.id.tilBranchAparat)
+        etBranchAparat = findViewById(R.id.etBranchAparat)
+        tilBranchWebsite = findViewById(R.id.tilBranchWebsite)
+        etBranchWebsite = findViewById(R.id.etBranchWebsite)
+
         weeklyHoursEditor = findViewById(R.id.weeklyHoursEditor)
         cancellationEditor = com.leon.be_nobat.helpers.CancellationNoticeEditor(this)
         cancellationEditor.setValue(null)
@@ -359,6 +405,34 @@ class AdminBranchEditActivity : BaseActivity() {
             branch.depositIban?.let { etDepositIban.setText(it) }
             branch.depositAccountHolder?.let { etDepositAccountHolder.setText(it) }
 
+            // Branch social and phone
+            etBranchPhone.setText(branch.phone.orEmpty())
+            etBranchInstagram.setText(branch.instagram.orEmpty())
+            etBranchTelegram.setText(branch.telegram.orEmpty())
+            etBranchWhatsApp.setText(branch.whatsApp.orEmpty())
+            etBranchEitaa.setText(branch.eitaa.orEmpty())
+            etBranchBale.setText(branch.bale.orEmpty())
+            etBranchRubika.setText(branch.rubika.orEmpty())
+            etBranchLinkedIn.setText(branch.linkedIn.orEmpty())
+            etBranchTwitter.setText(branch.twitter.orEmpty())
+            etBranchAparat.setText(branch.aparat.orEmpty())
+            etBranchWebsite.setText(branch.website.orEmpty())
+
+            val parentBiz = managementRepository.getBusiness(branch.businessId).getOrNull()
+            fun getInheritHint(branchVal: String?, bizVal: String?): String? {
+                return if (branchVal.isNullOrBlank() && !bizVal.isNullOrBlank()) "ارث‌بری از کسب‌وکار: $bizVal" else null
+            }
+            tilBranchInstagram.helperText = getInheritHint(branch.instagram, parentBiz?.instagram)
+            tilBranchTelegram.helperText = getInheritHint(branch.telegram, parentBiz?.telegram)
+            tilBranchWhatsApp.helperText = getInheritHint(branch.whatsApp, parentBiz?.whatsApp)
+            tilBranchEitaa.helperText = getInheritHint(branch.eitaa, parentBiz?.eitaa)
+            tilBranchBale.helperText = getInheritHint(branch.bale, parentBiz?.bale)
+            tilBranchRubika.helperText = getInheritHint(branch.rubika, parentBiz?.rubika)
+            tilBranchLinkedIn.helperText = getInheritHint(branch.linkedIn, parentBiz?.linkedIn)
+            tilBranchTwitter.helperText = getInheritHint(branch.twitter, parentBiz?.twitter)
+            tilBranchAparat.helperText = getInheritHint(branch.aparat, parentBiz?.aparat)
+            tilBranchWebsite.helperText = getInheritHint(branch.website, parentBiz?.website)
+
             selectedLatitude = branch.latitude
             selectedLongitude = branch.longitude
             updateCoordinatesUi()
@@ -473,6 +547,18 @@ class AdminBranchEditActivity : BaseActivity() {
         val depositIban = etDepositIban.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
         val depositHolder = etDepositAccountHolder.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
 
+        val phone = etBranchPhone.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val instagram = etBranchInstagram.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val telegram = etBranchTelegram.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val whatsApp = etBranchWhatsApp.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val eitaa = etBranchEitaa.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val bale = etBranchBale.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val rubika = etBranchRubika.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val linkedIn = etBranchLinkedIn.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val twitter = etBranchTwitter.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val aparat = etBranchAparat.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val website = etBranchWebsite.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+
         val input = ManagementBranchInput(
             businessId = businessId,
             name = name,
@@ -487,7 +573,18 @@ class AdminBranchEditActivity : BaseActivity() {
             depositIban = depositIban,
             depositAccountHolder = depositHolder,
             latitude = selectedLatitude,
-            longitude = selectedLongitude
+            longitude = selectedLongitude,
+            phone = phone,
+            telegram = telegram,
+            instagram = instagram,
+            whatsApp = whatsApp,
+            eitaa = eitaa,
+            bale = bale,
+            rubika = rubika,
+            linkedIn = linkedIn,
+            twitter = twitter,
+            aparat = aparat,
+            website = website,
         )
 
         btnSave.isEnabled = false

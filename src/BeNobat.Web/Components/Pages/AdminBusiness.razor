@@ -14,9 +14,10 @@
         <h1>مشخصات کسب‌وکار</h1>
         <p>مشخصات اصلی، لوگو، معرفی و نحوه تأیید نوبت‌های کسب‌وکار خود را ویرایش کنید.</p>
     </div>
-    @if (CurrentBusiness is not null && !string.IsNullOrWhiteSpace(CurrentBusiness.Slug))
+    @if (CurrentBusiness is not null)
     {
-        <a href="/b/@CurrentBusiness.Slug" target="_blank" class="action-secondary" style="display:inline-flex; align-items:center; gap:6px;">
+        var publicTarget = !string.IsNullOrWhiteSpace(CurrentBusiness.Slug) ? CurrentBusiness.Slug : CurrentBusiness.Id.ToString();
+        <a href="/b/@publicTarget" target="_blank" class="action-secondary" style="display:inline-flex; align-items:center; gap:6px;">
             <span>مشاهده صفحه عمومی</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
@@ -271,6 +272,81 @@ else
                     <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
                         <span>شماره شبا (با IR)</span>
                         <input type="text" dir="ltr" maxlength="26" placeholder="IRxxxxxxxxxxxxxxxxxxxxxxxx" @bind="Form.DepositIban" />
+                    </label>
+                </div>
+            </div>
+        </fieldset>
+
+        <hr style="border:none; border-top:1px solid var(--outline-soft); margin:20px 0;" />
+
+        <!-- بخش ۶: شبکه‌های اجتماعی و راه‌های ارتباطی -->
+        <fieldset class="form-section" style="border:none; padding:0; margin-bottom:24px;">
+            <legend style="font-size:15px; font-weight:700; color:var(--primary); margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; color:var(--primary);"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> شبکه‌های اجتماعی و راه‌های ارتباطی (اختیاری)
+            </legend>
+
+            <div style="background:var(--surface-variant, #f8faf9); padding:16px; border-radius:12px; border:1px solid var(--outline-soft); display:grid; gap:14px;">
+                <p style="margin:0; font-size:12px; color:var(--text-muted);">
+                    آدرس‌ها و شناسه‌های شبکه‌های اجتماعی کسب‌وکار را وارد کنید تا در صفحه عمومی نمایش داده شوند. می‌توانید آیدی (با یا بدون @@) یا لینک کامل را درج نمایید.
+                </p>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>اینستاگرام</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic یا لینک کامل..." @bind="Form.Instagram" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>تلگرام</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic یا لینک کامل..." @bind="Form.Telegram" />
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>واتساپ</span>
+                        <input type="text" dir="ltr" placeholder="۰۹۱۲... یا لینک wa.me..." @bind="Form.WhatsApp" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>ایتا</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic..." @bind="Form.Eitaa" />
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>بله</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic..." @bind="Form.Bale" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>روبیکا</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic..." @bind="Form.Rubika" />
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>لینکدین</span>
+                        <input type="text" dir="ltr" placeholder="mehr-clinic..." @bind="Form.LinkedIn" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>آپارات</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic..." @bind="Form.Aparat" />
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>ایکس / توییتر</span>
+                        <input type="text" dir="ltr" placeholder="mehr_clinic..." @bind="Form.Twitter" />
+                    </label>
+
+                    <label style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+                        <span>وب‌سایت</span>
+                        <input type="text" dir="ltr" placeholder="https://example.com" @bind="Form.Website" />
                     </label>
                 </div>
             </div>
@@ -797,6 +873,16 @@ html[data-theme="dark"] .admin-business-form .check-card small {
         public string? DepositCardNumber { get; set; }
         public string? DepositIban { get; set; }
         public string? DepositAccountHolder { get; set; }
+        public string? Telegram { get; set; }
+        public string? Instagram { get; set; }
+        public string? WhatsApp { get; set; }
+        public string? Eitaa { get; set; }
+        public string? Bale { get; set; }
+        public string? Rubika { get; set; }
+        public string? LinkedIn { get; set; }
+        public string? Twitter { get; set; }
+        public string? Aparat { get; set; }
+        public string? Website { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -900,6 +986,16 @@ html[data-theme="dark"] .admin-business-form .check-card small {
             DepositCardNumber = CurrentBusiness.DepositCardNumber,
             DepositIban = CurrentBusiness.DepositIban,
             DepositAccountHolder = CurrentBusiness.DepositAccountHolder,
+            Telegram = CurrentBusiness.Telegram,
+            Instagram = CurrentBusiness.Instagram,
+            WhatsApp = CurrentBusiness.WhatsApp,
+            Eitaa = CurrentBusiness.Eitaa,
+            Bale = CurrentBusiness.Bale,
+            Rubika = CurrentBusiness.Rubika,
+            LinkedIn = CurrentBusiness.LinkedIn,
+            Twitter = CurrentBusiness.Twitter,
+            Aparat = CurrentBusiness.Aparat,
+            Website = CurrentBusiness.Website,
         };
 
         AvatarUrl = CurrentBusiness.AvatarData != null ? $"/media/business/{CurrentBusiness.Id}/avatar?t={DateTime.UtcNow.Ticks}" : null;
@@ -1022,6 +1118,16 @@ html[data-theme="dark"] .admin-business-form .check-card small {
             b.DepositCardNumber = string.IsNullOrWhiteSpace(Form.DepositCardNumber) ? null : Form.DepositCardNumber.Trim();
             b.DepositIban = string.IsNullOrWhiteSpace(Form.DepositIban) ? null : Form.DepositIban.Trim();
             b.DepositAccountHolder = string.IsNullOrWhiteSpace(Form.DepositAccountHolder) ? null : Form.DepositAccountHolder.Trim();
+            b.Telegram = string.IsNullOrWhiteSpace(Form.Telegram) ? null : Form.Telegram.Trim();
+            b.Instagram = string.IsNullOrWhiteSpace(Form.Instagram) ? null : Form.Instagram.Trim();
+            b.WhatsApp = string.IsNullOrWhiteSpace(Form.WhatsApp) ? null : Form.WhatsApp.Trim();
+            b.Eitaa = string.IsNullOrWhiteSpace(Form.Eitaa) ? null : Form.Eitaa.Trim();
+            b.Bale = string.IsNullOrWhiteSpace(Form.Bale) ? null : Form.Bale.Trim();
+            b.Rubika = string.IsNullOrWhiteSpace(Form.Rubika) ? null : Form.Rubika.Trim();
+            b.LinkedIn = string.IsNullOrWhiteSpace(Form.LinkedIn) ? null : Form.LinkedIn.Trim();
+            b.Twitter = string.IsNullOrWhiteSpace(Form.Twitter) ? null : Form.Twitter.Trim();
+            b.Aparat = string.IsNullOrWhiteSpace(Form.Aparat) ? null : Form.Aparat.Trim();
+            b.Website = string.IsNullOrWhiteSpace(Form.Website) ? null : Form.Website.Trim();
 
             var firstBranch = await db.Branches
                 .Where(x => x.BusinessId == b.Id && x.DeletedAt == null)

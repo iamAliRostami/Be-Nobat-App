@@ -79,6 +79,16 @@ data class ManagementBusinessInput(
     val headerBase64: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
 )
 
 @Serializable
@@ -99,6 +109,17 @@ data class ManagementBranchInput(
     val headerBase64: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
+    val phone: String? = null,
 )
 
 @Serializable

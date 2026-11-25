@@ -58,6 +58,16 @@ data class ManagementBusiness(
     val depositIban: String? = null,
     val depositAccountHolder: String? = null,
     val gallery: List<GalleryItem> = emptyList(),
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
 )
 
 @Serializable
@@ -92,6 +102,17 @@ data class ManagementBranch(
     val planType: String? = null,
     val planExpiresAt: String? = null,
     val isPlanExpired: Boolean = false,
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
+    val phone: String? = null,
 )
 
 @Serializable

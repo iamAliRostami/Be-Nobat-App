@@ -106,8 +106,22 @@ public sealed class ApiScope(AppDbContext db, IHttpContextAccessor accessor)
 public sealed record UserDto(Guid Id, string DisplayName, string? Email, string? PhoneNumber, string? AvatarUrl, IReadOnlyList<string> Roles);
 public sealed record GalleryItemDto(Guid Id, string? Caption, int SortOrder, string ImageUrl);
 
-public sealed record BusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, int BranchCount, int ServiceCount, double? Rating, int ReviewCount, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
-public sealed record BranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null, double? Latitude = null, double? Longitude = null);
+public sealed record BusinessDto(
+    Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval,
+    int BranchCount, int ServiceCount, double? Rating, int ReviewCount, string? AvatarUrl = null, string? HeaderUrl = null,
+    int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null,
+    IReadOnlyList<GalleryItemDto>? Gallery = null,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null);
+
+public sealed record BranchDto(
+    Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour,
+    string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null,
+    string? DepositIban = null, string? DepositAccountHolder = null, IReadOnlyList<GalleryItemDto>? Gallery = null,
+    double? Latitude = null, double? Longitude = null,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null,
+    string? Phone = null);
 public sealed record ServiceDto(Guid Id, Guid BusinessId, string Name, string Description, int DurationMinutes, decimal Price, string Currency);
 public sealed record ProviderDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, string? AvatarUrl = null, IReadOnlyList<GalleryItemDto>? Gallery = null);
 public sealed record PublicReviewDto(Guid Id, int Rating, string Comment, string? ManagerReply, string CustomerName, DateTimeOffset CreatedAt);

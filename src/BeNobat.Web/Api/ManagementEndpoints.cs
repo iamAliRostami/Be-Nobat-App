@@ -381,7 +381,17 @@ public static class ManagementEndpoints
             x.DepositPercentage,
             x.DepositCardNumber,
             x.DepositIban,
-            x.DepositAccountHolder));
+            x.DepositAccountHolder,
+            x.Telegram,
+            x.Instagram,
+            x.WhatsApp,
+            x.Eitaa,
+            x.Bale,
+            x.Rubika,
+            x.LinkedIn,
+            x.Twitter,
+            x.Aparat,
+            x.Website));
 
     private static ManagementBusinessDto BusinessDto(Business x) => new(
         x.Id,
@@ -399,7 +409,17 @@ public static class ManagementEndpoints
         x.DepositPercentage,
         x.DepositCardNumber,
         x.DepositIban,
-        x.DepositAccountHolder);
+        x.DepositAccountHolder,
+        x.Telegram,
+        x.Instagram,
+        x.WhatsApp,
+        x.Eitaa,
+        x.Bale,
+        x.Rubika,
+        x.LinkedIn,
+        x.Twitter,
+        x.Aparat,
+        x.Website);
 
     private static Task<IResult> ListBusinesses(ApiScope scope, CancellationToken ct, string? q = null, int page = 1, int pageSize = 25)
     {
@@ -454,6 +474,16 @@ public static class ManagementEndpoints
             if (string.IsNullOrWhiteSpace(input.HeaderBase64)) { x.HeaderData = null; x.HeaderContentType = null; }
             else { try { x.HeaderData = Convert.FromBase64String(input.HeaderBase64); x.HeaderContentType = "image/jpeg"; } catch { } }
         }
+        if (input.Telegram is not null) x.Telegram = string.IsNullOrWhiteSpace(input.Telegram) ? null : input.Telegram.Trim();
+        if (input.Instagram is not null) x.Instagram = string.IsNullOrWhiteSpace(input.Instagram) ? null : input.Instagram.Trim();
+        if (input.WhatsApp is not null) x.WhatsApp = string.IsNullOrWhiteSpace(input.WhatsApp) ? null : input.WhatsApp.Trim();
+        if (input.Eitaa is not null) x.Eitaa = string.IsNullOrWhiteSpace(input.Eitaa) ? null : input.Eitaa.Trim();
+        if (input.Bale is not null) x.Bale = string.IsNullOrWhiteSpace(input.Bale) ? null : input.Bale.Trim();
+        if (input.Rubika is not null) x.Rubika = string.IsNullOrWhiteSpace(input.Rubika) ? null : input.Rubika.Trim();
+        if (input.LinkedIn is not null) x.LinkedIn = string.IsNullOrWhiteSpace(input.LinkedIn) ? null : input.LinkedIn.Trim();
+        if (input.Twitter is not null) x.Twitter = string.IsNullOrWhiteSpace(input.Twitter) ? null : input.Twitter.Trim();
+        if (input.Aparat is not null) x.Aparat = string.IsNullOrWhiteSpace(input.Aparat) ? null : input.Aparat.Trim();
+        if (input.Website is not null) x.Website = string.IsNullOrWhiteSpace(input.Website) ? null : input.Website.Trim();
         x.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -558,7 +588,18 @@ public static class ManagementEndpoints
             x.ReceiptImageData != null && x.ReceiptImageData.Length > 0 ? $"/media/branch/{x.Id}/receipt" : null,
             x.PlanType,
             x.PlanExpiresAt,
-            (x.PlanExpiresAt.HasValue && x.PlanExpiresAt.Value < DateTimeOffset.UtcNow) || (x.Business != null && x.Business.PlanExpiresAt.HasValue && x.Business.PlanExpiresAt.Value < DateTimeOffset.UtcNow)));
+            (x.PlanExpiresAt.HasValue && x.PlanExpiresAt.Value < DateTimeOffset.UtcNow) || (x.Business != null && x.Business.PlanExpiresAt.HasValue && x.Business.PlanExpiresAt.Value < DateTimeOffset.UtcNow),
+            x.Telegram,
+            x.Instagram,
+            x.WhatsApp,
+            x.Eitaa,
+            x.Bale,
+            x.Rubika,
+            x.LinkedIn,
+            x.Twitter,
+            x.Aparat,
+            x.Website,
+            x.Phone));
     private static ManagementBranchDto BranchDto(Branch x) => new(
         x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null,
         WeeklySchedule.Read(x), x.Business != null ? x.Business.Name : null, x.IsApproved,
@@ -574,7 +615,18 @@ public static class ManagementEndpoints
         x.ReceiptImageData != null && x.ReceiptImageData.Length > 0 ? $"/media/branch/{x.Id}/receipt" : null,
         x.PlanType,
         x.PlanExpiresAt,
-        x.IsPlanExpired
+        x.IsPlanExpired,
+        x.Telegram,
+        x.Instagram,
+        x.WhatsApp,
+        x.Eitaa,
+        x.Bale,
+        x.Rubika,
+        x.LinkedIn,
+        x.Twitter,
+        x.Aparat,
+        x.Website,
+        x.Phone
     );
 
     private static Task<IResult> ListBranches(AppDbContext db, ApiScope scope, CancellationToken ct, Guid? businessId = null, string? q = null, bool includeInactive = false, int page = 1, int pageSize = 25)
@@ -606,6 +658,17 @@ public static class ManagementEndpoints
         item.Name = Clean(input.Name); item.Address = Clean(input.Address); item.TimeZoneId = input.TimeZoneId;
         item.CancellationNoticeMinutes = input.CancellationNoticeMinutes; item.OpenHour = input.OpenHour; item.CloseHour = input.CloseHour;
         item.Latitude = input.Latitude; item.Longitude = input.Longitude;
+        if (input.Telegram is not null) item.Telegram = string.IsNullOrWhiteSpace(input.Telegram) ? null : input.Telegram.Trim();
+        if (input.Instagram is not null) item.Instagram = string.IsNullOrWhiteSpace(input.Instagram) ? null : input.Instagram.Trim();
+        if (input.WhatsApp is not null) item.WhatsApp = string.IsNullOrWhiteSpace(input.WhatsApp) ? null : input.WhatsApp.Trim();
+        if (input.Eitaa is not null) item.Eitaa = string.IsNullOrWhiteSpace(input.Eitaa) ? null : input.Eitaa.Trim();
+        if (input.Bale is not null) item.Bale = string.IsNullOrWhiteSpace(input.Bale) ? null : input.Bale.Trim();
+        if (input.Rubika is not null) item.Rubika = string.IsNullOrWhiteSpace(input.Rubika) ? null : input.Rubika.Trim();
+        if (input.LinkedIn is not null) item.LinkedIn = string.IsNullOrWhiteSpace(input.LinkedIn) ? null : input.LinkedIn.Trim();
+        if (input.Twitter is not null) item.Twitter = string.IsNullOrWhiteSpace(input.Twitter) ? null : input.Twitter.Trim();
+        if (input.Aparat is not null) item.Aparat = string.IsNullOrWhiteSpace(input.Aparat) ? null : input.Aparat.Trim();
+        if (input.Website is not null) item.Website = string.IsNullOrWhiteSpace(input.Website) ? null : input.Website.Trim();
+        if (input.Phone is not null) item.Phone = string.IsNullOrWhiteSpace(input.Phone) ? null : input.Phone.Trim();
         item.UpdatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -2740,10 +2803,41 @@ public static class ManagementEndpoints
 }
 
 public sealed record ManagementActiveInput(bool Active);
-public sealed record ManagementBusinessInput(string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true, string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null);
-public sealed record ManagementBusinessDto(Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active, Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null);
-public sealed record ManagementBranchInput(Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20, List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null, double? Latitude = null, double? Longitude = null);
-public sealed record ManagementBranchDto(Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active, List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null, string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null, double? Latitude = null, double? Longitude = null, string? InviteCode = null, decimal? Fee = null, bool HasReceipt = false, string? ReceiptTrackingCode = null, string? ReceiptUploadedAt = null, string? ReceiptImageUrl = null, string? PlanType = null, DateTimeOffset? PlanExpiresAt = null, bool IsPlanExpired = false);
+public sealed record ManagementBusinessInput(
+    string Name, string Slug = "", string Category = "عمومی", string City = "تهران", string Description = "", bool RequiresApproval = true,
+    string FirstBranchName = "شعبه مرکزی", Guid? OwnerId = null, string? FirstBranchAddress = null, List<WeeklyTimeRange>? FirstBranchWeeklyHours = null,
+    int? CancellationNoticeMinutes = null, int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null,
+    string? DepositAccountHolder = null, string? AvatarBase64 = null, string? HeaderBase64 = null,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null);
+
+public sealed record ManagementBusinessDto(
+    Guid Id, string Name, string Slug, string Category, string City, string Description, bool RequiresApproval, bool Active,
+    Guid? FirstBranchId = null, int CancellationNoticeMinutes = 120, string? AvatarUrl = null, string? HeaderUrl = null,
+    int? DepositPercentage = null, string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null);
+
+public sealed record ManagementBranchInput(
+    Guid BusinessId, string Name, string Address = "", string TimeZoneId = "Asia/Tehran", int OpenHour = 8, int CloseHour = 20,
+    List<WeeklyTimeRange>? WeeklyHours = null, int? CancellationNoticeMinutes = null, int? DepositPercentage = null,
+    string? DepositCardNumber = null, string? DepositIban = null, string? DepositAccountHolder = null,
+    string? AvatarBase64 = null, string? HeaderBase64 = null, double? Latitude = null, double? Longitude = null,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null,
+    string? Phone = null);
+
+public sealed record ManagementBranchDto(
+    Guid Id, Guid BusinessId, string Name, string Address, string TimeZoneId, int OpenHour, int CloseHour, bool Active,
+    List<WeeklyTimeRange>? WeeklyHours = null, string? BusinessName = null, bool IsApproved = true, int? CancellationNoticeMinutes = null,
+    string? AvatarUrl = null, string? HeaderUrl = null, int? DepositPercentage = null, string? DepositCardNumber = null,
+    string? DepositIban = null, string? DepositAccountHolder = null, double? Latitude = null, double? Longitude = null,
+    string? InviteCode = null, decimal? Fee = null, bool HasReceipt = false, string? ReceiptTrackingCode = null,
+    string? ReceiptUploadedAt = null, string? ReceiptImageUrl = null, string? PlanType = null, DateTimeOffset? PlanExpiresAt = null,
+    bool IsPlanExpired = false,
+    string? Telegram = null, string? Instagram = null, string? WhatsApp = null, string? Eitaa = null, string? Bale = null,
+    string? Rubika = null, string? LinkedIn = null, string? Twitter = null, string? Aparat = null, string? Website = null,
+    string? Phone = null);
 public sealed record ManagementResourceInput(Guid BranchId, string Name, string Kind = "staff", Guid? UserId = null, string? AvatarBase64 = null);
 public sealed record ManagementResourceDto(Guid Id, Guid BranchId, string Name, string Kind, Guid? UserId, bool Active, string? AvatarUrl = null);
 public sealed record ImageUploadInput(string? Data, string? ContentType);

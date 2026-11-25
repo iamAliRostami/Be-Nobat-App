@@ -253,12 +253,33 @@ public static class CompatibilitySchemaUpgrade
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanType" text NOT NULL DEFAULT 'Trial7Days';
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanStartedAt" timestamptz NULL;
             ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "PlanExpiresAt" timestamptz NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Telegram" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Instagram" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "WhatsApp" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Eitaa" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Bale" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Rubika" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "LinkedIn" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Twitter" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Aparat" text NULL;
+            ALTER TABLE benobat."Businesses" ADD COLUMN IF NOT EXISTS "Website" text NULL;
 
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanType" text NULL;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanStartedAt" timestamptz NULL;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PlanExpiresAt" timestamptz NULL;
             ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "PausedAt" timestamptz NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Phone" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Telegram" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Instagram" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "WhatsApp" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Eitaa" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Bale" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Rubika" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "LinkedIn" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Twitter" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Aparat" text NULL;
+            ALTER TABLE benobat."Branches" ADD COLUMN IF NOT EXISTS "Website" text NULL;
 
             ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "PlanType" text NOT NULL DEFAULT 'Trial7Days';
             ALTER TABLE benobat."BusinessRequests" ADD COLUMN IF NOT EXISTS "PlanDurationMonths" integer NOT NULL DEFAULT 0;

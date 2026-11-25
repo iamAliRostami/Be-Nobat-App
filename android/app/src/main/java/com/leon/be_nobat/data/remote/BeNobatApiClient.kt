@@ -197,9 +197,13 @@ class BeNobatApiClient(
             parameter("pageSize", pageSize)
         }
 
-    /** GET /businesses/{id}/branches â€” `{items:BranchDto[]}`. */
+    /** GET /businesses/{id}/branches — `{items:BranchDto[]}`. */
     suspend inline fun <reified T> listBranches(businessId: String): Result<T> =
         get("/businesses/$businessId/branches")
+
+    /** GET /branches/{id} — `{branch: BranchDto, businessId: String, businessName: String}`. */
+    suspend inline fun <reified T> getBranch(id: String): Result<T> =
+        get("/branches/$id")
 
     /** GET /businesses/{id}/branches/{branchId}/services â€” `{items:ServiceDto[]}`. */
     suspend inline fun <reified T> listBranchServices(businessId: String, branchId: String): Result<T> =

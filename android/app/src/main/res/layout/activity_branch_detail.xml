@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Modern Header Bar -->
+    <LinearLayout
+        android:id="@+id/headerBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBack"
+            style="@style/Widget.BeNobat.Button.Icon.Header.Tonal"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="@string/action_back"
+            app:icon="@drawable/ic_back" />
+
+        <TextView
+            android:id="@+id/tvHeaderTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+            android:textSize="18sp"
+            android:text="جزئیات شعبه" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnThemeToggle"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/switch_theme"
+            app:icon="@drawable/ic_switch_theme" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnShareQr"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="اشتراک و کد QR"
+            app:icon="@drawable/ic_qrcode" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLanguage"
+            style="@style/Widget.BeNobat.Button.Icon.Header"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/language"
+            app:icon="@drawable/ic_language" />
+    </LinearLayout>
+
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scrollBranchDetail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="32dp">
+
+                <ProgressBar
+                    android:id="@+id/loadingProgress"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="32dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/errorText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="24dp"
+                    android:gravity="center"
+                    android:textColor="@color/error_red"
+                    android:visibility="gone" />
+
+                <!-- Branch Hero Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/headerCard"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Header Banner -->
+                        <ImageView
+                            android:id="@+id/ivBranchHeaderBanner"
+                            android:layout_width="match_parent"
+                            android:layout_height="140dp"
+                            android:scaleType="centerCrop"
+                            android:visibility="gone"
+                            tools:visibility="visible"
+                            tools:src="@drawable/badge_booked_background"
+                            android:contentDescription="@null" />
+
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="16dp">
+
+                            <!-- Avatar -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardAvatar"
+                                style="@style/Widget.BeNobat.Card"
+                                android:layout_width="64dp"
+                                android:layout_height="64dp"
+                                app:cardCornerRadius="18dp"
+                                app:cardElevation="2dp"
+                                app:strokeWidth="1.5dp"
+                                app:strokeColor="?attr/colorSurface"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent">
+
+                                <ImageView
+                                    android:id="@+id/ivBranchAvatar"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:scaleType="centerCrop"
+                                    android:visibility="gone"
+                                    android:contentDescription="@null" />
+
+                                <TextView
+                                    android:id="@+id/tvBranchAvatarFallback"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:gravity="center"
+                                    android:fontFamily="@font/vazir_bold"
+                                    android:textSize="24sp"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:background="?attr/colorSurfaceVariant"
+                                    tools:text="ش" />
+                            </com.google.android.material.card.MaterialCardView>
+
+                            <!-- Branch Name -->
+                            <TextView
+                                android:id="@+id/tvBranchName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                                android:textSize="18sp"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/cardAvatar"
+                                app:layout_constraintTop_toTopOf="@id/cardAvatar"
+                                tools:text="شعبه سعادت‌آباد" />
+
+                            <!-- Parent Business Link -->
+                            <LinearLayout
+                                android:id="@+id/layoutParentBusiness"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_marginTop="4dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/cardAvatar"
+                                app:layout_constraintTop_toBottomOf="@id/tvBranchName">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                    android:textSize="12sp"
+                                    android:text="متعلق به: " />
+
+                                <TextView
+                                    android:id="@+id/tvParentBusinessName"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="@font/app_font"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textSize="12.5sp"
+                                    tools:text="کلینیک زیبایی پارس" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
+                                    android:textColor="?attr/colorPrimary"
+                                    android:textSize="12sp"
+                                    android:text="↗" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvBranchCategoryCity"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_marginTop="2dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="11.5sp"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/cardAvatar"
+                                app:layout_constraintTop_toBottomOf="@id/layoutParentBusiness"
+                                tools:text="پزشکی و سلامت • تهران" />
+
+                            <!-- Badges Row -->
+                            <LinearLayout
+                                android:id="@+id/layoutBadgesRow"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="14dp"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toBottomOf="@id/cardAvatar">
+
+                                <!-- Kind Badge: شعبه -->
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_category_pill"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:paddingStart="8dp"
+                                    android:paddingEnd="8dp"
+                                    android:paddingTop="3dp"
+                                    android:paddingBottom="3dp">
+
+                                    <ImageView
+                                        android:layout_width="14dp"
+                                        android:layout_height="14dp"
+                                        android:src="@drawable/ic_branch"
+                                        app:tint="?attr/colorPrimary"
+                                        android:contentDescription="@null" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:fontFamily="@font/app_font"
+                                        android:textColor="?attr/colorPrimary"
+                                        android:textSize="11.5sp"
+                                        android:text="شعبه فعال" />
+                                </LinearLayout>
+
+                                <!-- Service Count Badge -->
+                                <LinearLayout
+                                    android:id="@+id/layoutDetailServiceCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:background="@drawable/bg_category_pill"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal"
+                                    android:paddingStart="8dp"
+                                    android:paddingEnd="8dp"
+                                    android:paddingTop="3dp"
+                                    android:paddingBottom="3dp">
+
+                                    <ImageView
+                                        android:layout_width="14dp"
+                                        android:layout_height="14dp"
+                                        android:src="@drawable/ic_services"
+                                        app:tint="?attr/colorPrimary"
+                                        android:contentDescription="@null" />
+
+                                    <TextView
+                                        android:id="@+id/tvDetailServiceCount"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginStart="4dp"
+                                        android:fontFamily="@font/app_font"
+                                        android:textColor="?attr/colorPrimary"
+                                        android:textSize="11.5sp"
+                                        tools:text="۵ خدمت" />
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <!-- Direct Book Button in Header -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnBookBranch"
+                                style="@style/Widget.BeNobat.Button"
+                                android:layout_width="0dp"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="16dp"
+                                android:text="رزرو نوبت در این شعبه"
+                                app:icon="@drawable/ic_calendar"
+                                app:iconGravity="textStart"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toBottomOf="@id/layoutBadgesRow" />
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Contact, Hours & Address Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardBranchContact"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/vazir_bold"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                            android:textSize="15sp"
+                            android:text="اطلاعات تماس و نشانی" />
+
+                        <!-- Working Hours -->
+                        <LinearLayout
+                            android:id="@+id/layoutBranchHours"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_availability"
+                                app:tint="?attr/colorPrimary"
+                                android:contentDescription="@null" />
+
+                            <TextView
+                                android:id="@+id/tvBranchHours"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="13sp"
+                                tools:text="ساعت کاری: ۰۹:۰۰ الی ۱۸:۰۰" />
+                        </LinearLayout>
+
+                        <!-- Phone -->
+                        <LinearLayout
+                            android:id="@+id/layoutBranchPhone"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_mobile"
+                                app:tint="?attr/colorPrimary"
+                                android:contentDescription="@null" />
+
+                            <TextView
+                                android:id="@+id/tvBranchPhone"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body"
+                                android:textSize="13sp"
+                                tools:text="۰۲۱۲۲۳۳۴۴۵۵" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnCallBranch"
+                                style="@style/Widget.BeNobat.Button.Tonal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="36dp"
+                                android:text="تماس"
+                                android:textSize="11.5sp"
+                                app:icon="@drawable/ic_mobile"
+                                app:iconSize="14dp"
+                                app:iconGravity="textStart" />
+                        </LinearLayout>
+
+                        <!-- Address -->
+                        <LinearLayout
+                            android:id="@+id/layoutBranchAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:gravity="top|start"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_marginTop="2dp"
+                                android:src="@drawable/ic_map_pin"
+                                app:tint="?attr/colorPrimary"
+                                android:contentDescription="@null" />
+
+                            <TextView
+                                android:id="@+id/tvBranchAddress"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="10dp"
+                                android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                                android:textSize="12.5sp"
+                                tools:text="خیابان پاسداران، بوستان دوم، پلاک ۲۴" />
+                        </LinearLayout>
+
+                        <!-- Navigation Button -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnNavigateBranch"
+                            style="@style/Widget.BeNobat.Button.Outlined"
+                            android:layout_width="match_parent"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="14dp"
+                            android:text="مسیریابی در نقشه"
+                            android:textSize="12sp"
+                            app:icon="@drawable/ic_navigation"
+                            app:iconSize="16dp"
+                            app:iconGravity="textStart" />
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Social Channels Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSocialSection"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:id="@+id/tvSocialTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/vazir_bold"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                            android:textSize="15sp"
+                            android:text="راه‌های ارتباطی و شبکه‌های اجتماعی" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="12sp"
+                            android:text="صفحات رسمی و پیام‌رسان‌های این شعبه" />
+
+                        <LinearLayout
+                            android:id="@+id/containerSocialChannels"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Services Section -->
+                <LinearLayout
+                    android:id="@+id/layoutServicesHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="18dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:fontFamily="@font/vazir_bold"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                        android:textSize="16sp"
+                        android:text="خدمات این شعبه" />
+
+                    <TextView
+                        android:id="@+id/tvServicesBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_category_pill"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:fontFamily="@font/app_font"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="11.5sp"
+                        tools:text="۳ خدمت" />
+                </LinearLayout>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardEmptyServices"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="24dp"
+                        android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                        android:textSize="12.5sp"
+                        android:text="هنوز خدمتی برای این شعبه تعریف نشده است." />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:id="@+id/layoutServicesList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+</LinearLayout>

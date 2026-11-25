@@ -77,6 +77,16 @@ class DemoBusinessRepository(
                     depositIban = mb.depositIban,
                     depositAccountHolder = mb.depositAccountHolder,
                     gallery = mb.gallery,
+                    telegram = mb.telegram,
+                    instagram = mb.instagram,
+                    whatsApp = mb.whatsApp,
+                    eitaa = mb.eitaa,
+                    bale = mb.bale,
+                    rubika = mb.rubika,
+                    linkedIn = mb.linkedIn,
+                    twitter = mb.twitter,
+                    aparat = mb.aparat,
+                    website = mb.website,
                 )
             }
 
@@ -112,6 +122,17 @@ class DemoBusinessRepository(
                     depositIban = b.depositIban,
                     depositAccountHolder = b.depositAccountHolder,
                     gallery = b.gallery,
+                    phone = b.phone,
+                    telegram = b.telegram,
+                    instagram = b.instagram,
+                    whatsApp = b.whatsApp,
+                    eitaa = b.eitaa,
+                    bale = b.bale,
+                    rubika = b.rubika,
+                    linkedIn = b.linkedIn,
+                    twitter = b.twitter,
+                    aparat = b.aparat,
+                    website = b.website,
                 )
             }
 
@@ -162,6 +183,16 @@ class DemoBusinessRepository(
                 branches = branches,
                 services = services,
                 reviews = reviews,
+                telegram = mb.telegram,
+                instagram = mb.instagram,
+                whatsApp = mb.whatsApp,
+                eitaa = mb.eitaa,
+                bale = mb.bale,
+                rubika = mb.rubika,
+                linkedIn = mb.linkedIn,
+                twitter = mb.twitter,
+                aparat = mb.aparat,
+                website = mb.website,
             )
         }
     }

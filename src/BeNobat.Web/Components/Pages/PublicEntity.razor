@@ -2,6 +2,10 @@
 
 @page "/b/{BusinessId:guid}"
 
+@page "/business/{Slug}"
+
+@page "/b/{Slug}"
+
 @page "/branch/{BranchId:guid}"
 
 @page "/provider/{ProviderId:guid}"
@@ -185,6 +189,40 @@
             </div>
 
             <div class="directory-sidebar" style="display:flex;flex-direction:column;gap:20px;">
+
+                @if (SocialChannels.Count > 0)
+                {
+                    <section class="directory-panel directory-social" aria-labelledby="directory-social-title">
+                        <div class="panel-head">
+                            <div>
+                                <h2 id="directory-social-title">شبکه‌های اجتماعی و ارتباط</h2>
+                                <p>راه‌های ارتباطی و صفحات رسمی</p>
+                            </div>
+                        </div>
+                        <div class="social-channels-list" style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                            @foreach (var ch in SocialChannels)
+                            {
+                                <a href="@ch.Url" target="_blank" rel="noopener noreferrer" class="social-channel-pill" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px; border-radius:12px; background:var(--surface-variant, #f8fafc); border:1px solid #e2e8f0; text-decoration:none; color:inherit; transition:all .2s ease;">
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <div style="width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:@ch.BrandColor; color:#fff; flex-shrink:0;">
+                                            <svg viewBox="@ch.ViewBox" width="18" height="18" fill="currentColor">
+                                                <path d="@ch.SvgPath" />
+                                            </svg>
+                                        </div>
+                                        <div style="display:flex; flex-direction:column;">
+                                            <strong style="font-size:13px; font-weight:600;">@ch.NameFa</strong>
+                                            <span dir="ltr" style="font-size:11px; color:#64748b;">@ch.Handle</span>
+                                        </div>
+                                    </div>
+                                    <span style="font-size:12px; color:@ch.BrandColor; font-weight:600; display:flex; align-items:center; gap:4px;">
+                                        <span>مشاهده</span>
+                                        <span aria-hidden="true">←</span>
+                                    </span>
+                                </a>
+                            }
+                        </div>
+                    </section>
+                }
 
                 @if (Gallery.Count > 0)
                 {
@@ -435,6 +473,8 @@
 
     [Parameter] public Guid? BusinessId { get; set; }
 
+    [Parameter] public string? Slug { get; set; }
+
     [Parameter] public Guid? BranchId { get; set; }
 
     [Parameter] public Guid? ProviderId { get; set; }
@@ -473,6 +513,7 @@
     private string NewGalleryCaption = "";
 
     private List<string> Metadata = [];
+    private List<SocialChannel> SocialChannels = [];
 
     private List<ReviewView> Reviews = [];
 
@@ -534,6 +575,8 @@
 
         if (BusinessId is Guid businessId) await LoadBusiness(db, businessId);
 
+        else if (!string.IsNullOrWhiteSpace(Slug)) await LoadBusinessBySlug(db, Slug);
+
         else if (BranchId is Guid branchId) await LoadBranch(db, branchId);
 
         else if (ProviderId is Guid providerId) await LoadProvider(db, providerId);
@@ -547,6 +590,23 @@
     }
 
 
+
+    private async Task LoadBusinessBySlug(AppDbContext db, string slug)
+    {
+        var trimmed = slug.Trim();
+        if (Guid.TryParse(trimmed, out var parsedGuid))
+        {
+            await LoadBusiness(db, parsedGuid);
+            return;
+        }
+        var item = await db.Businesses.AsNoTracking().FirstOrDefaultAsync(x => x.Slug == trimmed || x.Slug.ToLower() == trimmed.ToLower());
+        if (item is null)
+        {
+            NotFound = true;
+            return;
+        }
+        await LoadBusiness(db, item.Id);
+    }
 
     private async Task LoadBusiness(AppDbContext db, Guid id)
 
@@ -577,6 +637,7 @@
         HeaderUrl = item.HeaderData != null ? $"/media/business/{id}/header" : null;
         Gallery = await db.BusinessGalleryItems.AsNoTracking().Where(g => g.BusinessId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/business/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.BusinessId == id));
+        SocialChannels = SocialHelper.GetConfiguredChannels(item);
 
     }
 
@@ -594,6 +655,7 @@
         var hours = $"ساعت کاری {LocalizedDate.FormatNumber(item.OpenHour, UiLocale.Language)}:۰۰ تا {LocalizedDate.FormatNumber(item.CloseHour, UiLocale.Language)}:۰۰";
 
         Title = item.Name; Subtitle = string.IsNullOrWhiteSpace(item.Address) ? item.Business.Name : item.Address; Metadata = [hours]; KindLabel = "شعبه"; Icon = "⌖"; BusinessIdForBooking = item.BusinessId; CurrentPath = $"/branch/{id}";
+        if (!string.IsNullOrWhiteSpace(item.Phone)) { Metadata.Add($"تلفن: {item.Phone}"); }
         BranchLatitude = item.Latitude; BranchLongitude = item.Longitude;
 
         BookingQuery = $"&branch={id}";
@@ -608,6 +670,8 @@
         HeaderUrl = item.HeaderData != null ? $"/media/branch/{id}/header" : (item.Business.HeaderData != null ? $"/media/business/{item.BusinessId}/header" : null);
         Gallery = await db.BranchGalleryItems.AsNoTracking().Where(g => g.BranchId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/branch/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.BranchId == id));
+        var branchChannels = SocialHelper.GetConfiguredChannels(item);
+        SocialChannels = branchChannels.Count > 0 ? branchChannels : SocialHelper.GetConfiguredChannels(item.Business);
 
     }
 
@@ -635,6 +699,8 @@
         AvatarUrl = item.AvatarData != null ? $"/media/resource/{id}/avatar" : null;
         Gallery = await db.ResourceGalleryItems.AsNoTracking().Where(g => g.ResourceId == id).OrderBy(g => g.SortOrder).Select(g => new GalleryItemView(g.Id, g.Caption, $"/media/resource/gallery/{g.Id}")).ToListAsync();
         Reviews = await LoadReviews(db, q => q.Where(x => x.Appointment != null && x.Appointment.ResourceId == id));
+        var providerBranchChannels = SocialHelper.GetConfiguredChannels(item.Branch);
+        SocialChannels = providerBranchChannels.Count > 0 ? providerBranchChannels : SocialHelper.GetConfiguredChannels(item.Branch.Business);
 
     }
 
@@ -658,6 +724,7 @@
         Branches = (await db.BranchServices.AsNoTracking().Include(x => x.Branch).Where(x => x.ServiceId == id).OrderBy(x => x.Branch.Name).ToListAsync()).Select(x => new LinkItem(x.Branch.Name, x.Branch.Address, $"/branch/{x.BranchId}")).ToList();
 
         Providers = (await db.ServiceResources.AsNoTracking().Include(x => x.Resource).ThenInclude(x => x.Branch).Where(x => x.ServiceId == id && x.Resource.Kind == "staff").OrderBy(x => x.Resource.Name).ToListAsync()).Select(x => new LinkItem(x.Resource.Name, x.Resource.Branch.Name, $"/provider/{x.ResourceId}")).ToList();
+        SocialChannels = SocialHelper.GetConfiguredChannels(item.Business);
 
         Reviews = await LoadReviews(db, q => q.Where(x => x.Appointment != null && (x.Appointment.ServiceId == id || x.Appointment.Services.Any(s => s.ServiceId == id))));
 

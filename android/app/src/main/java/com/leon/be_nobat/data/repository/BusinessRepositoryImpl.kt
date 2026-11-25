@@ -12,6 +12,8 @@ import com.leon.be_nobat.domain.model.PublicReview
 import com.leon.be_nobat.domain.model.Service
 import com.leon.be_nobat.domain.model.ServiceCatalogItem
 import com.leon.be_nobat.domain.repository.BusinessRepository
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** Implements public discovery endpoints against the .NET mobile API. */
 class BusinessRepositoryImpl(
@@ -68,16 +70,23 @@ class BusinessRepositoryImpl(
         message: String,
     ): Result<String> = runCatching {
         val body = kotlinx.serialization.json.buildJsonObject {
-            put("name", kotlinx.serialization.json.JsonPrimitive(name))
-            put("contactInfo", kotlinx.serialization.json.JsonPrimitive(contactInfo))
-            put("subject", kotlinx.serialization.json.JsonPrimitive(subject))
-            put("message", kotlinx.serialization.json.JsonPrimitive(message))
+            put("name", JsonPrimitive(name))
+            put("contactInfo", JsonPrimitive(contactInfo))
+            put("subject", JsonPrimitive(subject))
+            put("message", JsonPrimitive(message))
         }
-        api.sendContactMessage<kotlinx.serialization.json.JsonObject>(body).getOrThrow()
+        api.sendContactMessage<JsonObject>(body).getOrThrow()
         "OK"
     }
 
     override suspend fun findBusinessIdByBranch(branchId: String): String? {
-        return null
+        return try {
+            val res = api.getBranch<JsonObject>(branchId)
+            res.getOrNull()?.get("businessId")?.let {
+                if (it is JsonPrimitive) it.content else null
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 }

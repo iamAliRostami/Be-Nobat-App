@@ -776,6 +776,265 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card 5: Social Media & Communication Channels -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSocialNetworks"
+                    style="@style/Widget.BeNobat.Card"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/colorOutline"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🌐 شبکه‌های اجتماعی و راه‌های ارتباطی"
+                            android:textAppearance="@style/TextAppearance.BeNobat.Headline"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:layout_marginBottom="12dp"
+                            android:text="آدرس شبکه‌های اجتماعی کسب‌وکار خود را جهت نمایش در صفحه عمومی وارد کنید (نام کاربری یا لینک کامل)."
+                            android:textAppearance="@style/TextAppearance.BeNobat.Body.Muted"
+                            android:textSize="11.5sp" />
+
+                        <!-- Instagram -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilInstagram"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="اینستاگرام (Instagram)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etInstagram"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Telegram -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilTelegram"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="تلگرام (Telegram)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etTelegram"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- WhatsApp -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilWhatsApp"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="واتساپ (WhatsApp)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etWhatsApp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Eitaa -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilEitaa"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="پیام‌رسان ایتا"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etEitaa"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Bale -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilBale"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="پیام‌رسان بله"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etBale"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Rubika -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilRubika"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="روبیکا"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etRubika"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- LinkedIn -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilLinkedIn"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="لینکدین (LinkedIn)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etLinkedIn"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Twitter / X -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilTwitter"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="ایکس / توییتر (X / Twitter)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etTwitter"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Aparat -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilAparat"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="10dp"
+                            android:hint="آپارات (Aparat)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etAparat"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Website -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/tilWebsite"
+                            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="4dp"
+                            android:hint="وب‌سایت رسمی (Website)"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusTopStart="12dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etWebsite"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textUri|textNoSuggestions"
+                                android:textDirection="ltr"
+                                android:textSize="13sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
 
@@ -801,11 +1060,16 @@
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:minHeight="48dp"
-                android:text="مشاهده صفحه عمومی"
-                android:textSize="13sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:text="صفحه عمومی"
+                android:textSize="12.5sp"
                 app:cornerRadius="12dp"
                 app:icon="@drawable/ic_home"
                 app:iconGravity="textStart"
+                app:iconPadding="6dp"
                 app:iconSize="16dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -816,11 +1080,16 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:minHeight="48dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:text="ذخیره تغییرات"
-                android:textSize="13sp"
+                android:textSize="12.5sp"
                 app:cornerRadius="12dp"
                 app:icon="@drawable/ic_check"
                 app:iconGravity="textStart"
+                app:iconPadding="6dp"
                 app:iconSize="16dp" />
         </LinearLayout>
 

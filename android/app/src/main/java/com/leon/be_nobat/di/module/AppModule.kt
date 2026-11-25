@@ -118,6 +118,7 @@ import com.leon.be_nobat.helpers.SslHelper
 import com.leon.be_nobat.ui.view_models.AppointmentsViewModel
 import com.leon.be_nobat.ui.view_models.BookingViewModel
 import com.leon.be_nobat.ui.view_models.BusinessDetailViewModel
+import com.leon.be_nobat.ui.view_models.BranchDetailViewModel
 import com.leon.be_nobat.ui.view_models.FavoritesViewModel
 import com.leon.be_nobat.ui.view_models.HomeViewModel
 import com.leon.be_nobat.ui.view_models.ProfileViewModel
@@ -299,6 +300,7 @@ val viewModelModule = module {
     viewModel { RegisterViewModel(get()) }
     viewModel { HomeViewModel(get(), get(), getOrNull(), getOrNull(), getOrNull(), getOrNull(), getOrNull()) }
     viewModel { BusinessDetailViewModel(get(), get(), get()) }
+    viewModel { BranchDetailViewModel(get()) }
     viewModel { BookingViewModel(get(), get(), get(), get(), get()) }
     viewModel { AppointmentsViewModel(get(), get(), get()) }
     viewModel { FavoritesViewModel(get(), get()) }

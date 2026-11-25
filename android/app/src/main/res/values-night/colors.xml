@@ -13,6 +13,10 @@
     <color name="brand_mark_background">#76D6C3</color>
     <color name="brand_mark_foreground">#063B33</color>
     <color name="brand_accent">#F2C66D</color>
+
+    <!-- Splash Screen Colors -->
+    <color name="splash_background">#D9E8D9</color>
+    <color name="splash_version_text">#0B3B32</color>
     <color name="error_red">#FFB4AB</color>
     <color name="danger_red">#EF4444</color>
     <color name="colorSecondaryContainer">#1E3832</color>

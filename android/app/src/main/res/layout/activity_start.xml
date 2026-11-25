@@ -7,78 +7,30 @@
     android:layout_height="match_parent"
     android:background="@drawable/splash_background">
 
-    <!-- Container for Emblem and Rotating Ring -->
-    <FrameLayout
-        android:id="@+id/emblemContainer"
-        android:layout_width="290dp"
-        android:layout_height="290dp"
-        app:layout_constraintBottom_toTopOf="@+id/bottomContentLayout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.42"
-        app:layout_constraintVertical_chainStyle="packed">
-
-        <!-- Outer Glowing Crescent Ring (Blue marked part: rotates around the logo) -->
-        <ImageView
-            android:id="@+id/ivSplashRing"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="center"
-            android:contentDescription="@null"
-            android:src="@drawable/splash_ring" />
-
-        <!-- Central Calendar Emblem & Badge (Red marked part: zooms in) -->
-        <ImageView
-            android:id="@+id/ivSplashEmblem"
-            android:layout_width="190dp"
-            android:layout_height="150dp"
-            android:layout_gravity="center"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/splash_emblem" />
-    </FrameLayout>
-
-    <!-- Bottom Staggered Content (Yellow marked part: slides up part-by-part from below) -->
-    <LinearLayout
-        android:id="@+id/bottomContentLayout"
+    <!-- Splash Video Animation (Natural Intrinsic Size) -->
+    <VideoView
+        android:id="@+id/vvSplashVideo"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/emblemContainer">
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Part 1: Typography "به‌نوبت" -->
-        <ImageView
-            android:id="@+id/ivSplashTitle"
-            android:layout_width="220dp"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/splash_title" />
-
-        <!-- Part 2: Subtitle "سامانه هوشمند نوبت‌دهی آنلاین" -->
-        <ImageView
-            android:id="@+id/ivSplashSubtitle"
-            android:layout_width="250dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:adjustViewBounds="true"
-            android:contentDescription="@null"
-            android:src="@drawable/splash_subtitle" />
-
-        <!-- Part 3: Feature Badges (مدیریت هوشمند | مطمئن و امن | سریع و آسان) -->
-        <ImageView
-            android:id="@+id/ivSplashFeatures"
-            android:layout_width="240dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:adjustViewBounds="true"
-            android:contentDescription="@null"
-            android:src="@drawable/splash_features" />
-    </LinearLayout>
+    <!-- App Version Display (Clear, Legible & Animated from bottom) -->
+    <TextView
+        android:id="@+id/tvAppVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:fontFamily="@font/app_font"
+        android:textStyle="bold"
+        android:textColor="@color/splash_version_text"
+        android:textSize="14sp"
+        android:includeFontPadding="false"
+        tools:text="نسخه ۱.۳.۰"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

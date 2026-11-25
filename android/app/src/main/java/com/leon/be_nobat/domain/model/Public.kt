@@ -42,6 +42,16 @@ data class Business(
     val gallery: List<GalleryItem> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
 )
 
 @Serializable
@@ -67,6 +77,16 @@ data class BusinessDetail(
     val branches: List<Branch> = emptyList(),
     val services: List<Service> = emptyList(),
     val reviews: List<PublicReview> = emptyList(),
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
 )
 
 @Serializable
@@ -87,6 +107,17 @@ data class Branch(
     val gallery: List<GalleryItem> = emptyList(),
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val telegram: String? = null,
+    val instagram: String? = null,
+    val whatsApp: String? = null,
+    val eitaa: String? = null,
+    val bale: String? = null,
+    val rubika: String? = null,
+    val linkedIn: String? = null,
+    val twitter: String? = null,
+    val aparat: String? = null,
+    val website: String? = null,
+    val phone: String? = null,
 )
 
 @Serializable

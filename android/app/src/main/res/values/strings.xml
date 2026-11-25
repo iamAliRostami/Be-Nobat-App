@@ -3,6 +3,7 @@
     <!-- ============ App basics ============ -->
     <string name="app_name">به نوبت</string>
     <string name="logo_content_description">نشان به نوبت</string>
+    <string name="app_version_format">نسخه %s</string>
 
     <!-- ============ Login / Auth ============ -->
     <string name="welcome_title">خوش آمدید!</string>

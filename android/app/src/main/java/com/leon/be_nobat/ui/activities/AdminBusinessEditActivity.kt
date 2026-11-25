@@ -85,6 +85,17 @@ class AdminBusinessEditActivity : BaseActivity() {
     private lateinit var tilDepositIban: TextInputLayout
     private lateinit var etDepositIban: TextInputEditText
 
+    private lateinit var etInstagram: TextInputEditText
+    private lateinit var etTelegram: TextInputEditText
+    private lateinit var etWhatsApp: TextInputEditText
+    private lateinit var etEitaa: TextInputEditText
+    private lateinit var etBale: TextInputEditText
+    private lateinit var etRubika: TextInputEditText
+    private lateinit var etLinkedIn: TextInputEditText
+    private lateinit var etTwitter: TextInputEditText
+    private lateinit var etAparat: TextInputEditText
+    private lateinit var etWebsite: TextInputEditText
+
     private lateinit var tilFirstBranchName: TextInputLayout
     private lateinit var etFirstBranchName: TextInputEditText
     private lateinit var tilFirstBranchAddress: TextInputLayout
@@ -171,6 +182,17 @@ class AdminBusinessEditActivity : BaseActivity() {
         tilDepositIban = findViewById(R.id.tilDepositIban)
         etDepositIban = findViewById(R.id.etDepositIban)
 
+        etInstagram = findViewById(R.id.etInstagram)
+        etTelegram = findViewById(R.id.etTelegram)
+        etWhatsApp = findViewById(R.id.etWhatsApp)
+        etEitaa = findViewById(R.id.etEitaa)
+        etBale = findViewById(R.id.etBale)
+        etRubika = findViewById(R.id.etRubika)
+        etLinkedIn = findViewById(R.id.etLinkedIn)
+        etTwitter = findViewById(R.id.etTwitter)
+        etAparat = findViewById(R.id.etAparat)
+        etWebsite = findViewById(R.id.etWebsite)
+
         tilFirstBranchName = findViewById(R.id.tilFirstBranchName)
         etFirstBranchName = findViewById(R.id.etFirstBranchName)
         tilFirstBranchAddress = findViewById(R.id.tilFirstBranchAddress)
@@ -210,19 +232,11 @@ class AdminBusinessEditActivity : BaseActivity() {
     }
 
     private fun openPublicView() {
-        val slug = etBusinessSlug.text?.toString()?.trim().orEmpty()
-        val bizId = editingBusinessId
-        if (slug.isNotBlank()) {
-            val url = DeepLinkHelper.createBusinessWebLink(slug)
-            try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            } catch (e: Exception) {
-                DeepLinkHelper.copyToClipboard(this, url)
-                Toast.makeText(this, R.string.link_copied_success, Toast.LENGTH_SHORT).show()
-            }
-        } else if (!bizId.isNullOrBlank()) {
+        val targetId = editingBusinessId?.takeIf { it.isNotBlank() }
+            ?: etBusinessSlug.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        if (!targetId.isNullOrBlank()) {
             val intent = Intent(this, BusinessDetailActivity::class.java).apply {
-                putExtra("business_id", bizId)
+                putExtra("businessId", targetId)
             }
             startActivity(intent)
         } else {
@@ -350,6 +364,18 @@ class AdminBusinessEditActivity : BaseActivity() {
                 etDepositCardNumber.setText(business.depositCardNumber.orEmpty())
                 etDepositIban.setText(business.depositIban.orEmpty())
 
+                // Social channels
+                etInstagram.setText(business.instagram.orEmpty())
+                etTelegram.setText(business.telegram.orEmpty())
+                etWhatsApp.setText(business.whatsApp.orEmpty())
+                etEitaa.setText(business.eitaa.orEmpty())
+                etBale.setText(business.bale.orEmpty())
+                etRubika.setText(business.rubika.orEmpty())
+                etLinkedIn.setText(business.linkedIn.orEmpty())
+                etTwitter.setText(business.twitter.orEmpty())
+                etAparat.setText(business.aparat.orEmpty())
+                etWebsite.setText(business.website.orEmpty())
+
                 if (business.category.isNotBlank() && !categoryOptions.contains(business.category)) {
                     categoryOptions.add(0, business.category)
                     setupSpinners()
@@ -450,6 +476,17 @@ class AdminBusinessEditActivity : BaseActivity() {
         val depositIban = etDepositIban.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
         val depositHolder = etDepositAccountHolder.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
 
+        val instagram = etInstagram.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val telegram = etTelegram.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val whatsApp = etWhatsApp.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val eitaa = etEitaa.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val bale = etBale.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val rubika = etRubika.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val linkedIn = etLinkedIn.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val twitter = etTwitter.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val aparat = etAparat.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+        val website = etWebsite.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
+
         val input = ManagementBusinessInput(
             name = name,
             slug = slug,
@@ -467,6 +504,16 @@ class AdminBusinessEditActivity : BaseActivity() {
             depositAccountHolder = depositHolder,
             avatarBase64 = selectedAvatarBase64,
             headerBase64 = selectedHeaderBase64,
+            telegram = telegram,
+            instagram = instagram,
+            whatsApp = whatsApp,
+            eitaa = eitaa,
+            bale = bale,
+            rubika = rubika,
+            linkedIn = linkedIn,
+            twitter = twitter,
+            aparat = aparat,
+            website = website,
         )
 
         btnSave.isEnabled = false

@@ -1,20 +1,27 @@
 package com.leon.be_nobat.ui.activities
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
-import android.widget.ImageView
+import android.widget.TextView
+import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.leon.be_nobat.BuildConfig
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.helpers.DeepLinkHelper
+import com.leon.be_nobat.helpers.PersianUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -22,7 +29,7 @@ import org.koin.android.ext.android.inject
 class StartActivity : AppCompatActivity() {
     companion object {
         private const val DEFAULT_LANGUAGE_TAG = "fa"
-        private const val STANDARD_SPLASH_DURATION_MS = 2300L
+        private const val STANDARD_SPLASH_DURATION_MS = 10000L
     }
 
     private val tokenManager: TokenManager by inject()
@@ -37,14 +44,45 @@ class StartActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setDefaultLocaleIfNeeded()
 
-        // Edge-to-edge transparent system bars for seamless gradient background
+        // Edge-to-edge transparent system bars with matching background
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.isAppearanceLightStatusBars = true
+        insetsController.isAppearanceLightNavigationBars = true
+        window.decorView.setBackgroundColor(getColor(R.color.splash_background))
 
         setContentView(R.layout.activity_start)
 
-        startSplashAnimations()
+        val tvVersion = findViewById<TextView>(R.id.tvAppVersion)
+        val formattedVersion = PersianUtils.toPersianDigits(BuildConfig.VERSION_NAME)
+        tvVersion?.text = getString(R.string.app_version_format, formattedVersion)
+
+        // Set initial state for slide-up entrance animation: translated down and transparent
+        tvVersion?.alpha = 0f
+        tvVersion?.translationY = 50f * resources.displayMetrics.density
+
+        // Ensure bottom version text is never overlapped by system navigation bars
+        val root = findViewById<View>(R.id.splashRoot)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val baseMargin = (32 * resources.displayMetrics.density).toInt()
+            (tvVersion?.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.bottomMargin = baseMargin + navBars.bottom
+                tvVersion.layoutParams = lp
+            }
+            insets
+        }
+
+        // Animate version TextView sliding up from the bottom with smooth deceleration
+        tvVersion?.animate()
+            ?.translationY(0f)
+            ?.alpha(1f)
+            ?.setStartDelay(600L)
+            ?.setDuration(800L)
+            ?.setInterpolator(DecelerateInterpolator(1.8f))
+            ?.start()
+
+        setupSplashAnimation()
 
         // Allow tapping anywhere to skip the remaining splash duration
         findViewById<View>(R.id.splashRoot)?.setOnClickListener {
@@ -52,89 +90,94 @@ class StartActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
-            // Resolve target route in background while animations run
+            // Resolve target route in background while animation runs
             val target = resolveTargetIntent()
             resolvedTarget = target
 
-            // Keep standard splash screen visible for standard duration
+            // Fallback timeout to guarantee transition even if video playback has issues
             delay(STANDARD_SPLASH_DURATION_MS)
 
             navigateToTarget(target)
         }
     }
 
-    private fun startSplashAnimations() {
-        val ivEmblem = findViewById<ImageView>(R.id.ivSplashEmblem)
-        val ivRing = findViewById<ImageView>(R.id.ivSplashRing)
-        val ivTitle = findViewById<ImageView>(R.id.ivSplashTitle)
-        val ivSubtitle = findViewById<ImageView>(R.id.ivSplashSubtitle)
-        val ivFeatures = findViewById<ImageView>(R.id.ivSplashFeatures)
+    private var videoWidth = 720
+    private var videoHeight = 1280
 
-        // 1. Red marked part: Central Emblem (zooms in from 0.15 scale with overshoot)
-        ivEmblem.scaleX = 0.15f
-        ivEmblem.scaleY = 0.15f
-        ivEmblem.alpha = 0f
+    private fun setupSplashAnimation() {
+        val videoView = findViewById<VideoView>(R.id.vvSplashVideo)
+        val root = findViewById<View>(R.id.splashRoot)
 
-        // 2. Blue marked part: Glowing Crescent Ring (rotates around the logo)
-        ivRing.alpha = 0f
-        ivRing.rotation = -120f
+        root?.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (videoView != null && videoWidth > 0 && videoHeight > 0) {
+                adjustVideoAspect(videoView, videoWidth, videoHeight)
+            }
+        }
 
-        // 3. Yellow marked parts: Staggered slide up from bottom
-        val slideOffset = 50f * resources.displayMetrics.density
-        ivTitle.translationY = slideOffset
-        ivTitle.alpha = 0f
+        try {
+            val videoUri = Uri.parse("android.resource://$packageName/${R.raw.benobat_splash}")
+            videoView?.apply {
+                visibility = View.VISIBLE
+                setVideoURI(videoUri)
+                setOnPreparedListener { mp ->
+                    mp.isLooping = false
+                    if (mp.videoWidth > 0 && mp.videoHeight > 0) {
+                        videoWidth = mp.videoWidth
+                        videoHeight = mp.videoHeight
+                    }
+                    adjustVideoAspect(this, videoWidth, videoHeight)
+                    start()
+                }
+                setOnCompletionListener {
+                    resolvedTarget?.let { target -> navigateToTarget(target) }
+                }
+                setOnErrorListener { _, _, _ ->
+                    resolvedTarget?.let { target -> navigateToTarget(target) }
+                    true
+                }
+            }
+        } catch (_: Exception) {
+            resolvedTarget?.let { target -> navigateToTarget(target) }
+        }
+    }
 
-        ivSubtitle.translationY = slideOffset
-        ivSubtitle.alpha = 0f
+    /**
+     * Dynamically adjusts VideoView layout dimensions to strictly preserve the video's aspect ratio
+     * (e.g. 720:1280) across any device screen (phones, tablets, foldables), preventing any stretching
+     * or distortion.
+     */
+    private fun adjustVideoAspect(
+        videoView: VideoView,
+        vWidth: Int,
+        vHeight: Int,
+        cropToFill: Boolean = false
+    ) {
+        val parent = videoView.parent as? View ?: return
+        parent.post {
+            val containerWidth = parent.width
+            val containerHeight = parent.height
+            if (containerWidth <= 0 || containerHeight <= 0) return@post
 
-        ivFeatures.translationY = slideOffset
-        ivFeatures.alpha = 0f
+            val videoRatio = vWidth.toFloat() / vHeight.toFloat()
 
-        // Execute Animations:
-        // A) Emblem Zoom-In
-        ivEmblem.animate()
-            .scaleX(1.0f)
-            .scaleY(1.0f)
-            .alpha(1.0f)
-            .setDuration(900)
-            .setInterpolator(OvershootInterpolator(1.3f))
-            .start()
+            val targetWidth: Int
+            val targetHeight: Int
 
-        // B) Ring Rotation around Logo
-        ivRing.animate()
-            .rotation(360f)
-            .alpha(1.0f)
-            .setDuration(1600)
-            .setInterpolator(DecelerateInterpolator(1.4f))
-            .start()
+            if (cropToFill) {
+                targetWidth = kotlin.math.max(containerWidth, (containerHeight * videoRatio).toInt())
+                targetHeight = kotlin.math.max(containerHeight, (containerWidth / videoRatio).toInt())
+            } else {
+                targetWidth = kotlin.math.min(containerWidth, (containerHeight * videoRatio).toInt())
+                targetHeight = kotlin.math.min(containerHeight, (containerWidth / videoRatio).toInt())
+            }
 
-        // C) Bottom items slide up part by part
-        // Part 1: Typography "به‌نوبت"
-        ivTitle.animate()
-            .translationY(0f)
-            .alpha(1.0f)
-            .setStartDelay(550)
-            .setDuration(500)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
-
-        // Part 2: Subtitle "سامانه هوشمند نوبت‌دهی آنلاین"
-        ivSubtitle.animate()
-            .translationY(0f)
-            .alpha(1.0f)
-            .setStartDelay(800)
-            .setDuration(500)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
-
-        // Part 3: Feature Badges (مدیریت هوشمند | مطمئن و امن | سریع و آسان)
-        ivFeatures.animate()
-            .translationY(0f)
-            .alpha(1.0f)
-            .setStartDelay(1050)
-            .setDuration(500)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
+            val lp = videoView.layoutParams
+            if (lp.width != targetWidth || lp.height != targetHeight) {
+                lp.width = targetWidth
+                lp.height = targetHeight
+                videoView.layoutParams = lp
+            }
+        }
     }
 
     private suspend fun resolveTargetIntent(): Intent {
@@ -165,6 +208,8 @@ class StartActivity : AppCompatActivity() {
                         resolvedBranchId?.let { putExtra("branchId", it) }
                         parsed.providerId?.let { putExtra("providerId", it) }
                     }
+                } else if (!resolvedBranchId.isNullOrBlank() && parsed.businessId.isNullOrBlank()) {
+                    return BranchDetailActivity.createIntent(this, branchId = resolvedBranchId, businessId = resolvedBizId)
                 } else if (!resolvedBizId.isNullOrBlank()) {
                     return Intent(this, BusinessDetailActivity::class.java).apply {
                         putExtra("businessId", resolvedBizId)
@@ -191,7 +236,12 @@ class StartActivity : AppCompatActivity() {
         if (isNavigated || isFinishing || isDestroyed) return
         isNavigated = true
         startActivity(target)
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, android.R.anim.fade_in, android.R.anim.fade_out)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        }
         finish()
     }
 
