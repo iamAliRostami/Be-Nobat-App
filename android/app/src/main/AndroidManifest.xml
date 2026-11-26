@@ -69,6 +69,8 @@
         <receiver android:name=".notifications.SmsSentReceiver" android:exported="false" />
 
         <activity android:name=".ui.activities.AppointmentNotificationsActivity" android:exported="false" />
+        <activity android:name=".ui.activities.ImageCropActivity" android:exported="false" />
+        <activity android:name=".ui.activities.ImageViewerActivity" android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

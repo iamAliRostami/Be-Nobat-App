@@ -175,7 +175,13 @@ object MapHelper {
         var currentLng = lng
 
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_map_picker, null)
+        val metrics = context.resources.displayMetrics
+        val mapHeightPx = (metrics.heightPixels * 0.58).toInt().coerceAtLeast((360 * metrics.density).toInt())
         val webView = view.findViewById<WebView>(R.id.mapWebView).apply {
+            layoutParams = layoutParams.apply { height = mapHeightPx }
+            setBackgroundColor(android.graphics.Color.parseColor("#E2E8F0"))
+            isFocusable = true
+            isFocusableInTouchMode = true
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = true
@@ -189,6 +195,10 @@ object MapHelper {
             settings.blockNetworkImage = false
             settings.setGeolocationEnabled(true)
             webViewClient = object : WebViewClient() {
+                override fun onPageFinished(v: WebView?, url: String?) {
+                    super.onPageFinished(v, url)
+                    v?.evaluateJavascript("if (window.fitMap) window.fitMap();", null)
+                }
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                     super.onReceivedError(view, request, error)
                     android.util.Log.e("MapHelper", "WebView Error: ${request?.url} -> ${error?.description}")
@@ -224,10 +234,10 @@ object MapHelper {
             .create()
 
         dialog.setOnShowListener {
-            val metrics = context.resources.displayMetrics
+            // metrics computed above
             val widthPx = (metrics.widthPixels * 0.95).toInt()
-            val heightPx = (metrics.heightPixels * 0.72).toInt().coerceAtLeast((450 * metrics.density).toInt())
-            dialog.window?.setLayout(widthPx, heightPx)
+            val dialogHeightPx = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            dialog.window?.setLayout(widthPx, dialogHeightPx)
             webView.postDelayed({
                 webView.evaluateJavascript("if (window.fitMap) window.fitMap();", null)
             }, 300)
@@ -245,7 +255,13 @@ object MapHelper {
     @SuppressLint("SetJavaScriptEnabled")
     fun showMapPreview(context: Context, lat: Double, lng: Double, title: String? = null, address: String? = null) {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_map_picker, null)
+        val metrics = context.resources.displayMetrics
+        val mapHeightPx = (metrics.heightPixels * 0.58).toInt().coerceAtLeast((360 * metrics.density).toInt())
         val webView = view.findViewById<WebView>(R.id.mapWebView).apply {
+            layoutParams = layoutParams.apply { height = mapHeightPx }
+            setBackgroundColor(android.graphics.Color.parseColor("#E2E8F0"))
+            isFocusable = true
+            isFocusableInTouchMode = true
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = true
@@ -258,6 +274,10 @@ object MapHelper {
             settings.blockNetworkLoads = false
             settings.blockNetworkImage = false
             webViewClient = object : WebViewClient() {
+                override fun onPageFinished(v: WebView?, url: String?) {
+                    super.onPageFinished(v, url)
+                    v?.evaluateJavascript("if (window.fitMap) window.fitMap();", null)
+                }
                 override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
                     super.onReceivedError(view, request, error)
                     android.util.Log.e("MapHelper", "WebView Error: ${request?.url} -> ${error?.description}")
@@ -285,10 +305,10 @@ object MapHelper {
             .create()
 
         dialog.setOnShowListener {
-            val metrics = context.resources.displayMetrics
+            // metrics computed above
             val widthPx = (metrics.widthPixels * 0.95).toInt()
-            val heightPx = (metrics.heightPixels * 0.70).toInt().coerceAtLeast((420 * metrics.density).toInt())
-            dialog.window?.setLayout(widthPx, heightPx)
+            val dialogHeightPx = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            dialog.window?.setLayout(widthPx, dialogHeightPx)
             webView.postDelayed({
                 webView.evaluateJavascript("if (window.fitMap) window.fitMap();", null)
             }, 300)

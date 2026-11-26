@@ -41,9 +41,10 @@ class ProfileActivity : BaseActivity() {
 
     private val viewModel: ProfileViewModel by viewModel()
 
+    private val cropImageLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: Uri? -> if (croppedUri != null) uploadAvatarFromUri(croppedUri) }
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            uploadAvatarFromUri(uri)
+            cropImageLauncher.launch(ImageCropRequest(uri, aspectRatio = 1f))
         }
     }
 
@@ -317,6 +318,18 @@ class ProfileActivity : BaseActivity() {
         }
         val avatar = findViewById<android.widget.ImageView>(R.id.ivAvatar)
         val avatarUrl = state.avatarUrl
+        val resolvedAvatarSource = when {
+            avatarUrl.isNullOrBlank() -> null
+            avatarUrl.startsWith("data:image/") -> avatarUrl
+            else -> BeNobatApiConfig.resolveMediaUrl(avatarUrl)
+        }
+        findViewById<View>(R.id.avatarCard)?.setOnClickListener {
+            if (resolvedAvatarSource != null) {
+                ImageViewerActivity.open(this, resolvedAvatarSource, state.displayName)
+            } else {
+                pickImageLauncher.launch("image/*")
+            }
+        }
         if (avatarUrl.isNullOrBlank()) {
             avatar.setImageResource(R.drawable.ic_person)
         } else if (avatarUrl.startsWith("data:image/")) {

@@ -114,19 +114,44 @@ class AdminBusinessEditActivity : BaseActivity() {
         "تهران", "مشهد", "اصفهان", "شیراز", "تبریز", "کرج", "قم", "اهواز", "رشت", "کرمانشاه", "یزد", "سایر"
     )
 
+    private var currentAvatarViewerSource: String? = null
+    private var currentCoverViewerSource: String? = null
+
+    private val cropAvatarLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: Uri? ->
+        croppedUri ?: return@registerForActivityResult
+        currentAvatarViewerSource = croppedUri.toString()
+        processImage(croppedUri) { base64, bmp -> selectedAvatarBase64 = base64; ivLogoPreview.setImageBitmap(bmp) }
+        /*
+        // selectedAvatarBase64 handled in cropAvatarLauncher
+        if (false) { // placeholder removed
+        } */
+    }
+
+    private val cropCoverLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: Uri? ->
+        croppedUri ?: return@registerForActivityResult
+        currentCoverViewerSource = croppedUri.toString()
+        processImage(croppedUri) { base64, bmp -> selectedHeaderBase64 = base64; ivCoverPreview.setImageBitmap(bmp) }
+        /*
+        // selectedHeaderBase64 handled in cropCoverLauncher
+        if (false) { // placeholder removed
+        } */
+    }
+
     private val pickAvatarLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
-        processImage(uri) { base64, bmp ->
-            selectedAvatarBase64 = base64
-            ivLogoPreview.setImageBitmap(bmp)
+        cropAvatarLauncher.launch(ImageCropRequest(uri, aspectRatio = 1f))
+        // cropAvatarLauncher handles processing after crop
+        // selectedAvatarBase64 handled in cropAvatarLauncher
+        if (false) { // placeholder removed
         }
     }
 
     private val pickCoverLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
-        processImage(uri) { base64, bmp ->
-            selectedHeaderBase64 = base64
-            ivCoverPreview.setImageBitmap(bmp)
+        cropCoverLauncher.launch(ImageCropRequest(uri, aspectRatio = 16f / 9f))
+        // cropAvatarLauncher handles processing after crop
+        // selectedHeaderBase64 handled in cropCoverLauncher
+        if (false) { // placeholder removed
         }
     }
 
@@ -205,6 +230,8 @@ class AdminBusinessEditActivity : BaseActivity() {
 
         btnChangeLogo.setOnClickListener { pickAvatarLauncher.launch("image/*") }
         btnChangeCover.setOnClickListener { pickCoverLauncher.launch("image/*") }
+        ivLogoPreview.setOnClickListener { currentAvatarViewerSource?.let { ImageViewerActivity.open(this, it, "لوگوی کسب‌وکار") } }
+        ivCoverPreview.setOnClickListener { currentCoverViewerSource?.let { ImageViewerActivity.open(this, it, "تصویر کاور کسب‌وکار") } }
 
         findViewById<View>(R.id.btnPublicView)?.setOnClickListener { openPublicView() }
         btnViewPublicPage.setOnClickListener { openPublicView() }
@@ -337,6 +364,7 @@ class AdminBusinessEditActivity : BaseActivity() {
 
                 // Avatar preview
                 val resolvedAvatar = BeNobatApiConfig.resolveMediaUrl(business.avatarUrl)
+                currentAvatarViewerSource = resolvedAvatar
                 if (!resolvedAvatar.isNullOrBlank()) {
                     ivLogoPreview.load(resolvedAvatar) {
                         crossfade(true)
@@ -348,6 +376,7 @@ class AdminBusinessEditActivity : BaseActivity() {
 
                 // Cover preview
                 val resolvedCover = BeNobatApiConfig.resolveMediaUrl(business.headerUrl)
+                currentCoverViewerSource = resolvedCover
                 if (!resolvedCover.isNullOrBlank()) {
                     ivCoverPreview.load(resolvedCover) {
                         crossfade(true)

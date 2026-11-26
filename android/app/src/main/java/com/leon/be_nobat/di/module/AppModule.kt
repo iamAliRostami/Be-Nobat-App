@@ -1,4 +1,4 @@
-﻿package com.leon.be_nobat.di.module
+package com.leon.be_nobat.di.module
 
 import com.leon.be_nobat.data.demo.*
 import android.util.Log
@@ -170,7 +170,7 @@ val localStorageModule = module {
 }
 
 val repositoryModule = module {
-    single { com.leon.be_nobat.notifications.AppointmentNotificationMonitor(androidContext(), get(), get()) }
+    single { com.leon.be_nobat.notifications.AppointmentNotificationMonitor(androidContext(), get(), get(), get()) }
     if (BuildConfig.DEMO_MODE) {
         single { DemoDataStore(androidContext(), get()) }
         single<AuthRepository> { DemoAuthRepository(get(), get()) }

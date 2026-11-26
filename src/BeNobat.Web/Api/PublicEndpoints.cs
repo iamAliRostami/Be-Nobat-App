@@ -99,7 +99,7 @@ public static class PublicEndpoints
             if (ids is null) return ApiResults.Error("invalid_input", "Select at least one service.");
             if (await db.BranchServices.CountAsync(s => s.BranchId == branchId && ids.Contains(s.ServiceId) && s.Service.BusinessId == businessId && s.Service.DeletedAt == null, ct) != ids.Length) return ApiResults.Error("service_unavailable", "A selected service is unavailable.", 409);
             var query = db.Resources.AsNoTracking().Where(r => r.BranchId == branchId && r.Kind == "staff" && r.UserId != null &&
-                db.BranchMemberships.Any(m => m.BranchId == branchId && m.UserId == r.UserId && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff)));
+                db.BranchMemberships.Any(m => m.BranchId == branchId && m.UserId == r.UserId && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff))));
             foreach (var id in ids) query = query.Where(r => r.ServiceResources.Any(sr => sr.ServiceId == id && sr.DeletedAt == null));
             return Results.Ok(new { items = await query.OrderBy(r => r.Name).Select(r => new ProviderDto(r.Id, r.BranchId, r.Name, r.Kind, r.UserId)).ToListAsync(ct) });
         }).AllowAnonymous();

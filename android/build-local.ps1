@@ -2,12 +2,13 @@ param(
     [switch]$Online,
     [switch]$Test,
     [string]$Variant = 'demoRelease',
-    [string]$GradleUserHome = 'D:\Android\.gradle'
+    [string]$GradleUserHome = $(if (Test-Path 'E:\android\.gradle') { 'E:\android\.gradle' } elseif (Test-Path 'D:\Android\.gradle') { 'D:\Android\.gradle' } else { Join-Path $env:USERPROFILE '.gradle' })
 )
 
 $ErrorActionPreference = 'Stop'
 $savedJavaHome = $env:JAVA_HOME
 $savedJavaOptions = $env:JAVA_TOOL_OPTIONS
+$savedGradleUserHome = $env:GRADLE_USER_HOME
 $buildExitCode = 1
 Push-Location $PSScriptRoot
 try {
@@ -15,6 +16,7 @@ try {
     $socketDirectory = Join-Path $PSScriptRoot 'build\java-tmp'
     New-Item -ItemType Directory -Path $socketDirectory -Force | Out-Null
     $env:JAVA_TOOL_OPTIONS = ($savedJavaOptions + ' -Djdk.net.unixdomain.tmpdir="' + $socketDirectory + '"').Trim()
+    $env:GRADLE_USER_HOME = $GradleUserHome
     $jdkCandidates = @(
         (Join-Path $GradleUserHome 'jdks\eclipse_adoptium-21-amd64-windows.2'),
         (Join-Path $env:USERPROFILE '.gradle\jdks\eclipse_adoptium-21-amd64-windows.2')
@@ -37,6 +39,7 @@ try {
 } finally {
     $env:JAVA_HOME = $savedJavaHome
     $env:JAVA_TOOL_OPTIONS = $savedJavaOptions
+    $env:GRADLE_USER_HOME = $savedGradleUserHome
     Pop-Location
 }
 exit $buildExitCode

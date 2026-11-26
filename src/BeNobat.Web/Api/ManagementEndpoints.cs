@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using BeNobat.Web.Application;
 using BeNobat.Web.Domain;
@@ -568,7 +568,7 @@ public static class ManagementEndpoints
     private static IQueryable<Branch> StoredBranches(AppDbContext db, ApiScope scope, bool managed = false) =>
         db.Branches.IgnoreQueryFilters().Where(b => b.Business.DeletedAt == null && (scope.IsPlatform ||
             db.BranchMemberships.IgnoreQueryFilters().Any(m => m.DeletedAt == null && m.BranchId == b.Id && m.UserId == scope.UserId &&
-                ((m.Role == AppRoles.Owner || m.Role == AppRoles.Manager) || (!managed && m.Role == AppRoles.Staff)))));
+                ((m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager)) || (!managed && m.Role.Contains(AppRoles.Staff))))));
 
     private static IQueryable<ManagementBranchDto> BranchDtos(IQueryable<Branch> query) => query.Select(x =>
         new ManagementBranchDto(x.Id, x.BusinessId, x.Name, x.Address, x.TimeZoneId, x.OpenHour, x.CloseHour, x.DeletedAt == null,

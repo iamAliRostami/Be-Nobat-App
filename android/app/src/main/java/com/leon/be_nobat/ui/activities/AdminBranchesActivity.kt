@@ -38,9 +38,10 @@ class AdminBranchesActivity : BaseActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
 
     private var onImagePickedCallback: ((Uri) -> Unit)? = null
+    private val cropReceiptLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: Uri? -> if (croppedUri != null) onImagePickedCallback?.invoke(croppedUri) }
     private val pickReceiptLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            onImagePickedCallback?.invoke(uri)
+            cropReceiptLauncher.launch(ImageCropRequest(uri, aspectRatio = 0f))
         }
     }
 

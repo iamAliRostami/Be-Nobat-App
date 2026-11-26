@@ -330,6 +330,7 @@ class AdminAvailabilityViewModelTest {
         override suspend fun listTeam(q: String?, branchId: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementPerson>> = TODO()
         override suspend fun listCustomers(q: String?, branchId: String?, page: Int, pageSize: Int): Result<ApiPage<ManagementPerson>> = TODO()
         override suspend fun createTeamMember(input: ManagementTeamMemberInput): Result<ManagementPerson> = TODO()
+        override suspend fun updateTeamMemberRole(userId: String, branchId: String, role: String): Result<ManagementPerson> = TODO()
         override suspend fun createCustomer(input: ManagementCustomerInput): Result<ManagementPerson> = TODO()
         override suspend fun setPersonActive(id: String, active: Boolean): Result<ManagementPerson> = TODO()
 

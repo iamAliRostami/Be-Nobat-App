@@ -57,6 +57,17 @@ class PlatformSettingsActivity : BaseActivity() {
     private lateinit var etTelegram: TextInputEditText
     private lateinit var etInstagram: TextInputEditText
     private lateinit var etEitaa: TextInputEditText
+    private lateinit var etDiscount3: TextInputEditText
+    private lateinit var etDiscount6: TextInputEditText
+    private lateinit var etDiscount12: TextInputEditText
+    private lateinit var etBale: TextInputEditText
+    private lateinit var etRubika: TextInputEditText
+    private lateinit var etWhatsApp: TextInputEditText
+    private lateinit var etTwitter: TextInputEditText
+    private lateinit var etLinkedIn: TextInputEditText
+    private lateinit var etAparat: TextInputEditText
+    private lateinit var etCafeBazaarUrl: TextInputEditText
+    private lateinit var etDirectApkUrl: TextInputEditText
 
     private lateinit var btnSave: MaterialButton
 
@@ -102,6 +113,17 @@ class PlatformSettingsActivity : BaseActivity() {
         etTelegram = findViewById(R.id.etSettingsTelegram)
         etInstagram = findViewById(R.id.etSettingsInstagram)
         etEitaa = findViewById(R.id.etSettingsEitaa)
+        etDiscount3 = findViewById(R.id.etSettingsDiscount3)
+        etDiscount6 = findViewById(R.id.etSettingsDiscount6)
+        etDiscount12 = findViewById(R.id.etSettingsDiscount12)
+        etBale = findViewById(R.id.etSettingsBale)
+        etRubika = findViewById(R.id.etSettingsRubika)
+        etWhatsApp = findViewById(R.id.etSettingsWhatsApp)
+        etTwitter = findViewById(R.id.etSettingsTwitter)
+        etLinkedIn = findViewById(R.id.etSettingsLinkedIn)
+        etAparat = findViewById(R.id.etSettingsAparat)
+        etCafeBazaarUrl = findViewById(R.id.etSettingsCafeBazaarUrl)
+        etDirectApkUrl = findViewById(R.id.etSettingsDirectApkUrl)
 
         btnSave = findViewById(R.id.btnSavePlatformSettings)
 
@@ -248,6 +270,17 @@ class PlatformSettingsActivity : BaseActivity() {
         etTelegram.setText(telegram)
         etInstagram.setText(instagram)
         etEitaa.setText(eitaa)
+        etDiscount3.setText(p.discountPercent3Months.toString())
+        etDiscount6.setText(p.discountPercent6Months.toString())
+        etDiscount12.setText(p.discountPercent12Months.toString())
+        etBale.setText(p.bale)
+        etRubika.setText(p.rubika)
+        etWhatsApp.setText(p.whatsApp)
+        etTwitter.setText(p.twitter)
+        etLinkedIn.setText(p.linkedIn)
+        etAparat.setText(p.aparat)
+        etCafeBazaarUrl.setText(p.cafeBazaarUrl)
+        etDirectApkUrl.setText(p.directApkUrl)
     }
 
     private fun saveSettings() {
@@ -276,7 +309,18 @@ class PlatformSettingsActivity : BaseActivity() {
             workingHoursHolidays = etHolidays.text?.toString()?.trim().orEmpty(),
             telegram = etTelegram.text?.toString()?.trim().orEmpty(),
             instagram = etInstagram.text?.toString()?.trim().orEmpty(),
-            eitaa = etEitaa.text?.toString()?.trim().orEmpty()
+            eitaa = etEitaa.text?.toString()?.trim().orEmpty(),
+            discountPercent3Months = (etDiscount3.text?.toString()?.toIntOrNull() ?: 5).coerceIn(0, 100),
+            discountPercent6Months = (etDiscount6.text?.toString()?.toIntOrNull() ?: 10).coerceIn(0, 100),
+            discountPercent12Months = (etDiscount12.text?.toString()?.toIntOrNull() ?: 20).coerceIn(0, 100),
+            bale = etBale.text?.toString()?.trim().orEmpty(),
+            rubika = etRubika.text?.toString()?.trim().orEmpty(),
+            whatsApp = etWhatsApp.text?.toString()?.trim().orEmpty(),
+            twitter = etTwitter.text?.toString()?.trim().orEmpty(),
+            linkedIn = etLinkedIn.text?.toString()?.trim().orEmpty(),
+            aparat = etAparat.text?.toString()?.trim().orEmpty(),
+            cafeBazaarUrl = etCafeBazaarUrl.text?.toString()?.trim().orEmpty(),
+            directApkUrl = etDirectApkUrl.text?.toString()?.trim().orEmpty()
         )
 
         btnSave.isEnabled = false

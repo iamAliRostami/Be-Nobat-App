@@ -39,7 +39,8 @@ class BusinessDetailActivity : BaseActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private val galleryAdapter = GalleryAdapter { item ->
         val full = BeNobatApiConfig.resolveMediaUrl(item.imageUrl) ?: item.imageUrl
-        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        ImageViewerActivity.open(this, full, "تصویر گالری", item.caption)
+        /*
             .setTitle(item.caption ?: "تصویر گالری")
             .setView(ImageView(this).apply {
                 load(full) { crossfade(true) }
@@ -49,7 +50,7 @@ class BusinessDetailActivity : BaseActivity() {
             })
             .setPositiveButton("بستن", null)
             .create()
-        dialog.show()
+        dialog.show() */
     }
 
     override fun setupViews() {
@@ -186,6 +187,7 @@ class BusinessDetailActivity : BaseActivity() {
         val resolvedHeader = BeNobatApiConfig.resolveMediaUrl(b.headerUrl) ?: b.headerUrl
         if (!resolvedHeader.isNullOrBlank()) {
             ivHeaderBanner?.isVisible = true
+            ivHeaderBanner?.setOnClickListener { ImageViewerActivity.open(this, resolvedHeader, b.name) }
             ivHeaderBanner?.load(resolvedHeader) {
                 crossfade(true)
                 placeholder(R.drawable.badge_booked_background)
@@ -201,6 +203,7 @@ class BusinessDetailActivity : BaseActivity() {
         val resolvedAvatar = BeNobatApiConfig.resolveMediaUrl(b.avatarUrl) ?: b.avatarUrl
         if (!resolvedAvatar.isNullOrBlank()) {
             ivAvatar?.isVisible = true
+            ivAvatar?.setOnClickListener { ImageViewerActivity.open(this, resolvedAvatar, b.name) }
             tvAvatarFallback?.isVisible = false
             ivAvatar?.load(resolvedAvatar) {
                 crossfade(true)

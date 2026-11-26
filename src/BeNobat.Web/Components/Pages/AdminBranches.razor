@@ -1,4 +1,4 @@
-﻿@page "/admin/branches"
+@page "/admin/branches"
 @attribute [Authorize(Policy = Policies.ManageBusiness)]
 @rendermode InteractiveServer
 @inject AppDbContext Db
@@ -1194,7 +1194,7 @@
 
     private async Task DeleteResource(Resource resource)
     {
-        var item = await Db.Resources.FirstOrDefaultAsync(r => r.Id == resource.Id);
+        var item = await Db.Resources.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.Id == resource.Id && r.DeletedAt == null);
         if (item is null) return;
         await Db.Entry(item).ReloadAsync();
         if (!await Access.CanManageBranchAsync(item.BranchId)) { Error = "اجازه‌ی حذف این منبع را ندارید."; return; }

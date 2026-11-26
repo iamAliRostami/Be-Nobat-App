@@ -61,16 +61,14 @@ class BookingActivity : BaseActivity() {
     private var slotsAdapter: SlotsAdapter? = null
     private var windowOffsetDays: Int = 0
     private var hasNavigatedToSuccess: Boolean = false
-    private val pickDepositReceiptLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.GetContent()
-    ) { uri ->
-        if (uri != null) {
+    private val cropDepositReceiptLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: android.net.Uri? ->
+        if (croppedUri != null) {
             lifecycleScope.launch {
                 try {
-                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    val bytes = contentResolver.openInputStream(croppedUri)?.use { it.readBytes() }
                     if (bytes != null) {
                         val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                        val fileName = uri.lastPathSegment ?: "receipt.jpg"
+                        val fileName = croppedUri.lastPathSegment ?: "receipt.jpg"
                         viewModel.setDepositReceipt(base64, "image/jpeg", fileName)
                     }
                 } catch (e: Exception) {
@@ -78,6 +76,12 @@ class BookingActivity : BaseActivity() {
                 }
             }
         }
+    }
+    private val pickDepositReceiptLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) cropDepositReceiptLauncher.launch(ImageCropRequest(uri, aspectRatio = 0f))
+
     }
 
     override fun setupViews() {

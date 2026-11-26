@@ -350,6 +350,8 @@ data class PlatformPricing(
     val whatsApp: String = "",
     val linkedIn: String = "",
     val aparat: String = "",
+    val cafeBazaarUrl: String = "",
+    val directApkUrl: String = "",
 ) {
     val bankCardNumber: String get() = cardNumber
     val bankIban: String get() = iban

@@ -61,9 +61,10 @@ class BusinessUpgradeActivity : BaseActivity() {
 
     private val extraBranchCards = mutableListOf<Pair<TextInputEditText, TextInputEditText>>()
 
+    private val cropReceiptLauncher = registerForActivityResult(ImageCropContract()) { croppedUri: Uri? -> if (croppedUri != null) uploadReceiptFromUri(croppedUri) }
     private val pickReceiptLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            uploadReceiptFromUri(uri)
+            cropReceiptLauncher.launch(ImageCropRequest(uri, aspectRatio = 0f))
         }
     }
 

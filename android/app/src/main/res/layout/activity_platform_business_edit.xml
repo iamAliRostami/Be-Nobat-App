@@ -396,6 +396,133 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Card 3b: Deposit Settings -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/colorOutline"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:fontFamily="@font/vazir_bold"
+                        android:text="تنظیمات بیعانه"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="درصد بیعانه (۰ تا ۱۰۰)">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDepositPercentage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font"
+                            android:inputType="number"
+                            android:textDirection="ltr" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="شماره کارت بیعانه">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDepositCardNumber"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font"
+                            android:inputType="number"
+                            android:textDirection="ltr" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:hint="شماره شبا بیعانه">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDepositIban"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font"
+                            android:textDirection="ltr" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="نام صاحب حساب بیعانه">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDepositAccountHolder"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/app_font" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card 3c: Social Networks & Website -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/colorOutline"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="?attr/colorSurface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:fontFamily="@font/vazir_bold"
+                        android:text="شبکه‌های اجتماعی و وب‌سایت"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="اینستاگرام"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etInstagram" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="تلگرام"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etTelegram" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="واتساپ"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etWhatsApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="ایتا"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etEitaa" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="بله"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etBale" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="روبیکا"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etRubika" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="لینکدین"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etLinkedIn" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="توییتر / X"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etTwitter" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:hint="آپارات"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etAparat" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="وب‌سایت"><com.google.android.material.textfield.TextInputEditText android:id="@+id/etWebsite" android:layout_width="match_parent" android:layout_height="wrap_content" android:fontFamily="@font/app_font" android:textDirection="ltr" /></com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Card 4: Status (when editing) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardBusinessStatus"

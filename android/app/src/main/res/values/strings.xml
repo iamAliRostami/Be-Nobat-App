@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fa">
     <!-- ============ App basics ============ -->
     <string name="app_name">به نوبت</string>
@@ -443,7 +443,7 @@
     <string name="error_network_unavailable">اتصال اینترنت را بررسی کنید</string>
     <string name="error_request_timed_out">زمان درخواست به پایان رسید؛ دوباره تلاش کنید</string>
     <string name="error_unauthorized">برای دسترسی وارد شوید</string>
-    <string name="error_session_expired">نشست کاربری شما منقضی شده است. لطفاً برای ادامه مجدداً وارد شوید.</string>
+    <string name="error_session_expired">برای حفظ امنیت حساب، از برنامه خارج شده‌اید. لطفاً دوباره وارد حساب خود شوید.</string>
     <string name="action_login_again">ورود مجدد به حساب</string>
     <string name="error_forbidden">شما به این بخش دسترسی ندارید</string>
     <string name="error_not_found">موردی یافت نشد</string>

@@ -161,6 +161,7 @@ class BranchDetailActivity : BaseActivity() {
         val bannerUrl = (branch.headerUrl ?: biz?.headerUrl)?.let { BeNobatApiConfig.resolveMediaUrl(it) ?: it }
         if (!bannerUrl.isNullOrBlank()) {
             ivBanner?.isVisible = true
+            ivBanner?.setOnClickListener { ImageViewerActivity.open(this, bannerUrl, branch.name) }
             ivBanner?.load(bannerUrl) {
                 crossfade(true)
                 placeholder(R.drawable.badge_booked_background)
@@ -176,6 +177,7 @@ class BranchDetailActivity : BaseActivity() {
         val avatarUrl = (branch.avatarUrl ?: biz?.avatarUrl)?.let { BeNobatApiConfig.resolveMediaUrl(it) ?: it }
         if (!avatarUrl.isNullOrBlank()) {
             ivAvatar?.isVisible = true
+            ivAvatar?.setOnClickListener { ImageViewerActivity.open(this, avatarUrl, branch.name) }
             tvAvatarFallback?.isVisible = false
             ivAvatar?.load(avatarUrl) {
                 crossfade(true)

@@ -196,7 +196,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
             && (x.UserId == null || (x.User != null
                 && (!x.User.LockoutEnabled || x.User.LockoutEnd == null || x.User.LockoutEnd <= DateTimeOffset.UtcNow)
                 && x.Branch.Memberships.Any(m => m.DeletedAt == null && m.UserId == x.UserId
-                    && (m.Role == AppRoles.Owner || m.Role == AppRoles.Manager || m.Role == AppRoles.Staff)))));
+                    && (m.Role.Contains(AppRoles.Owner) || m.Role.Contains(AppRoles.Manager) || m.Role.Contains(AppRoles.Staff))))));
         builder.Entity<BranchMembership>().HasQueryFilter(x => x.DeletedAt == null
             && x.Branch.DeletedAt == null && x.Branch.Business.DeletedAt == null);
         builder.Entity<BranchService>().HasQueryFilter(x => x.DeletedAt == null

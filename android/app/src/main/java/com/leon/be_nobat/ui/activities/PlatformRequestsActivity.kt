@@ -205,6 +205,8 @@ class PlatformRequestsActivity : BaseActivity() {
                 val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                 if (bmp != null) {
                     ivReceipt.setImageBitmap(bmp)
+                    val viewerData = if (base64.startsWith("data:image/")) base64 else "data:image/jpeg;base64,$clean"
+                    ivReceipt.setOnClickListener { ImageViewerActivity.open(this, viewerData, "تصویر فیش") }
                     imageLoaded = true
                 }
             } catch (_: Exception) {}
@@ -215,6 +217,7 @@ class PlatformRequestsActivity : BaseActivity() {
             val fullUrl = BeNobatApiConfig.resolveMediaUrl(mediaUrl)
             if (!fullUrl.isNullOrBlank()) {
                 pbLoading.isVisible = true
+                ivReceipt.setOnClickListener { ImageViewerActivity.open(this, fullUrl, "تصویر فیش") }
                 ivReceipt.load(fullUrl) {
                     crossfade(true)
                     listener(

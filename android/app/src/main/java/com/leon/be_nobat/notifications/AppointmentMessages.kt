@@ -40,6 +40,17 @@ object AppointmentMessages {
     fun body(a: ManagementAppointment) = body(a.status, a.businessName, a.branchName,
         a.serviceNames.ifEmpty { listOf(a.serviceName).filter { it.isNotBlank() } }, a.startsAt, a.timeZoneId, a.trackingCode)
 
+    fun newAppointmentBody(a: ManagementAppointment): String = buildString {
+        val services = a.serviceNames.ifEmpty { listOf(a.serviceName).filter { it.isNotBlank() } }
+        append(listOf(a.businessName, a.branchName).filter { it.isNotBlank() }.joinToString(" - "))
+        if (a.customerName.isNotBlank()) append("\nمشتری: ${a.customerName}")
+        if (!a.resourceName.isNullOrBlank()) append("\nارائه‌دهنده: ${a.resourceName}")
+        if (services.isNotEmpty()) append("\nخدمات: ${services.joinToString("، ")}")
+        append("\nزمان: ${date(a.startsAt, a.timeZoneId)}")
+        append("\nوضعیت: ${status(a.status)}")
+        if (a.trackingCode.isNotBlank()) append("\nکد پیگیری: ${a.trackingCode}")
+    }
+
     fun phone(value: String?): String? {
         val text = value.orEmpty().map { c -> when (c) {
             in '۰'..'۹' -> '0' + (c - '۰')

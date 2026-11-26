@@ -14,11 +14,14 @@ import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import com.leon.be_nobat.BuildConfig
 import com.leon.be_nobat.R
 import com.leon.be_nobat.data.local.TokenManager
 import com.leon.be_nobat.domain.model.Appointment
+import com.leon.be_nobat.domain.model.ManagementAppointment
 import com.leon.be_nobat.domain.repository.BookingRepository
+import com.leon.be_nobat.domain.repository.ManagementRepository
 import com.leon.be_nobat.ui.activities.AppointmentNotificationsActivity
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,10 +31,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.net.toUri
 
-class AppointmentNotificationMonitor(private val context: Context, private val tokens: TokenManager,
-    private val bookings: BookingRepository) {
+class AppointmentNotificationMonitor(
+    private val context: Context,
+    private val tokens: TokenManager,
+    private val bookings: BookingRepository,
+    private val management: ManagementRepository? = null,
+) {
     private val store = AppointmentNoticeStore(context)
     private val lock = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -44,7 +50,7 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
     fun start(application: Application) {
         if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL,
             "تغییر وضعیت نوبت‌ها", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "تأیید، لغو و سایر تغییرات وضعیت نوبت‌ها"
+            description = "ثبت نوبت جدید، تأیید، لغو و سایر تغییرات وضعیت نوبت‌ها"
         })
         scope.launch {
             var previousId: String? = null
@@ -88,7 +94,7 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
 
     suspend fun sync() = lock.withLock {
         val session = tokens.currentSession() ?: return@withLock
-                val appointments = mutableListOf<Appointment>()
+        val appointments = mutableListOf<Appointment>()
         var page = 1
         do {
             val result = bookings.listAppointments(page = page, pageSize = 100).getOrThrow()
@@ -101,6 +107,25 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
         if (tokens.currentSession()?.accessToken != session.accessToken) return@withLock
         val previous = store.read(session.user.id)
         var next = previous.update(appointments, System.currentTimeMillis())
+        if (management != null && session.user.isStaff) {
+            try {
+                val managed = mutableListOf<ManagementAppointment>()
+                var mPage = 1
+                do {
+                    val mResult = management.listAppointments(page = mPage, pageSize = 100).getOrThrow()
+                    managed += mResult.items
+                    mPage++
+                    if (managed.size < mResult.total && mResult.items.isEmpty()) throw java.io.IOException("Incomplete managed appointment page")
+                } while (managed.size < mResult.total)
+                if (tokens.currentSession()?.accessToken == session.accessToken) {
+                    next = next.updateManaged(managed, System.currentTimeMillis())
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Keep customer notification sync resilient even if management endpoint fails transiently.
+            }
+        }
         if (next != previous) store.write(session.user.id, next)
         if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             val delivered = mutableSetOf<String>()
@@ -118,7 +143,7 @@ class AppointmentNotificationMonitor(private val context: Context, private val t
 
     suspend fun inbox(): List<AppointmentNotice> = lock.withLock {
         val user = tokens.currentSession()?.user ?: return@withLock emptyList()
-                store.read(user.id).notices
+        store.read(user.id).notices
     }
 
     suspend fun markRead() = lock.withLock {

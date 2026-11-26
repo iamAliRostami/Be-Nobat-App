@@ -59,6 +59,20 @@ class PlatformBusinessEditActivity : BaseActivity() {
     private lateinit var etFirstBranchAddress: TextInputEditText
     private lateinit var weeklyHoursEditor: WeeklyHoursEditor
     private lateinit var cancellationEditor: com.leon.be_nobat.helpers.CancellationNoticeEditor
+    private lateinit var etDepositPercentage: TextInputEditText
+    private lateinit var etDepositCardNumber: TextInputEditText
+    private lateinit var etDepositIban: TextInputEditText
+    private lateinit var etDepositAccountHolder: TextInputEditText
+    private lateinit var etInstagram: TextInputEditText
+    private lateinit var etTelegram: TextInputEditText
+    private lateinit var etWhatsApp: TextInputEditText
+    private lateinit var etEitaa: TextInputEditText
+    private lateinit var etBale: TextInputEditText
+    private lateinit var etRubika: TextInputEditText
+    private lateinit var etLinkedIn: TextInputEditText
+    private lateinit var etTwitter: TextInputEditText
+    private lateinit var etAparat: TextInputEditText
+    private lateinit var etWebsite: TextInputEditText
     private lateinit var cardBusinessStatus: View
     private lateinit var switchBusinessActive: MaterialSwitch
     private lateinit var tvBusinessId: TextView
@@ -110,6 +124,20 @@ class PlatformBusinessEditActivity : BaseActivity() {
         etFirstBranchAddress = findViewById(R.id.etFirstBranchAddress)
         weeklyHoursEditor = findViewById(R.id.weeklyHoursEditor)
         cancellationEditor = findViewById(R.id.cancellationEditor)
+        etDepositPercentage = findViewById(R.id.etDepositPercentage)
+        etDepositCardNumber = findViewById(R.id.etDepositCardNumber)
+        etDepositIban = findViewById(R.id.etDepositIban)
+        etDepositAccountHolder = findViewById(R.id.etDepositAccountHolder)
+        etInstagram = findViewById(R.id.etInstagram)
+        etTelegram = findViewById(R.id.etTelegram)
+        etWhatsApp = findViewById(R.id.etWhatsApp)
+        etEitaa = findViewById(R.id.etEitaa)
+        etBale = findViewById(R.id.etBale)
+        etRubika = findViewById(R.id.etRubika)
+        etLinkedIn = findViewById(R.id.etLinkedIn)
+        etTwitter = findViewById(R.id.etTwitter)
+        etAparat = findViewById(R.id.etAparat)
+        etWebsite = findViewById(R.id.etWebsite)
         cancellationEditor.setValue(120, allowInheritance = false)
         cardBusinessStatus = findViewById(R.id.cardBusinessStatus)
         switchBusinessActive = findViewById(R.id.switchBusinessActive)
@@ -152,6 +180,20 @@ class PlatformBusinessEditActivity : BaseActivity() {
                 etBusinessSlug.setText(business.slug)
                 etBusinessDescription.setText(business.description)
                 switchRequiresApproval.isChecked = business.requiresApproval
+                etDepositPercentage.setText(business.depositPercentage?.let { if (it > 0) it.toInt().toString() else "" }.orEmpty())
+                etDepositCardNumber.setText(business.depositCardNumber.orEmpty())
+                etDepositIban.setText(business.depositIban.orEmpty())
+                etDepositAccountHolder.setText(business.depositAccountHolder.orEmpty())
+                etInstagram.setText(business.instagram.orEmpty())
+                etTelegram.setText(business.telegram.orEmpty())
+                etWhatsApp.setText(business.whatsApp.orEmpty())
+                etEitaa.setText(business.eitaa.orEmpty())
+                etBale.setText(business.bale.orEmpty())
+                etRubika.setText(business.rubika.orEmpty())
+                etLinkedIn.setText(business.linkedIn.orEmpty())
+                etTwitter.setText(business.twitter.orEmpty())
+                etAparat.setText(business.aparat.orEmpty())
+                etWebsite.setText(business.website.orEmpty())
 
                 if (business.category.isNotBlank() && !categoryOptions.contains(business.category)) {
                     categoryOptions.add(0, business.category)
@@ -260,6 +302,20 @@ class PlatformBusinessEditActivity : BaseActivity() {
             firstBranchAddress = branchAddress,
             firstBranchWeeklyHours = hours,
             cancellationNoticeMinutes = cancellationEditor.value,
+            depositPercentage = etDepositPercentage.text?.toString()?.trim()?.toDoubleOrNull()?.coerceIn(0.0, 100.0),
+            depositCardNumber = etDepositCardNumber.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            depositIban = etDepositIban.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            depositAccountHolder = etDepositAccountHolder.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            telegram = etTelegram.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            instagram = etInstagram.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            whatsApp = etWhatsApp.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            eitaa = etEitaa.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            bale = etBale.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            rubika = etRubika.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            linkedIn = etLinkedIn.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            twitter = etTwitter.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            aparat = etAparat.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
+            website = etWebsite.text?.toString()?.trim()?.takeIf { it.isNotBlank() },
         )
 
         btnSave.isEnabled = false
