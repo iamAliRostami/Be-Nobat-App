@@ -202,7 +202,21 @@ public static class PublicEndpoints
                     .AnyAsync(ct);
             }
 
-            var baseUrl = $"{http.Request.Scheme}://{http.Request.Host}";
+            var forwardedProto = http.Request.Headers["X-Forwarded-Proto"]
+                .FirstOrDefault()?.Split(',').FirstOrDefault()?.Trim();
+            var scheme = !string.IsNullOrWhiteSpace(forwardedProto)
+                ? forwardedProto
+                : http.Request.Scheme;
+            var host = http.Request.Host.Host;
+            if (string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
+                && !System.Net.IPAddress.TryParse(host, out _))
+            {
+                // کلاینت‌های فعلی ریدایرکت http به https (کد 301) را دنبال نمی‌کنند
+                scheme = "https";
+            }
+
+            var baseUrl = $"{scheme}://{http.Request.Host}";
             var downloadUrl = !string.IsNullOrWhiteSpace(latestRelease.ExternalDownloadUrl)
                 ? latestRelease.ExternalDownloadUrl
                 : $"{baseUrl}/api/v1/app/download-latest";

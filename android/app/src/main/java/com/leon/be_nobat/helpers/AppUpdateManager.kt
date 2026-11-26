@@ -166,6 +166,50 @@ object AppUpdateManager {
         }
     }
 
+    private fun openConnectionWithRedirects(
+        initialUrl: String,
+        maxRedirects: Int = 10,
+    ): HttpURLConnection {
+        var currentUrl = initialUrl.trim()
+        var redirectCount = 0
+
+        while (true) {
+            val url = URL(currentUrl)
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 15000
+                readTimeout = 30000
+                instanceFollowRedirects = false
+                setRequestProperty("Accept-Encoding", "identity")
+            }
+            connection.connect()
+
+            val code = connection.responseCode
+            val isRedirect = code == HttpURLConnection.HTTP_MOVED_PERM ||
+                code == HttpURLConnection.HTTP_MOVED_TEMP ||
+                code == HttpURLConnection.HTTP_SEE_OTHER ||
+                code == 307 ||
+                code == 308
+
+            if (!isRedirect) {
+                return connection
+            }
+
+            val location = connection.getHeaderField("Location")
+            connection.disconnect()
+
+            if (location.isNullOrBlank()) {
+                throw IllegalStateException("سرور کد $code را بدون آدرس مقصد برگرداند.")
+            }
+            if (redirectCount >= maxRedirects) {
+                throw IllegalStateException("تعداد تغییر مسیرهای سرور بیش از حد مجاز است.")
+            }
+
+            // پشتیبانی از آدرس‌های نسبی و مطلق (شامل تغییر پروتکل http به https)
+            currentUrl = URL(url, location.trim()).toString()
+            redirectCount++
+        }
+    }
+
     private fun downloadAndInstallApk(
         activity: Activity,
         downloadUrl: String,
@@ -175,16 +219,21 @@ object AppUpdateManager {
         onError: (String) -> Unit,
     ) {
         CoroutineScope(Dispatchers.IO).launch {
+            var connection: HttpURLConnection? = null
             try {
-                val url = URL(downloadUrl)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.connectTimeout = 15000
-                connection.readTimeout = 30000
-                connection.connect()
+                if (downloadUrl.isBlank()) {
+                    withContext(Dispatchers.Main) {
+                        onError("آدرس دانلود معتبر نیست.")
+                    }
+                    return@launch
+                }
+
+                connection = openConnectionWithRedirects(downloadUrl)
 
                 if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                    val code = connection.responseCode
                     withContext(Dispatchers.Main) {
-                        onError("سرور کد ${connection.responseCode} را برگرداند.")
+                        onError("سرور کد $code را برگرداند.")
                     }
                     return@launch
                 }
@@ -222,6 +271,8 @@ object AppUpdateManager {
                 withContext(Dispatchers.Main) {
                     onError(e.message ?: "خطای ناشناخته")
                 }
+            } finally {
+                connection?.disconnect()
             }
         }
     }
