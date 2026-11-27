@@ -1,19 +1,19 @@
 package com.leon.be_nobat.helpers
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
+import android.app.DownloadManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import androidx.core.content.FileProvider
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.leon.be_nobat.BuildConfig
@@ -102,13 +102,13 @@ object AppUpdateManager {
             }
         }
 
-        // ۲. دانلود و نصب مستقیم
+        // ۲. دانلود مستقیم فایل APK
         btnDirect.setOnClickListener {
             layoutProgress.visibility = View.VISIBLE
             layoutActions.visibility = View.GONE
             dialog.setCancelable(false)
 
-            downloadAndInstallApk(
+            downloadApk(
                 activity = activity,
                 downloadUrl = info.downloadUrl,
                 versionName = info.versionName,
@@ -124,10 +124,12 @@ object AppUpdateManager {
                         }
                     }
                 },
-                onSuccess = { file ->
+                onSuccess = { savedLocation ->
                     activity.runOnUiThread {
-                        dialog.dismiss()
-                        installApk(activity, file)
+                        if (!activity.isFinishing && !activity.isDestroyed) {
+                            dialog.dismiss()
+                            showDownloadCompletedDialog(activity, info.versionName, savedLocation)
+                        }
                     }
                 },
                 onError = { message ->
@@ -211,12 +213,12 @@ object AppUpdateManager {
         }
     }
 
-    private fun downloadAndInstallApk(
+    private fun downloadApk(
         activity: Activity,
         downloadUrl: String,
         versionName: String,
         onProgress: (Int) -> Unit,
-        onSuccess: (File) -> Unit,
+        onSuccess: (String) -> Unit,
         onError: (String) -> Unit,
     ) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -240,33 +242,16 @@ object AppUpdateManager {
                 }
 
                 val fileLength = connection.contentLength
-                val cacheDir = activity.externalCacheDir ?: activity.cacheDir
-                val apkFile = File(cacheDir, "benobat_update_v${versionName.replace(".", "_")}.apk")
-                if (apkFile.exists()) {
-                    apkFile.delete()
-                }
+                val fileName = "BeNobat-v${versionName.trim().ifBlank { "latest" }}.apk"
 
-                connection.inputStream.use { input ->
-                    FileOutputStream(apkFile).use { output ->
-                        val data = ByteArray(4096)
-                        var total: Long = 0
-                        var count: Int
-                        while (input.read(data).also { count = it } != -1) {
-                            total += count
-                            if (fileLength > 0) {
-                                val percent = (total * 100 / fileLength).toInt()
-                                onProgress(percent)
-                            } else {
-                                onProgress(-1)
-                            }
-                            output.write(data, 0, count)
-                        }
-                        output.flush()
-                    }
+                val savedLocation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    saveToDownloadsMediaStore(activity, connection, fileName, fileLength, onProgress)
+                } else {
+                    saveToLegacyDownloads(activity, connection, fileName, fileLength, onProgress)
                 }
 
                 withContext(Dispatchers.Main) {
-                    onSuccess(apkFile)
+                    onSuccess(savedLocation)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -278,35 +263,113 @@ object AppUpdateManager {
         }
     }
 
-    private fun installApk(context: Context, apkFile: File) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !context.packageManager.canRequestPackageInstalls()) {
-                Toast.makeText(
-                    context,
-                    "لطفاً مجوز نصب برنامه از منابع ناشناس را فعال کنید و دوباره نصب را بزنید.",
-                    Toast.LENGTH_LONG,
-                ).show()
-                val settingsIntent = Intent(
-                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:${context.packageName}"),
-                ).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(settingsIntent)
-                return
-            }
-
-            val authority = "${context.packageName}.fileprovider"
-            val apkUri: Uri = FileProvider.getUriForFile(context, authority, apkFile)
-
-            val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(apkUri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(installIntent)
-        } catch (e: Exception) {
-            Toast.makeText(context, "خطا در فراخوانی نصاب بسته اندروید: ${e.message}", Toast.LENGTH_LONG).show()
+    private fun saveToDownloadsMediaStore(
+        context: Context,
+        connection: HttpURLConnection,
+        fileName: String,
+        fileLength: Int,
+        onProgress: (Int) -> Unit,
+    ): String {
+        val resolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
+
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            ?: throw IllegalStateException("امکان ایجاد فایل در پوشه دانلودها وجود ندارد.")
+
+        try {
+            resolver.openOutputStream(uri)?.use { output ->
+                copyStreamWithProgress(connection, output, fileLength, onProgress)
+            } ?: throw IllegalStateException("خطا در باز کردن مسیر ذخیره‌سازی.")
+
+            contentValues.clear()
+            contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, contentValues, null, null)
+
+            return "پوشه دانلودها (Download/$fileName)"
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            throw e
+        }
+    }
+
+    private fun saveToLegacyDownloads(
+        context: Context,
+        connection: HttpURLConnection,
+        fileName: String,
+        fileLength: Int,
+        onProgress: (Int) -> Unit,
+    ): String {
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.cacheDir
+        if (!dir.exists()) dir.mkdirs()
+        val apkFile = File(dir, fileName)
+        if (apkFile.exists()) {
+            apkFile.delete()
+        }
+
+        FileOutputStream(apkFile).use { output ->
+            copyStreamWithProgress(connection, output, fileLength, onProgress)
+        }
+
+        return apkFile.absolutePath
+    }
+
+    private fun copyStreamWithProgress(
+        connection: HttpURLConnection,
+        output: java.io.OutputStream,
+        fileLength: Int,
+        onProgress: (Int) -> Unit,
+    ) {
+        connection.inputStream.use { input ->
+            val data = ByteArray(4096)
+            var total: Long = 0
+            var count: Int
+            while (input.read(data).also { count = it } != -1) {
+                total += count
+                if (fileLength > 0) {
+                    onProgress((total * 100 / fileLength).toInt())
+                } else {
+                    onProgress(-1)
+                }
+                output.write(data, 0, count)
+            }
+            output.flush()
+        }
+    }
+
+    private fun showDownloadCompletedDialog(
+        activity: Activity,
+        versionName: String,
+        savedLocation: String,
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("دانلود تکمیل شد")
+            .setMessage(
+                "فایل نسخه $versionName با موفقیت دانلود شد و در مسیر زیر ذخیره گردید:\n\n" +
+                    "$savedLocation\n\n" +
+                    "لطفاً وارد مدیریت فایل (بخش دانلودها) شوید و روی فایل بزنید تا نصب شود.",
+            )
+            .setPositiveButton("متوجه شدم", null)
+            .setNeutralButton("باز کردن دانلودها") { _, _ ->
+                try {
+                    val intent = Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    activity.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(
+                        activity,
+                        "لطفاً از طریق فایل منیجر گوشی به پوشه دانلودها بروید.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+            .show()
     }
 }
